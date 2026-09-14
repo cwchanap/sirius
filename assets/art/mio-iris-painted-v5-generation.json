@@ -1,0 +1,21 @@
+{
+  "tool": "image_gen.imagegen",
+  "prompt": "Use case: style-transfer.\nAsset type: one square game iris albedo texture for the original heroine Mio.\nImage 1 is the edit target: Mio's current amber iris map. Image 2 is a visual reference: Elaine's eye treatment in a Falcom 3D screenshot.\nChange only the iris artwork in Image 1. Keep the complete circular iris centered at (50%,50%) with radius 46% of the square canvas and plain off-white outside. Keep Mio's warm amber/gold eye color; do not change it to Elaine's turquoise.\nTranslate the reference's graphic eye rendering into this amber texture: a deep dark umber upper band that merges into the pupil, a clean dark outer ring, broad simple amber middle tones, a bright pale honey U-shaped lower crescent, and one clearly readable ivory oval catchlight at (37%,43%) about 10% canvas width by 12% canvas height. Add a tiny secondary soft dot near (64%,68%). The pupil is centered at (50%,50%), softly rounded, slightly taller than wide, approximately 30% canvas width and 34% canvas height. It must visually merge with the upper shadow rather than look like an isolated black dot. Reference Elaine's controlled clean painted shapes and high-contrast iris hierarchy, not a photorealistic eye.\nRemove the current noisy flame/radial marks. Use smooth grouped cel-paint transitions with a little soft edge blending. No photorealistic fibers, spiky starburst, glow, lens reflections, 3D sphere, cat slit, concentric rings or glitter. No eyelids, lashes, sclera veins, skin, face, captions, logos, borders or watermark. Output only the centered square iris texture with the exact registration above.\n",
+  "referenced_image_paths": [
+    "/Users/chanwaichan/workspace/sirius/assets/art/mio-iris-painted-v4.png",
+    "/Users/chanwaichan/workspace/sirius/artifacts/falcom-comparison/elaine_1.webp"
+  ],
+  "generated_output": "/Users/chanwaichan/.codex/generated_images/01a07eb7-4af6-7600-bfba-fe1eb2019e9b/exec-d41bc4c6-ef7f-410c-8e36-5d08650c3a5a.png",
+  "asset": "assets/art/mio-iris-painted-v5.png",
+  "sha256": "00ee2823ef3316a4ebc161a534cc0d591ee16ed4e8f378c77272f8722306f429",
+  "raster_edits": "None; generated PNG copied unchanged.",
+  "uv_registration": {
+    "center": [
+      0.5,
+      0.51
+    ],
+    "radius": 0.43,
+    "reason": "Exclude the off-white canvas margin around the generated iris."
+  },
+  "reference_credit": "Elaine screenshot, copyright 2022 Nihon Falcom Corporation. Visual treatment reference; Mio keeps her own amber iris."
+}

@@ -1,0 +1,12 @@
+{
+  "tool": "image_gen.imagegen",
+  "date": "2026-09-12",
+  "inputs": [
+    "assets/art/mio-skin-painted-v3.png",
+    "assets/art/mio-turnaround-head-v1.png"
+  ],
+  "output": "assets/art/mio-skin-painted-v4.png",
+  "generated_file": "/Users/chanwaichan/.codex/generated_images/01a07eb7-4af6-7600-bfba-fe1eb2019e9b/exec-50530270-115d-4914-8373-f85902ac0492.png",
+  "prompt": "Use case: precise-object-edit. Asset type: square diffuse/albedo UV skin texture for the existing original anime JRPG character Mio. Image 1 is the EDIT TARGET: a flat peach skin atlas with a tiny nose mark and closed lips, NOT a portrait. Image 2 is a STYLE REFERENCE only, do not copy its hair, eyes, head silhouette, costume or layout into the atlas. Preserve Image 1's square canvas, peach skin tone, smooth low-contrast gradients, faint cheeks and exact mouth position and width. The mouth center must remain at 50% of canvas width, 75.2% of canvas height; its width remains about 13.3% of canvas width. Make two restrained edits: completely remove the isolated vertical dark nose slit and white nose glint in the region about x48-53%, y62-69%, replacing them with uninterrupted skin color (the nose and nostrils will be modeled in 3D); soften the lip coloring and glossy white highlights so the mouth is a quiet thin closed warm-brown line with only a very subtle muted peach lower-lip tone, closer to the calm natural mouth in Image 2. Preserve mouth registration, no open mouth, no teeth, no lipstick effect. No eyes, eyebrows, ears, nostrils, hair, face outline, lettering, watermark or new marks. The result must remain an unlit, seamless-looking skin atlas filling the entire square, not a face illustration. Keep all other regions as close to the edit target as possible.",
+  "post_processing": "None; generated PNG copied unchanged."
+}

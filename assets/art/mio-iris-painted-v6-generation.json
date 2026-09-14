@@ -1,0 +1,10 @@
+{
+  "tool": "image_gen",
+  "source": "/Users/chanwaichan/.codex/generated_images/01a07eb7-4af6-7600-bfba-fe1eb2019e9b/exec-06df1db1-1015-4011-9e07-ffb752b4435d.png",
+  "sha256": "bab19d6c913275ebbdf14ed162c17201dcd9f66e64d313f76007a2d1c54a7c41",
+  "prompt": "artifacts/lid-structure/iris-prompt.txt",
+  "references": [
+    "assets/art/mio-iris-painted-v5.png",
+    "artifacts/falcom-comparison/elaine_1.webp"
+  ]
+}

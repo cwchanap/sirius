@@ -1,0 +1,13 @@
+{
+  "tool": "built-in image_gen",
+  "purpose": "Skin-only atlas for continuous face UV mapping",
+  "edit_target": "assets/art/mio-face-diffuse.png",
+  "style_reference": "assets/art/mio-turnaround-head-v1.png",
+  "output": "assets/art/mio-skin-painted-v3.png",
+  "dimensions": [
+    1254,
+    1254
+  ],
+  "sha256": "622d40e30cb2ba96b5cf0e6eb937145fdef885c8560862fa972ee0900ef75cb3",
+  "prompt": "Use case: precise-object-edit.\nAsset type: square, opaque albedo texture for an existing anime JRPG character's 3D skin.\nInput image 1 is the edit target, the existing face texture. Input image 2 is only the style and complexion reference for Mio; do not copy its hair, eyes, costume or background into the texture.\nEdit the first image into a skin-only painted texture. Remove both painted eyes, eyelashes and eyebrows completely, replacing those regions with continuous warm skin; the model has separate eyes and brow meshes. Keep the small nose accent at normalized x=.50,y=.65 and closed mouth at x=.50,y=.752. Keep the mouth width near .13 of the canvas and the original quiet expression. Keep these feature positions fixed. Avoid thick black outlines around lips; use a muted warm rose-brown mouth seam and very restrained lip color. No photoreal pores.\nMatch the warm ivory-peach complexion of the reference illustration, with subtle rosy warmth on the cheeks near x=.27 and .73,y=.61, a faint warm tone around the nose, and smooth low-contrast painted transitions. There must be no dark diagonal cheek stripes, no facial perimeter, no face silhouette, no ears, no head, no hair, no eye sockets, no eyes, no brows. Keep the forehead and all outer edges almost uniform pale peach, suitable for sampling onto neck and hands. This is a flat full-canvas texture map, not a portrait. No directional lighting baked into the cheeks, no cast shadows, no glossy highlights, no text, no labels. Preserve the target's layout and square aspect ratio.\n"
+}

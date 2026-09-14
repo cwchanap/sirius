@@ -1,0 +1,16 @@
+{
+  "tool": "image_gen.imagegen",
+  "prompt": "Create a NEW square 2D game texture, using the attached original Mio head guide only as a reference for the amber eye color and elegant anime drawing style. This is an IRIS ALBEDO MAP, NOT A FACE OR A WHOLE EYE. Canvas contains exactly one complete circular iris, centered at (50%,50%), radius 46% of canvas width, with a clean off-white area outside the circle. Paint a natural warm amber-brown anime iris: dark umber upper half, subdued honey lower half, thin dark outer ring, soft golden crescent inside the lower rim, very few broad smooth painterly marks. NO realistic radial fibers, spiky sunburst, crystal facets, glowing ring or photographic eye texture. The pupil is a dark umber HUMAN pupil centered at (50%,50%): nearly round, just slightly vertically oval, 24% of canvas width and 29% of canvas height, with softly rounded edges. It must NOT be a narrow slit, cat eye, or large black disc. Put one tiny ivory catchlight centered around (38%,38%), diameter 4% of canvas width; add only one faint pinprick if needed. The upper part of the pupil should merge softly into the dark top shading. Calm, focused, intelligent original anime heroine's gaze rather than doll/glass eyes. Restrained chestnut amber palette matching the guide, no orange glow. Keep precise square registration, symmetrical circular iris, centered pupil. No lids, lashes, sclera veins, eyebrows, skin, hair, face, captions, text, watermark, borders or 3D rendering. A clean hand-painted diffuse texture ready for mapping onto a 3D anime character iris.\n",
+  "referenced_image_paths": [
+    "/Users/chanwaichan/workspace/sirius/assets/art/mio-turnaround-head-v1.png"
+  ],
+  "generated_output": "/Users/chanwaichan/.codex/generated_images/01a07eb7-4af6-7600-bfba-fe1eb2019e9b/exec-e50292c4-2bd2-4c7a-abd9-bcb2db0cae2d.png",
+  "asset": "assets/art/mio-iris-painted-v4.png",
+  "sha256": "ca35e0febb3198a10ea06f73b71477cf0eeabc2483207fa2d406421cb1d58047",
+  "raster_edits": "None. Generated PNG copied unchanged; circular mesh UVs select the iris.",
+  "rejected_trial": {
+    "asset": "assets/art/mio-iris-painted-v3.png",
+    "prompt": "artifacts/cheek-eye-redesign/iris-prompt.txt",
+    "reason": "Pupil remained too narrow and iris retained too much radial noise."
+  }
+}
