@@ -27,11 +27,43 @@ public static class IntegrationCheck
             "six Hoshikawa buildings and five Komorebi buildings");
         Check(g.World.Residents.Count==10&&g.World.Residents.Select(r=>r.Name).Distinct().Count()==10,"ten named residents across two villages");
         Check(g.Enemies.Count==3,"three patrol robots");
-        foreach(var model in g.World.Residents.Where(r=>r.Name!="KOMA-7").Select(r=>r.Body))
+        foreach(var model in g.World.Residents.Select(r=>r.Body))
         {
             var skeleton=ActorVisual.Descendants(model).OfType<Skeleton3D>().Single();
-            Check(skeleton.GetBoneCount()==58&&new[]{"Chest","Neck","Jaw","LClavicle","RHand","LToe","RIndex3","LThumb3"}.All(b=>skeleton.FindBone(b)>=0),
-                "anatomical human rig imported: "+model.Name);
+            bool chiyo=model.Name=="Chiyo",koma=model.Name=="KOMA-7";
+            string[] bones=koma?new[]{"Hips","Spine2","Head","LeftHand","RightHand","LeftFoot","RightFoot"}:chiyo?new[]{"Hip","Spine02","Head","L_Hand","R_Hand","L_Foot","R_Foot"}:new[]{"Chest","Neck","Jaw","LClavicle","RHand","LToe","RIndex3","LThumb3"};
+            Check(skeleton.GetBoneCount()==(koma?65:chiyo?41:58)&&bones.All(b=>skeleton.FindBone(b)>=0),
+                "character rig imported: "+model.Name);
+            if(chiyo||koma)
+            {
+                string asset=koma?"koma7":"chiyo";
+                Check(model.GetChild<Node3D>(0).SceneFilePath==$"res://assets/models/{asset}.glb",model.Name+" uses its own Tripo model");
+                var visual=model.GetChildren().OfType<ActorVisual>().Single();
+                Check(visual.HasClip("idle")&&visual.Animator!.IsPlaying()&&visual.Animator.GetAnimation("idle").LoopMode==Animation.LoopModeEnum.Linear,model.Name+" idle plays and loops");
+                int joint=skeleton.FindBone(koma?"Head":"Spine02"),foot=skeleton.FindBone(koma?"LeftFoot":"L_Foot");
+                visual.Play("idle",1,true);visual.Animator!.Advance(0);
+                var pose=skeleton.GetBonePoseRotation(joint);var planted=skeleton.GetBoneGlobalPose(foot).Origin;
+                visual.Animator.Advance(1);
+                Check(pose.AngleTo(skeleton.GetBonePoseRotation(joint))>.005f,model.Name+" idle animates the rig");
+                Check(planted.DistanceTo(skeleton.GetBoneGlobalPose(foot).Origin)<.001f,model.Name+" idle keeps its foot planted");
+                var meshes=ActorVisual.Descendants(model).OfType<MeshInstance3D>().ToArray();
+                Check(meshes.Length==1&&meshes[0].MaterialOverride==null&&meshes[0].Mesh.SurfaceGetMaterial(0) is BaseMaterial3D {AlbedoTexture:not null,NormalEnabled:true},model.Name+" retains its textured material");
+                Check(Math.Abs(model.Position.Y-Hoshikawa.World.Height(model.Position.X,model.Position.Z))<.001f,model.Name+" is placed on village terrain");
+                if(koma)
+                {
+                    var collider=ActorVisual.Descendants(model).OfType<CollisionShape3D>().Single();
+                    Check(collider.Shape is CapsuleShape3D capsule&&Math.Abs(capsule.Height-1.25f)<.001f&&Math.Abs(collider.Position.Y-.625f)<.001f,"KOMA-7 collision fits its height");
+                    Check(Math.Abs(visual.Animator.GetAnimation("idle").Length-6)<.01,"KOMA-7 has a six-second idle");
+                    int hip=skeleton.FindBone("Hips"),right=skeleton.FindBone("RightFoot");
+                    var fixedHip=skeleton.GetBoneGlobalPose(hip);var fixedFoot=skeleton.GetBoneGlobalPose(right);
+                    foreach(double time in new[]{0.0,1.5,3,4.5,6})
+                    {
+                        visual.Animator.Seek(time,true);
+                        Check(skeleton.GetBoneGlobalPose(hip).IsEqualApprox(fixedHip)&&skeleton.GetBoneGlobalPose(right).IsEqualApprox(fixedFoot)&&skeleton.GetBoneGlobalPose(foot).Origin.DistanceTo(planted)<.001f,"KOMA-7 hips and feet stay fixed: "+time);
+                    }
+                }
+                visual.Play("idle",1,true);
+            }
         }
         var playerRig=ActorVisual.Descendants(g.Player.Model).OfType<Skeleton3D>().Single();
         Check(playerRig.GetBoneCount()==41&&new[]{"Hip","Spine02","Head","R_Hand","L_Foot"}.All(b=>playerRig.FindBone(b)>=0),

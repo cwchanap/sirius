@@ -64,12 +64,51 @@ Use `--komorebi` or `--pass-view` with `--play` to inspect the new areas. Run Go
 
 Komorebi now has angled service frontages, a smaller courtyard, an orchard packing station, and paths through the garden and orchard fence openings. Graded approaches meet the shelter and river-facing overlook floors; garden soil follows the hillside. Run Godot with `--script res://tools/review_arrangement.gd` for the placement review captures in `artifacts/arrangement-after/`.
 
+## Import another character
+
+Save the model as `.blend`, `.glb`, `.gltf` or `.fbx`, then run from the project root:
+
+```sh
+python3 tools/import_character.py /path/to/hana.glb --name hana --height 1.65
+```
+
+The shared importer launches a separate background Blender, keeps the input unchanged, preserves textures and supplied active/NLA-bound animation clips, and centers/grounds the model at the requested height in metres. It handles a single deform rig with multiple meshes, or an unrigged static model. Blender uses the installed macOS application by default; override it with `--blender /path/to/blender` or `BLENDER_BIN`.
+
+Outputs are `assets/models/hana.glb`, the packed editable copy `assets/source/hana-game.blend`, original texture copies under `assets/art/hana-import/`, and an audit report at `artifacts/model-imports/hana/build.json`. The report records source/output hashes, bone/triangle counts, clips and texture hashes. Existing outputs require `--force`; use `--output-root artifacts/hana-trial` to review a separate trial first. Keep the input and any external texture/buffer files together and outside these output paths.
+
+Useful options:
+
+- `--armature RigName` selects a rig when the source contains several; repeat `--mesh MeshName` to explicitly choose its meshes.
+- `--clip Rest=idle` renames a supplied clip to a game animation name. Clips must be assigned as an active action or NLA strip in Blender.
+- `--idle breathing` or `--idle head-turn` adds a simple idle only when the rig has no supplied animations. Use `--head-bone` and `--spine-bones` for unfamiliar bone names.
+- `--strip-bone-prefix mixamorig:` optionally removes a bone namespace.
+- `--max-triangles 90000` optionally reduces geometry. The default retains it; meshes with shape keys cannot be reduced.
+
+Use export-ready deform rigs and image-based materials: bake procedural materials and rig constraints before import. This tool preserves supplied motion; it does not rig a static mesh, retarget combat, remove root motion or correct a model's facing direction. Mio retains its specialized `tools/import_tripo_mio.py` pipeline for those combat adjustments.
+
+Chiyo and KOMA-7 now use small presets of the shared importer:
+
+```sh
+python3 tools/import_tripo_chiyo.py
+python3 tools/import_tripo_koma7.py
+```
+
+These presets rebuild their existing outputs automatically. For a new NPC, wire the GLB into `scripts/World.cs`, fit its capsule/name label, and use `scripts/ActorVisual.cs` for playback. Then build C#, import assets and run the Godot integration checks above, both headless and graphically; importing a file alone does not add a resident to the village.
+
+The importer regression check exercises all four input formats, transformed multi-mesh skinning, preserved animations/textures, grounding and invalid-input guards:
+
+```sh
+/Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python-exit-code 1 --python tools/check_character_import.py
+```
+
 ## Project notes
 
 - `scripts/World.cs`: deterministic environment and village construction; terrain and collision share the same surface.
 - `scripts/Player.cs`, `Enemy.cs`: action timing, movement, and robot behavior.
 - `scripts/Game.cs`, `Hud.cs`: quest, camera, dialogue, presentation and audio.
 - `assets/models/mio.glb`: the user's Tripo character, with a 41-bone rig, its four supplied animations and eight adapted combat clips.
+- `assets/models/chiyo.glb`: Chiyo's Tripo model with a 41-bone rig and a gentle authored idle. Her original import is preserved in `assets/source/chiyo-tripo-original.blend`; rebuild the game copy with `tools/import_tripo_chiyo.py` in background Blender.
+- `assets/models/koma7.glb`: KOMA-7's Tripo robot with a 65-bone rig and an authored head-turn idle. Preserved source: `assets/source/koma7-tripo-original.blend`; rebuild with `tools/import_tripo_koma7.py` in background Blender.
 - `assets/source/mio-tripo-original.blend`: preserved full-resolution Tripo import and packed textures; `mio-tripo-game.blend` is the game copy.
 - `assets/source/characters.blend`: previous authored Mio, villagers and original sword, retained for reference and combat retargeting.
 - `tools/import_tripo_mio.py`: rebuilds the current Mio GLB from the Tripo source in a separate background Blender process.
@@ -81,6 +120,10 @@ Komorebi now has angled service frontages, a smaller courtyard, an orchard packi
 - `tools/build_audio.py`: original synthesized ambient loop and combat sounds using Python's standard library.
 
 Mio now uses the user's Tripo model derived from the generated reference artwork. Idle, walk, run and jump come from Tripo. The existing attack combo, guard, dodge, skill, stagger and death clips are adapted to its skeleton, and the original sword follows the right hand. Movement stays under the C# collision controller. The game jump uses the first hop from Tripo's repeated sequence, removes its extra vertical travel, follows physical ascent/descent and starts landing recovery on ground contact.
+
+Chiyo uses her own Tripo elder model beside the Village Assembly. She faces the road, has a quiet breathing idle and retains her existing conversation. Her 1.58 m game copy has 89,999 triangles and the original four 4K material maps. The full-resolution import remains preserved. `tools/review_chiyo.gd` captures her appearance and village dialogue.
+
+KOMA-7 uses his own cream-and-jade Tripo gardener model in Hoshikawa. The 1.25 m model retains all 96,316 triangles and four original 4K maps, with a six-second head-turn idle and fitted collision/label. His conversation is unchanged. `tools/review_koma7.gd` captures his appearance, idle and dialogue; the three enemy patrol robots retain their original model.
 
 The game copy has 150,600 triangles including the sword, a height of 1.84 m, and unchanged 4096×4096 Tripo base-color and normal textures. The original 1,884,692-face import remains intact. The imported rig has no finger bones; combat uses the existing motions and the open-hand sword grip still needs a dedicated animation pass.
 

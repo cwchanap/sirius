@@ -67,10 +67,14 @@ Collision layers: **1** world/static geometry, **2** player, **4** enemies. `Wor
 
 GLBs under `assets/models/` are **pre-exported and committed**; `editor/import/blender/enabled=false`, so Godot never touches Blender. `.blend` sources in `assets/source/` are gitignored and live only on this machine.
 
+For new models use `python3 tools/import_character.py SOURCE --name NAME --height METRES`. It accepts `.blend/.glb/.gltf/.fbx`, preserves source files, textures and bound clips, and writes the GLB, `assets/source/NAME-game.blend`, `assets/art/NAME-import/` and `artifacts/model-imports/NAME/build.json`. Existing outputs require `--force`; `--output-root` supports trial exports. Chiyo/KOMA-7 scripts are compatibility presets of this importer; Mio's combat retargeting remains specialized. See README's import section for selection/idle/reduction options and the runnable `tools/check_character_import.py` regression check. New NPCs still need explicit `World.cs` wiring and runtime checks.
+
 - `mio.glb` — the user's Tripo import: 41 bones, 12 clips (4 supplied + 8 retargeted combat clips). Rebuilt by `blender --background --factory-startup --python tools/import_tripo_mio.py`, audited by `python3 tools/check_mio_export.py`.
+- `chiyo.glb` — the user's Tripo elder: 41 bones, one authored `idle` clip (the source supplied no actions), 1.58 m tall. Built by `tools/import_tripo_chiyo.py` in background Blender; source `assets/source/chiyo-tripo-original.blend` is preserved. Only Chiyo uses this GLB; the other human NPCs retain the shared villager rig.
+- `koma7.glb` — the user's Tripo gardener robot: 65 bones, one authored six-second head-turn `idle`, 1.25 m tall. Built by `tools/import_tripo_koma7.py` in background Blender; the original source and all 96,316 triangles/four textures are preserved. Only KOMA-7 uses it; hostile robots retain `patrol.glb`.
 - `villager.glb` / `patrol.glb` — authored humans: 58 bones, 12 clips. Built by `tools/refine_humans.py` (+ `mio_illustrated.py`, `mio_turnaround.py`) inside Blender. `build_characters.py` is legacy and recreates the *old* Mio — running it requires re-running `import_tripo_mio.py` afterward.
 
-`IntegrationCheck` asserts exact bone counts (41 / 58), specific bone names, all 12 clip names, that clips deform the skeleton, and that hips stay over the collision capsule. Any re-export must keep that contract or the self-test fails.
+`IntegrationCheck` asserts exact bone counts (Mio/Chiyo 41, KOMA-7 65, shared humans 58), specific bone names, Mio's 12 clips, Chiyo/KOMA-7's looping idles and textured materials, skeleton deformation and grounding. KOMA-7 also has checks for fitted collision, idle duration and stationary hips/feet. Any re-export must keep the corresponding character's contract or the self-test fails.
 
 Audio is synthesized by `python3 tools/build_audio.py` (stdlib only). Art in `assets/art/` is imagegen output used unedited; prompts and provenance are in `ASSETS.md`, which should be updated whenever an asset is regenerated.
 
