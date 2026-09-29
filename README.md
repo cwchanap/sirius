@@ -36,13 +36,13 @@ Tap guard within **190 ms** of a frontal normal strike to deflect it. Deflection
 
 ## Prologue route
 
-1. Speak to **Ren** outside Kisaragi Workshop, west of the village square.
+1. Speak to **Ren** outside Kisaragi Workshop, at the south end of the village.
 2. Cross the bridge and follow the lanterns up the old relay road.
 3. Disable all **three** patrol robots.
 4. Interact with the manual relay below the broken viaduct; Zero responds from the city.
 5. Return to Ren to secure the evacuation route.
 
-The settlement has **six buildings** (workshop, teahouse, clinic, farmhouse, assembly hall, granary) and **six named residents** (Ren, Chiyo, Aki, Hana, Sora, KOMA-7). Countryside includes textured rolling terrain, a river and bridge, rice beds, forest, rocks, meadow vegetation, wildflowers, and a distant machine-city skyline.
+Hoshikawa is a small Japanese hamlet with **six buildings**: a workshop with a lean-to, a kura granary, an irimoya assembly hall, a teahouse, a clinic with an engawa and a thatched farmhouse. It has **six named residents** (Ren, Chiyo, Aki, Hana, Sora, KOMA-7). A brook with a plank footbridge runs past the rice fields, a raised terrace behind a stone wall edges the west side, and the road climbs through a torii to a small shrine in a cedar grove. Countryside includes textured rolling terrain, a river and bridge, rice beds, forest, rocks, meadow vegetation, wildflowers, and a distant machine-city skyline.
 
 Continue north through the viaduct opening to **Cedar Pass** and **Komorebi**, the second village. The valley now spans 128 × 280 metres, with 120 metres of additional northern terrain. A winding lantern road crosses the Cedar River on a second bridge, with a rain shelter and overlook on side paths. Komorebi has five buildings, persimmon orchards, vegetable gardens, a village square and four residents: Nao, Emi, Toma and Yui. **Emi refills health and remedies.** Region banners and a local minimap follow your journey; the original relay mission remains playable.
 
@@ -60,7 +60,7 @@ Success prints `SELF_TEST_PASS` and exits 0. Current evidence and environment li
 
 For reproducible rendered evidence, append `-- --play --capture=res://artifacts/village.png` to a graphical launch. Optional `--overview`, `--combat-view`, `--portrait`, and `--portrait-close` select useful inspection viewpoints. These options are development conveniences; normal play begins at the illustrated title screen.
 
-Use `--komorebi` or `--pass-view` with `--play` to inspect the new areas. Run Godot with `--script res://tools/review_valley.gd` for six landscape captures under `artifacts/countryside/`.
+Run Godot with `--script res://tools/review_hamlet.gd` for Hoshikawa captures under `artifacts/hamlet/` (`-- --out=<subdir> --only=square,overview` narrows them). Use `--komorebi` or `--pass-view` with `--play` to inspect the new areas. Run Godot with `--script res://tools/review_valley.gd` for six landscape captures under `artifacts/countryside/`.
 
 Komorebi now has angled service frontages, a smaller courtyard, an orchard packing station, and paths through the garden and orchard fence openings. Graded approaches meet the shelter and river-facing overlook floors; garden soil follows the hillside. Run Godot with `--script res://tools/review_arrangement.gd` for the placement review captures in `artifacts/arrangement-after/`.
 
@@ -104,6 +104,9 @@ The importer regression check exercises all four input formats, transformed mult
 ## Project notes
 
 - `scripts/World.cs`: deterministic environment and village construction; terrain and collision share the same surface.
+- `scripts/Architecture.cs`: Hoshikawa's Japanese buildings. `Roof()` generates curved gable, irimoya and thatch roofs; `Minka()` builds the timber frame and each style's extras from the `World.Hamlet` table.
+- `scripts/Hamlet.cs`: the brook, footbridge, terrace wall, torii and shrine, stone lanterns, and village dressing. All village randomness uses its own seeded generator.
+- `tools/build_props.py`: deterministic background-Blender generator for the tree and shrub GLBs in `assets/models/props/`; `assets/shaders/foliage.gdshader` gives their leaf cards alpha cut-out, backlight and wind sway.
 - `scripts/Player.cs`, `Enemy.cs`: action timing, movement, and robot behavior.
 - `scripts/Game.cs`, `Hud.cs`: quest, camera, dialogue, presentation and audio.
 - `assets/models/mio.glb`: the user's Tripo character, with a 41-bone rig, its four supplied animations and eight adapted combat clips.

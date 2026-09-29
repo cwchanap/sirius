@@ -14,6 +14,15 @@ public partial class World : Node3D
         float pass = 10*Mathf.Sin((-z-72)*.045f);
         return Mathf.Lerp(original, pass, Mathf.SmoothStep(0,12,-z-72)) * (1-Mathf.SmoothStep(0,12,-z-134));
     }
+    public static readonly (string Name,Vector2 At,Vector3 Size,float Yaw,string Style)[] Hamlet={
+        ("Kisaragi Workshop",new(-11,9),new(8,4,7),75,"workshop"),("Seed & Grain",new(12.5f,6),new(6,4.6f,5.5f),-95,"kura"),
+        ("Village Assembly",new(-12.5f,21),new(9,5,7),82,"hall"),("The Copper Kettle",new(12,24),new(8,4.5f,7),-80,"teahouse"),
+        ("Hoshikawa Clinic",new(-11.5f,37),new(7,3.5f,6),98,"clinic"),("Mori Farmhouse",new(11,41.5f),new(8.5f,3.4f,6.5f),-70,"farmhouse")};
+    public static readonly Vector2 ShrineCenter=new(-1,63);
+    private static readonly float[] PadLevel=Hamlet.Select(h=>HamletGround(h.At.X,h.At.Y,BaseHeight(h.At.X,h.At.Y),false)).ToArray();
+    public const float ShrineLevel=2.4f,BrookWater=-.4f;
+    // Height(), the water strip, the footbridge and the minimap all follow this one brook line.
+    public static float BrookX(float z)=>19.3f+.6f*Mathf.Sin(z*.16f);
     public static string RegionAt(Vector3 p) => p.Z < -136 ? "Komorebi" : p.Z < -78 ? "Cedar Pass" : p.Z < -14 ? "Old Relay Road" : "Hoshikawa";
     public Vector3 RelayPosition => new(1, Height(1, -61), -61);
     public static readonly Color Jade = new("72e5cc"), Gold = new("eacb89"), Ink = new("152c33");
@@ -25,7 +34,8 @@ public partial class World : Node3D
         wood = Mat(new("594735"));
         Environment(); Terrain(); Village(); Countryside(); NorthernValley(); Komorebi();
     }
-    public static float Height(float x, float z)
+    public static float Height(float x, float z) => z > -9 ? HamletGround(x, z, BaseHeight(x, z), true) : BaseHeight(x, z);
+    private static float BaseHeight(float x, float z)
     {
         float rural = Mathf.SmoothStep(0, 45, -z);
         float y = (.38f * Mathf.Sin(x * .13f) * Mathf.Cos(z * .1f) + 2.7f * rural);
@@ -50,15 +60,35 @@ public partial class World : Node3D
         }
         return y;
     }
+    // Hoshikawa landforms, in order: swells, west terrace, square, level house pads, brook channel, shrine mound.
+    private static float HamletGround(float x, float z, float y, bool pads)
+    {
+        y+=.35f*Mathf.Sin(x*.21f+.6f)*Mathf.Sin(z*.17f)*Mathf.SmoothStep(3.5f,6,Math.Abs(x-RoadX(z)))*Mathf.SmoothStep(-2,4,z)*(1-Mathf.SmoothStep(15,18,x));
+        y+=1.3f*Mathf.SmoothStep(-19.2f,-20.8f,x)*Mathf.SmoothStep(2,6,z)*(1-Mathf.SmoothStep(46,52,z));
+        y=Mathf.Lerp(y,0,1-Mathf.SmoothStep(7,10,new Vector2(x,z-21).Length()));
+        // A sharpened weighted mean of pad levels: continuous where aprons overlap, yet a footprint's own
+        // pad dominates (w^4) so a neighbour's apron cannot tilt it; picking the strongest pad left a 0.48 m step.
+        float weight=0,sum=0,level=0;
+        if(pads)for(int i=0;i<Hamlet.Length;i++)
+        {
+            var (_,at,size,yaw,_)=Hamlet[i];var l=new Vector2(x-at.X,z-at.Y).Rotated(Mathf.DegToRad(yaw));
+            float w=1-Mathf.SmoothStep(0,2.2f,Math.Max(Math.Abs(l.X)-(size.X/2+1.6f),Math.Abs(l.Y)-(size.Z/2+1.6f))),k=w*w*w*w;
+            weight=Math.Max(weight,w);sum+=k;level+=k*PadLevel[i];
+        }
+        if(sum>0)y=Mathf.Lerp(y,level/sum,weight);
+        // The channel only ever cuts down, so it also runs into the river dip south of the square without a seam; a 2.3 m bank keeps the 1 m mesh under 40 degrees.
+        y=Math.Min(y,Mathf.Lerp(y,-.95f,(1-Mathf.SmoothStep(.6f,2.3f,Math.Abs(x-BrookX(z))))*(1-Mathf.SmoothStep(54,60,z))));
+        return Mathf.Lerp(y,ShrineLevel,1-Mathf.SmoothStep(4.5f,11,new Vector2(x,z).DistanceTo(ShrineCenter)));
+    }
     public static StandardMaterial3D Mat(Color c, float emission = 0) => new()
     {
         AlbedoColor = c, Roughness = .85f, EmissionEnabled = emission > 0,
         Emission = c, EmissionEnergyMultiplier = emission
     };
-    private ShaderMaterial Atlas(Vector2 cell, Vector2 repeats)
+    private ShaderMaterial Atlas(Vector2 cell, Vector2 repeats, string texture = "res://assets/art/material-atlas.png")
     {
         var m = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shaders/atlas.gdshader") };
-        m.SetShaderParameter("atlas", GD.Load<Texture2D>("res://assets/art/material-atlas.png"));
+        m.SetShaderParameter("atlas", GD.Load<Texture2D>(texture));
         m.SetShaderParameter("cell", cell); m.SetShaderParameter("repeats", repeats); return m;
     }
     public static MeshInstance3D Mesh(Node3D parent, string name, Mesh mesh, Vector3 pos, Material material)
@@ -168,31 +198,23 @@ public partial class World : Node3D
     }
     private void Village()
     {
-        House("Kisaragi Workshop",new(-12,0,18),new(8,4,7),new("b8c7b1"),true);
-        House("The Copper Kettle",new(12,0,23),new(8,4.5f,8),new("edd9b0"),false);
-        House("Hoshikawa Clinic",new(-14,0,36),new(7,3.5f,6),new("dbe1cc"),false);
-        House("Mori Farmhouse",new(14,0,39),new(7,3.5f,6),new("dcc495"),false);
-        House("Village Assembly",new(-14,0,3),new(9,5,7),new("ddd3b5"),false);
-        House("Seed & Grain",new(13,0,5),new(6,4,6),new("c7bb95"),true);
-        Resident("Ren", "ENGINEER", "A freight train is coming in three days. Zero says its cargo is people. Clear the three patrols beyond the bridge, then restart the manual relay. We need an escape route.",new(-5,0,21.3f),0);
-        Resident("Chiyo", "VILLAGE ELDER", "The cities still shine at night. But their streets belong to machines now. Here, every lantern means someone is waiting for you.",new(-7,0,6),1);
-        Resident("Aki", "MEDIC", "Hold your guard against a strike, or tap it just before impact to deflect. A broken posture leaves you exposed. Let me patch you up.",new(-8,0,34),2);
-        Resident("Hana", "FARMER", "KOMA keeps our irrigation running without a network. Old machines are our neighbors. The amber-eyed patrols beyond the bridge are not.",new(8,0,38),3);
-        Resident("Sora", "COURIER", "I saw three sentries on the old relay road. Watch for the red diamond: that sweeping attack cannot be blocked. Dodge through it or jump away.",new(7,0,25),4);
-        Resident("KOMA-7", "OFFLINE GARDENER", "Morning diagnostic: tomatoes healthy. Humans worried. Zero is still in the city. This unit is KOMA. Different machine; equally excellent company.",new(8,0,9),5);
+        foreach(var (name,at,size,yaw,style) in Hamlet) Minka(name,at,size,yaw,style);
+        float Face(float x,float z)=>Mathf.Atan2(RoadX(z)-x,0);
+        Resident("Ren", "ENGINEER", "A freight train is coming in three days. Zero says its cargo is people. Clear the three patrols beyond the bridge, then restart the manual relay. We need an escape route.",new(-5.2f,0,11),0,Face(-5.2f,11));
+        Resident("Chiyo", "VILLAGE ELDER", "The cities still shine at night. But their streets belong to machines now. Here, every lantern means someone is waiting for you.",new(-6,0,20),1,Face(-6,20));
+        Resident("Aki", "MEDIC", "Hold your guard against a strike, or tap it just before impact to deflect. A broken posture leaves you exposed. Let me patch you up.",new(-5.5f,0,37.5f),2,Face(-5.5f,37.5f));
+        Resident("Hana", "FARMER", "KOMA keeps our irrigation running without a network. Old machines are our neighbors. The amber-eyed patrols beyond the bridge are not.",new(6,0,37.5f),3,Face(6,37.5f));
+        Resident("Sora", "COURIER", "I saw three sentries on the old relay road. Watch for the red diamond: that sweeping attack cannot be blocked. Dodge through it or jump away.",new(6.8f,0,22),4,Face(6.8f,22));
+        Resident("KOMA-7", "OFFLINE GARDENER", "Morning diagnostic: tomatoes healthy. Humans worried. Zero is still in the city. This unit is KOMA. Different machine; equally excellent company.",new(8.3f,0,11.5f),5,Face(8.3f,11.5f));
         var well=new Node3D {Name="Village well",Position=new(-3.2f,0,24)};AddChild(well);
         Cylinder(well,"Stone well",new(0,.45f,0),1,.9f,stone);
         Cylinder(well,"Well water",new(0,.92f,0),.78f,.025f,Mat(new("275863")));
         foreach(float x in new[]{-1.2f,1.2f}) Box(well,"Well post",new(x,1.6f,0),new(.13f,3,.13f),wood);
         Box(well,"Well beam",new(0,3.1f,0),new(2.6f,.15f,.15f),wood);
+        Roof(well,"Well roof",2.8f,1.6f,.55f,.25f,"gable",VillageAtlas(new(1,1),Vector2.One),.1f).Position=new(0,3.2f,0);
         Cylinder(well,"Well rope",new(0,2,0),.017f,2,Mat(new("c9b581")));
         var wellBody=new StaticBody3D();well.AddChild(wellBody);
         wellBody.AddChild(new CollisionShape3D {Position=new(0,.45f,0),Shape=new CylinderShape3D {Radius=1,Height=.9f}});
-        for(int i=0;i<8;i++)
-        {
-            float z=1+i*6; Lamp(new(-4.2f,Height(-4.2f,z),z));
-            if(i%2==0) Lamp(new(4.2f,Height(4.2f,z),z));
-        }
         // Rice beds and a kitchen garden give the village a working rural life.
         for(int field=0;field<2;field++)
         {
@@ -211,7 +233,8 @@ public partial class World : Node3D
         }
         Fence(new(-24,0,0),new(-24,0,42));
         Fence(new(23,0,1),new(23,0,13));Fence(new(23,0,17),new(23,0,42));
-        Footpath(new(0,15),new(34,15),1.2f);Footpath(new(34,15),new(34,20),1.2f);
+        Footpath(new(0,15),new(17.2f,15),1.2f);Footpath(new(21.4f,15),new(34,15),1.2f);Footpath(new(34,15),new(34,20),1.2f);
+        Brook();Terrace();Shrine();Dressing();
         Label(this,"OLD RELAY ROAD  ↑",new(4,2.6f,-.3f),Gold,27);
     }
     private Node3D House(string name,Vector3 pos,Vector3 size,Color wall,bool workshop,float yaw=0,int barrels=3,float signProjection=.25f)
@@ -273,10 +296,10 @@ public partial class World : Node3D
         for(int i=0;i<barrels;i++) Cylinder(house,"Stored barrels",new(-w/2-.7f,.6f,-d/3+i*.9f),.4f,1.1f,wood);
         return house;
     }
-    private void Resident(string name,string role,string line,Vector3 p,int variant)
+    private void Resident(string name,string role,string line,Vector3 p,int variant,float? face=null)
     {
         bool chiyo=name=="Chiyo",koma=name=="KOMA-7",custom=chiyo||koma;
-        p.Y=Height(p.X,p.Z); var n=new Node3D {Name=name,Position=p,Rotation=new(0,chiyo||variant%2==0?1.1f:-1.1f,0)}; AddChild(n);
+        p.Y=Height(p.X,p.Z); var n=new Node3D {Name=name,Position=p,Rotation=new(0,face??(chiyo||variant%2==0?1.1f:-1.1f),0)}; AddChild(n);
         var body=GD.Load<PackedScene>(chiyo?"res://assets/models/chiyo.glb":koma?"res://assets/models/koma7.glb":"res://assets/models/villager.glb").Instantiate<Node3D>();
         n.AddChild(body); body.Scale=Vector3.One*(custom?1:1.03f+variant*.02f);
         var visual=new ActorVisual();n.AddChild(visual);visual.Bind(body);visual.Play("idle");
@@ -319,7 +342,7 @@ public partial class World : Node3D
         {
             float x=rng.RandfRange(-59,59),z=rng.RandfRange(-75,71);
             if(Math.Abs(x)<9|| (z>0&&Math.Abs(x)<40)||Math.Abs(z+8)<5||new Vector2(x-1,z+61).Length()<8)continue;
-            Tree(new(x,Height(x,z),z),rng.RandfRange(.8f,1.5f));
+            Tree(new(x,Height(x,z),z),rng.RandfRange(.8f,1.5f),"countryside");
         }
         for(int i=0;i<150;i++)
         {
@@ -408,7 +431,7 @@ public partial class World : Node3D
         {
             float x=rng.RandfRange(-59,59),z=rng.RandfRange(-193,-80);
             if(NorthClear(x,z)||new Vector2(x,z).DistanceTo(Geometry2D.GetClosestPointToSegment(new(x,z),new(29,-124),new(2,-106)))<7)continue;
-            Tree(new(x,Height(x,z),z),rng.RandfRange(.75f,1.35f));
+            Tree(new(x,Height(x,z),z),rng.RandfRange(.75f,1.35f),"valley");
         }
         for(int i=0;i<70;i++)
         {
@@ -536,7 +559,7 @@ public partial class World : Node3D
         for(int row=0;row<3;row++)for(int col=0;col<3;col++)
         {
             float x=25+col*6,z=-146-row*9;float y=Height(x,z);
-            Tree(new(x,y,z),.72f);
+            OrchardTree(new(x,y,z),.72f);
             for(int fruit=0;fruit<7;fruit++)
             {
                 var fruitPos=new Vector3(x+Mathf.Sin(fruit*2.4f)*1.25f,y+1.72f+(fruit%3)*.04f,z+.5f+Mathf.Cos(fruit*2.4f)*1.2f);
@@ -562,12 +585,46 @@ public partial class World : Node3D
         Fence(new(22,0,-139),new(22,0,-152));Fence(new(22,0,-156),new(22,0,-173));
         Fence(new(-24,0,-171),new(-20,0,-171));Fence(new(10,0,-173),new(22,0,-173));
     }
-    private void Tree(Vector3 p,float scale)
+    // Legacy sphere-canopy tree, kept for the Komorebi persimmon orchard whose fruit hangs at its canopy height.
+    private void OrchardTree(Vector3 p,float scale)
     {
         var t=new Node3D {Position=p,Scale=Vector3.One*scale};AddChild(t);
         Cylinder(t,"Tree trunk",new(0,2,0),.25f,4,wood,.15f);
         var foliage=Mat(new Color(rng.RandfRange(.22f,.36f),rng.RandfRange(.38f,.52f),rng.RandfRange(.19f,.27f)));
         for(int j=0;j<4;j++) Sphere(t,"Layered canopy",new(Mathf.Sin(j*2)*.9f,3.6f+j*.65f,Mathf.Cos(j*2)*.7f),new(2.1f-j*.18f,1.5f,1.9f-j*.15f),foliage);
         var b=new StaticBody3D();t.AddChild(b);b.AddChild(new CollisionShape3D {Position=new(0,1.6f,0),Shape=new CylinderShape3D {Radius=.28f,Height=3.2f}});
+    }
+    private static readonly Dictionary<string,(int Variants,float Radius,float Height)> TreeTrunks=new()
+        {["keyaki"]=(3,.32f,3.2f),["sugi"]=(3,.34f,3.5f),["sakura"]=(2,.28f,2.2f),["bamboo"]=(1,.75f,3),["shrub"]=(2,.45f,1)};
+    private readonly Dictionary<string,PackedScene> treeScenes=new();
+    private readonly Dictionary<string,Material> treeMaterials=new();
+    // Exactly three draws from `r` (variant, tint, yaw) keep the seeded scatter streams stable whatever species is chosen.
+    private Node3D Tree(Vector3 p,float scale,string species="keyaki",RandomNumberGenerator? r=null)
+    {
+        r??=rng;float a=r.Randf(),b=r.Randf(),c=r.Randf();
+        species=species switch{"countryside"=>a<.7f?"keyaki":"sugi","valley"=>a<.75f?"sugi":"keyaki",_=>species};
+        var spec=TreeTrunks[species];string file=$"{species}_{(char)('a'+(int)(a*997)%spec.Variants)}";
+        if(!treeScenes.TryGetValue(file,out var scene))treeScenes[file]=scene=GD.Load<PackedScene>($"res://assets/models/props/{file}.glb");
+        var t=scene.Instantiate<Node3D>();t.Name=$"{species} {GetChildCount()}";t.Position=p;t.Scale=Vector3.One*scale;t.Rotation=new(0,c*Mathf.Tau,0);AddChild(t);
+        var tint=new Color(.9f+b*.2f,.92f+b*.14f,.88f+b*.1f);
+        foreach(var m in ActorVisual.Descendants(t).OfType<MeshInstance3D>())
+        {
+            for(int i=0;i<m.Mesh.GetSurfaceCount();i++)m.SetSurfaceOverrideMaterial(i,TreeMaterial(m.Mesh.SurfaceGetMaterial(i)?.ResourceName??""));
+            m.SetInstanceShaderParameter("tint",tint);
+        }
+        var body=new StaticBody3D();t.AddChild(body);
+        body.AddChild(new CollisionShape3D {Position=new(0,spec.Height/2,0),Shape=new CylinderShape3D {Radius=spec.Radius,Height=spec.Height}});
+        return t;
+    }
+    private Material TreeMaterial(string name)
+    {
+        if(treeMaterials.TryGetValue(name,out var m))return m;
+        if(name=="foliage")
+        {
+            var f=new ShaderMaterial {Shader=GD.Load<Shader>("res://assets/shaders/foliage.gdshader")};
+            f.SetShaderParameter("atlas",GD.Load<Texture2D>("res://assets/art/foliage-atlas.png"));m=f;
+        }
+        else m=new StandardMaterial3D {AlbedoTexture=GD.Load<Texture2D>($"res://assets/art/bark-{name.Replace("bark_","")}.png"),Roughness=.95f};
+        return treeMaterials[name]=m;
     }
 }

@@ -1,5 +1,38 @@
 # MVP verification
 
+## Organic hamlet — 2026-09-29
+
+Hoshikawa was rebuilt as an organic hamlet. The changes are new terrain terms in `Height()`, six Japanese building archetypes, a brook and footbridge, a terrace, a shrine, generated tree models and village dressing. The C# build passes with the expected NU1900 warning, and so does the Godot import. **242 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro). Each run exits 0 with `SELF_TEST_PASS`, and neither log contains runtime warnings or errors. The new checks cover:
+
+- every house corner on a level pad within 5 cm;
+- the carved brook, the footbridge carrying the player, and climbing out of the brook channel;
+- walking up the torii steps onto the shrine plateau;
+- reaching the west terrace by its ramp;
+- ray-cast clearance of the spawn → rice-field route;
+- archetype roofs, with Komorebi's buildings unchanged;
+- each tree species loading with game materials and standing grounded (31 village trees and shrubs);
+- the first countryside boulder's exact position, so the seeded scatter stream stays fixed.
+
+Three more checks were added after the whole-branch review:
+- `Height()` has no step larger than 0.1 m across a 5 cm grid of the village. This caught a 0.48 m step where two house aprons overlapped; the pad blend is now continuous.
+- Every face of the 1 m terrain mesh along the brook banks is at most 40°. The banks were 44°; the widened channel brings them to 37.4°.
+- Each village trunk's base meets the ground on every side, so no base floats on a slope. Trunks now start 0.5 m below ground.
+
+All previous route, dialogue, combat and quest checks still pass. These are engine-injected checks, not a physical keyboard/mouse session.
+
+Frame rate: at the 60 Hz vsync cap the village holds 59–60 fps at three viewpoints. With vsync off it reaches 118–120 fps, against 144–160 fps at the base commit, so the new trees and buildings cost about 1.5–2 ms per frame. No visibility ranges were needed.
+
+Evidence is in `artifacts/hamlet/`:
+
+- `headless-test.log` and `graphical-test.log`;
+- `fps.txt`;
+- `before-after.png`, comparing `--overview`, `--portrait` and the `original-village` landscape view;
+- `final/`: seven `review_hamlet.gd` captures plus the six `review_valley.gd` captures;
+- `task1`–`task5/`: per-step captures;
+- `before/valley/`.
+
+Running `review_valley.gd` during this work overwrote the gitignored `artifacts/countryside/` renders. They were regenerated from base commit `7c3af66` in a scratch worktree and restored, but they are re-renders, not the original files. Generated textures are used unedited, with two exceptions: the foliage atlas had its blue key removed, and the bark atlas was split into quadrants. Provenance is in `ASSETS.md`.
+
 ## Shared character importer — 2026-09-20
 
 `tools/import_character.py` now handles saved Blender, GLB, glTF and FBX models; Chiyo and KOMA-7 rebuild through small compatibility presets. `tools/check_character_import.py` passes in Blender 5.2.1, exercising all four formats, transformed multi-mesh skinning, source/texture preservation, grounding, clip renaming and actual animated samples, optional authored idle, static meshes and invalid-input/overwrite guards. This is a local export-ready-model workflow, not automatic rigging or combat retargeting; Mio's specialized importer remains unchanged.

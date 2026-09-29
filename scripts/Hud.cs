@@ -145,6 +145,8 @@ public partial class Hud : Control
             float y=(riverZ-Game.Player.GlobalPosition.Z)*1.5f;
             if(Math.Abs(y)<r-3){float width=Mathf.Sqrt((r-3)*(r-3)-y*y);DrawLine(center+new Vector2(-width,y),center+new Vector2(width,y),new Color(.24f,.57f,.58f,.7f),5);}
         }
+        for(float z=-6;z<56;z+=2)
+        {var a=Map(new(World.BrookX(z),0,z));var b=Map(new(World.BrookX(z+2),0,z+2));if(a.Length()<r-3&&b.Length()<r-3)DrawLine(center+a,center+b,new Color(.24f,.57f,.58f,.7f),2);}
         for(float z=Game.Player.GlobalPosition.Z-52;z<Game.Player.GlobalPosition.Z+52;z+=2)
         {
             if(z<World.NorthEdge||z>World.SouthEdge-2)continue;

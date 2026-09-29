@@ -39,7 +39,8 @@ A `NU1900` NuGet audit-endpoint warning on build is expected and not a regressio
 ```sh
 $GODOT_MONO --path . -- --play --capture=res://artifacts/village.png
 # viewpoint flags: --overview --combat-view --portrait --portrait-close --komorebi --pass-view --title-view
-$GODOT_MONO --path . --script res://tools/review_valley.gd        # six landscape captures
+$GODOT_MONO --path . --script res://tools/review_valley.gd        # six landscape captures (overwrites artifacts/countryside/)
+$GODOT_MONO --path . --script res://tools/review_hamlet.gd        # Hoshikawa captures; -- --out=<subdir> --only=square,overview
 $GODOT_MONO --path . --script res://tools/review_arrangement.gd   # building/prop placement
 $GODOT_MONO --path . --script res://tools/review_tripo.gd         # Mio model and animation poses
 ```
@@ -52,14 +53,17 @@ $GODOT_MONO --path . --script res://tools/review_tripo.gd         # Mio model an
 
 - `Game.cs` — root `Node3D`. Owns `GameMode` (Title/Playing/Dialogue/Paused/Defeated), quest stage and objective text, the camera rig (`Node3D` → `SpringArm3D` → `Camera3D`), lock-on, dialogue, toasts, effects (`Burst`/`Slash`/`FloatingNumber`), audio, screenshots, and the input map. `InputBindings()` registers every action in code — `project.godot` has no `[input]` section.
 - `World.cs` — deterministic environment and both villages. Nothing here is random at runtime (`rng` is seeded 2189).
+- `Architecture.cs` / `Hamlet.cs` — `partial class World`. `Architecture.cs` holds the curved-roof generator (`Roof`, `RoofY`) and the `Minka()` timber-frame kit for the six Hoshikawa styles. `Hamlet.cs` holds the brook, footbridge, terrace wall, shrine, `StoneLantern()` and the village `Dressing()`. The Komorebi buildings still use the older `House()`.
 - `Player.cs` / `Enemy.cs` — `CharacterBody3D` controllers holding all action timing as float countdowns ticked in `_PhysicsProcess` (attack, dodge, guard, deflect window, posture, stun, invulnerability, cooldowns). Combat tuning lives inline in these two files; there is no data/config layer.
 - `ActorVisual.cs` — thin `AnimationPlayer` wrapper. Finds the animator under an imported GLB, normalizes clip names (`some/path/run.001` → `run`), and sets loop modes. Every character goes through it; `Play(clip, speed, restart)` is the only animation entry point.
 - `Hud.cs` — a single `Control` drawn entirely in `_Draw()` (immediate mode). Title screen, vitals, minimap, dialogue and perilous-attack diamond are draw calls, not nodes; `Game._Process` calls `QueueRedraw()` each frame. Menus are the one exception: `RefreshMenu()` builds real `Button` nodes.
 
-### Two invariants worth knowing before editing the world
+### Invariants worth knowing before editing the world
 
 1. **`World.Height(x, z)` is the single source of truth for terrain.** The visible mesh, its trimesh collider, and every placement call read the same static function, so geometry and collision cannot drift. Placing anything means calling `Height()` — never hardcode a Y. Adding a landform means editing `Height()`, which moves collision with it.
 2. **`World.RoadX(z)` and `terrain.gdshader` describe the same road curve in two languages.** Change one and you must change the other, or the painted road separates from the placement guide. The same applies to `RegionAt()`'s Z thresholds and the region names used in `Game._Process` toasts and the HUD minimap.
+3. **Hoshikawa's layout is data.** The `World.Hamlet` table (name, centre, size, yaw, style) drives the levelled house pads inside `Height()`, the `Minka()` buildings, the shrubs and the stepping stones. Move a house by editing the table, never one placement. `World.BrookX(z)` is shared by the `Height()` channel, the water strip, the footbridge and the minimap line.
+4. **Seeded streams are pinned.** The countryside and northern valley draw from `rng` (seed 2189), and `IntegrationCheck` pins the first boulder's exact position. Hoshikawa's dressing draws only from `villageRng` (seed 3301). `Tree()` always consumes exactly three draws from whichever generator it is given, so changing a species or model never shifts later scatter.
 
 Collision layers: **1** world/static geometry, **2** player, **4** enemies. `World.Box(..., solid: true)` is the standard way to add a static collider alongside a mesh.
 
@@ -76,7 +80,9 @@ For new models use `python3 tools/import_character.py SOURCE --name NAME --heigh
 
 `IntegrationCheck` asserts exact bone counts (Mio/Chiyo 41, KOMA-7 65, shared humans 58), specific bone names, Mio's 12 clips, Chiyo/KOMA-7's looping idles and textured materials, skeleton deformation and grounding. KOMA-7 also has checks for fitted collision, idle duration and stationary hips/feet. Any re-export must keep the corresponding character's contract or the self-test fails.
 
-Audio is synthesized by `python3 tools/build_audio.py` (stdlib only). Art in `assets/art/` is imagegen output used unedited; prompts and provenance are in `ASSETS.md`, which should be updated whenever an asset is regenerated.
+Trees and shrubs (`assets/models/props/*.glb`) have no `.blend` source. `/Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python tools/build_props.py` regenerates them deterministically. They carry material *names* only (`bark_<species>`, `foliage`); `World.Tree()` binds the bark textures and `foliage.gdshader` by those names. Newly imported textures default to `mipmaps/generate=false`: set it to true in their `.import` for anything that tiles or is alpha-cut.
+
+Audio is synthesized by `python3 tools/build_audio.py` (stdlib only). Art in `assets/art/` is imagegen output used unedited (except the chroma-keyed foliage atlas and the split bark atlas); prompts and provenance are in `ASSETS.md`, which should be updated whenever an asset is regenerated.
 
 ## Code style
 
