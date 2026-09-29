@@ -25,6 +25,30 @@ public static class IntegrationCheck
         void Place(Player p,Vector3 pos){p.GlobalPosition=pos;p.Velocity=Vector3.Zero;}
         Check(g.World.Buildings.Count(b=>b.Position.Z>-78)==6&&g.World.Buildings.Count(b=>b.Position.Z<-136)==5,
             "six Hoshikawa buildings and five Komorebi buildings");
+        foreach(var (name,at,size,yaw,_) in Hoshikawa.World.Hamlet)
+        {
+            var b=g.World.Buildings.Single(n=>n.Name==name);
+            Check(new[]{-1f,1f}.SelectMany(sx=>new[]{-1f,1f}.Select(sz=>b.ToGlobal(new Vector3(sx*size.X/2,0,sz*size.Z/2))))
+                .All(c=>Math.Abs(Hoshikawa.World.Height(c.X,c.Z)-b.GlobalPosition.Y)<.05f),name+" sits on a level pad");
+        }
+        foreach(var (name,_,_,_,style) in Hoshikawa.World.Hamlet)
+            Check(g.World.Buildings.Single(n=>n.Name==name).FindChild(style=="farmhouse"?"Thatch roof":style is "kura" or "workshop" or "clinic"?"Gable roof":"Irimoya roof",false,false)!=null,name+" uses its "+style+" archetype");
+        Check(g.World.Buildings.Where(b=>b.Position.Z<-136).All(b=>b.FindChild("Ceramic tile roof",false,false)!=null),"Komorebi keeps its buildings");
+        Check(Hoshikawa.World.Height(Hoshikawa.World.BrookX(30),30)<-.8f,"brook channel is carved");
+        Vector3 MeshVertex(int x,int z)=>new(x,Hoshikawa.World.Height(x,z),z);
+        float steepest=0;
+        for(int z=2;z<54;z++)for(int x=(int)Hoshikawa.World.BrookX(z)-3;x<=(int)Hoshikawa.World.BrookX(z)+3;x++)
+            foreach(var (a,b,c) in new[]{(MeshVertex(x,z),MeshVertex(x+1,z),MeshVertex(x,z+1)),(MeshVertex(x+1,z),MeshVertex(x+1,z+1),MeshVertex(x,z+1))})
+                steepest=Math.Max(steepest,Mathf.RadToDeg((c-a).Cross(b-a).AngleTo(Vector3.Up)));
+        Check(steepest<=40,$"brook banks stay climbable (steepest mesh face {steepest:F1} degrees)");
+        Check(Math.Abs(Hoshikawa.World.Height(-1,63)-Hoshikawa.World.ShrineLevel)<.05f,"shrine plateau is level");
+        float step=0;Vector2 stepAt=default;
+        for(float x=-20;x<20;x+=.05f)for(float z=.1f;z<50;z+=.05f)
+        {
+            float h=Hoshikawa.World.Height(x,z),d=Math.Max(Math.Abs(Hoshikawa.World.Height(x+.05f,z)-h),Math.Abs(Hoshikawa.World.Height(x,z+.05f)-h));
+            if(d>step){step=d;stepAt=new(x,z);}
+        }
+        Check(step<.1f,$"hamlet terrain is continuous (largest 5 cm step {step:F3} at {stepAt})");
         Check(g.World.Residents.Count==10&&g.World.Residents.Select(r=>r.Name).Distinct().Count()==10,"ten named residents across two villages");
         Check(g.Enemies.Count==3,"three patrol robots");
         foreach(var model in g.World.Residents.Select(r=>r.Body))
@@ -64,6 +88,15 @@ public static class IntegrationCheck
                 }
                 visual.Play("idle",1,true);
             }
+        }
+        Check(g.World.GetNode<Node3D>("Weathered boulder").Position.IsEqualApprox(new Vector3(32.285194f,2.944041f,-41.920254f)),"countryside scatter is unchanged");
+        foreach(var species in new[]{"keyaki","sugi","sakura","bamboo","shrub"})
+        {
+            var tree=g.World.GetChildren().OfType<Node3D>().FirstOrDefault(n=>n.Name.ToString().StartsWith(species));
+            Check(tree!=null,species+" tree is placed");
+            var meshes=ActorVisual.Descendants(tree!).OfType<MeshInstance3D>().ToArray();
+            Check(meshes.Length>0&&meshes.All(m=>Enumerable.Range(0,m.Mesh.GetSurfaceCount()).All(i=>m.GetSurfaceOverrideMaterial(i)!=null)),species+" tree model loads with game materials");
+            Check(Math.Abs(tree!.Position.Y-Hoshikawa.World.Height(tree.Position.X,tree.Position.Z))<.01f,species+" tree is grounded");
         }
         var playerRig=ActorVisual.Descendants(g.Player.Model).OfType<Skeleton3D>().Single();
         Check(playerRig.GetBoneCount()==41&&new[]{"Hip","Spine02","Head","R_Hand","L_Foot"}.All(b=>playerRig.FindBone(b)>=0),
@@ -226,6 +259,34 @@ public static class IntegrationCheck
         g.Player.Respawn();await Frames(5);
         await WalkTo(new(0,15));await WalkTo(new(23,15));await WalkTo(new(34,15));await WalkTo(new(34,20));
         Check(g.Player.IsOnFloor(),"Hoshikawa rice fields remain reachable through their fence opening");
+        Place(g.Player,new(Hoshikawa.World.BrookX(15),1.2f,15));await Frames(40);
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Y>-.1f,"brook footbridge carries the player");
+        Place(g.Player,new(Hoshikawa.World.BrookX(33),Hoshikawa.World.Height(Hoshikawa.World.BrookX(33),33)+.1f,33));await Frames(10);
+        await WalkTo(new(15.5f,33));Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Y>-.2f,"player can climb out of the brook");
+        g.Player.Respawn();await Frames(5);
+        foreach(float z in new[]{40f,50f})await WalkTo(new(Hoshikawa.World.RoadX(z),z));
+        await WalkTo(new(-1,60));
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-Hoshikawa.World.ShrineLevel)<.3f,"shrine steps reach the plateau");
+        g.Player.Respawn();await Frames(5);await WalkTo(new(-8,54));await WalkTo(new(-26,54));await WalkTo(new(-26,30));
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Y>Hoshikawa.World.Height(-17,30)+.6f,$"west terrace is reachable from its north ramp {g.Player.GlobalPosition}");
+        var space=g.GetWorld3D().DirectSpaceState;
+        foreach(var (from,to) in new[]{(new Vector2(0,31),new Vector2(0,15)),(new Vector2(0,15),new Vector2(17,15)),(new Vector2(22,15),new Vector2(34,15)),(new Vector2(34,15),new Vector2(34,20))})
+        {
+            var side=new Vector2(-(to-from).Normalized().Y,(to-from).Normalized().X)*.4f;
+            var blocked=Enumerable.Range(0,21).Select(i=>from.Lerp(to,i/20f)).Where(p=>{float y=Hoshikawa.World.Height(p.X,p.Y)+1;
+                return space.IntersectRay(PhysicsRayQueryParameters3D.Create(new(p.X-side.X,y,p.Y-side.Y),new(p.X+side.X,y,p.Y+side.Y),1)).Count>0;}).ToArray();
+            Check(blocked.Length==0,$"village corridor {from}->{to} is clear {string.Join(" ",blocked)}");
+        }
+        var villageTrees=g.World.GetChildren().OfType<Node3D>().Where(n=>n.Position.Z>0&&n.Position.Z<76&&Math.Abs(n.Position.X)<40&&n.GetChildren().OfType<StaticBody3D>().Any()
+            &&"keyaki sugi sakura bamboo shrub".Split(' ').Any(s=>n.Name.ToString().Contains(s))).ToArray();
+        Check(villageTrees.Length>=30,$"Hoshikawa is planted with {villageTrees.Length} trees and shrubs");
+        foreach(var tree in villageTrees)
+        {
+            Check(Math.Abs(tree.Position.Y-Hoshikawa.World.Height(tree.Position.X,tree.Position.Z))<.01f,"village tree grounded: "+tree.Name);
+            float bottom=ActorVisual.Descendants(tree).OfType<MeshInstance3D>().Min(m=>(m.GlobalTransform*m.GetAabb()).Position.Y);
+            float r=((CylinderShape3D)tree.GetChildren().OfType<StaticBody3D>().Single().GetChild<CollisionShape3D>(0).Shape).Radius*tree.Scale.X;
+            Check(Enumerable.Range(0,8).All(i=>Hoshikawa.World.Height(tree.Position.X+r*Mathf.Cos(i*Mathf.Tau/8),tree.Position.Z+r*Mathf.Sin(i*Mathf.Tau/8))>=bottom),"village tree base meets sloped ground: "+tree.Name);
+        }
         g.CameraYaw=0;g.Player.Respawn();await Frames(5);
         foreach(var resident in g.World.Residents)
         {

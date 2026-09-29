@@ -65,3 +65,12 @@ C# build succeeded. The final graphical integration run passed 57 checks with `S
 - [x] Rebuild the skull/jaw/profile and ribcage/waist/pelvis/leg forms; inspect clay previews before export.
 - [x] Refit the crown/fringe/ponytail, collar, strap and costume UVs; correct torso-to-arm skinning and shoulder pivots.
 - [x] Export the reviewed Mio, preserve the 58-bone/12-clip contract, pass 57 graphical checks and save final comparisons.
+
+## Organic hamlet (Hoshikawa rebuild)
+
+- [x] Reshape Hoshikawa's terrain in `World.Height()`: gentle swells, a raised west terrace with an ishigaki wall, a flattened square, level pads under every house, a brook channel (`BrookX`) and a shrine mound.
+- [x] Relayout the six buildings from one `World.Hamlet` table as angled Japanese archetypes (workshop, kura, irimoya hall, teahouse, engawa clinic, thatched farmhouse) with generated curved kawara/thatch roofs.
+- [x] Add the brook water, arched footbridge, torii, stone steps, shrine, stone lanterns and minimap brook.
+- [x] Replace sphere trees game-wide with Blender-generated keyaki, sugi, sakura, bamboo and shrub models, using Codex-generated foliage and bark textures and a wind-sway foliage shader; Komorebi's orchard keeps its persimmon trees.
+- [x] Dress the village: square furniture, lamps along the curving road, gardens, household props, stepping stones and grass. The countryside's seeded scatter is unchanged, and this is pinned by a test.
+- [x] 242 checks pass headless and in native Metal, including terrain continuity, brook bank slope and trunk-base checks added after the whole-branch review. The frame rate stays at the 60 Hz vsync cap (118–120 fps uncapped).

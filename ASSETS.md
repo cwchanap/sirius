@@ -68,6 +68,18 @@ Use case: stylized-concept. Asset type: polished illustrated title screen artwor
 
 Use case: stylized-concept. Asset type: UV texture for the iris of an original anime-style 3D JRPG human character. Create a square flat texture containing exactly ONE perfectly centered large circular golden amber iris, taking up 92 percent of the square width. Pure warm ivory outside the circle. The iris has deep brown outer limbal ring, rich amber-orange and honey-gold radial streaks, a dark near-black perfectly round pupil at the center around 30 percent of iris diameter, delicate layered cel-painted gradients, subtle warm ochre starburst fibers. Two small ivory reflected light glints in upper left of iris, one small secondary glint lower right. Front orthographic view, perfect radial circle, no perspective, no eyeball shading. Elegant detailed hand-painted Japanese anime game eye artwork, crisp at small scale, beautifully colored. No eyelids, skin, eyebrows, eyelashes, face, text, border, logo, watermarks, or multiple eyes. This will be mapped onto a circular 3D iris surface so the circle must be centered precisely.
 
+## Hoshikawa hamlet textures — 2026-09-29
+
+Generated with `codex exec` gpt-image; exact prompts and raw-output hashes are in `assets/art/hamlet-textures-generation.md`.
+
+- `assets/art/village-atlas.png`: 2×2 thatch / dark cedar boards / earthen plaster / grey kawara atlas used by the Minka kit in `scripts/Architecture.cs`. Red roofs are the kawara cell tinted in the shader; the pixels are unchanged.
+- `assets/art/foliage-atlas.png`: 2×2 keyaki / sakura / sugi / bamboo leaf-cluster sprites generated on a #0000FF key; the key was removed with `remove_chroma_key.py --auto-key border --soft-matte --despill --spill-cleanup` (RGBA, corners alpha 0). Sampled by `assets/shaders/foliage.gdshader` on the tree leaf cards.
+- `assets/art/bark-{keyaki,sugi,sakura,bamboo}.png`: the four unchanged 627×627 quadrants of one generated bark atlas.
+
+## Tree models — 2026-09-29
+
+- `assets/models/props/{keyaki_a,b,c, sugi_a,b,c, sakura_a,b, bamboo_a, shrub_a,b}.glb`, 400–2,920 triangles each, built procedurally and deterministically by `tools/build_props.py` in background Blender 5.2 (no source .blend). They carry geometry, custom normals, UVs into the foliage atlas, and vertex colour (R wind sway, G ambient); materials are names only (`bark_<species>`, `foliage`) and `World.Tree()` binds the textures above.
+
 ## Blender models
 
 Created and exported through the connected Blender MCP, using `tools/build_characters.py` and the updated human authoring pipeline in `tools/refine_humans.py` and `tools/mio_illustrated.py`. Editable source: `assets/source/characters.blend`. Runtime exports: `mio.glb`, `villager.glb`, `patrol.glb`. Meshes, materials, skinning and animation keys are original authored procedural Blender geometry. Human NPCs share the villager base with palette/scale variants; KOMA is a friendly recolor of the robot base. Each rig includes idle, walk, run, three attacks, guard, dodge, jump, skill, stagger and death clips.
