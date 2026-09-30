@@ -9,8 +9,8 @@ public partial class World
         var st=new SurfaceTool();st.Begin(Godot.Mesh.PrimitiveType.Triangles);
         // Half-width 2.1 buries the strip's edges under the 1 m mesh chords of the bank instead of leaving them hovering over it.
         void V(float x,float z){st.SetNormal(Vector3.Up);st.SetUV(new(x*.2f,z*.2f));st.AddVertex(new(x,BrookWater,z));}
-        // Starts flush with the river sheet's north edge (z -5.6): overlapping it z-fights, a gap shows as a dark seam.
-        for(float z=-5.6f;z<56;z++)
+        // Starts flush with the river sheet's south edge (z -4): overlapping it z-fights, a gap shows as a dark seam.
+        for(float z=-4;z<56;z++)
         {
             float a=BrookX(z),b=BrookX(z+1);
             V(a-2.1f,z);V(b-2.1f,z+1);V(a+2.1f,z);V(a+2.1f,z);V(b-2.1f,z+1);V(b+2.1f,z+1);

@@ -73,11 +73,15 @@ public static class IntegrationCheck
         for(int i=0;i<brookFaces.Length;i+=3)for(int e=0;e<3;e++)
         {
             Vector3 a=brookFaces[i+e],b=brookFaces[i+(e+1)%3];
-            // The mouth's first metre lies in the river's own dip beside the river sheet, whose edges sit the same way.
-            if(Math.Abs(a.Z-b.Z)<.5f||Math.Max(a.Z,b.Z)<-4.5f||Math.Sign(a.X-Hoshikawa.World.BrookX(a.Z))!=Math.Sign(b.X-Hoshikawa.World.BrookX(b.Z)))continue;
+            if(Math.Abs(a.Z-b.Z)<.5f||Math.Sign(a.X-Hoshikawa.World.BrookX(a.Z))!=Math.Sign(b.X-Hoshikawa.World.BrookX(b.Z)))continue;
             for(float t=0;t<=1;t+=.05f){var p=a.Lerp(b,t);if(p.Y-MeshHeight(p.X,p.Z)>hover){hover=p.Y-MeshHeight(p.X,p.Z);hoverAt=p;}}
         }
         Check(hover<-.02f,$"brook water edges stay buried in the banks (highest edge {hover:F3} m at {hoverAt})");
+        var river=g.World.GetNode<MeshInstance3D>("Hoshikawa river");var riverSize=((PlaneMesh)river.Mesh).Size;float riverHover=-9;Vector3 riverAt=default;
+        // Where the brook's channel meets the river the brook strip carries on from the sheet's edge, so that stretch is open by design.
+        for(float x=-riverSize.X/2;x<=riverSize.X/2;x+=.25f)foreach(float z in new[]{river.Position.Z-riverSize.Y/2,river.Position.Z+riverSize.Y/2})
+            if((z<river.Position.Z||Math.Abs(x-Hoshikawa.World.BrookX(z))>2.1f)&&river.Position.Y-MeshHeight(x,z)>riverHover){riverHover=river.Position.Y-MeshHeight(x,z);riverAt=new(x,river.Position.Y,z);}
+        Check(riverHover<-.02f,$"river water edges stay buried in the banks (highest edge {riverHover:F3} m at {riverAt})");
         float step=0;Vector2 stepAt=default;
         for(float x=-20;x<20;x+=.05f)for(float z=-8.9f;z<50;z+=.05f)
         {

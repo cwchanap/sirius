@@ -43,6 +43,8 @@ public partial class World : Node3D
         float y = (.38f * Mathf.Sin(x * .13f) * Mathf.Cos(z * .1f) + 2.7f * rural);
         y += 3.4f * Mathf.Exp(-((x + 22) * (x + 22) + (z + 42) * (z + 42)) / 280f);
         y -= 2.1f * Mathf.Exp(-(z + 8) * (z + 8) / 8f);
+        // A low village-side bank: where the swells trough, the ground sat at the water line and gave the river sheet no shore to end in.
+        y += .3f * Mathf.Exp(-(z + 4) * (z + 4) / 4f);
         // The village flattening fades in over 3 m; switching it on at z=0 left a 0.38 m step across the terrain.
         if (Math.Abs(x) < 30) y *= Mathf.Lerp(1, Mathf.SmoothStep(0, 12, Math.Abs(x) - 18), Mathf.SmoothStep(-3, 0, z));
         if (Math.Abs(x) < 4 && z > -16 && z < 0)
@@ -182,7 +184,7 @@ public partial class World : Node3D
         var ground = new StaticBody3D { Name = "Terrain collision" }; AddChild(ground);
         ground.AddChild(new CollisionShape3D { Shape = mesh.CreateTrimeshShape() });
         var water = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shaders/water.gdshader") };
-        Mesh(this,"Hoshikawa river",new PlaneMesh { Size = new(127,4.8f), SubdivideWidth = 100 },new(0,-.38f,-8),water);
+        Mesh(this,"Hoshikawa river",new PlaneMesh { Size = new(127,8), SubdivideWidth = 100 },new(0,-.38f,-8),water);
         for(int i=0;i<21;i++)
             Box(this,"Bridge plank",new(0,.72f,-13+i*.5f),new(6,.2f,.46f),wood,true);
         foreach(float x in new[]{-2.9f,2.9f})

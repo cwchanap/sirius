@@ -33,6 +33,7 @@ func review():
 		["brook-mouth",Vector3(25,2.2,-1),Vector3(18.5,-.6,-6.5),Vector3(14,.1,1)],
 		["shrine-approach",Vector3(3,4,43),Vector3(-1,3,62),Vector3(-.5,.1,48)],
 		["terrace",Vector3(-21.5,4.2,56),Vector3(-22,1,30),Vector3(-26,1.3,40)],
+		["river",Vector3(44,3.5,2),Vector3(24,-.4,-8),Vector3(38,.1,1)],
 		["overview",Vector3(32,26,-8),Vector3(0,0,28),Vector3(0,.1,31)]]
 	for view in views:
 		if only.size()>0 and not only.has(view[0]): continue

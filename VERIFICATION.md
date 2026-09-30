@@ -1,5 +1,17 @@
 # MVP verification
 
+## River banks — 2026-09-30
+
+The Hoshikawa river sheet now ends inside its banks. **270 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro). Both runs exit 0 with `SELF_TEST_PASS`, and neither log contains warnings or errors.
+
+- A new check samples both long edges of the river sheet against the 1 m terrain mesh. It skips only the stretch where the brook strip carries on from the edge. Before the fix, the edges were up to 0.86 m above the ground (x = 36 on the village bank). Now they are at least 10.6 cm below it.
+- The sheet was 4.8 m wide, narrower than its dip, so both edges hung over the dry hollow. It is now 8 m wide (z −12 to −4).
+- Widening alone could not fix the village bank at x ≈ 34–38 and x ≈ −58 to −62. There the terrain's swell troughs left the ground within 1 cm of the water for over 10 m. `BaseHeight` now adds a 0.3 m village-side bank centred on z = −4. The countryside bank already met the water within 3.25 m and is unchanged. The brook's bed is still carved to −0.95 m.
+- The brook strip now starts at the sheet's new edge (z −4). The brook-edge check no longer excludes the mouth's first metre: every brook edge is at least 18.8 cm below the bank.
+- The first-boulder pin, the terrain continuity grid and the 31 village trees are unchanged.
+
+Frame rate was not re-measured. Evidence is in `artifacts/hamlet/river/`: both test logs, and `review_hamlet.gd` captures including a new `river` view. `before/` holds the same `river` and `brook-mouth` views from the previous commit.
+
 ## Hamlet review minors — 2026-09-29
 
 The ten minor findings deferred from the hamlet's whole-branch review are fixed. **269 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro). Both runs exit 0 with `SELF_TEST_PASS`, and neither log contains warnings or errors. Each new check below failed before its fix:
