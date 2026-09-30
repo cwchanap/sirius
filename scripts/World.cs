@@ -19,6 +19,8 @@ public partial class World : Node3D
         ("Village Assembly",new(-12.5f,21),new(9,5,7),82,"hall"),("The Copper Kettle",new(12,24),new(8,4.5f,7),-80,"teahouse"),
         ("Hoshikawa Clinic",new(-11.5f,37),new(7,3.5f,6),98,"clinic"),("Mori Farmhouse",new(11,41.5f),new(8.5f,3.4f,6.5f),-70,"farmhouse")};
     public static readonly Vector2 ShrineCenter=new(-1,63);
+    public static readonly (Vector2 From,Vector2 To)[] Footpaths={(new(0,15),new(17.2f,15)),(new(21.4f,15),new(34,15)),(new(34,15),new(34,20))};
+    public static bool OnFootpath(Vector2 p,float margin)=>Footpaths.Any(f=>Geometry2D.GetClosestPointToSegment(p,f.From,f.To).DistanceTo(p)<1.2f+margin);
     private static readonly float[] PadLevel=Hamlet.Select(h=>HamletGround(h.At.X,h.At.Y,BaseHeight(h.At.X,h.At.Y),false)).ToArray();
     public const float ShrineLevel=2.4f,BrookWater=-.4f;
     // Height(), the water strip, the footbridge and the minimap all follow this one brook line.
@@ -41,7 +43,8 @@ public partial class World : Node3D
         float y = (.38f * Mathf.Sin(x * .13f) * Mathf.Cos(z * .1f) + 2.7f * rural);
         y += 3.4f * Mathf.Exp(-((x + 22) * (x + 22) + (z + 42) * (z + 42)) / 280f);
         y -= 2.1f * Mathf.Exp(-(z + 8) * (z + 8) / 8f);
-        if (z > 0 && Math.Abs(x) < 30) y *= Mathf.SmoothStep(0, 12, Math.Abs(x) - 18);
+        // The village flattening fades in over 3 m; switching it on at z=0 left a 0.38 m step across the terrain.
+        if (Math.Abs(x) < 30) y *= Mathf.Lerp(1, Mathf.SmoothStep(0, 12, Math.Abs(x) - 18), Mathf.SmoothStep(-3, 0, z));
         if (Math.Abs(x) < 4 && z > -16 && z < 0)
             y = Mathf.Lerp(y, .82f, (1 - Mathf.SmoothStep(3, 4, Math.Abs(x))) * Mathf.SmoothStep(0, 2, Math.Min(z + 16, -z)));
         if (z < -78)
@@ -78,7 +81,7 @@ public partial class World : Node3D
         if(sum>0)y=Mathf.Lerp(y,level/sum,weight);
         // The channel only ever cuts down, so it also runs into the river dip south of the square without a seam; a 2.3 m bank keeps the 1 m mesh under 40 degrees.
         y=Math.Min(y,Mathf.Lerp(y,-.95f,(1-Mathf.SmoothStep(.6f,2.3f,Math.Abs(x-BrookX(z))))*(1-Mathf.SmoothStep(54,60,z))));
-        return Mathf.Lerp(y,ShrineLevel,1-Mathf.SmoothStep(4.5f,11,new Vector2(x,z).DistanceTo(ShrineCenter)));
+        return Mathf.Lerp(y,ShrineLevel,1-Mathf.SmoothStep(4.5f,14,new Vector2(x,z).DistanceTo(ShrineCenter)));
     }
     public static StandardMaterial3D Mat(Color c, float emission = 0) => new()
     {
@@ -233,7 +236,7 @@ public partial class World : Node3D
         }
         Fence(new(-24,0,0),new(-24,0,42));
         Fence(new(23,0,1),new(23,0,13));Fence(new(23,0,17),new(23,0,42));
-        Footpath(new(0,15),new(17.2f,15),1.2f);Footpath(new(21.4f,15),new(34,15),1.2f);Footpath(new(34,15),new(34,20),1.2f);
+        foreach(var (from,to) in Footpaths)Footpath(from,to,1.2f);
         Brook();Terrace();Shrine();Dressing();
         Label(this,"OLD RELAY ROAD  ↑",new(4,2.6f,-.3f),Gold,27);
     }
@@ -326,13 +329,14 @@ public partial class World : Node3D
         int count=Math.Max(1,(int)a.DistanceTo(b)/2);
         for(int i=0;i<=count;i++)
         {var p=a.Lerp(b,(float)i/count);p.Y=Height(p.X,p.Z);Box(this,"Fence post",p+new Vector3(0,.65f,0),new(.16f,1.3f,.16f),wood,true);}
+        // Rails run post to post, so they climb a ramp with the ground instead of floating level over it.
         for(int i=0;i<count;i++)
         {
-            var p=a.Lerp(b,(i+.5f)/count);p.Y=Height(p.X,p.Z);
+            Vector3 p0=a.Lerp(b,(float)i/count),p1=a.Lerp(b,(float)(i+1)/count);p0.Y=Height(p0.X,p0.Z);p1.Y=Height(p1.X,p1.Z);
             foreach(float y in new[]{.48f,1f})
             {
-                var rail=Box(this,"Fence rail",p+new Vector3(0,y,0),new(.12f,.12f,a.DistanceTo(b)/count+.1f),wood,true);
-                rail.Rotation=new(0,Mathf.Atan2(b.X-a.X,b.Z-a.Z),0);
+                var rail=Box(this,$"Fence rail {GetChildCount()}",(p0+p1)/2+new Vector3(0,y,0),new(.12f,.12f,p0.DistanceTo(p1)+.1f),wood,true);
+                rail.Rotation=new(-Mathf.Atan2(p1.Y-p0.Y,new Vector2(p1.X-p0.X,p1.Z-p0.Z).Length()),Mathf.Atan2(b.X-a.X,b.Z-a.Z),0);
             }
         }
     }
@@ -348,9 +352,10 @@ public partial class World : Node3D
         {
             float x=rng.RandfRange(-60,60),z=rng.RandfRange(-75,65);
             if(Math.Abs(x)<5||(z>0&&Math.Abs(x)<39))continue;
-            float s=rng.RandfRange(.3f,1.5f);
-            var rock=Sphere(this,"Weathered boulder",new(x,Height(x,z)+s*.3f,z),new(s,s*.6f,s*.75f),stone);
-            rock.Rotation=new(rng.Randf(),rng.Randf()*6,0);
+            float s=rng.RandfRange(.3f,1.5f);var tilt=new Vector3(rng.Randf(),rng.Randf()*6,0);
+            // Skipped only after its draws, so the rest of the seeded scatter keeps its place.
+            if(z>-9&&Math.Abs(x-BrookX(z))<2.3f+s)continue;
+            Sphere(this,"Weathered boulder",new(x,Height(x,z)+s*.3f,z),new(s,s*.6f,s*.75f),stone).Rotation=tilt;
         }
         var st=new SurfaceTool();st.Begin(Godot.Mesh.PrimitiveType.Triangles);
         var gm=Mat(new("7d9d53"));gm.CullMode=BaseMaterial3D.CullModeEnum.Disabled;

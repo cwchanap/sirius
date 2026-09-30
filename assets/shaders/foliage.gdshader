@@ -7,6 +7,8 @@ void vertex(){
     VERTEX.xz+=COLOR.r*.12*vec2(sin(TIME*1.3+w.x*.35+w.z*.2),cos(TIME*1.1+w.z*.3));
 }
 void fragment(){
+    // cull_disabled flips NORMAL on back faces; undo it so both sides of a card keep the crown's spherised normal.
+    if(!FRONT_FACING)NORMAL=-NORMAL;
     vec4 t=texture(atlas,UV);
     ALBEDO=t.rgb*tint.rgb*COLOR.g; ALPHA=t.a; ALPHA_SCISSOR_THRESHOLD=.45;
     BACKLIGHT=t.rgb*.35; ROUGHNESS=.9;

@@ -7,12 +7,13 @@ public partial class World
     private void Brook()
     {
         var st=new SurfaceTool();st.Begin(Godot.Mesh.PrimitiveType.Triangles);
-        // Half-width 1.75 buries the strip's edges in the bank instead of leaving them hovering over it.
+        // Half-width 2.1 buries the strip's edges under the 1 m mesh chords of the bank instead of leaving them hovering over it.
         void V(float x,float z){st.SetNormal(Vector3.Up);st.SetUV(new(x*.2f,z*.2f));st.AddVertex(new(x,BrookWater,z));}
-        for(float z=-5.5f;z<56;z++)
+        // Starts flush with the river sheet's north edge (z -5.6): overlapping it z-fights, a gap shows as a dark seam.
+        for(float z=-5.6f;z<56;z++)
         {
             float a=BrookX(z),b=BrookX(z+1);
-            V(a-1.75f,z);V(b-1.75f,z+1);V(a+1.75f,z);V(a+1.75f,z);V(b-1.75f,z+1);V(b+1.75f,z+1);
+            V(a-2.1f,z);V(b-2.1f,z+1);V(a+2.1f,z);V(a+2.1f,z);V(b-2.1f,z+1);V(b+2.1f,z+1);
         }
         Mesh(this,"Hoshikawa brook",st.Commit(),Vector3.Zero,new ShaderMaterial{Shader=GD.Load<Shader>("res://assets/shaders/water.gdshader")});
         for(int i=0;i<6;i++)
@@ -117,7 +118,7 @@ public partial class World
     {
         var r=villageRng;var boards=VillageAtlas(new(1,0),new(3,2));var soil=Mat(new("5d4a36"));
         var keep=Residents.Where(x=>x.Body.Position.Z>0).SelectMany(x=>new[]{new Vector2(x.Body.Position.X,x.Body.Position.Z),new Vector2(x.Body.Position.X,x.Body.Position.Z+2)}).ToArray();
-        bool Clear(Vector2 p,float room)=>keep.All(k=>k.DistanceTo(p)>room)&&Math.Abs(p.X-RoadX(p.Y))>3.6f&&!(Math.Abs(p.Y-15)<1.6f&&p.X>-1&&p.X<35);
+        bool Clear(Vector2 p,float room)=>keep.All(k=>k.DistanceTo(p)>room)&&Math.Abs(p.X-RoadX(p.Y))>3.6f&&!OnFootpath(p,.4f);
         Vector3 Ground(Vector2 p,float lift=0)=>new(p.X,Height(p.X,p.Y)+lift,p.Y);
         StoneLantern(this,Ground(new(-6.5f,17.5f)));StoneLantern(this,Ground(new(-6.5f,29)));
         Bench(new(-5.4f,27.3f),90);Bench(new(5.2f,26.5f),-90);
@@ -146,7 +147,9 @@ public partial class World
             var road=new Vector2(RoadX(door.Y)+Math.Sign(door.X-RoadX(door.Y))*2.9f,door.Y);
             for(float t=0;t<=door.DistanceTo(road);t+=.8f)
             {var p=door.MoveToward(road,t)+new Vector2(r.RandfRange(-.1f,.1f),r.RandfRange(-.1f,.1f));Cylinder(this,"Stepping stone",Ground(p,.02f),r.RandfRange(.24f,.32f),.08f,stone);}
-            if(style is "hall" or "clinic")foreach(float s in new[]{-1.4f,1.4f})Pot(Ground(World2(s,dz+.45f)));
+            // Hall pots flank its wide porch step; the clinic's stand on the engawa deck, whose top is .53 m up.
+            if(style=="hall")foreach(float s in new[]{-2.1f,2.1f})Pot(Ground(World2(s,dz+.9f)));
+            if(style=="clinic")foreach(float s in new[]{-1.4f,1.4f})Pot(b.ToGlobal(new(s,.53f,dz+.45f)));
         }
         // KOMA-7's kitchen garden and the farmhouse vegetable plot.
         GroundStrip("Kitchen garden soil",new(10.2f,11.55f),new(14.8f,11.55f),1.15f,soil);
@@ -175,12 +178,12 @@ public partial class World
         foreach(float s in new[]{-1f,1f}){Cylinder(cart,"Cart wheel",new(s*.58f,.42f,0),.42f,.07f,wood).Rotation=new(0,0,Mathf.Pi/2);Box(cart,"Cart handle",new(s*.4f,.66f,1.25f),new(.05f,.05f,1.2f),wood);}
         for(int i=0;i<2;i++)Sphere(cart,"Rice sack",new(0,.85f,-.35f+i*.62f),new(.36f,.24f,.28f),Mat(new("d9cfa8")));
         foreach(var p in new Vector2[]{new(-12.4f,13.6f),new(-13.2f,13.9f),new(-12.8f,14.6f)})Cylinder(this,"Stored barrel",Ground(p,.5f),.34f,1,wood);
-        // Grass tufts on the village lawns, clear of the road, square, pads, brook and shrine mound.
+        // Grass tufts on the village lawns, clear of the road, square, pads, footpaths, brook and shrine mound.
         var st=new SurfaceTool();st.Begin(Godot.Mesh.PrimitiveType.Triangles);
         for(int i=0;i<2500;i++)
         {
             float x=r.RandfRange(-39,39),z=r.RandfRange(0,72),h=r.RandfRange(.16f,.5f);
-            if(Math.Abs(x-RoadX(z))<3.8f||new Vector2(x,z-21).Length()<8||(Math.Abs(x-BrookX(z))<2.6f&&z<58)||new Vector2(x,z).DistanceTo(ShrineCenter)<10||OnPad(x,z)||(x>21&&x<38&&z>20&&z<40))continue;
+            if(Math.Abs(x-RoadX(z))<3.8f||new Vector2(x,z-21).Length()<8||(Math.Abs(x-BrookX(z))<2.6f&&z<58)||new Vector2(x,z).DistanceTo(ShrineCenter)<10||OnPad(x,z)||OnFootpath(new(x,z),.1f)||(x>21&&x<38&&z>20&&z<40))continue;
             var p=Ground(new(x,z));
             st.SetNormal(Vector3.Up);st.AddVertex(p+new Vector3(-.09f,0,0));st.AddVertex(p+new Vector3(.04f,h,.05f));st.AddVertex(p+new Vector3(.09f,0,0));
         }
@@ -194,7 +197,7 @@ public partial class World
     }
     private void Pot(Vector3 p)
     {
-        Cylinder(this,"Plant pot",p+new Vector3(0,.16f,0),.2f,.32f,Mat(new("9c5a3c")),.16f);
+        Cylinder(this,$"Plant pot {GetChildCount()}",p+new Vector3(0,.16f,0),.2f,.32f,Mat(new("9c5a3c")),.16f);
         Sphere(this,"Potted plant",p+new Vector3(0,.48f,0),new(.28f,.24f,.28f),Mat(new("6f9a4a")));
     }
     private void BambooFence(Vector2 a,Vector2 b)

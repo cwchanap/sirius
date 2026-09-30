@@ -1,5 +1,23 @@
 # MVP verification
 
+## Hamlet review minors — 2026-09-29
+
+The ten minor findings deferred from the hamlet's whole-branch review are fixed. **269 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro). Both runs exit 0 with `SELF_TEST_PASS`, and neither log contains warnings or errors. Each new check below failed before its fix:
+
+- Brook water edges stay under the bank's 1 m mesh triangles. They were up to 0.46 m above the mesh; from z −4.5 north they are now at least 8 cm below it. The strip's half-width is 2.1 m, and it starts flush with the river sheet, which removes the dark seam where the two met. The mouth's first metre still lies over the river's dip, as the river sheet's own edges always have.
+- No countryside boulder sits in the brook mouth. The boulder there is skipped only after its random draws, so the first-boulder pin still passes.
+- Potted plants stand clear of decks and steps. The hall's pots now flank its porch step, and the clinic's stand on the engawa.
+- The shrine mound's mesh faces are at most 25°. They were 32.4°; the mound's falloff radius grew from 11 to 14 m.
+- Village grass keeps off the footpaths, which are now the shared `World.Footpaths` data.
+- Fence rails follow the ground. A rail's two ends were up to 0.81 m apart in height above ground. Rails now run post to post, in every fence including Komorebi's.
+- Every Hoshikawa sign hangs clear of its roof. The hall's sign had clipped its porch roof; it now hangs 0.25 m lower.
+- The terrain continuity grid now extends south to z −8.9. This caught a 0.38 m step at z = 0 in `BaseHeight` that predates the hamlet; the village flattening now fades in over 3 m. The old bridge causeway (|x| < 4.5, z < −3) is skipped because its banks are steep by design.
+- Each resident's talk spot is standable: the dialogue check now lets physics settle the player for 10 frames before `Interact()`. This check passed on its first run. It hardens the old teleport-only dialogue check rather than reproducing a defect.
+
+The foliage back-face shading was checked with a render probe, since headless runs have no renderer. A leaf card lit from above measured luminance 1.000 from above and 0.627 from below. With `cull_disabled`, Godot flips `NORMAL` on back faces. After `foliage.gdshader` undoes that flip, both sides read 1.000.
+
+Frame rate was not re-measured for these changes. Evidence is in `artifacts/hamlet/minors/`: both test logs, `foliage-probe.txt`, and eight `review_hamlet.gd` captures. These include a new `brook-mouth` view. The `terrace` camera was also moved, because the earlier capture had it inside a keyaki crown.
+
 ## Organic hamlet — 2026-09-29
 
 Hoshikawa was rebuilt as an organic hamlet. The changes are new terrain terms in `Height()`, six Japanese building archetypes, a brook and footbridge, a terrace, a shrine, generated tree models and village dressing. The C# build passes with the expected NU1900 warning, and so does the Godot import. **242 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro). Each run exits 0 with `SELF_TEST_PASS`, and neither log contains runtime warnings or errors. The new checks cover:

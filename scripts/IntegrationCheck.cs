@@ -34,6 +34,21 @@ public static class IntegrationCheck
         foreach(var (name,_,_,_,style) in Hoshikawa.World.Hamlet)
             Check(g.World.Buildings.Single(n=>n.Name==name).FindChild(style=="farmhouse"?"Thatch roof":style is "kura" or "workshop" or "clinic"?"Gable roof":"Irimoya roof",false,false)!=null,name+" uses its "+style+" archetype");
         Check(g.World.Buildings.Where(b=>b.Position.Z<-136).All(b=>b.FindChild("Ceramic tile roof",false,false)!=null),"Komorebi keeps its buildings");
+        foreach(var (name,_,_,_,_) in Hoshikawa.World.Hamlet)
+        {
+            // Casting up from the sign's top edge, the first roof face met must be an underside (normal down), not the slab's top.
+            var b=g.World.Buildings.Single(n=>n.Name==name);var sign=b.GetNode<MeshInstance3D>("Hanging shop sign");var size=((BoxMesh)sign.Mesh).Size;
+            var faces=ActorVisual.Descendants(b).OfType<MeshInstance3D>().Where(m=>m.Mesh is ArrayMesh&&m.Name.ToString().Contains("roof")).SelectMany(m=>m.Mesh.GetFaces().Select(v=>m.GlobalTransform*v)).ToArray();
+            Check(new[]{-1f,0,1f}.All(s=>{var p=sign.GlobalTransform*new Vector3(s*size.X/2,size.Y/2,0);float best=float.MaxValue;bool under=false;
+                for(int i=0;i<faces.Length;i+=3)if(Geometry3D.RayIntersectsTriangle(p,Vector3.Up,faces[i],faces[i+1],faces[i+2]) is {VariantType:Variant.Type.Vector3} hit&&hit.AsVector3().Y-p.Y<best)
+                {best=hit.AsVector3().Y-p.Y;under=(faces[i+2]-faces[i]).Cross(faces[i+1]-faces[i]).Y<0;}
+                return under;}),name+" sign hangs clear of its roof");
+        }
+        var decks=ActorVisual.Descendants(g.World).OfType<MeshInstance3D>().Where(m=>m.Name=="Engawa deck"||m.Name=="Wide stone step").ToArray();
+        var pots=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().StartsWith("Plant pot")).ToArray();
+        Check(pots.Length==4&&decks.Length==3,"hall and clinic have their potted plants, decks and steps");
+        foreach(var pot in pots)
+            Check(decks.All(d=>{var l=d.ToLocal(pot.GlobalPosition);var s=((BoxMesh)d.Mesh).Size;return Math.Abs(l.X)>s.X/2+.2f||Math.Abs(l.Z)>s.Z/2+.2f||l.Y-.16f>=s.Y/2-.01f;}),"plant pot stands clear of decks and steps: "+pot.Name);
         Check(Hoshikawa.World.Height(Hoshikawa.World.BrookX(30),30)<-.8f,"brook channel is carved");
         Vector3 MeshVertex(int x,int z)=>new(x,Hoshikawa.World.Height(x,z),z);
         float steepest=0;
@@ -42,9 +57,31 @@ public static class IntegrationCheck
                 steepest=Math.Max(steepest,Mathf.RadToDeg((c-a).Cross(b-a).AngleTo(Vector3.Up)));
         Check(steepest<=40,$"brook banks stay climbable (steepest mesh face {steepest:F1} degrees)");
         Check(Math.Abs(Hoshikawa.World.Height(-1,63)-Hoshikawa.World.ShrineLevel)<.05f,"shrine plateau is level");
-        float step=0;Vector2 stepAt=default;
-        for(float x=-20;x<20;x+=.05f)for(float z=.1f;z<50;z+=.05f)
+        float mound=0;
+        for(int z=46;z<80;z++)for(int x=-18;x<17;x++)if(new Vector2(x,z).DistanceTo(Hoshikawa.World.ShrineCenter)<16)
+            foreach(var (a,b,c) in new[]{(MeshVertex(x,z),MeshVertex(x+1,z),MeshVertex(x,z+1)),(MeshVertex(x+1,z),MeshVertex(x+1,z+1),MeshVertex(x,z+1))})
+                mound=Math.Max(mound,Mathf.RadToDeg((c-a).Cross(b-a).AngleTo(Vector3.Up)));
+        Check(mound<=25,$"shrine mound ramps stay under 25 degrees (steepest mesh face {mound:F1})");
+        // The rendered terrain is 1 m triangles, so the water's edge is compared against the chords, not Height() itself.
+        float MeshHeight(float x,float z)
         {
+            int x0=Mathf.FloorToInt(x),z0=Mathf.FloorToInt(z);float fx=x-x0,fz=z-z0;
+            return fx+fz<=1?MeshVertex(x0,z0).Y+fx*(MeshVertex(x0+1,z0).Y-MeshVertex(x0,z0).Y)+fz*(MeshVertex(x0,z0+1).Y-MeshVertex(x0,z0).Y)
+                :MeshVertex(x0+1,z0+1).Y+(1-fx)*(MeshVertex(x0,z0+1).Y-MeshVertex(x0+1,z0+1).Y)+(1-fz)*(MeshVertex(x0+1,z0).Y-MeshVertex(x0+1,z0+1).Y);
+        }
+        var brookFaces=g.World.GetNode<MeshInstance3D>("Hoshikawa brook").Mesh.GetFaces();float hover=-9;Vector3 hoverAt=default;
+        for(int i=0;i<brookFaces.Length;i+=3)for(int e=0;e<3;e++)
+        {
+            Vector3 a=brookFaces[i+e],b=brookFaces[i+(e+1)%3];
+            // The mouth's first metre lies in the river's own dip beside the river sheet, whose edges sit the same way.
+            if(Math.Abs(a.Z-b.Z)<.5f||Math.Max(a.Z,b.Z)<-4.5f||Math.Sign(a.X-Hoshikawa.World.BrookX(a.Z))!=Math.Sign(b.X-Hoshikawa.World.BrookX(b.Z)))continue;
+            for(float t=0;t<=1;t+=.05f){var p=a.Lerp(b,t);if(p.Y-MeshHeight(p.X,p.Z)>hover){hover=p.Y-MeshHeight(p.X,p.Z);hoverAt=p;}}
+        }
+        Check(hover<-.02f,$"brook water edges stay buried in the banks (highest edge {hover:F3} m at {hoverAt})");
+        float step=0;Vector2 stepAt=default;
+        for(float x=-20;x<20;x+=.05f)for(float z=-8.9f;z<50;z+=.05f)
+        {
+            if(z<-3&&Math.Abs(x)<4.5f)continue;// the old bridge's causeway banks are steep by design
             float h=Hoshikawa.World.Height(x,z),d=Math.Max(Math.Abs(Hoshikawa.World.Height(x+.05f,z)-h),Math.Abs(Hoshikawa.World.Height(x,z+.05f)-h));
             if(d>step){step=d;stepAt=new(x,z);}
         }
@@ -90,6 +127,7 @@ public static class IntegrationCheck
             }
         }
         Check(g.World.GetNode<Node3D>("Weathered boulder").Position.IsEqualApprox(new Vector3(32.285194f,2.944041f,-41.920254f)),"countryside scatter is unchanged");
+        Check(!g.World.GetChildren().OfType<MeshInstance3D>().Any(n=>n.Mesh is SphereMesh&&n.Position.Z is >-9 and <0&&Math.Abs(n.Position.X-Hoshikawa.World.BrookX(n.Position.Z))<2.3f+n.Scale.X),"no countryside boulder sits in the brook mouth");
         foreach(var species in new[]{"keyaki","sugi","sakura","bamboo","shrub"})
         {
             var tree=g.World.GetChildren().OfType<Node3D>().FirstOrDefault(n=>n.Name.ToString().StartsWith(species));
@@ -287,10 +325,23 @@ public static class IntegrationCheck
             float r=((CylinderShape3D)tree.GetChildren().OfType<StaticBody3D>().Single().GetChild<CollisionShape3D>(0).Shape).Radius*tree.Scale.X;
             Check(Enumerable.Range(0,8).All(i=>Hoshikawa.World.Height(tree.Position.X+r*Mathf.Cos(i*Mathf.Tau/8),tree.Position.Z+r*Mathf.Sin(i*Mathf.Tau/8))>=bottom),"village tree base meets sloped ground: "+tree.Name);
         }
+        float railTilt=0;var rails=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().StartsWith("Fence rail")).ToArray();
+        Check(rails.Length>40,$"field fences are railed ({rails.Length} rails)");
+        foreach(var rail in rails)
+        {
+            var ends=new[]{-1f,1f}.Select(s=>rail.GlobalTransform*new Vector3(0,0,s*((BoxMesh)rail.Mesh).Size.Z/2)).Select(e=>e.Y-Hoshikawa.World.Height(e.X,e.Z)).ToArray();
+            railTilt=Math.Max(railTilt,Math.Abs(ends[0]-ends[1]));
+        }
+        Check(railTilt<.08f,$"fence rails follow the ground (worst end-to-end height difference {railTilt:F2} m)");
+        Check(g.World.GetNode<MeshInstance3D>("Village grass").Mesh.GetFaces().All(v=>!Hoshikawa.World.OnFootpath(new(v.X,v.Z),0)),"village grass keeps off the footpaths");
         g.CameraYaw=0;g.Player.Respawn();await Frames(5);
         foreach(var resident in g.World.Residents)
         {
-            Place(g.Player,resident.Body.GlobalPosition+Vector3.Back*2);g.Interact();
+            // Settle on the talk spot under physics first, so a spot inside a prop or wall fails here instead of passing by teleport.
+            var talk=resident.Body.GlobalPosition+Vector3.Back*2;talk.Y=Hoshikawa.World.Height(talk.X,talk.Z)+.1f;
+            Place(g.Player,talk);await Frames(10);
+            Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-talk.X,g.Player.GlobalPosition.Z-talk.Z).Length()<.2f,"talk spot is standable: "+resident.Name);
+            g.Interact();
             Check(g.Mode==GameMode.Dialogue&&g.Speaker==resident.Name,"dialogue: "+resident.Name);g.Mode=GameMode.Playing;
         }
         Check(g.QuestStage==1,"Ren starts the relay mission");
