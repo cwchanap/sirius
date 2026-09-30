@@ -182,7 +182,8 @@ public partial class World
             for(int i=1;i<8;i++)Box(side,"Lattice bar",new(-.55f+i*1.1f/8,f+1.6f,.03f),new(.035f,.8f,.03f),timber);
         }
         Box(b,"Stepping stone",new(doorX,.06f,front+.55f),new(1.4f,.16f,.6f),stone);
-        float signY=Math.Min(h-.45f,f+2.75f);
+        // The hall's sign sits lower to hang under its kohai porch roof rather than through it.
+        float signY=Math.Min(h-.45f,f+(style=="hall"?2.5f:2.75f));
         Box(b,"Hanging shop sign",new(doorX,signY,front+.12f),new(2.6f,.42f,.08f),timber);
         var sign=Label(b,name.ToUpperInvariant(),new(doorX,signY,front+.18f),Gold,23);sign.Billboard=BaseMaterial3D.BillboardModeEnum.Disabled;sign.PixelSize=.0043f;
         for(float x=-w/2+.3f;x<=w/2-.3f;x+=.6f)foreach(float s in new[]{-1f,1f})
