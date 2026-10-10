@@ -355,7 +355,8 @@ public partial class World : Node3D
             float x=rng.RandfRange(-60,60),z=rng.RandfRange(-75,65);
             if(Math.Abs(x)<5||(z>0&&Math.Abs(x)<39))continue;
             float s=rng.RandfRange(.3f,1.5f);var tilt=new Vector3(rng.Randf(),rng.Randf()*6,0);
-            // Skipped only after its draws, so the rest of the seeded scatter keeps its place.
+            // Skipped only after its draws, so the rest of the seeded scatter keeps its place. The window opens at Height()'s z>-9
+            // hamlet split because the channel cuts on through the river bank; the one boulder it removes sits there, at z -4.2.
             if(z>-9&&Math.Abs(x-BrookX(z))<2.3f+s)continue;
             Sphere(this,"Weathered boulder",new(x,Height(x,z)+s*.3f,z),new(s,s*.6f,s*.75f),stone).Rotation=tilt;
         }

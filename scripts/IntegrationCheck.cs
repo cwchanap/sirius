@@ -37,12 +37,13 @@ public static class IntegrationCheck
         foreach(var (name,_,_,_,_) in Hoshikawa.World.Hamlet)
         {
             // Casting up from the sign's top edge, the first roof face met must be an underside (normal down), not the slab's top.
+            // No roof overhead fails too: these signs hang from the eaves, and a corner poked right through the roof also meets nothing.
             var b=g.World.Buildings.Single(n=>n.Name==name);var sign=b.GetNode<MeshInstance3D>("Hanging shop sign");var size=((BoxMesh)sign.Mesh).Size;
             var faces=ActorVisual.Descendants(b).OfType<MeshInstance3D>().Where(m=>m.Mesh is ArrayMesh&&m.Name.ToString().Contains("roof")).SelectMany(m=>m.Mesh.GetFaces().Select(v=>m.GlobalTransform*v)).ToArray();
             Check(new[]{-1f,0,1f}.All(s=>{var p=sign.GlobalTransform*new Vector3(s*size.X/2,size.Y/2,0);float best=float.MaxValue;bool under=false;
                 for(int i=0;i<faces.Length;i+=3)if(Geometry3D.RayIntersectsTriangle(p,Vector3.Up,faces[i],faces[i+1],faces[i+2]) is {VariantType:Variant.Type.Vector3} hit&&hit.AsVector3().Y-p.Y<best)
                 {best=hit.AsVector3().Y-p.Y;under=(faces[i+2]-faces[i]).Cross(faces[i+1]-faces[i]).Y<0;}
-                return under;}),name+" sign hangs clear of its roof");
+                return under;}),name+" sign hangs under its eaves, clear of the roof");
         }
         var decks=ActorVisual.Descendants(g.World).OfType<MeshInstance3D>().Where(m=>m.Name=="Engawa deck"||m.Name=="Wide stone step").ToArray();
         var pots=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().StartsWith("Plant pot")).ToArray();
