@@ -1,5 +1,23 @@
 # MVP verification
 
+## Frame-rate recheck — 2026-10-14
+
+The minor fixes and the river widening cost nothing measurable. `main` (`d78ff65`) and `3670287` were measured back to back with `tools/render_cost.gd`, at the same three viewpoints as before, with vsync off and `--fixed-fps 60`. Repeat runs gave identical draw and primitive counts.
+
+| Viewpoint | Draw calls (main / base) | Primitives (main / base) |
+|---|---|---|
+| (0, 31) | 4666 / 4665 | 2,024,184 / 2,023,554 |
+| (0, 16) | 3897 / 3898 | 2,074,446 / 2,074,692 |
+| Shrine steps | 5389 / 5389 | 1,996,457 / 1,996,771 |
+
+- Primitives differ by at most 0.03%.
+- Median CPU render time is 1.75–2.43 ms on both commits, and uncapped fps is 123–156 on both (Apple M1 Pro, Metal, Forward Mobile). The run-to-run spread is larger than any difference between the commits.
+- Absolute fps is not comparable with the 118–120 fps recorded below. Other apps put the machine's load average between 9 and 56 during these runs, and vsync no longer caps at 60 Hz: a vsync-on run reached 110–144 fps.
+- GPU render time reads 0 under Metal Forward Mobile, so the probe does not sample it.
+- The old `fps.gd` probe left the mouse captured after `Start()`, so moving the real mouse turned the camera, and runs varied 6× in draw calls. `render_cost.gd` releases the mouse. Without `--fixed-fps`, walking actors still shift the counts by a few draws between runs.
+
+Evidence, including `summary.txt` and every run log, is in `artifacts/hamlet/fps-recheck/`.
+
 ## River banks — 2026-09-30
 
 The Hoshikawa river sheet now ends inside its banks. **270 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro). Both runs exit 0 with `SELF_TEST_PASS`, and neither log contains warnings or errors.

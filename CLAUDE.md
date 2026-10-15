@@ -43,7 +43,10 @@ $GODOT_MONO --path . --script res://tools/review_valley.gd        # six landscap
 $GODOT_MONO --path . --script res://tools/review_hamlet.gd        # Hoshikawa captures; -- --out=<subdir> --only=square,overview
 $GODOT_MONO --path . --script res://tools/review_arrangement.gd   # building/prop placement
 $GODOT_MONO --path . --script res://tools/review_tripo.gd         # Mio model and animation poses
+$GODOT_MONO --path . --disable-vsync --fixed-fps 60 --script res://tools/render_cost.gd   # draw calls/primitives/CPU ms at three village viewpoints
 ```
+
+To compare render cost between commits, compare `render_cost.gd`'s draw and primitive counts, which repeat exactly under `--fixed-fps`. Its fps and CPU times drift with whatever else the machine is running.
 
 `artifacts/` is gitignored; it holds captures, logs and per-change evidence dirs. `VERIFICATION.md` records what was actually verified and the environment's limits — update it when claims change, and do not claim a physical keyboard/mouse session for engine-injected input.
 
