@@ -103,7 +103,7 @@ The importer regression check exercises all four input formats, transformed mult
 
 ## Project notes
 
-- `scripts/World.cs`: deterministic environment and village construction; terrain and collision share the same surface.
+- `scripts/World.cs`: deterministic environment and village construction; terrain and collision share the same surface. Static boxes, spheres and cylinders are baked into one mesh per material and 32 m cell after construction.
 - `scripts/Architecture.cs`: Hoshikawa's Japanese buildings. `Roof()` generates curved gable, irimoya and thatch roofs; `Minka()` builds the timber frame and each style's extras from the `World.Hamlet` table.
 - `scripts/Hamlet.cs`: the brook, footbridge, terrace wall, torii and shrine, stone lanterns, and village dressing. All village randomness uses its own seeded generator.
 - `tools/build_props.py`: deterministic background-Blender generator for the tree and shrub GLBs in `assets/models/props/`; `assets/shaders/foliage.gdshader` gives their leaf cards alpha cut-out, backlight and wind sway.

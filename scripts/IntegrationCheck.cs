@@ -94,6 +94,14 @@ public static class IntegrationCheck
         Check(step<.1f,$"hamlet terrain is continuous (largest 5 cm step {step:F3} at {stepAt})");
         Check(g.World.Residents.Count==10&&g.World.Residents.Select(r=>r.Name).Distinct().Count()==10,"ten named residents across two villages");
         Check(g.Enemies.Count==3,"three patrol robots");
+        var merged=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().StartsWith("Merged statics")).ToArray();
+        var baked=g.World.FindChildren("*","MeshInstance3D",true,false).Cast<MeshInstance3D>().Where(n=>!n.Visible&&n.Mesh is PrimitiveMesh).ToArray();
+        Vector3[] Corners(IEnumerable<MeshInstance3D> meshes)=>meshes.SelectMany(n=>n.Mesh.GetFaces().Select(v=>n.GlobalTransform*v)).ToArray();
+        var (mergedCorners,bakedCorners)=(Corners(merged),Corners(baked));
+        Aabb Extent(Vector3[] points)=>points.Aggregate(new Aabb(points[0],Vector3.Zero),(box,p)=>box.Expand(p));
+        Aabb mergedExtent=Extent(mergedCorners),bakedExtent=Extent(bakedCorners);
+        Check(merged.Length>0&&mergedCorners.Length==bakedCorners.Length&&mergedExtent.Position.DistanceTo(bakedExtent.Position)<.01f&&mergedExtent.End.DistanceTo(bakedExtent.End)<.01f,
+            $"{baked.Length} static primitives bake into {merged.Length} merged meshes, keeping all {bakedCorners.Length/3} triangles where they stood");
         foreach(var model in g.World.Residents.Select(r=>r.Body))
         {
             var skeleton=ActorVisual.Descendants(model).OfType<Skeleton3D>().Single();

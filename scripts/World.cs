@@ -34,7 +34,40 @@ public partial class World : Node3D
     {
         stone = Atlas(new(0, 1), new(2, 2)); roof = Atlas(new(1, 1), new(5, 3));
         wood = Mat(new("594735"));
-        Environment(); Terrain(); Village(); Countryside(); NorthernValley(); Komorebi();
+        Environment(); Terrain(); Village(); Countryside(); NorthernValley(); Komorebi(); Merge();
+    }
+    // The static cache would otherwise hold its materials past the engine's leak check at quit.
+    public override void _ExitTree() => looks.Clear();
+    // Each static box, sphere and cylinder would cost a draw call, plus another in the sun's shadow pass, so their geometry is baked
+    // into one mesh per material and 32 m cell. The originals stay, hidden, for their colliders and IntegrationCheck's lookups.
+    private void Merge()
+    {
+        var groups=new Dictionary<(Material,GeometryInstance3D.ShadowCastingSetting,float,float),List<MeshInstance3D>>();
+        foreach(var n in FindChildren("*","MeshInstance3D",true,false).Cast<MeshInstance3D>())
+        {
+            bool plain=true;for(var p=n.GetParent();p!=this;p=p.GetParent())plain&=p.GetType()==typeof(Node3D);
+            // Transparent surfaces sort per instance; merged, they would blend in mesh order instead.
+            if(!plain||n.Mesh is not PrimitiveMesh||n.MaterialOverride==null||n.Mesh is PlaneMesh||n.MaterialOverride is BaseMaterial3D{Transparency:not BaseMaterial3D.TransparencyEnum.Disabled}||n.FindChildren("*","VisualInstance3D",true,false).Count>0)continue;
+            var cell=(n.GlobalPosition/32).Floor();var key=(n.MaterialOverride,n.CastShadow,cell.X,cell.Z);
+            if(!groups.TryGetValue(key,out var list))groups[key]=list=new();
+            list.Add(n);
+        }
+        foreach(var list in groups.Values)
+        {
+            var v=new List<Vector3>();var normals=new List<Vector3>();var uv=new List<Vector2>();var index=new List<int>();
+            foreach(var n in list)
+            {
+                // Normals take the inverse transpose: the spheres are scaled unevenly.
+                var a=n.Mesh.SurfaceGetArrays(0);var x=GlobalTransform.AffineInverse()*n.GlobalTransform;var nx=x.Basis.Inverse().Transposed();int first=v.Count;
+                v.AddRange(a[(int)Godot.Mesh.ArrayType.Vertex].AsVector3Array().Select(p=>x*p));normals.AddRange(a[(int)Godot.Mesh.ArrayType.Normal].AsVector3Array().Select(d=>(nx*d).Normalized()));
+                uv.AddRange(a[(int)Godot.Mesh.ArrayType.TexUV].AsVector2Array());index.AddRange(a[(int)Godot.Mesh.ArrayType.Index].AsInt32Array().Select(i=>first+i));
+                n.Visible=false;
+            }
+            var arrays=new Godot.Collections.Array();arrays.Resize((int)Godot.Mesh.ArrayType.Max);
+            arrays[(int)Godot.Mesh.ArrayType.Vertex]=v.ToArray();arrays[(int)Godot.Mesh.ArrayType.Normal]=normals.ToArray();arrays[(int)Godot.Mesh.ArrayType.TexUV]=uv.ToArray();arrays[(int)Godot.Mesh.ArrayType.Index]=index.ToArray();
+            var mesh=new ArrayMesh();mesh.AddSurfaceFromArrays(Godot.Mesh.PrimitiveType.Triangles,arrays);
+            Mesh(this,$"Merged statics {GetChildCount()}",mesh,Vector3.Zero,list[0].MaterialOverride).CastShadow=list[0].CastShadow;
+        }
     }
     public static float Height(float x, float z) => z > -9 ? HamletGround(x, z, BaseHeight(x, z), true) : BaseHeight(x, z);
     private static float BaseHeight(float x, float z)
@@ -85,11 +118,15 @@ public partial class World : Node3D
         y=Math.Min(y,Mathf.Lerp(y,-.95f,(1-Mathf.SmoothStep(.6f,2.3f,Math.Abs(x-BrookX(z))))*(1-Mathf.SmoothStep(54,60,z))));
         return Mathf.Lerp(y,ShrineLevel,1-Mathf.SmoothStep(4.5f,14,new Vector2(x,z).DistanceTo(ShrineCenter)));
     }
-    public static StandardMaterial3D Mat(Color c, float emission = 0) => new()
+    // One material per look, so Merge() can batch by reference: never change a material Mat() returns.
+    private static readonly Dictionary<(Color, float, bool), StandardMaterial3D> looks = new();
+    public static StandardMaterial3D Mat(Color c, float emission = 0, bool twoSided = false)
     {
-        AlbedoColor = c, Roughness = .85f, EmissionEnabled = emission > 0,
-        Emission = c, EmissionEnergyMultiplier = emission
-    };
+        if (!looks.TryGetValue((c, emission, twoSided), out var m))
+            looks[(c, emission, twoSided)] = m = new() { AlbedoColor = c, Roughness = .85f, EmissionEnabled = emission > 0,
+                Emission = c, EmissionEnergyMultiplier = emission, CullMode = twoSided ? BaseMaterial3D.CullModeEnum.Disabled : BaseMaterial3D.CullModeEnum.Back };
+        return m;
+    }
     private ShaderMaterial Atlas(Vector2 cell, Vector2 repeats, string texture = "res://assets/art/material-atlas.png")
     {
         var m = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shaders/atlas.gdshader") };
@@ -261,7 +298,7 @@ public partial class World : Node3D
         var st=new SurfaceTool();st.Begin(Godot.Mesh.PrimitiveType.Triangles);
         foreach(float s in new[]{-1f,1f})
         { st.SetNormal(new(0,0,s)); st.AddVertex(new(-w/2,h+.3f,s*d/2));st.AddVertex(new(0,h+2.5f,s*d/2));st.AddVertex(new(w/2,h+.3f,s*d/2)); }
-        var gmat=Mat(wall);gmat.CullMode=BaseMaterial3D.CullModeEnum.Disabled;Mesh(house,"Gable plaster",st.Commit(),Vector3.Zero,gmat);
+        var gmat=Mat(wall,twoSided:true);Mesh(house,"Gable plaster",st.Commit(),Vector3.Zero,gmat);
         for(int k=0;k<3;k++)
         {
             float x=-w/2+k*w/2;
@@ -361,7 +398,7 @@ public partial class World : Node3D
             Sphere(this,"Weathered boulder",new(x,Height(x,z)+s*.3f,z),new(s,s*.6f,s*.75f),stone).Rotation=tilt;
         }
         var st=new SurfaceTool();st.Begin(Godot.Mesh.PrimitiveType.Triangles);
-        var gm=Mat(new("7d9d53"));gm.CullMode=BaseMaterial3D.CullModeEnum.Disabled;
+        var gm=Mat(new("7d9d53"),twoSided:true);
         for(int i=0;i<5000;i++)
         {
             float x=rng.RandfRange(-60,60),z=rng.RandfRange(-75,70);
@@ -456,7 +493,7 @@ public partial class World : Node3D
             var p=new Vector3(x,Height(x,z),z);float h=rng.RandfRange(.18f,.55f);
             grass.SetNormal(Vector3.Up);grass.AddVertex(p+new Vector3(-.1f,0,0));grass.AddVertex(p+new Vector3(0,h,.05f));grass.AddVertex(p+new Vector3(.1f,0,0));
         }
-        var gm=Mat(new("8b9d58"));gm.CullMode=BaseMaterial3D.CullModeEnum.Disabled;
+        var gm=Mat(new("8b9d58"),twoSided:true);
         Mesh(this,"Cedar Pass meadow",grass.Commit(),Vector3.Zero,gm);
         for(int i=0;i<95;i++)
         {

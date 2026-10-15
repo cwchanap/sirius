@@ -225,7 +225,7 @@ public partial class Game : Node3D
             st.AddVertex(V(a,2.25f));st.AddVertex(V(b,2.25f));st.AddVertex(V(a,1.9f));
             st.AddVertex(V(a,1.9f));st.AddVertex(V(b,2.25f));st.AddVertex(V(b,1.9f));
         }
-        var mat=Hoshikawa.World.Mat(red?new("fa8163"):Hoshikawa.World.Jade,1);mat.CullMode=BaseMaterial3D.CullModeEnum.Disabled;
+        var mat=Hoshikawa.World.Mat(red?new("fa8163"):Hoshikawa.World.Jade,1,true);
         Hoshikawa.World.Mesh(node,"Sword arc",st.Commit(),Vector3.Zero,mat);
         var t=CreateTween();t.TweenProperty(node,"scale",Vector3.One*.4f,.16);t.TweenCallback(Callable.From(node.QueueFree));
     }

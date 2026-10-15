@@ -192,7 +192,7 @@ public partial class World
             var p=Ground(new(x,z));
             st.SetNormal(Vector3.Up);st.AddVertex(p+new Vector3(-.09f,0,0));st.AddVertex(p+new Vector3(.04f,h,.05f));st.AddVertex(p+new Vector3(.09f,0,0));
         }
-        var grass=Mat(new("7d9d53"));grass.CullMode=BaseMaterial3D.CullModeEnum.Disabled;Mesh(this,"Village grass",st.Commit(),Vector3.Zero,grass);
+        var grass=Mat(new("7d9d53"),twoSided:true);Mesh(this,"Village grass",st.Commit(),Vector3.Zero,grass);
     }
     private void Bench(Vector2 p,float yaw)
     {

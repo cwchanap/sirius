@@ -1,5 +1,25 @@
 # MVP verification
 
+## Static geometry merge — 2026-10-14
+
+Draw calls fell by 70–76%, and the frame looks the same. Before the change, World's static boxes, spheres and cylinders were 2,675 separate meshes. Each cost a draw call, and most cost a second one in the sun's shadow pass. `World.Merge()` now bakes them into 233 meshes, one per material and 32 m cell, after `_Ready` builds the world. The originals stay hidden, so colliders and every name-based check still work.
+
+| `render_cost.gd` viewpoint | Draws before → after | Primitives before → after | Median CPU render ms before → after |
+|---|---|---|---|
+| (0, 31) | 4666 → 1229 | 2,024,204 → 2,110,640 | 1.92–1.94 → 0.77 |
+| (0, 16) | 3897 → 1154 | 2,074,466 → 2,149,466 | 1.64 → 0.71 |
+| Shrine steps | 5389 → 1311 | 1,996,473 → 2,054,133 | 2.16–2.30 → 0.79–0.80 |
+
+- **Measurement:** draws and primitives repeat exactly under `--fixed-fps 60`. The CPU times come from back-to-back runs on the same machine, at load average about 5. fps read 118–120 both before and after, so a cap limits it, not the render.
+- **Primitives:** they rise about 4%, because a merged 32 m cell is drawn whole when any part of it is in view.
+- **Materials:** `Mat()` now returns one shared material per colour, emission and `twoSided`, which cut its materials from 916 to 101. `Merge()` groups by material reference. Grouping by serialized material content gave the same draws but took about 300 ms at startup; the merge now takes 80–93 ms. Five call sites used to set `CullMode` on a `Mat()` result, and they now pass `twoSided` instead. World clears the cache in `_ExitTree`, and six `--verbose` quit runs report no leaked resources.
+- **Exclusions:** transparent materials, `PlaneMesh`, meshes with visual children and meshes under any non-`Node3D` parent are not merged.
+- **Pixel diff:** frames captured at the three viewpoints match the pre-change frames. The (0, 31) view has no pixel off by more than 4/255. The other two views have 1 and 2 pixels over 25/255, at triangle edges. Normals use the inverse transpose, because many spheres are scaled unevenly.
+- **New check:** the merged meshes must hold exactly the hidden originals' 165,084 triangles, with the same world-space bounds. Removing the per-object transform from `Merge()` makes it fail.
+- **Results:** 272 checks pass headless and in native Metal. Both runs exit 0 with `SELF_TEST_PASS`, and neither log has warnings or errors.
+
+The frame-rate recheck below predates this change; its draw counts are now the "before" column. Probes, frames, diffs and logs are in `artifacts/perf/`.
+
 ## Brook mouth joint — 2026-10-14
 
 The dark line where the brook strip met the river sheet is gone.
