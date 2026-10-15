@@ -57,6 +57,9 @@ public partial class Game : Node3D
         if(args.Contains("--pass-view")){Player.GlobalPosition=new(Hoshikawa.World.RoadX(-99),Hoshikawa.World.Height(Hoshikawa.World.RoadX(-99),-99)+.1f,-99);CameraPitch=-.27f;spring.SpringLength=10;}
         Hud.RefreshMenu();GD.Print($"HOSHIKAWA_READY buildings={World.Buildings.Count} residents={World.Residents.Count} patrols={Enemies.Count}");
     }
+    // A stopped playback, and the valley.wav it holds, is only released on the audio thread's next mix step; if the engine
+    // shuts the AudioServer down first, both leak at exit. Blocking briefly at quit lets that step run first.
+    public override void _ExitTree(){ambience.Stop();OS.DelayMsec(100);}
     public void Start()
     {
         Mode=GameMode.Playing;Input.MouseMode=SelfTest?Input.MouseModeEnum.Visible:Input.MouseModeEnum.Captured;

@@ -1,5 +1,18 @@
 # MVP verification
 
+## Shutdown audio leak — 2026-10-14
+
+The intermittent shutdown error is fixed. It was "1 resources still in use at exit" plus an ObjectDB leak warning, printed after `SELF_TEST_PASS`.
+
+- **What leaked:** `--verbose` names `res://assets/audio/valley.wav` and its `AudioStreamPlaybackWAV`, both at reference count 1. This matches the earlier verbose logs in `artifacts/tripo-jump/`.
+- **Cause:** the ambience player stops its playback when it leaves the tree at quit. The AudioServer only drops a stopped playback, and the stream it holds, on the audio thread's next mix step. When the engine shut the AudioServer down first, both leaked.
+- **Fix:** `Game._ExitTree` stops the ambience and blocks for 100 ms, so that mix step runs first. Every quit path goes through it: the self-test, the HUD Quit buttons, closing the window and `--quit-after`.
+- **Evidence:** the repro is `Godot --headless --verbose --path . --quit-after 120 -- --play`. Without the fix it leaked in 6 of 20 runs, and in 20 of 20 in a control rerun just after the fixed runs. With the fix it leaked in 0 of 40.
+- 270 checks pass headless and in native Metal, both runs with `--verbose`, and neither log reports a leak.
+- The verbose graphical log also shows 15 "Image format RGB8 not supported by hardware" warnings. These appear only under `--verbose`; the non-verbose graphical log of the same tree has none.
+
+Evidence, including every repro run log and both self-test logs, is in `artifacts/shutdown-leak/`.
+
 ## Frame-rate recheck — 2026-10-14
 
 The minor fixes and the river widening cost nothing measurable. `main` (`d78ff65`) and `3670287` were measured back to back with `tools/render_cost.gd`, at the same three viewpoints as before, with vsync off and `--fixed-fps 60`. Repeat runs gave identical draw and primitive counts.
