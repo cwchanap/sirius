@@ -76,3 +76,10 @@ C# build succeeded. The final graphical integration run passed 57 checks with `S
 - [x] 242 checks pass headless and in native Metal, including terrain continuity, brook bank slope and trunk-base checks added after the whole-branch review. The frame rate stays at the 60 Hz vsync cap (118–120 fps uncapped).
 - [x] Fix the review's ten deferred minors. The brook edges are buried and the brook joins the river flush, no boulder sits in the brook, pots stand clear of the decks, and the shrine mound is at most 25°. Grass keeps off the footpaths, fence rails follow the ground, and the hall sign hangs under its porch roof. The z = 0 terrain step is gone, dialogue spots are settled under physics, and foliage back faces keep their normals. 269 checks pass headless and in native Metal.
 - [x] Widen the river sheet to 8 m and give it a low village-side bank, so both of its edges end inside the ground and the brook runs straight on from it. 270 checks pass headless and in native Metal.
+- [x] Seal the brook/river joint. Both sheets share `World.WaterLevel`, and the brook's mouth row reuses the river sheet's edge vertices, so the per-vertex wave matches across the joint. 271 checks pass headless and in native Metal.
+
+## Performance and stability
+
+- [x] Add `tools/render_cost.gd`, which reports draw calls, primitives and CPU render time at three village viewpoints. The hamlet rebuild's minors and the river widening cost nothing measurable.
+- [x] Fix the intermittent audio leak at shutdown: `Game._ExitTree` stops the ambience and lets the audio thread release it before the AudioServer shuts down. The leak went from 6 in 20 quits to 0 in 40.
+- [x] Bake World's 2,675 static boxes, spheres and cylinders into 233 meshes, one per material and 32 m cell, with `Mat()` sharing one material per look. Draw calls fall from 4666/3897/5389 to 1229/1154/1311, and captured frames match the unmerged ones. 272 checks pass headless and in native Metal.
