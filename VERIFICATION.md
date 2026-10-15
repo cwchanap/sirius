@@ -1,5 +1,18 @@
 # MVP verification
 
+## Brook mouth joint — 2026-10-14
+
+The dark line where the brook strip met the river sheet is gone.
+
+- **Cause:** there were two height steps at z −4. The brook sat 2 cm below the river (−.40 against −.38). And the water shader's 3.5 cm wave is computed per vertex. The river's edge has a vertex every 1.26 m, so it followed the sine. The brook's mouth row had only its two side vertices, 4.2 m apart, which is almost exactly one wave period (4.19 m), so that edge rose and fell flat. The gap between the edges reached about 7 cm and showed the dark channel bed through it.
+- **Fix:** both sheets now sit at `World.WaterLevel` (−.38). The brook's mouth row reuses the river sheet's own edge vertices and fans into the strip's first full row at z −3.
+- **Checks:** a new check requires every mouth vertex to lie on the river's vertex grid at the river's level, spanning the brook's full width. The brook-edge check now takes the strip's sides as the lengthwise edges that only one triangle uses. Its old rule, edges that don't cross the brook's centreline, also caught the mouth fan's inner edges over open water. On the old two-vertex strip both rules pick the same edges. The highest brook edge is now −0.168 m (was −0.188), still beyond the 4 cm margin.
+- **Results:** 271 checks pass headless and in native Metal. Both runs exit 0 with `SELF_TEST_PASS`, and neither log has warnings or errors.
+- **Captures:** a throwaway probe filmed the joint from two angles at eight moments across one 2π s wave period, on the old and new code. The line shows in most old frames and in no new ones. In a pixel diff of a whole frame, only the joint and the brook's west waterline change. The waterline moves because the brook is 2 cm higher.
+- **Side effect:** part of the mouth now falls outside a shadow that used to cover it. The patch has stair-stepped shadow-map edges like those already on the river. It is not the water shadowing itself: turning off shadow casting on both water meshes changes only 311 pixels.
+
+Evidence is in `artifacts/hamlet/joint/`: the probe, the before/after frames, the contact sheets, `review/` recaptures and both self-test logs.
+
 ## Shutdown audio leak — 2026-10-14
 
 The intermittent shutdown error is fixed. It was "1 resources still in use at exit" plus an ObjectDB leak warning, printed after `SELF_TEST_PASS`.

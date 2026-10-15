@@ -8,9 +8,14 @@ public partial class World
     {
         var st=new SurfaceTool();st.Begin(Godot.Mesh.PrimitiveType.Triangles);
         // Half-width 2.1 buries the strip's edges under the 1 m mesh chords of the bank instead of leaving them hovering over it.
-        void V(float x,float z){st.SetNormal(Vector3.Up);st.SetUV(new(x*.2f,z*.2f));st.AddVertex(new(x,BrookWater,z));}
+        void V(float x,float z){st.SetNormal(Vector3.Up);st.SetUV(new(x*.2f,z*.2f));st.AddVertex(new(x,WaterLevel,z));}
         // Starts flush with the river sheet's south edge (z -4): overlapping it z-fights, a gap shows as a dark seam.
-        for(float z=-4;z<56;z++)
+        // The shader's wave is per vertex, so the mouth row reuses the sheet's own edge vertices; any other spacing opens a step at the joint.
+        var river=(PlaneMesh)GetNode<MeshInstance3D>("Hoshikawa river").Mesh;float cell=river.Size.X/(river.SubdivideWidth+1),l=BrookX(-3)-2.1f,r=BrookX(-3)+2.1f;
+        float edge=Mathf.Floor((BrookX(-4)-2.1f+river.Size.X/2)/cell)*cell-river.Size.X/2;
+        for(;edge<BrookX(-4)+2.1f;edge+=cell){V(l,-3);V(edge,-4);V(edge+cell,-4);}
+        V(l,-3);V(edge,-4);V(r,-3);
+        for(float z=-3;z<56;z++)
         {
             float a=BrookX(z),b=BrookX(z+1);
             V(a-2.1f,z);V(b-2.1f,z+1);V(a+2.1f,z);V(a+2.1f,z);V(b-2.1f,z+1);V(b+2.1f,z+1);

@@ -71,12 +71,10 @@ public static class IntegrationCheck
                 :MeshVertex(x0+1,z0+1).Y+(1-fx)*(MeshVertex(x0,z0+1).Y-MeshVertex(x0+1,z0+1).Y)+(1-fz)*(MeshVertex(x0+1,z0).Y-MeshVertex(x0+1,z0+1).Y);
         }
         var brookFaces=g.World.GetNode<MeshInstance3D>("Hoshikawa brook").Mesh.GetFaces();float hover=-9;Vector3 hoverAt=default;
-        for(int i=0;i<brookFaces.Length;i+=3)for(int e=0;e<3;e++)
-        {
-            Vector3 a=brookFaces[i+e],b=brookFaces[i+(e+1)%3];
-            if(Math.Abs(a.Z-b.Z)<.5f||Math.Sign(a.X-Hoshikawa.World.BrookX(a.Z))!=Math.Sign(b.X-Hoshikawa.World.BrookX(b.Z)))continue;
-            for(float t=0;t<=1;t+=.05f){var p=a.Lerp(b,t);if(p.Y-MeshHeight(p.X,p.Z)>hover){hover=p.Y-MeshHeight(p.X,p.Z);hoverAt=p;}}
-        }
+        // The strip's sides are the lengthwise edges only one triangle uses; the rest lie over open water.
+        var sides=Enumerable.Range(0,brookFaces.Length).Select(i=>(brookFaces[i],brookFaces[i/3*3+(i+1)%3])).Where(e=>Math.Abs(e.Item1.Z-e.Item2.Z)>=.5f)
+            .Select(e=>e.Item1.Z<e.Item2.Z?e:(e.Item2,e.Item1)).GroupBy(e=>e).Where(e=>e.Count()==1).Select(e=>e.Key);
+        foreach(var (a,b) in sides)for(float t=0;t<=1;t+=.05f){var p=a.Lerp(b,t);if(p.Y-MeshHeight(p.X,p.Z)>hover){hover=p.Y-MeshHeight(p.X,p.Z);hoverAt=p;}}
         // Both edge margins must beat the water shader's .035 m vertex wave, or a crest still lifts an edge through the bank.
         Check(hover<-.04f,$"brook water edges stay buried in the banks (highest edge {hover:F3} m at {hoverAt})");
         var river=g.World.GetNode<MeshInstance3D>("Hoshikawa river");var riverSize=((PlaneMesh)river.Mesh).Size;float riverHover=-9;Vector3 riverAt=default;
@@ -84,6 +82,8 @@ public static class IntegrationCheck
         for(float x=-riverSize.X/2;x<=riverSize.X/2;x+=.25f)foreach(float z in new[]{river.Position.Z-riverSize.Y/2,river.Position.Z+riverSize.Y/2})
             if((z<river.Position.Z||Math.Abs(x-Hoshikawa.World.BrookX(z))>2.1f)&&river.Position.Y-MeshHeight(x,z)>riverHover){riverHover=river.Position.Y-MeshHeight(x,z);riverAt=new(x,river.Position.Y,z);}
         Check(riverHover<-.04f,$"river water edges stay buried in the banks (highest edge {riverHover:F3} m at {riverAt})");
+        float cell=riverSize.X/(((PlaneMesh)river.Mesh).SubdivideWidth+1);var mouth=brookFaces.Where(v=>v.Z==-4).ToArray();
+        Check(mouth.Min(v=>v.X)<=Hoshikawa.World.BrookX(-4)-2.1f&&mouth.Max(v=>v.X)>=Hoshikawa.World.BrookX(-4)+2.1f&&mouth.All(v=>v.Y==river.Position.Y&&Math.Abs(Mathf.PosMod(v.X+riverSize.X/2+cell/2,cell)-cell/2)<.001f),"brook mouth sits on the river sheet's edge vertices at its level");
         float step=0;Vector2 stepAt=default;
         for(float x=-20;x<20;x+=.05f)for(float z=-8.9f;z<50;z+=.05f)
         {

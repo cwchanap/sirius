@@ -22,7 +22,7 @@ public partial class World : Node3D
     public static readonly (Vector2 From,Vector2 To)[] Footpaths={(new(0,15),new(17.2f,15)),(new(21.4f,15),new(34,15)),(new(34,15),new(34,20))};
     public static bool OnFootpath(Vector2 p,float margin)=>Footpaths.Any(f=>Geometry2D.GetClosestPointToSegment(p,f.From,f.To).DistanceTo(p)<1.2f+margin);
     private static readonly float[] PadLevel=Hamlet.Select(h=>HamletGround(h.At.X,h.At.Y,BaseHeight(h.At.X,h.At.Y),false)).ToArray();
-    public const float ShrineLevel=2.4f,BrookWater=-.4f;
+    public const float ShrineLevel=2.4f,WaterLevel=-.38f;
     // Height(), the water strip, the footbridge and the minimap all follow this one brook line.
     public static float BrookX(float z)=>19.3f+.6f*Mathf.Sin(z*.16f);
     public static string RegionAt(Vector3 p) => p.Z < -136 ? "Komorebi" : p.Z < -78 ? "Cedar Pass" : p.Z < -14 ? "Old Relay Road" : "Hoshikawa";
@@ -184,7 +184,7 @@ public partial class World : Node3D
         var ground = new StaticBody3D { Name = "Terrain collision" }; AddChild(ground);
         ground.AddChild(new CollisionShape3D { Shape = mesh.CreateTrimeshShape() });
         var water = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shaders/water.gdshader") };
-        Mesh(this,"Hoshikawa river",new PlaneMesh { Size = new(127,8), SubdivideWidth = 100 },new(0,-.38f,-8),water);
+        Mesh(this,"Hoshikawa river",new PlaneMesh { Size = new(127,8), SubdivideWidth = 100 },new(0,WaterLevel,-8),water);
         for(int i=0;i<21;i++)
             Box(this,"Bridge plank",new(0,.72f,-13+i*.5f),new(6,.2f,.46f),wood,true);
         foreach(float x in new[]{-2.9f,2.9f})
