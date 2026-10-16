@@ -1,10 +1,13 @@
 extends SceneTree
 # Cuts a dialogue portrait out of a flat white-background illustration.
-# --src=<png> --out=<png> [--rect=x,y,w,h] [--flip]
+# --src=<png> --out=<png> [--rect=x,y,w,h] [--flip] [--ground=<rows>]
 # The background is the white region reached from the border, plus pure-white pockets of 8+ pixels
 # (gaps between hair strands, arm and strap), so an ivory shirt enclosed by the coat stays opaque.
 # Edge pixels within 2 px of the background are un-mixed from white rather than thresholded.
 # A source that already has transparency keeps it: its clear pixels are background and its soft edges are left as they are.
+# It skips the pocket pass, since its gaps are already clear and its pure white is highlight (KOMA-7's visor rim).
+# --ground also clears a painted ground shadow: grey (every channel 100+, spread 16 or less) reached from the background
+# within that many rows of the figure's lowest row.
 
 func _initialize():
 	var opts={}
@@ -29,8 +32,12 @@ func _initialize():
 	for x in w: seeds.append_array([x,(h-1)*w+x])
 	for y in h: seeds.append_array([y*w,y*w+w-1])
 	bg=fill(white,bg,seeds,w,h)
+	var opaque=true
+	for i in w*h:
+		if px[i*4+3]<255: opaque=false;break
 	var seen=PackedByteArray();seen.resize(w*h)
 	for i in w*h:
+		if not opaque: break
 		if strict[i]==0 or bg[i]==1 or seen[i]==1: continue
 		var part=PackedInt32Array([i]);seen[i]=1;var k=0
 		while k<part.size():
@@ -38,6 +45,19 @@ func _initialize():
 			for n in neighbours(j,w,h):
 				if strict[n]==1 and bg[n]==0 and seen[n]==0: seen[n]=1;part.append(n)
 		if part.size()>=8: bg=fill(white,bg,part,w,h)
+	if opts.has("ground"):
+		var bottom=0
+		for i in w*h:
+			if bg[i]==0: bottom=i/w
+		var top=maxi(0,bottom-int(opts["ground"]))
+		var grey=PackedByteArray();grey.resize(w*h);var band=PackedInt32Array()
+		for i in range(top*w,w*h):
+			var r=px[i*4];var g=px[i*4+1];var b=px[i*4+2]
+			if bg[i]==1 or (mini(r,mini(g,b))>=100 and maxi(r,maxi(g,b))-mini(r,mini(g,b))<=16): grey[i]=1
+			if bg[i]==1: band.append(i)
+		var ground=PackedByteArray();ground.resize(w*h);ground=fill(grey,ground,band,w,h)
+		for i in range(top*w,w*h):
+			if ground[i]==1: bg[i]=1
 	var near=dilate(dilate(bg,w,h,1),w,h,w)
 	var out=PackedByteArray();out.resize(w*h*4)
 	for y in h:
