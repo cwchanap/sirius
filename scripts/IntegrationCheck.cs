@@ -348,6 +348,19 @@ public static class IntegrationCheck
         }
         Check(railTilt<.08f,$"fence rails follow the ground (worst end-to-end height difference {railTilt:F2} m)");
         Check(g.World.GetNode<MeshInstance3D>("Village grass").Mesh.GetFaces().All(v=>!Hoshikawa.World.OnFootpath(new(v.X,v.Z),0)),"village grass keeps off the footpaths");
+        // Scene 1 plays as a visual novel driven by the real key path: E first finishes the typing line, then moves on.
+        async Task Tap(Key key)
+        {
+            Input.ParseInputEvent(new InputEventKey {Keycode=key,PhysicalKeycode=key,Pressed=true});await Frames(1);
+            Input.ParseInputEvent(new InputEventKey {Keycode=key,PhysicalKeycode=key,Pressed=false});await Frames(1);
+        }
+        g.Begin();
+        Check(g.Mode==GameMode.Dialogue&&g.Speaker=="Zero"&&g.Script.Count==Prologue.Intro.Length,"the journey opens on Zero's voice over the link");
+        Check(g.Hud.Portrait("Mio")!=null&&g.Hud.Portrait("Zero")==null,"Mio has a dialogue portrait; unseen Zero has none");
+        await Frames(10);Check(g.Reveal>0&&g.Reveal<g.Dialogue.Length,"dialogue text types out");
+        await Tap(Key.E);Check(g.Beat==0&&g.Reveal==g.Dialogue.Length,"the first press completes the typing line instead of skipping it");
+        int presses=1;while(g.Mode==GameMode.Dialogue&&presses<100){await Tap(Key.E);presses++;}
+        Check(g.Mode==GameMode.Playing&&presses==2*Prologue.Intro.Length,$"the opening scene plays every line, two presses each ({presses})");
         g.CameraYaw=0;g.Player.Respawn();await Frames(5);
         foreach(var resident in g.World.Residents)
         {
@@ -356,9 +369,13 @@ public static class IntegrationCheck
             Place(g.Player,talk);await Frames(10);
             Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-talk.X,g.Player.GlobalPosition.Z-talk.Z).Length()<.2f,"talk spot is standable: "+resident.Name);
             g.Interact();
-            Check(g.Mode==GameMode.Dialogue&&g.Speaker==resident.Name,"dialogue: "+resident.Name);g.Mode=GameMode.Playing;
+            Check(g.Mode==GameMode.Dialogue&&g.Speaker==resident.Name,"dialogue: "+resident.Name);
+            if(resident.Name=="Chiyo")Check(g.Script.Any(b=>b.Speaker=="Mio")&&g.Script.Any(b=>b.Text.Contains("Shio")),"Chiyo recognises Shio's terminal at the first meeting");
+            g.Mode=GameMode.Playing;
         }
         Check(g.QuestStage==1,"Ren starts the relay mission");
+        Place(g.Player,g.World.Residents.Single(r=>r.Name=="Chiyo").Body.GlobalPosition+Vector3.Back*2);await Frames(5);g.Interact();
+        Check(g.Speaker=="Chiyo"&&g.Script.Count==1,"a first-meeting scene plays once, then the resident's usual line");g.EndDialogue();
         var opponent=g.Enemies[0];
         Vector3 spot=new(0,Hoshikawa.World.Height(0,-29)+.1f,-29);
         Place(g.Player,spot);opponent.GlobalPosition=spot+Vector3.Forward*2;g.Player.Model.Rotation=new(0,Mathf.Pi,0);await Frames(12);
@@ -399,6 +416,9 @@ public static class IntegrationCheck
         Check(g.QuestStage==3&&g.Speaker=="Zero","relay activation contacts remote Zero");g.Mode=GameMode.Playing;
         Place(g.Player,g.World.Residents[0].Body.GlobalPosition+Vector3.Back*2);await Frames(60);g.Interact();
         Check(g.QuestStage==4,"returning to Ren completes the prologue");
+        int mother=g.Script.FindIndex(b=>b.Speaker=="Mio"&&b.Text.Contains("mother"));
+        Check(g.Script[^1].Speaker==""&&g.Script[g.NightFrom].Text.StartsWith("Night")&&mother>g.NightFrom&&g.Script[mother+1].Speaker=="Zero","the prologue closes on the lantern night, where Zero changes the subject from Mio's mother");
+        await Tap(Key.Escape);Check(g.Mode==GameMode.Playing,"escape skips the rest of a scene");
         if(DisplayServer.GetName()!="headless"){g.SaveScreenshot("res://artifacts/mission-complete.png");await Frames(5);}
         g.Restart();Check(g.QuestStage==0&&g.Enemies.All(e=>!e.Dead)&&g.Player.Health==100,"restart restores a fresh playable mission");
         GD.Print("Integration check completed: movement, terrain, dialogue, combat, patrols, pause, quest and restart.");

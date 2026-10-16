@@ -83,3 +83,11 @@ C# build succeeded. The final graphical integration run passed 57 checks with `S
 - [x] Add `tools/render_cost.gd`, which reports draw calls, primitives and CPU render time at three village viewpoints. The hamlet rebuild's minors and the river widening cost nothing measurable.
 - [x] Fix the intermittent audio leak at shutdown: `Game._ExitTree` stops the ambience and lets the audio thread release it before the AudioServer shuts down. The leak went from 6 in 20 quits to 0 in 40.
 - [x] Bake World's 2,675 static boxes, spheres and cylinders into 233 meshes, one per material and 32 m cell, with `Mat()` sharing one material per look. Draw calls fall from 4666/3897/5389 to 1229/1154/1311, and captured frames match the unmerged ones. 272 checks pass headless and in native Metal.
+
+## Scene 1 visual-novel prologue
+
+- [x] Write the prologue as visual-novel scenes in `scripts/Prologue.cs`: Zero waking Mio, Ren's briefing, the relay restart, the homecoming at nightfall, and a first conversation with each Hoshikawa resident. Zero stays a voice on Mio's wrist terminal, curious like a child; the homecoming's change of subject is the first hint that it is hiding something about Mio's mother.
+- [x] Replace the single dialogue box with a scene player: portraits, name plates, typed-out lines, narration, a night overlay, and Zero's link emblem. E, Enter or a click finish a line and then move on; Esc skips the rest of a scene.
+- [x] Cut Mio's portrait from her existing turnaround sheet with `tools/cut_portrait.gd`.
+- [ ] Cut the residents' portraits from their existing reference sheets in `artifacts/npc-image-to-3d-v2/` and `-v3/`, which live only on the user's machine; generate with Codex only where none exists.
+- [x] 281 checks pass headless; the graphical run used xvfb and OpenGL, not native Metal.

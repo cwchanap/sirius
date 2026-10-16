@@ -7,7 +7,8 @@ public partial class Hud : Control
     private readonly Font font=ThemeDB.FallbackFont;
     private readonly SystemFont serif=new() {FontNames=new[]{"Georgia","Noto Serif","DejaVu Serif"}};
     private Texture2D art=null!;
-    private GradientTexture2D titleShade=null!;
+    private GradientTexture2D titleShade=null!,sceneShade=null!;
+    private readonly Dictionary<string,Texture2D?> portraits=new();
     private Control menu=null!;
     private float scale=1,w=1440,h=900;
     private Color ink=new("12282f"),cream=new("f1ead5"),muted=new("aec0b4"),gold=World.Gold,jade=World.Jade;
@@ -17,9 +18,18 @@ public partial class Hud : Control
         art=GD.Load<Texture2D>("res://assets/art/mio-keyart.png");
         titleShade=new GradientTexture2D {Width=512,Height=1,FillFrom=Vector2.Zero,FillTo=Vector2.Right,
             Gradient=new Gradient {Colors=new[]{new Color(.028f,.068f,.076f,.86f),new Color(.028f,.068f,.076f,.30f),new Color(.028f,.068f,.076f,0)},Offsets=new[]{0f,.45f,1f}}};
+        sceneShade=new GradientTexture2D {Width=1,Height=256,FillFrom=Vector2.Zero,FillTo=Vector2.Down,
+            Gradient=new Gradient {Colors=new[]{new Color(.012f,.03f,.035f,0),new Color(.012f,.03f,.035f,.9f)},Offsets=new[]{0f,1f}}};
         menu=new Control {MouseFilter=MouseFilterEnum.Ignore};AddChild(menu);Resized+=RefreshMenu;
     }
-    public override void _ExitTree() { serif.Dispose(); titleShade.Dispose(); }
+    public override void _ExitTree() { serif.Dispose(); titleShade.Dispose(); sceneShade.Dispose(); }
+    // Portraits are looked up by speaker (KOMA-7 -> koma7.png); a speaker without one is shown by name plate alone.
+    public Texture2D? Portrait(string who)
+    {
+        if(!portraits.TryGetValue(who,out var t))
+        {string path=$"res://assets/art/portraits/{who.ToLowerInvariant().Replace("-","")}.png";portraits[who]=t=ResourceLoader.Exists(path)?GD.Load<Texture2D>(path):null;}
+        return t;
+    }
     private void Text(string text,Vector2 p,int size,Color color,bool display=false)
     {DrawString(display?serif:font,p,text,HorizontalAlignment.Left,-1,size,color);}
     private void Center(string text,float y,int size,Color c,bool display=false)
@@ -41,6 +51,7 @@ public partial class Hud : Control
         w=GetViewportRect().Size.X/scale;h=GetViewportRect().Size.Y/scale;
         DrawSetTransform(Vector2.Zero,0,Vector2.One*scale);menu.Scale=Vector2.One*scale;
         if(Game.Mode==GameMode.Title){Title();return;}
+        if(Game.Mode==GameMode.Dialogue){Dialogue();return;}
         Panel(new(30,24,385,160),.78f);
         Text(Game.Region.ToUpperInvariant(),new(42,52),25,cream,true);
         Text(Game.Region switch { "Komorebi"=>"NORTHERN SETTLEMENT  /  LODGE & CLINIC", "Cedar Pass"=>"CEDAR RIVER  /  ORCHARDS & HIGHLANDS",
@@ -84,7 +95,6 @@ public partial class Hud : Control
             Center(Game.ToastTitle,208,23,gold,true);Center(Game.ToastBody,235,14,cream);
         }
         if(Game.FeedbackTime>0)Center(Game.FeedbackText,h*.46f,21,Game.FeedbackColor);
-        if(Game.Mode==GameMode.Dialogue)Dialogue();
         if(Game.Mode==GameMode.Paused||Game.Mode==GameMode.Defeated)
         {
             DrawRect(new(0,0,w,h),new Color(.025f,.055f,.067f,.77f));
@@ -165,16 +175,63 @@ public partial class Hud : Control
     }
     private void Diamond(Vector2 p,float radius,Color c)
         =>DrawPolyline(new[]{p+Vector2.Up*radius,p+Vector2.Right*radius,p+Vector2.Down*radius,p+Vector2.Left*radius,p+Vector2.Up*radius},c,2);
+    // Visual-novel scene: Mio stands on the left, the resident she is talking to on the right, and whoever is not speaking dims.
+    // Zero has no figure; its voice is a pulsing link emblem beside Mio, because it speaks from her wrist terminal.
     private void Dialogue()
     {
-        DrawRect(new(0,0,w,h),new Color(.015f,.035f,.04f,.15f));
-        var rect=new Rect2(w/2-510,h-327,1020,219);Panel(rect,.97f);
-        DrawLine(rect.Position+new Vector2(0,0),rect.Position+new Vector2(1020,0),gold,2);
-        Text(Game.Speaker,new(rect.Position.X+30,rect.Position.Y+42),30,gold,true);
-        Text(Game.SpeakerRole,new(rect.Position.X+230,rect.Position.Y+38),11,jade);
-        var lines=Wrap(Game.Dialogue,945,18);float y=rect.Position.Y+79;
-        foreach(string line in lines){Text(line,new(rect.Position.X+31,y),18,cream);y+=28;}
-        Text("E / ENTER   Continue",new(rect.End.X-210,rect.End.Y-19),12,gold);
+        bool night=Game.NightFrom>=0&&Game.Beat>=Game.NightFrom;
+        DrawRect(new(0,0,w,h),night?new Color(.012f,.02f,.06f,.8f):new Color(.015f,.035f,.04f,.3f));
+        DrawTextureRect(sceneShade,new(0,h-470,w,470),false);
+        string who=Game.Speaker;var script=Game.Script;int beat=Math.Clamp(Game.Beat,0,Math.Max(0,script.Count-1));
+        bool Other(string s)=>s is not ("" or "Mio" or "Zero");
+        string partner=script.Take(beat+1).Select(b=>b.Speaker).LastOrDefault(Other)??script.Select(b=>b.Speaker).FirstOrDefault(Other)??"";
+        Figure("Mio",false,who=="Mio");
+        if(partner!="")Figure(partner,true,who==partner);
+        if(script.Any(b=>b.Speaker=="Zero"))Link(new(468,h-430),who=="Zero");
+        var box=new Rect2(w/2-560,h-262,1120,206);Panel(box,.95f);
+        DrawLine(box.Position,box.Position+new Vector2(box.Size.X,0),gold,2);
+        if(who!="")
+        {
+            bool right=Other(who);int nameSize=27;string role=Game.SpeakerRole;
+            float plate=serif.GetStringSize(who,fontSize:nameSize).X+font.GetStringSize(role,fontSize:11).X+62;
+            float px=right?box.End.X-30-plate:box.Position.X+30;
+            Panel(new(px,box.Position.Y-38,plate,42),.97f);
+            Text(who,new(px+18,box.Position.Y-8),nameSize,who=="Zero"?jade:gold,true);
+            Text(role,new(px+serif.GetStringSize(who,fontSize:nameSize).X+32,box.Position.Y-12),11,who=="Zero"?gold:jade);
+        }
+        int shown=(int)Game.Reveal;float y=box.Position.Y+58;
+        foreach(string line in Wrap(Game.Dialogue,1030,20))
+        {
+            if(shown<=0)break;string part=line.Length<=shown?line:line[..shown];shown-=line.Length+1;
+            if(who=="")Text(part,new((w-serif.GetStringSize(line,fontSize:21).X)/2,y),21,new Color(cream,.86f),true);
+            else Text(part,new(box.Position.X+44,y),20,cream);
+            y+=32;
+        }
+        Text("E / ENTER   Next        ESC   Skip scene",new(box.End.X-322,box.End.Y-18),12,new Color(gold,.8f));
+        if(Game.Reveal>=Game.Dialogue.Length&&(Time.GetTicksMsec()/450)%2==0)
+        {var c=new Vector2(box.End.X-346,box.End.Y-23);DrawColoredPolygon(new[]{c+new Vector2(-6,-4),c+new Vector2(6,-4),c+new Vector2(0,4)},gold);}
+    }
+    private void Figure(string who,bool right,bool speaking)
+    {
+        var t=Portrait(who);if(t==null)return;
+        float height=700,width=t.GetWidth()*height/t.GetHeight();
+        var rect=new Rect2(right?w-70-width:70,h-650+(speaking?0:14),width,height);
+        DrawTextureRect(t,rect,false,speaking?Colors.White:new Color(.4f,.45f,.5f));
+    }
+    private void Link(Vector2 c,bool speaking)
+    {
+        float t=Time.GetTicksMsec()/1000f,glow=speaking?1:.35f;
+        DrawCircle(c,64,new Color(jade,.10f*glow));DrawCircle(c,47,new Color(ink,.94f));
+        DrawArc(c,47,0,Mathf.Tau,48,new Color(jade,.35f+.4f*glow),1.5f);
+        for(int i=0;i<3;i++)DrawArc(c,55,t*.9f+i*Mathf.Tau/3,t*.9f+i*Mathf.Tau/3+.8f,12,new Color(jade,.7f*glow),2);
+        Text("0",new(c.X-serif.GetStringSize("0",fontSize:44).X/2,c.Y+15),44,new Color(cream,.5f+.5f*glow),true);
+        bool voicing=speaking&&Game.Reveal<Game.Dialogue.Length;
+        for(int i=0;i<9;i++)
+        {
+            float level=voicing?.35f+.65f*Mathf.Abs(Mathf.Sin(t*11+i*1.7f)*Mathf.Sin(t*4.3f+i)):.12f;
+            DrawRect(new Rect2(c.X+72+i*9,c.Y-level*22,4,level*44),new Color(jade,.4f+.6f*glow));
+        }
+        Text("ZERO  ·  LINK",new(c.X+72,c.Y+44),11,new Color(jade,.5f+.5f*glow));
     }
     private List<string> Wrap(string text,float width,int size)
     {
@@ -191,7 +248,7 @@ public partial class Hud : Control
         scale=Math.Min(width/1440,height/900);w=width/scale;h=height/scale;
         if(Game.Mode==GameMode.Title)
         {
-            Button("BEGIN JOURNEY     →",new(84,h*.25f+295),new(320,58),Game.Start,true);
+            Button("BEGIN JOURNEY     →",new(84,h*.25f+295),new(320,58),Game.Begin,true);
             Button("Quit",new(84,h*.25f+367),new(110,40),()=>GetTree().Quit(),false);
         }
         if(Game.Mode==GameMode.Paused)

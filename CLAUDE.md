@@ -46,6 +46,8 @@ $GODOT_MONO --path . --script res://tools/review_tripo.gd         # Mio model an
 $GODOT_MONO --path . --script res://tools/review_jump.gd          # Mio jump frame sequences (artifacts/tripo-jump/)
 $GODOT_MONO --path . --script res://tools/review_chiyo.gd         # Chiyo poses and dialogue (artifacts/chiyo-integration/)
 $GODOT_MONO --path . --script res://tools/review_koma7.gd         # KOMA-7 views (artifacts/koma7-integration/)
+$GODOT_MONO --path . --script res://tools/review_dialogue.gd      # prologue visual-novel scenes (artifacts/dialogue/)
+$GODOT_MONO --headless --path . --script res://tools/cut_portrait.gd -- --src=<png> --out=<png> [--rect=x,y,w,h] [--flip]   # dialogue portrait cut-out
 $GODOT_MONO --path . --disable-vsync --fixed-fps 60 --script res://tools/render_cost.gd   # draw calls/primitives/CPU ms at three village viewpoints
 ```
 
@@ -61,8 +63,9 @@ To compare render cost between commits, compare `render_cost.gd`'s draw and prim
 - `World.cs` — deterministic environment and both villages. Nothing here is random at runtime (`rng` is seeded 2189).
 - `Architecture.cs` / `Hamlet.cs` — `partial class World`. `Architecture.cs` holds the curved-roof generator (`Roof`, `RoofY`) and the `Minka()` timber-frame kit for the six Hoshikawa styles. `Hamlet.cs` holds the brook, footbridge, terrace wall, shrine, `StoneLantern()` and the village `Dressing()`. The Komorebi buildings still use the older `House()`.
 - `Player.cs` / `Enemy.cs` — `CharacterBody3D` controllers holding all action timing as float countdowns ticked in `_PhysicsProcess` (attack, dodge, guard, deflect window, posture, stun, invulnerability, cooldowns). Combat tuning lives inline in these two files; there is no data/config layer.
+- `Prologue.cs` — every line of the prologue's visual-novel scenes as `(Speaker, Text)` beats; a blank speaker is narration. `Game.Play(beats)` starts a scene, `Advance()` finishes a typing line or moves on, `EndDialogue()` returns to play. Quest stages still change on `Interact()`, before the scene plays. `Begin()` (title screen) plays the intro; `Start()`, which the self-test calls, does not.
 - `ActorVisual.cs` — thin `AnimationPlayer` wrapper. Finds the animator under an imported GLB, normalizes clip names (`some/path/run.001` → `run`), and sets loop modes. Every character goes through it; `Play(clip, speed, restart)` is the only animation entry point.
-- `Hud.cs` — a single `Control` drawn entirely in `_Draw()` (immediate mode). Title screen, vitals, minimap, dialogue and perilous-attack diamond are draw calls, not nodes; `Game._Process` calls `QueueRedraw()` each frame. Menus are the one exception: `RefreshMenu()` builds real `Button` nodes.
+- `Hud.cs` — a single `Control` drawn entirely in `_Draw()` (immediate mode). Title screen, vitals, minimap, dialogue and perilous-attack diamond are draw calls, not nodes; `Game._Process` calls `QueueRedraw()` each frame. Menus are the one exception: `RefreshMenu()` builds real `Button` nodes. In `GameMode.Dialogue` the HUD draws only the visual-novel layer: portraits from `assets/art/portraits/<name>.png` (lower case, no hyphen; a missing file just leaves the slot empty), Zero's link emblem, and the text box.
 
 ### Invariants worth knowing before editing the world
 
