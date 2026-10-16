@@ -1,5 +1,45 @@
 # MVP verification
 
+## Sora, Nao and Toma Tripo integration — 2026-10-16
+
+Three Tripo Studio characters reached a live Blender session over DCC Bridge as rigged FBX, and nothing had saved them.
+
+- **Preservation:** the scene was saved without change through the Blender MCP (`save_as_mainfile(copy=True)`), leaving the open session's file path and state as they were. The save reopened in background Blender with three 65-bone armatures, three meshes and twelve packed textures.
+- **Identification:** renders of each character were matched to the v3 four-view references. anime is Sora, female is Nao and adventurer is Toma.
+- **Originals:** the per-character originals were split from that save. Its hash was unchanged afterwards.
+
+| | Sora | Nao | Toma |
+|---|---|---|---|
+| Source triangles = GLB triangles | 19,591 | 19,530 | 18,215 |
+| Height (Blender audit of the GLB, soles at 0) | 1.78 m | 1.64 m | 1.74 m |
+| Ankle above ground (self-test) | 0.129 m | 0.093 m | 0.146 m |
+
+- **GLB contents:** each GLB holds one mesh, a 65-joint skin and a closed four-second `idle`.
+  - The maximum skin weight-sum error is 9.69e-8.
+  - Embedded base-color and normal bytes equal the source textures. Roughness and metallic are combined by Blender.
+  - Godot uses the default scene import settings, matching `koma7.glb`.
+- **Code:** `World.TripoResidents` now holds the asset, height and label height of all five Tripo residents, replacing the Chiyo/KOMA-7 conditionals. Chiyo and KOMA-7 keep their exact previous values.
+- **New checks:** IntegrationCheck runs the same set over all five residents.
+  - rig contract, own GLB, looping idle that moves the rig, planted foot, textured material, terrain placement
+  - collision capsule fitted to the table height
+  - idle length (six seconds for KOMA-7, four for the others)
+  - ankle 0–0.2 m above ground
+  - hips and feet fixed at five points through the idle
+- **Results:** 323 checks pass headless and in native Metal (Forward Mobile, Apple M1 Pro). That is 272 plus 51 new. Both runs exit 0 with `SELF_TEST_PASS`, and neither log has warnings, errors or input restores. The existing Komorebi walk-to-service checks still reach Nao and Toma with their new capsules.
+- **Render cost:** `render_cost.gd` draws fell at all three viewpoints, because each model is one surface where the shared villager had several. Primitives rose 0.4–4.4% at the same viewpoints.
+
+  | viewpoint | draws (main → now) | primitives (main → now) |
+  |---|---|---|
+  | (0, 31) | 1229 → 1164 | 2,110,640 → 2,202,826 |
+  | (0, 16) | 1154 → 1098 | 2,149,466 → 2,158,544 |
+  | Shrine steps | 1311 → 1246 | 2,054,133 → 2,100,611 |
+
+- **Captures:** `tools/review_villagers.gd` saved front, face, idle, side, back and real-dialogue captures for each, under `artifacts/{sora,nao,toma}-integration/`. All 18 were inspected. Hashes, the GLB audit, and the import, test, review and render-cost logs are in `artifacts/villagers-integration/`.
+- **Limits:**
+  - The heights are judgement calls; the references give ages and builds but no heights.
+  - The idles are authored, because Tripo supplied no animation.
+  - All input was engine-injected.
+
 ## Scene 1 visual-novel dialogue — 2026-10-16
 
 The prologue's conversations now play as visual-novel scenes: portraits, name plates, typed-out lines, narration and Zero's link emblem.

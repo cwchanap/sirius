@@ -5,6 +5,11 @@ public partial class World : Node3D
 {
     public readonly List<Node3D> Buildings = new();
     public readonly List<(string Name, string Role, string Line, Node3D Body)> Residents = new();
+    // Residents with their own Tripo GLB: grounded model height (also the capsule) and name label height. The rest share villager.glb.
+    public static readonly Dictionary<string, (string Asset, float Height, float Label)> TripoResidents = new()
+    {
+        ["Chiyo"]=("chiyo",1.58f,1.9f), ["KOMA-7"]=("koma7",1.25f,1.55f), ["Sora"]=("sora",1.78f,2.1f), ["Nao"]=("nao",1.64f,1.96f), ["Toma"]=("toma",1.74f,2.06f),
+    };
     public const int NorthEdge = -200, SouthEdge = 80, HalfWidth = 64;
     public static Vector3 KomorebiCenter => new(0, Height(0,-154), -154);
     public static float RoadX(float z)
@@ -340,9 +345,9 @@ public partial class World : Node3D
     }
     private void Resident(string name,string role,string line,Vector3 p,int variant,float? face=null)
     {
-        bool chiyo=name=="Chiyo",koma=name=="KOMA-7",custom=chiyo||koma;
-        p.Y=Height(p.X,p.Z); var n=new Node3D {Name=name,Position=p,Rotation=new(0,face??(chiyo||variant%2==0?1.1f:-1.1f),0)}; AddChild(n);
-        var body=GD.Load<PackedScene>(chiyo?"res://assets/models/chiyo.glb":koma?"res://assets/models/koma7.glb":"res://assets/models/villager.glb").Instantiate<Node3D>();
+        bool custom=TripoResidents.TryGetValue(name,out var model);
+        p.Y=Height(p.X,p.Z); var n=new Node3D {Name=name,Position=p,Rotation=new(0,face??(name=="Chiyo"||variant%2==0?1.1f:-1.1f),0)}; AddChild(n);
+        var body=GD.Load<PackedScene>($"res://assets/models/{(custom?model.Asset:"villager")}.glb").Instantiate<Node3D>();
         n.AddChild(body); body.Scale=Vector3.One*(custom?1:1.03f+variant*.02f);
         var visual=new ActorVisual();n.AddChild(visual);visual.Bind(body);visual.Play("idle");
         Color[] colors={new("466b76"),new("876c88"),new("d5d9c4"),new("a17b47"),new("6c8c65"),new("77bfb2")};
@@ -350,9 +355,9 @@ public partial class World : Node3D
         {
             if(!custom&&(m.Name.ToString().Contains("coat",StringComparison.OrdinalIgnoreCase)||m.Name.ToString().Contains("armor",StringComparison.OrdinalIgnoreCase))) m.MaterialOverride=Mat(colors[variant]);
         }
-        Label(n,name,new(0,chiyo?1.9f:koma?1.55f:2.35f,0),variant==0?Gold:new("ecedda"),29);
+        Label(n,name,new(0,custom?model.Label:2.35f,0),variant==0?Gold:new("ecedda"),29);
         var collision=new StaticBody3D {CollisionLayer=1};n.AddChild(collision);
-        float height=chiyo?1.58f:koma?1.25f:1.8f;
+        float height=custom?model.Height:1.8f;
         collision.AddChild(new CollisionShape3D { Position=new(0,height/2,0),Shape=new CapsuleShape3D { Radius=.32f,Height=height } });
         Residents.Add((name,role,line,n));
     }
