@@ -9,7 +9,8 @@ The prologue's conversations now play as visual-novel scenes: portraits, name pl
 - **Graphical:** this run was in a Linux container with no GPU, under xvfb with Mesa's software OpenGL and `--rendering-method gl_compatibility`, not native Metal on the Mobile renderer. All 281 checks pass at 640×400 on commit `3ead5f1` (before the resident portraits), exit 0 with `SELF_TEST_PASS`. The log's only errors and warnings are the container's: no audio device and no V-Sync control. Software rendering made the run take about two hours; an earlier attempt at 1440×900 was stopped after 142 passing checks.
 - **Captures:** `tools/review_dialogue.gd` under the same xvfb setup, inspected by eye: the intro (both speakers and a line mid-typing), Ren's briefing, Zero's line in it, Hana with KOMA-7, Chiyo's closing narration, nightfall and the line about Mio's mother. Recaptured after the Codex portraits: Mio and the resident she speaks with stand at either side, head to hip above the text box, the listener dimmed, with Zero's emblem between them. The night overlay darkens the frame from "Night falls" onward.
 - **Portraits:** the portrait check covers Mio and all ten residents. With `yui.png` moved away it fails with `SELF_TEST_FAIL`. How the eleven were generated, cut and checked is in `assets/art/portraits/portraits-generation.md`.
-- **Not covered:** native Metal.
+- **Native Metal:** on the owner's Mac, `tools/review_dialogue.gd` ran graphically on commit `8b4a35d` under Metal and printed `DIALOGUE_CAPTURE_OK`; the nine captures show the Codex portraits placed as above, with Mio left facing right and the resident right facing left. That Mac's headless self-test also passed.
+- **Not covered:** the full graphical self-test under native Metal.
 
 ## Static geometry merge — 2026-10-14
 
