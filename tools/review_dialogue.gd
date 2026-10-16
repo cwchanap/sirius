@@ -1,6 +1,8 @@
 extends SceneTree
 # Captures Scene 1's visual-novel dialogue through the real scene flow into artifacts/dialogue/.
 
+var failed=false
+
 func _initialize():
 	call_deferred("capture")
 
@@ -9,7 +11,8 @@ func shot(game,name,typed=true):
 	for i in range(4): await process_frame
 	RenderingServer.force_draw()
 	var err=root.get_texture().get_image().save_png("res://artifacts/dialogue/"+name+".png")
-	assert(err==OK)
+	if err!=OK:
+		push_error("DIALOGUE_CAPTURE_FAIL "+name+" "+str(err));failed=true;quit(1)
 
 func advance(game,beats):
 	for i in beats:
@@ -48,5 +51,6 @@ func capture():
 	await shot(game,"homecoming-night")
 	advance(game,4)
 	await shot(game,"homecoming-mother")
+	if failed: return
 	print("DIALOGUE_CAPTURE_OK: intro, briefing, Hana and KOMA-7, Chiyo, lantern night")
 	quit()
