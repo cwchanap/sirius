@@ -187,7 +187,7 @@ public partial class Hud : Control
         string partner=script.Take(beat+1).Select(b=>b.Speaker).LastOrDefault(Other)??script.Select(b=>b.Speaker).FirstOrDefault(Other)??"";
         Figure("Mio",false,who=="Mio");
         if(partner!="")Figure(partner,true,who==partner);
-        if(script.Any(b=>b.Speaker=="Zero"))Link(new(468,h-430),who=="Zero");
+        if(script.Any(b=>b.Speaker=="Zero"))Link(new(w/2-44,h-430),who=="Zero");
         var box=new Rect2(w/2-560,h-262,1120,206);Panel(box,.95f);
         DrawLine(box.Position,box.Position+new Vector2(box.Size.X,0),gold,2);
         if(who!="")
@@ -214,8 +214,8 @@ public partial class Hud : Control
     private void Figure(string who,bool right,bool speaking)
     {
         var t=Portrait(who);if(t==null)return;
-        float height=700,width=t.GetWidth()*height/t.GetHeight();
-        var rect=new Rect2(right?w-70-width:70,h-650+(speaking?0:14),width,height);
+        float height=760,width=t.GetWidth()*height/t.GetHeight();
+        var rect=new Rect2(right?w-30-width:30,h-750+(speaking?0:14),width,height);
         DrawTextureRect(t,rect,false,speaking?Colors.White:new Color(.4f,.45f,.5f));
     }
     private void Link(Vector2 c,bool speaking)

@@ -88,10 +88,11 @@ Mio now has fuller middle/lower cheeks and a softer jaw transition while retaini
 
 ## Dialogue portraits — 2026-10-16
 
-`assets/art/portraits/` holds the visual-novel portraits, cut out of existing art with `tools/cut_portrait.gd`; none was generated. The tool removes the flat white background, keeps any transparency the source already had, and crops to the character. `--ground=<rows>` also clears a painted ground shadow near the feet.
+`assets/art/portraits/` holds the visual-novel portraits of Mio and the ten residents. Each is a three-quarter dialogue pose from the top of the head to mid-thigh (KOMA-7 to the knees), generated with `codex exec` and its built-in image tool on a white background. Mio faces right and the residents face left. Mio's references were her key art and turnaround sheets. Each resident's were their views in `artifacts/npc-image-to-3d-v2/` or `-v3/`, which live only on the user's machine, plus Mio's accepted portrait for style and scale.
 
-- `mio.png`: the front three-quarter view of `assets/art/mio-turnaround-body-v1.png`, cut with `--rect=1070,0,350,660 --flip` so she faces right. 318×636.
-- The ten residents: their unchanged front views from `artifacts/npc-image-to-3d-v2/` (Ren, Chiyo, Aki) and `-v3/` (Hana, Sora, KOMA-7, Nao, Emi, Toma, Yui), cut with `--ground=170`. Those packs live only on the user's machine. [portraits-sources.md](assets/art/portraits/portraits-sources.md) records each source path, both hashes and the exact commands.
+`tools/cut_portrait.gd` removed the white background and cropped each one. The cutter also clears pure-white highlights enclosed by the figure, such as gems, glass and pale cloth, so a short script put those regions back from the raw image. [portraits-generation.md](assets/art/portraits/portraits-generation.md) records every prompt, reference, raw hash, try count, cut command and restored region.
+
+The first cuts, from the reference sheets' front views, stood front-on with arms at their sides and were replaced as unnatural for dialogue.
 
 Zero has no portrait by design: nobody in the valley has seen its body.
 
