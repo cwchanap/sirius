@@ -1,5 +1,15 @@
 # MVP verification
 
+## Scene 1 visual-novel dialogue — 2026-10-16
+
+The prologue's conversations now play as visual-novel scenes: portraits, name plates, typed-out lines, narration and Zero's link emblem.
+
+- **New checks:** nine. Beginning the journey opens on Zero. Mio has a portrait and Zero has none. A line types out, the first press completes it, and the intro takes exactly two presses per line. Chiyo's first meeting mentions Shio, and talking to her again plays only her usual line. The homecoming's night falls before Mio mentions her mother, and Zero's next line changes the subject. Esc skips the rest of a scene. Keys go in through `Input.ParseInputEvent`; no physical keyboard or mouse was used.
+- **Headless:** 281 checks pass (was 272), exit 0 with `SELF_TEST_PASS`, and the log has no warnings or errors.
+- **Graphical:** this run was in a Linux container with no GPU, under xvfb with Mesa's software OpenGL and `--rendering-method gl_compatibility`, not native Metal on the Mobile renderer. That run had not finished when this entry was written.
+- **Captures:** `tools/review_dialogue.gd` under the same xvfb setup, inspected by eye: the intro (both speakers and a line mid-typing), Ren's briefing, Zero's line in it, Hana with KOMA-7, Chiyo's closing narration, nightfall and the line about Mio's mother. The night overlay darkens the frame from "Night falls" onward.
+- **Not yet covered:** native Metal, and the residents' portraits, which are still to be cut from their reference sheets. Until then the right-hand slot is empty and the name plate carries the speaker.
+
 ## Static geometry merge — 2026-10-14
 
 Draw calls fell by 70–76%, and the frame looks the same. Before the change, World's static boxes, spheres and cylinders were 2,675 separate meshes. Each cost a draw call, and most cost a second one in the sun's shadow pass. `World.Merge()` now bakes them into 233 meshes, one per material and 32 m cell, after `_Ready` builds the world. The originals stay hidden, so colliders and every name-based check still work.

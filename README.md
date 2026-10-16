@@ -27,7 +27,8 @@ sh run.sh
 | Resonance Cut | Q |
 | Healing remedy | H |
 | Talk / use relay | E |
-| Continue dialogue | E or Enter |
+| Continue dialogue | E, Enter or left mouse |
+| Skip the rest of a scene | Esc |
 | Pause / release pointer | Esc |
 | Zoom camera | Mouse wheel |
 | Save screenshot | F8 (`artifacts/gameplay.png`) |
@@ -41,6 +42,8 @@ Tap guard within **190 ms** of a frontal normal strike to deflect it. Deflection
 3. Disable all **three** patrol robots.
 4. Interact with the manual relay below the broken viaduct; Zero responds from the city.
 5. Return to Ren to secure the evacuation route.
+
+The story plays as visual-novel scenes over the paused game: portraits, a name plate and typed-out lines. Beginning the journey opens with Zero waking Mio through the sensory link. Ren's briefing, the relay restart and the homecoming at nightfall are scenes of their own, and each Hoshikawa resident has a short first conversation before falling back to their usual line. Zero speaks from Mio's wrist terminal, so it appears as a link emblem rather than a portrait. The first press finishes a line that is still typing; the next moves on.
 
 Hoshikawa is a small Japanese hamlet with **six buildings**: a workshop with a lean-to, a kura granary, an irimoya assembly hall, a teahouse, a clinic with an engawa and a thatched farmhouse. It has **six named residents** (Ren, Chiyo, Aki, Hana, Sora, KOMA-7). A brook with a plank footbridge runs past the rice fields, a raised terrace behind a stone wall edges the west side, and the road climbs through a torii to a small shrine in a cedar grove. Countryside includes textured rolling terrain, a river and bridge, rice beds, forest, rocks, meadow vegetation, wildflowers, and a distant machine-city skyline.
 
@@ -60,7 +63,7 @@ Success prints `SELF_TEST_PASS` and exits 0. Current evidence and environment li
 
 For reproducible rendered evidence, append `-- --play --capture=res://artifacts/village.png` to a graphical launch. Optional `--overview`, `--combat-view`, `--portrait`, and `--portrait-close` select useful inspection viewpoints. These options are development conveniences; normal play begins at the illustrated title screen.
 
-Run Godot with `--script res://tools/review_hamlet.gd` for Hoshikawa captures under `artifacts/hamlet/` (`-- --out=<subdir> --only=square,overview` narrows them). Use `--komorebi` or `--pass-view` with `--play` to inspect the new areas. Run Godot with `--script res://tools/review_valley.gd` for six landscape captures under `artifacts/countryside/`.
+Run Godot with `--script res://tools/review_dialogue.gd` to capture the prologue's dialogue scenes under `artifacts/dialogue/`. Run Godot with `--script res://tools/review_hamlet.gd` for Hoshikawa captures under `artifacts/hamlet/` (`-- --out=<subdir> --only=square,overview` narrows them). Use `--komorebi` or `--pass-view` with `--play` to inspect the new areas. Run Godot with `--script res://tools/review_valley.gd` for six landscape captures under `artifacts/countryside/`.
 
 Komorebi now has angled service frontages, a smaller courtyard, an orchard packing station, and paths through the garden and orchard fence openings. Graded approaches meet the shelter and river-facing overlook floors; garden soil follows the hillside. Run Godot with `--script res://tools/review_arrangement.gd` for the placement review captures in `artifacts/arrangement-after/`.
 
@@ -109,6 +112,8 @@ The importer regression check exercises all four input formats, transformed mult
 - `tools/build_props.py`: deterministic background-Blender generator for the tree and shrub GLBs in `assets/models/props/`; `assets/shaders/foliage.gdshader` gives their leaf cards alpha cut-out, backlight and wind sway.
 - `scripts/Player.cs`, `Enemy.cs`: action timing, movement, and robot behavior.
 - `scripts/Game.cs`, `Hud.cs`: quest, camera, dialogue, presentation and audio.
+- `scripts/Prologue.cs`: every line of the prologue's visual-novel scenes, kept apart from the code that plays them.
+- `assets/art/portraits/`: dialogue portraits, cut from existing character art with `tools/cut_portrait.gd`. A speaker without a file there shows only a name plate.
 - `assets/models/mio.glb`: the user's Tripo character, with a 41-bone rig, its four supplied animations and eight adapted combat clips.
 - `assets/models/chiyo.glb`: Chiyo's Tripo model with a 41-bone rig and a gentle authored idle. Her original import is preserved in `assets/source/chiyo-tripo-original.blend`; rebuild the game copy with `tools/import_tripo_chiyo.py` in background Blender.
 - `assets/models/koma7.glb`: KOMA-7's Tripo robot with a 65-bone rig and an authored head-turn idle. Preserved source: `assets/source/koma7-tripo-original.blend`; rebuild with `tools/import_tripo_koma7.py` in background Blender.

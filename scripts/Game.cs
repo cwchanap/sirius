@@ -14,6 +14,10 @@ public partial class Game : Node3D
     public Camera3D Camera=null!;
     public Hud Hud=null!;
     public string Speaker="",SpeakerRole="",Dialogue="",ToastTitle="",ToastBody="",FeedbackText="";
+    public readonly List<(string Speaker,string Text)> Script=new();
+    public readonly HashSet<string> Heard=new();
+    public int Beat,NightFrom=-1;
+    public float Reveal;
     public Color FeedbackColor=Hoshikawa.World.Gold;
     public float ToastTime,FeedbackTime;
     public bool SelfTest;
@@ -65,14 +69,15 @@ public partial class Game : Node3D
         Mode=GameMode.Playing;Input.MouseMode=SelfTest?Input.MouseModeEnum.Visible:Input.MouseModeEnum.Captured;
         Toast("HOSHIKAWA","An offline valley, beyond the city's reach.",5);Hud.RefreshMenu();
     }
+    public void Begin(){Start();Play(Prologue.Intro);}
     public override void _UnhandledInput(InputEvent e)
     {
         if(e is InputEventKey key&&key.Pressed&&!key.Echo)
         {
             if(key.Keycode==Key.F8){SaveScreenshot("res://artifacts/gameplay.png");return;}
-            if(key.Keycode==Key.Enter&&Mode==GameMode.Title){Start();GetViewport().SetInputAsHandled();return;}
-            if(Mode==GameMode.Dialogue&&(key.PhysicalKeycode==Key.E||key.Keycode==Key.Enter||key.Keycode==Key.Escape))
-            {Mode=GameMode.Playing;Input.MouseMode=Input.MouseModeEnum.Captured;GetViewport().SetInputAsHandled();return;}
+            if(key.Keycode==Key.Enter&&Mode==GameMode.Title){Begin();GetViewport().SetInputAsHandled();return;}
+            if(Mode==GameMode.Dialogue&&(key.PhysicalKeycode==Key.E||key.Keycode==Key.Enter)){Advance();GetViewport().SetInputAsHandled();return;}
+            if(Mode==GameMode.Dialogue&&key.Keycode==Key.Escape){EndDialogue();GetViewport().SetInputAsHandled();return;}
             if(key.Keycode==Key.Escape&&Mode is GameMode.Playing or GameMode.Paused)
             {SetPaused(Mode==GameMode.Playing);return;}
             if(key.PhysicalKeycode==Key.E&&Mode==GameMode.Playing){Interact();return;}
@@ -82,6 +87,9 @@ public partial class Game : Node3D
         {
             CameraYaw-=motion.Relative.X*.0026f;CameraPitch=Mathf.Clamp(CameraPitch-motion.Relative.Y*.0023f,-.95f,-.09f);
         }
+        // The left button is also "attack": releasing the action stops the click that closes a scene from swinging the sword.
+        if(e is InputEventMouseButton click&&click.Pressed&&click.ButtonIndex==MouseButton.Left&&Mode==GameMode.Dialogue)
+        {Advance();Input.ActionRelease("attack");GetViewport().SetInputAsHandled();return;}
         if(e is InputEventMouseButton mouse&&mouse.Pressed&&Mode==GameMode.Playing)
         {
             if(mouse.ButtonIndex==MouseButton.WheelUp)spring.SpringLength=Math.Max(3,spring.SpringLength-.6f);
@@ -91,6 +99,7 @@ public partial class Game : Node3D
     public override void _Process(double delta)
     {
         float dt=(float)delta;elapsed+=delta;
+        if(Mode==GameMode.Dialogue)Reveal=Math.Min(Dialogue.Length,Reveal+dt*52);
         if(Mode==GameMode.Playing)
         {
             ToastTime=Math.Max(0,ToastTime-dt);FeedbackTime=Math.Max(0,FeedbackTime-dt);
@@ -137,7 +146,7 @@ public partial class Game : Node3D
     }
     public void Restart()
     {
-        QuestStage=0;foreach(var e in Enemies)e.Reset();Retry();
+        QuestStage=0;Heard.Clear();foreach(var e in Enemies)e.Reset();Retry();
     }
     public string Objective=>QuestStage switch
     {
@@ -164,28 +173,35 @@ public partial class Game : Node3D
         foreach(var r in World.Residents)
         {
             if(r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition)>=3.1f)continue;
-            string line=r.Line;
             if(r.Name=="Ren")
             {
-                if(QuestStage==0){QuestStage=Enemies.All(e=>e.Dead)?2:1;Toast("THE TRAIN WITH NO PASSENGERS","Clear the patrols. Reopen the road.",4);}
-                else if(QuestStage==3)
-                {QuestStage=4;line="The manual relay is live. We can guide the prisoners off the train when Zero opens their carriage. You made a way home, Mio. Tonight, that is enough.";Toast("ROUTE SECURED","Chapter prologue complete · Hoshikawa is ready.",8);Sound("heal");}
-                else if(QuestStage==4)line="The valley is ready. Zero is still in the city, preparing the other half of our rescue. Rest for a while. You have earned it.";
-                else line="Cross the bridge and follow the lanterns uphill. Three patrol units are blocking the manual relay. Do not let them surround you.";
+                if(QuestStage==0){QuestStage=Enemies.All(e=>e.Dead)?2:1;Toast("THE TRAIN WITH NO PASSENGERS","Clear the patrols. Reopen the road.",4);Play(Prologue.Briefing);}
+                else if(QuestStage==3){QuestStage=4;Toast("ROUTE SECURED","Chapter prologue complete · Hoshikawa is ready.",8);Sound("heal");Play(Prologue.Homecoming);NightFrom=Prologue.NightFalls;}
+                else Play(("Ren",QuestStage==4?Prologue.RenRest:QuestStage==2?Prologue.RenRoadClear:Prologue.RenReminder));
+                return;
             }
             if(r.Name is "Aki" or "Emi"){Player.Health=100;Player.Posture=0;Player.Remedies=3;Sound("heal");}
-            Say(r.Name,r.Role,line);return;
+            Play(Heard.Add(r.Name)&&Prologue.FirstMeeting.TryGetValue(r.Name,out var scene)?scene:new[]{(r.Name,r.Line)});return;
         }
         if(World.RelayPosition.DistanceTo(Player.GlobalPosition)<3.3f)
         {
-            if(QuestStage<2)Say("Zero","SENSORY LINK · CITY SIDE","The patrols are still polling this relay. Speak to Ren and clear all three before bringing it online.");
-            else if(QuestStage==2)
-            {QuestStage=3;Burst(World.RelayPosition+Vector3.Up*2,Hoshikawa.World.Jade,4);Sound("skill");Say("Zero","SENSORY LINK · CITY SIDE","I have your signal. The maintenance siding is reachable now. I am still at the city station, Mio. You opened the way out; I will work on the locks. Tell Ren the route is ready.");}
-            else Say("Zero","SENSORY LINK · CITY SIDE","The offline relay is stable. Return to Ren. I can see the valley through your eyes; I would like to see it for myself one day.");
+            if(QuestStage==0)Play(("Zero",Prologue.RelayAsleep));
+            else if(QuestStage==1)Play(("Zero",Prologue.RelayGuarded(Enemies.Count(e=>!e.Dead))));
+            else if(QuestStage==2){QuestStage=3;Burst(World.RelayPosition+Vector3.Up*2,Hoshikawa.World.Jade,4);Sound("skill");Play(Prologue.RelayOnline);}
+            else Play(("Zero",Prologue.RelaySteady));
         }
     }
-    public void Say(string speaker,string role,string line)
-    {Speaker=speaker;SpeakerRole=role;Dialogue=line;Mode=GameMode.Dialogue;Input.MouseMode=Input.MouseModeEnum.Visible;}
+    public void Play(params (string Speaker,string Text)[] beats)
+    {Script.Clear();Script.AddRange(beats);Beat=-1;NightFrom=-1;Mode=GameMode.Dialogue;Input.MouseMode=Input.MouseModeEnum.Visible;Advance();}
+    // The first press finishes a line still typing out; the next one moves on.
+    public void Advance()
+    {
+        if(Beat>=0&&Reveal<Dialogue.Length){Reveal=Dialogue.Length;return;}
+        if(++Beat>=Script.Count){EndDialogue();return;}
+        (Speaker,Dialogue)=Script[Beat];Reveal=0;
+        SpeakerRole=Speaker switch {"Mio"=>"OFFLINE RUNNER","Zero"=>"SENSORY LINK · CITY SIDE",_=>World.Residents.FirstOrDefault(r=>r.Name==Speaker).Role??""};
+    }
+    public void EndDialogue(){Mode=GameMode.Playing;Input.MouseMode=SelfTest?Input.MouseModeEnum.Visible:Input.MouseModeEnum.Captured;}
     public void OnEnemyDefeated()
     {
         if(QuestStage==1&&Enemies.All(e=>e.Dead)){QuestStage=2;Toast("ROAD CLEARED","Follow the lanterns to the manual relay.",5);}
