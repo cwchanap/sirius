@@ -113,7 +113,7 @@ The importer regression check exercises all four input formats, transformed mult
 - `scripts/Player.cs`, `Enemy.cs`: action timing, movement, and robot behavior.
 - `scripts/Game.cs`, `Hud.cs`: quest, camera, dialogue, presentation and audio.
 - `scripts/Prologue.cs`: every line of the prologue's visual-novel scenes, kept apart from the code that plays them.
-- `assets/art/portraits/`: dialogue portraits, cut from existing character art with `tools/cut_portrait.gd`. A speaker without a file there shows only a name plate.
+- `assets/art/portraits/`: dialogue portraits generated with Codex from each character's reference art and cut out with `tools/cut_portrait.gd`. A speaker without a file there shows only a name plate.
 - `assets/models/mio.glb`: the user's Tripo character, with a 41-bone rig, its four supplied animations and eight adapted combat clips.
 - `assets/models/chiyo.glb`: Chiyo's Tripo model with a 41-bone rig and a gentle authored idle. Her original import is preserved in `assets/source/chiyo-tripo-original.blend`; rebuild the game copy with `tools/import_tripo_chiyo.py` in background Blender.
 - `assets/models/koma7.glb`: KOMA-7's Tripo robot with a 65-bone rig and an authored head-turn idle. Preserved source: `assets/source/koma7-tripo-original.blend`; rebuild with `tools/import_tripo_koma7.py` in background Blender.
