@@ -73,8 +73,9 @@ func _initialize():
 			out[o+3]=roundi(alpha*255)
 	var result=Image.create_from_data(w,h,false,Image.FORMAT_RGBA8,out)
 	result=result.get_region(result.get_used_rect())
-	print("PORTRAIT ",result.get_size()," ",result.save_png(opts["out"])," ",opts["out"])
-	quit()
+	var err=result.save_png(opts["out"])
+	print("PORTRAIT ",result.get_size()," ",err," ",opts["out"])
+	quit(0 if err==OK else 1)
 
 func neighbours(i,w,h):
 	var x=i%w;var y=i/w;var n=[]

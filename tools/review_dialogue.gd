@@ -8,7 +8,8 @@ func shot(game,name,typed=true):
 	if typed: game.set("Reveal",1000.0)
 	for i in range(4): await process_frame
 	RenderingServer.force_draw()
-	assert(root.get_texture().get_image().save_png("res://artifacts/dialogue/"+name+".png")==OK)
+	var err=root.get_texture().get_image().save_png("res://artifacts/dialogue/"+name+".png")
+	assert(err==OK)
 
 func advance(game,beats):
 	for i in beats:
