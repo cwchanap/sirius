@@ -61,11 +61,11 @@ public partial class Hud : Control
         Text(Game.Objective,new(44,145),17,cream);
         if(Game.QuestStage<4)Text($"{(int)Game.Player.GlobalPosition.DistanceTo(Game.ObjectivePosition)} m",new(44,169),12,muted);
         Minimap();Vitals();Controls();
-        Text("2189  /  SHIKOKU HIGHLANDS",new(w-280,h-26),11,new Color(cream,.65f));
+        Text("2147  /  SHIKOKU HIGHLANDS",new(w-280,h-26),11,new Color(cream,.65f));
         var closest=Game.Locked??Game.Enemies.Where(e=>!e.Dead&&e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)<12).OrderBy(e=>e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)).FirstOrDefault();
         if(closest!=null)
         {
-            float x=w/2-170;Text("AMATERASU  /  PATROL "+closest.Index.ToString("00"),new(x,80),13,cream);
+            float x=w/2-170;Text("SIRIUS  /  PATROL "+closest.Index.ToString("00"),new(x,80),13,cream);
             Bar(new(x,94),new(340,7),closest.Health/100,new("d48568"));
             Bar(new(x,106),new(340,4),closest.Posture/100,gold);
             Text(closest.Broken?"POSTURE BROKEN · ATTACK TO FINISH":closest.Perilous&&closest.State=="PERILOUS"?"◆ PERILOUS SWEEP · DODGE / JUMP":Game.Locked==closest?"TARGET LOCKED":"TAB   LOCK TARGET",new(x,131),11,closest.Perilous?new("ff9c83"):gold);
