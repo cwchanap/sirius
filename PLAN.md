@@ -89,5 +89,5 @@ C# build succeeded. The final graphical integration run passed 57 checks with `S
 - [x] Write the prologue as visual-novel scenes in `scripts/Prologue.cs`: Zero waking Mio, Ren's briefing, the relay restart, the homecoming at nightfall, and a first conversation with each Hoshikawa resident. Zero stays a voice on Mio's wrist terminal, curious like a child; the homecoming's change of subject is the first hint that it is hiding something about Mio's mother.
 - [x] Replace the single dialogue box with a scene player: portraits, name plates, typed-out lines, narration, a night overlay, and Zero's link emblem. E, Enter or a click finish a line and then move on; Esc skips the rest of a scene.
 - [x] Cut Mio's portrait from her existing turnaround sheet with `tools/cut_portrait.gd`.
-- [ ] Cut the residents' portraits from their existing reference sheets in `artifacts/npc-image-to-3d-v2/` and `-v3/`, which live only on the user's machine; generate with Codex only where none exists.
+- [x] Cut all ten residents' portraits from their existing front views in `artifacts/npc-image-to-3d-v2/` and `-v3/`, clearing the painted ground shadow with the cutter's `--ground`. None needed generating.
 - [x] 281 checks pass headless; the graphical run used xvfb and OpenGL, not native Metal.

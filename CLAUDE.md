@@ -47,7 +47,7 @@ $GODOT_MONO --path . --script res://tools/review_jump.gd          # Mio jump fra
 $GODOT_MONO --path . --script res://tools/review_chiyo.gd         # Chiyo poses and dialogue (artifacts/chiyo-integration/)
 $GODOT_MONO --path . --script res://tools/review_koma7.gd         # KOMA-7 views (artifacts/koma7-integration/)
 $GODOT_MONO --path . --script res://tools/review_dialogue.gd      # prologue visual-novel scenes (artifacts/dialogue/)
-$GODOT_MONO --headless --path . --script res://tools/cut_portrait.gd -- --src=<png> --out=<png> [--rect=x,y,w,h] [--flip]   # dialogue portrait cut-out
+$GODOT_MONO --headless --path . --script res://tools/cut_portrait.gd -- --src=<png> --out=<png> [--rect=x,y,w,h] [--flip] [--ground=rows]   # dialogue portrait cut-out
 $GODOT_MONO --path . --disable-vsync --fixed-fps 60 --script res://tools/render_cost.gd   # draw calls/primitives/CPU ms at three village viewpoints
 ```
 

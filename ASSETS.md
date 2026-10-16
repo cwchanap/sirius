@@ -88,10 +88,10 @@ Mio now has fuller middle/lower cheeks and a softer jaw transition while retaini
 
 ## Dialogue portraits — 2026-10-16
 
-`assets/art/portraits/` holds the visual-novel portraits, cut out of existing art with `tools/cut_portrait.gd` rather than generated anew. The tool removes the flat white background, keeps any transparency the source already had, and crops to the character.
+`assets/art/portraits/` holds the visual-novel portraits, cut out of existing art with `tools/cut_portrait.gd`; none was generated. The tool removes the flat white background, keeps any transparency the source already had, and crops to the character. `--ground=<rows>` also clears a painted ground shadow near the feet.
 
 - `mio.png`: the front three-quarter view of `assets/art/mio-turnaround-body-v1.png`, cut with `--rect=1070,0,350,660 --flip` so she faces right. 318×636.
-- Residents: to be cut from the front views in `artifacts/npc-image-to-3d-v2/` and `-v3/`. `portraits-sources.md` will record each source file, its hash and any image that had to be generated.
+- The ten residents: their unchanged front views from `artifacts/npc-image-to-3d-v2/` (Ren, Chiyo, Aki) and `-v3/` (Hana, Sora, KOMA-7, Nao, Emi, Toma, Yui), cut with `--ground=170`. Those packs live only on the user's machine. [portraits-sources.md](assets/art/portraits/portraits-sources.md) records each source path, both hashes and the exact commands.
 
 Zero has no portrait by design: nobody in the valley has seen its body.
 
