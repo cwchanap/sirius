@@ -421,6 +421,7 @@ public static class IntegrationCheck
         await Tap(Key.Escape);Check(g.Mode==GameMode.Playing,"escape skips the rest of a scene");
         if(DisplayServer.GetName()!="headless"){g.SaveScreenshot("res://artifacts/mission-complete.png");await Frames(5);}
         g.Restart();Check(g.QuestStage==0&&g.Enemies.All(e=>!e.Dead)&&g.Player.Health==100,"restart restores a fresh playable mission");
+        Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Intro),"restarting the prologue replays its opening scene");g.EndDialogue();
         GD.Print("Integration check completed: movement, terrain, dialogue, combat, patrols, pause, quest and restart.");
     }
 }

@@ -90,4 +90,4 @@ C# build succeeded. The final graphical integration run passed 57 checks with `S
 - [x] Replace the single dialogue box with a scene player: portraits, name plates, typed-out lines, narration, a night overlay, and Zero's link emblem. E, Enter or a click finish a line and then move on; Esc skips the rest of a scene.
 - [x] Cut first portraits from the existing turnaround and reference sheets with `tools/cut_portrait.gd`; their front-on stance read as unnatural in dialogue.
 - [x] Generate all eleven portraits with Codex as three-quarter dialogue poses from each character's reference art, and fit the scene layout to their head-to-thigh framing.
-- [x] 281 checks pass headless; the graphical run used xvfb and OpenGL, not native Metal.
+- [x] 282 checks pass headless; the graphical run used xvfb and OpenGL, not native Metal.

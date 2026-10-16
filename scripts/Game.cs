@@ -146,7 +146,7 @@ public partial class Game : Node3D
     }
     public void Restart()
     {
-        QuestStage=0;Heard.Clear();foreach(var e in Enemies)e.Reset();Retry();
+        QuestStage=0;Heard.Clear();foreach(var e in Enemies)e.Reset();Retry();Play(Prologue.Intro);
     }
     public string Objective=>QuestStage switch
     {
