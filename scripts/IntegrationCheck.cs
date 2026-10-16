@@ -356,7 +356,7 @@ public static class IntegrationCheck
         }
         g.Begin();
         Check(g.Mode==GameMode.Dialogue&&g.Speaker=="Zero"&&g.Script.Count==Prologue.Intro.Length,"the journey opens on Zero's voice over the link");
-        Check(g.Hud.Portrait("Mio")!=null&&g.Hud.Portrait("Zero")==null,"Mio has a dialogue portrait; unseen Zero has none");
+        Check(g.Hud.Portrait("Mio")!=null&&g.World.Residents.All(r=>g.Hud.Portrait(r.Name)!=null)&&g.Hud.Portrait("Zero")==null,"Mio and every resident have a dialogue portrait; unseen Zero has none");
         await Frames(10);Check(g.Reveal>0&&g.Reveal<g.Dialogue.Length,"dialogue text types out");
         await Tap(Key.E);Check(g.Beat==0&&g.Reveal==g.Dialogue.Length,"the first press completes the typing line instead of skipping it");
         int presses=1;while(g.Mode==GameMode.Dialogue&&presses<100){await Tap(Key.E);presses++;}
