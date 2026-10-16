@@ -25,7 +25,7 @@ Three Tripo Studio characters reached a live Blender session over DCC Bridge as 
   - idle length (six seconds for KOMA-7, four for the others)
   - ankle 0–0.2 m above ground
   - hips and feet fixed at five points through the idle
-- **Results:** 323 checks pass headless and in native Metal (Forward Mobile, Apple M1 Pro). That is 272 plus 51 new. Both runs exit 0 with `SELF_TEST_PASS`, and neither log has warnings, errors or input restores. The existing Komorebi walk-to-service checks still reach Nao and Toma with their new capsules.
+- **Results:** before merging main, 323 checks passed: 272 plus 51 new. After merging main's visual-novel prologue (282 checks on its own), **333 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro). Both runs exit 0 with `SELF_TEST_PASS`, and neither log has warnings, errors or input restores. The existing Komorebi walk-to-service checks still reach Nao and Toma with their new capsules.
 - **Render cost:** `render_cost.gd` draws fell at all three viewpoints, because each model is one surface where the shared villager had several. Primitives rose 0.4–4.4% at the same viewpoints.
 
   | viewpoint | draws (main → now) | primitives (main → now) |
@@ -34,7 +34,7 @@ Three Tripo Studio characters reached a live Blender session over DCC Bridge as 
   | (0, 16) | 1154 → 1098 | 2,149,466 → 2,158,544 |
   | Shrine steps | 1311 → 1246 | 2,054,133 → 2,100,611 |
 
-- **Captures:** `tools/review_villagers.gd` saved front, face, idle, side, back and real-dialogue captures for each, under `artifacts/{sora,nao,toma}-integration/`. All 18 were inspected. Hashes, the GLB audit, and the import, test, review and render-cost logs are in `artifacts/villagers-integration/`.
+- **Captures:** `tools/review_villagers.gd` saved front, face, idle, side, back and real-dialogue captures for each, under `artifacts/{sora,nao,toma}-integration/`. All 18 were inspected. After the merge, the dialogue capture first finishes the typed-out line, because the capture stops processing. It was recaptured: the visual-novel layout shows each resident's portrait opposite Mio, with the full line and the 3D model behind. Hashes, the GLB audit, and the import, test, review and render-cost logs are in `artifacts/villagers-integration/`.
 - **Limits:**
   - The heights are judgement calls; the references give ages and builds but no heights.
   - The idles are authored, because Tripo supplied no animation.

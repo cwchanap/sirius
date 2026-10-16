@@ -64,9 +64,10 @@ func capture():
 		player.get("Model").rotation.y=npc.rotation.y-2.1
 		game.call("Interact")
 		assert(game.get("Speaker")==who)
+		game.call("Advance") # processing is off, so finish typing the line out
 		for node in game.get_children():
 			if node is CanvasLayer: node.visible=true
 		await shot(camera,npc.to_global(Vector3(3.4,1.25*h,4.2)),npc.to_global(Vector3(.4,.45*h,0)),output+"dialogue.png")
-		game.set("Mode",1)
+		game.call("EndDialogue")
 		print("VILLAGER_CAPTURE_OK %s: front, face, idle, side, back, actual village dialogue"%who)
 	quit()
