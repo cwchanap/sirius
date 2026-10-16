@@ -38,6 +38,7 @@ C# build succeeded. The final graphical integration run passed 57 checks with `S
 - [x] Integrate the user's Chiyo Tripo NPC with preserved source/textures, a fitted game copy, authored idle, existing dialogue and 124 passing headless/native checks.
 - [x] Integrate the user's KOMA-7 Tripo gardener with preserved source/geometry/textures, a 1.25 m game copy, authored head-turn idle, existing dialogue and 138 passing headless/native checks.
 - [x] Share the character import pipeline across Blender/GLB/glTF/FBX sources, retain Chiyo/KOMA-7 presets, document future imports, pass the importer regression check and rebuild both NPCs with 138 passing headless/native checks and fresh visual review.
+- [x] Integrate the user's Sora, Nao and Toma Tripo models from a DCC Bridge Blender session: preserved per-character originals, full-geometry game copies, breathing idles, existing dialogue and roles, a shared `World.TripoResidents` table, and 333 passing headless/native checks after merging the visual-novel prologue.
 
 - [x] Replace the rigid primitive humans with shaped anime faces, continuous garments, tapered limbs, five-finger hands and refined hair.
 - [x] Generate and UV-map amber iris art; preserve the original Mio palette and clothing identity.
