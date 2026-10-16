@@ -4,6 +4,7 @@ extends SceneTree
 # The background is the white region reached from the border, plus pure-white pockets of 8+ pixels
 # (gaps between hair strands, arm and strap), so an ivory shirt enclosed by the coat stays opaque.
 # Edge pixels within 2 px of the background are un-mixed from white rather than thresholded.
+# A source that already has transparency keeps it: its clear pixels are background and its soft edges are left as they are.
 
 func _initialize():
 	var opts={}
@@ -20,9 +21,9 @@ func _initialize():
 	var strict=PackedByteArray();strict.resize(w*h)
 	for i in w*h:
 		var r=px[i*4];var g=px[i*4+1];var b=px[i*4+2]
-		var lo=mini(r,mini(g,b));var hi=maxi(r,maxi(g,b))
-		white[i]=1 if lo>=226 and hi-lo<=18 else 0
-		strict[i]=1 if lo>=246 and hi-lo<=8 else 0
+		var lo=mini(r,mini(g,b));var hi=maxi(r,maxi(g,b));var clear=px[i*4+3]<8
+		white[i]=1 if clear or (lo>=226 and hi-lo<=18) else 0
+		strict[i]=1 if clear or (lo>=246 and hi-lo<=8) else 0
 	var bg=PackedByteArray();bg.resize(w*h)
 	var seeds=PackedInt32Array()
 	for x in w: seeds.append_array([x,(h-1)*w+x])
@@ -42,12 +43,12 @@ func _initialize():
 	for y in h:
 		for x in w:
 			var i=y*w+x;var o=(y*w+(w-1-x if opts.has("flip") else x))*4
-			var alpha=1.0
+			var alpha=px[i*4+3]/255.0;var mixed=false
 			if bg[i]==1: alpha=0.0
-			elif near[i]==1: alpha=clampf(maxi(255-px[i*4],maxi(255-px[i*4+1],255-px[i*4+2]))/255.0*1.8,0,1)
+			elif near[i]==1 and px[i*4+3]==255: alpha=clampf(maxi(255-px[i*4],maxi(255-px[i*4+1],255-px[i*4+2]))/255.0*1.8,0,1);mixed=true
 			for c in 3:
 				var v=px[i*4+c]
-				if alpha>0 and alpha<1: v=clampi(roundi(255-(255-v)/alpha),0,255)
+				if mixed and alpha>0 and alpha<1: v=clampi(roundi(255-(255-v)/alpha),0,255)
 				out[o+c]=v
 			out[o+3]=roundi(alpha*255)
 	var result=Image.create_from_data(w,h,false,Image.FORMAT_RGBA8,out)
