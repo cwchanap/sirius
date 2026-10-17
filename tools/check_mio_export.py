@@ -66,7 +66,7 @@ def main():
     assert maximum_error < 1e-5 and triangles < 160000
 
     sources = [ROOT / 'assets/art' / name for name in
-               ['mio-tripo-basecolor.jpg', 'mio-tripo-normal.png']]
+               ['mio-lowpoly-basecolor.jpg', 'mio-lowpoly-normal.png']]
     expected_images = {hashlib.sha256(p.read_bytes()).hexdigest(): p for p in sources}
     images = []
     for img in gltf['images']:
