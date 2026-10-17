@@ -3,6 +3,8 @@ extends SceneTree
 # Sora, Nao and Toma (Tripo DCC Bridge imports): -- --only=sora,toma narrows the set.
 const HEIGHTS={"Sora":1.78,"Nao":1.64,"Toma":1.74}
 
+var failed=false
+
 func _initialize():
 	call_deferred("capture")
 
@@ -11,7 +13,9 @@ func shot(camera,from,to,path):
 	camera.look_at(to)
 	for i in range(4): await process_frame
 	RenderingServer.force_draw()
-	assert(root.get_texture().get_image().save_png(path)==OK)
+	var err=root.get_texture().get_image().save_png(path)
+	if err!=OK:
+		push_error("VILLAGER_CAPTURE_FAIL "+path+" "+str(err));failed=true;quit(1)
 
 func capture():
 	var only=[]
@@ -69,5 +73,6 @@ func capture():
 			if node is CanvasLayer: node.visible=true
 		await shot(camera,npc.to_global(Vector3(3.4,1.25*h,4.2)),npc.to_global(Vector3(.4,.45*h,0)),output+"dialogue.png")
 		game.call("EndDialogue")
+		if failed: return
 		print("VILLAGER_CAPTURE_OK %s: front, face, idle, side, back, actual village dialogue"%who)
 	quit()
