@@ -83,6 +83,8 @@ def main():
     for e in bm.edges:
         a, b = parts[e.verts[0]], parts[e.verts[1]]
         if a is not b:
+            if len(a) < len(b):
+                a, b = b, a
             a |= b
             for v in b:
                 parts[v] = a
