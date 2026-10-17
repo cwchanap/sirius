@@ -12,15 +12,19 @@ The user sent a lower-polygon Mio from Tripo Studio to a live Blender session ov
   - Normal map: the bake had steep, wrong normals around the eyes, lapels, cuffs and collar. All head texels and every steep normal elsewhere were flattened; the mild cloth detail remains.
   - Three isolated triangles left by the reduction were deleted, leaving 47,380.
   - Repair scripts and before/after renders: `artifacts/mio-lowpoly-hairfix/`.
-- Build: `tools/import_tripo_mio.py` binds the low-poly body to the dense import's 41-bone rig. Skin weights are transferred from the dense original by nearest-surface interpolation, so the twelve clips, the sword and the self-test rig contract are unchanged. Corner normals are recalculated. Tripo's roughness and metallic maps are not used; the material keeps the previous Mio's roughness 0.9 and metallic 0. Audit: `tools/check_mio_export.py`.
-- Runtime: `assets/models/mio.glb`, 47,980 triangles including the sword, 1.84 m tall, 8.0 MB. Editable game copy: `assets/source/mio-tripo-game.blend`.
+- Clips: the user then rigged the same model in Tripo Studio and made its clips there. They arrived over DCC Bridge as "3d fantasy character model.002" with fifteen actions; the unchanged save is `assets/source/tripo-bridge-20261016-mio-anim.blend` (SHA-256 `8a4e5eea…`). Its mesh and UVs equal the first send's vertex for vertex.
+  - Tripo presets: idle, walk, run, jump.
+  - Generated from the text prompts in `artifacts/mio-tripo-upload/mio-tripo-animation-guide.md`: attack1–3, guard, dodge, skill, stagger and death. The guide's attack1 prompt was replaced by a stronger "steps forward and swings" prompt after review.
+  - Unused: the slash and standing_relax presets and a first, weak attack1.
+- Build: `tools/import_tripo_mio.py` keeps Tripo's 65-bone Mixamo rig and weights, with the `mixamorig:` prefix removed. Each clip is cut to its motion and retimed to the previous clip's length, so Player.cs timings stand; the fastest swing of each attack sits within two frames of its hit. Hips are held over the collision body, and the jump keeps the first of the preset's repeated hops with its vertical travel removed. Guard plays its held block forward and back as a loop. The textures come from the repaired source; corner normals are recalculated. Tripo's roughness and metallic maps are not used; the material keeps the previous Mio's roughness 0.9 and metallic 0. The original sword is fitted to `RightHand`. Audit: `tools/check_mio_export.py`.
+- Runtime: `assets/models/mio.glb`, 65 bones, 12 clips, 47,980 triangles including the sword, 1.84 m tall, 8.6 MB. Editable game copy: `assets/source/mio-tripo-game.blend`.
 - Textures: `assets/art/mio-lowpoly-basecolor.jpg` and `mio-lowpoly-normal.png`, the repaired source images, embedded byte-for-byte in the GLB.
-- Previous GLB and game copy backup: `artifacts/mio-lowpoly-integration/before/`.
-- Limits: the rig has no finger bones or independently rigged coat/hair. A strand whose shape changed between the two Tripo generations follows the nearest part of the dense model. A few dark strokes from Tripo's bake remain on the face near the eye corners.
+- Backups: the dense-rig low-poly GLB is `artifacts/mio-tripo-animation/before-mio.glb`; the earlier GLB and game copy are in `artifacts/mio-lowpoly-integration/before/`.
+- Limits: Tripo's hands stay open, so the sword rests in an open palm. Coat and hair have no bones of their own. A few dark strokes from Tripo's bake remain on the face near the eye corners.
 
 ## Previous Mio: dense Tripo import — 2026-09-13
 
-The user generated and imported this replacement through Tripo. It superseded the authored Mio described in the historical sections below and remains the rig and animation source. The exact Tripo generation settings are not recorded here.
+The user generated and imported this replacement through Tripo. It superseded the authored Mio described in the historical sections below. Its 41-bone rig and clips drove the low-poly body until the user's Tripo Studio clips replaced them on 2026-10-16. The exact Tripo generation settings are not recorded here.
 
 - Original: `assets/source/mio-tripo-original.blend`, 942,240 vertices / 1,884,692 faces, 41 bones, four supplied clips: idle, walk, run, jump.
 - Runtime until 2026-10-16: 150,600 triangles including the retained sword, decimated from the original, 1.84 m tall, four supplied clips plus eight retargeted combat clips.

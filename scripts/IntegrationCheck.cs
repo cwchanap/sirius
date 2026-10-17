@@ -150,8 +150,8 @@ public static class IntegrationCheck
             Check(Math.Abs(tree!.Position.Y-Hoshikawa.World.Height(tree.Position.X,tree.Position.Z))<.01f,species+" tree is grounded");
         }
         var playerRig=ActorVisual.Descendants(g.Player.Model).OfType<Skeleton3D>().Single();
-        Check(playerRig.GetBoneCount()==41&&new[]{"Hip","Spine02","Head","R_Hand","L_Foot"}.All(b=>playerRig.FindBone(b)>=0),
-            "Tripo player rig imported with 41 bones");
+        Check(playerRig.GetBoneCount()==65&&new[]{"Hips","Spine2","Head","RightHand","LeftFoot"}.All(b=>playerRig.FindBone(b)>=0),
+            "Tripo player rig imported with 65 bones");
         foreach(var clip in new[]{"idle","walk","run","jump","dodge","attack1","attack2","attack3","guard","skill","stagger","death"})
             Check(g.Player.Visual.HasClip(clip),"Blender animation imported: "+clip);
         var animator=g.Player.Visual.Animator!;
@@ -162,7 +162,7 @@ public static class IntegrationCheck
             animator.Advance(animator.GetAnimation(clip).Length*.3);
             Check(Enumerable.Range(0,pose.Length).Any(i=>pose[i].AngleTo(playerRig.GetBonePoseRotation(i))>.01f),
                 "Tripo clip deforms the skeleton: "+clip);
-            int hip=playerRig.FindBone("Hip");
+            int hip=playerRig.FindBone("Hips");
             for(int i=0;i<=4;i++)
             {
                 animator.Seek(animator.GetAnimation(clip).Length*i/4,true);
@@ -200,7 +200,7 @@ public static class IntegrationCheck
                     if(animator.CurrentAnimation!="jump"||time>9/24.0+.002||time+.002<previousTime)
                         throw new Exception($"Jump restarts or lands while airborne: {scenario}, time={time}, previous={previousTime}");
                     previousTime=time;
-                    float hip=(playerRig.GlobalTransform*playerRig.GetBoneGlobalPose(playerRig.FindBone("Hip")).Origin-g.Player.GlobalPosition).Y;
+                    float hip=(playerRig.GlobalTransform*playerRig.GetBoneGlobalPose(playerRig.FindBone("Hips")).Origin-g.Player.GlobalPosition).Y;
                     lo=Math.Min(lo,hip);hi=Math.Max(hi,hip);
                 }
                 else if(airborne)
