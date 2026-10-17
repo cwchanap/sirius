@@ -1,8 +1,9 @@
-"""Build Mio's game asset from the preserved Tripo source in background Blender.
+"""Build Mio's game asset from the preserved Tripo sources in background Blender.
 
 Blender --background --factory-startup --python tools/import_tripo_mio.py
-The source import stays untouched. The four Tripo clips retain their poses;
-translation belongs to Godot. Existing combat clips are retargeted by rest basis.
+The sources stay untouched. The low-poly body takes the original import's 41-bone rig
+and skin weights; the four Tripo clips retain their poses and translation belongs to
+Godot. Existing combat clips are retargeted by rest basis.
 """
 import bpy
 import json
@@ -10,7 +11,7 @@ from pathlib import Path
 from mathutils import Matrix, Vector
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / 'artifacts/tripo-integration'
+OUT = ROOT / 'artifacts/mio-lowpoly-integration'
 COMBAT = ('attack1', 'attack2', 'attack3', 'guard', 'dodge', 'skill', 'stagger', 'death')
 
 
@@ -25,26 +26,69 @@ def main():
     scene = bpy.context.scene
     scene.name = 'Mio_Tripo_Game'
     rig = bpy.data.objects['Mio']
-    body = bpy.data.objects['tripo_node_b15809b7']
+    dense = bpy.data.objects['tripo_node_b15809b7']
     source_actions = list(bpy.data.actions)
     assert len(source_actions) == 4 and len(rig.data.bones) == 41
+    with bpy.data.libraries.load(str(ROOT / 'assets/source/mio-lowpoly-fixed.blend')) as (src, dst):
+        dst.objects = ['tripo_node_dde18b58']
+    body = dst.objects[0]
+    scene.collection.objects.link(body)
+    # Tripo's roughness and metallic bakes carry the same projection errors as its colour bake;
+    # keep the previous Mio's matte material.
+    tree = body.data.materials[0].node_tree
+    bsdf = next(n for n in tree.nodes if n.type == 'BSDF_PRINCIPLED')
+    for socket, value in (('Roughness', .9), ('Metallic', 0)):
+        for link in list(bsdf.inputs[socket].links):
+            tree.nodes.remove(link.from_node)
+        bsdf.inputs[socket].default_value = value
     images = []
-    for mat in body.data.materials:
-        for node in mat.node_tree.nodes:
-            if node.type == 'TEX_IMAGE' and node.image:
-                img = node.image
-                assert img.packed_file and tuple(img.size) == (4096, 4096)
-                filename = 'mio-tripo-basecolor.jpg' if img.name == 'Mio_basecolor' else 'mio-tripo-normal.png'
-                (ROOT / 'assets/art' / filename).write_bytes(img.packed_file.data)
-                images.append({'name': img.name, 'size': list(img.size)})
-    # Remove the import's object offset. The mesh and armature share a rest space.
+    for node in tree.nodes:
+        if node.type == 'TEX_IMAGE' and node.image:
+            img = node.image
+            assert img.packed_file and tuple(img.size) == (4096, 4096)
+            data = bytes(img.packed_file.data)
+            kind = img.name.rsplit('_', 1)[-1]
+            filename = f'mio-lowpoly-{kind}.' + ('png' if data.startswith(b'\x89PNG') else 'jpg')
+            (ROOT / 'assets/art' / filename).write_bytes(data)
+            img.name = 'Mio_lowpoly_' + kind
+            img.filepath_raw = '//' + filename
+            images.append({'name': img.name, 'file': filename, 'size': list(img.size)})
+    assert sorted(i['file'] for i in images) == ['mio-lowpoly-basecolor.jpg', 'mio-lowpoly-normal.png']
+    # Remove the import's object offset. Both meshes and the armature share a rest space.
     rig.animation_data.action = None
     rig.matrix_world = Matrix.Identity(4)
-    body.matrix_parent_inverse = Matrix.Identity(4)
+    dense.matrix_parent_inverse = Matrix.Identity(4)
+    dense.matrix_basis = Matrix.Identity(4)
+    body.parent = None
     body.matrix_basis = Matrix.Identity(4)
+    body.modifiers.clear()
+    body.vertex_groups.clear()
     rig.data.pose_position = 'REST'
     scene.frame_set(1)
     bpy.context.view_layer.update()
+    # The low-poly body has its own Mixamo rig and no clips; take the dense import's weights.
+    bpy.ops.object.select_all(action='DESELECT')
+    body.select_set(True)
+    bpy.context.view_layer.objects.active = body
+    transfer = body.modifiers.new('Tripo weights', 'DATA_TRANSFER')
+    transfer.object = dense
+    transfer.use_vert_data = True
+    transfer.data_types_verts = {'VGROUP_WEIGHTS'}
+    transfer.vert_mapping = 'POLYINTERP_NEAREST'
+    transfer.layers_vgroup_select_src = 'ALL'
+    transfer.layers_vgroup_select_dst = 'NAME'
+    bpy.ops.object.datalayout_transfer(modifier=transfer.name)
+    bpy.ops.object.modifier_apply(modifier=transfer.name)
+    original_faces = len(dense.data.polygons)
+    bpy.data.objects.remove(dense)
+    body.parent = rig
+    body.modifiers.new('Armature', 'ARMATURE').object = rig
+    body.name = 'Mio Tripo body'
+    # Recalculate the bridge FBX's corner normals, as for the previous decimated game copy.
+    for polygon in body.data.polygons:
+        polygon.use_smooth = True
+    body.data.normals_split_custom_set([(0, 0, 0)] * len(body.data.loops))
+    print('TRIPO_LOWPOLY_WEIGHTS', len(body.vertex_groups), len(body.data.vertices), len(body.data.polygons), flush=True)
     zmin = min(v.co.z for v in body.data.vertices)
     zmax = max(v.co.z for v in body.data.vertices)
     scale = 1.84 / (zmax - zmin)
@@ -96,22 +140,6 @@ def main():
     rig.animation_data.action = None
     for bone in rig.pose.bones:
         bone.matrix_basis = Matrix.Identity(4)
-    # Decimate the game copy before skin deformation; retain UVs and vertex groups.
-    original_faces = len(body.data.polygons)
-    bpy.ops.object.select_all(action='DESELECT')
-    body.select_set(True)
-    bpy.context.view_layer.objects.active = body
-    decimate = body.modifiers.new('Game mesh budget', 'DECIMATE')
-    decimate.ratio = 150000 / original_faces
-    decimate.use_collapse_triangulate = True
-    bpy.ops.object.modifier_move_up(modifier=decimate.name)
-    bpy.ops.object.modifier_apply(modifier=decimate.name)
-    # FBX custom corner normals refer to the dense surface; recalculate after reduction.
-    for polygon in body.data.polygons:
-        polygon.use_smooth = True
-    body.data.normals_split_custom_set([(0, 0, 0)] * len(body.data.loops))
-    body.name = 'Mio Tripo body'
-    print('TRIPO_DECIMATED', len(body.data.vertices), len(body.data.polygons), flush=True)
 
     with bpy.data.libraries.load(str(ROOT / 'assets/source/characters.blend')) as (src, dst):
         dst.scenes = ['HumanV2_mio']
@@ -220,8 +248,9 @@ def main():
     activate(rig, next(a for a in actions if a.name == 'idle'))
     scene.frame_set(1)
     bpy.ops.wm.save_as_mainfile(filepath=str(ROOT / 'assets/source/mio-tripo-game.blend'))
-    report = {'source': 'assets/source/mio-tripo-original.blend', 'bones': len(rig.data.bones),
-              'source_faces': original_faces, 'body_faces': len(body.data.polygons),
+    report = {'source': 'assets/source/mio-lowpoly-fixed.blend',
+              'rig_source': 'assets/source/mio-tripo-original.blend', 'bones': len(rig.data.bones),
+              'rig_source_faces': original_faces, 'body_faces': len(body.data.polygons),
               'height_m': 1.84, 'scale': scale, 'images': images,
               'imported_clips': ['idle', 'walk', 'run', 'jump'], 'retargeted_clips': list(COMBAT),
               'clips': {a.name: list(a.frame_range) for a in actions}, 'weapon_faces': weapon_faces}

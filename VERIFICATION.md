@@ -1,5 +1,29 @@
 # MVP verification
 
+## Low-poly Mio — 2026-10-16
+
+The user sent a 47,383-triangle Mio over Tripo DCC Bridge. It replaces the 150,600-triangle decimation of the dense import.
+
+- **Preservation:** the live bridge scene was saved unchanged with `save_as_mainfile(copy=True)`, and the open session was not edited. All repairs ran in background Blender on copies.
+- **Identification:** renders of "3d fantasy character model" match the in-game Mio's hair, coat, scarf and satchel. Its surface lies a median 5 mm from the dense import at the same scale, so it is a separate Tripo generation, not a reduction of it.
+- **Texture repair:** before/after renders of the head from front, both three-quarters and back show skin and white gone from the bangs, side locks and strands behind the ears. Eyes, ears and collar are unchanged. Outside the repaired texels, the JPEG re-save changes the base color by a mean 0.35/255.
+- **GLB audit:** `check_mio_export.py` passes: 41 bones, 12 clips, 47,980 triangles, maximum skin weight-sum error 1.27e-7, and embedded base-color and normal bytes equal `assets/art/mio-lowpoly-*`. The GLB is 8.0 MB, down from 17.4 MB.
+- **Deformation:** Blender renders of all 12 clips beside the previous model's showed matching poses. Close renders of run, attack1, attack3, skill, guard and stagger showed no tearing or stretching.
+- **Self-test:** **333 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro), the same count as main. Both runs exit 0 with `SELF_TEST_PASS`. The native log has the two expected `TEST_INPUT_RESTORE` lines.
+- **Render cost:** `render_cost.gd` primitives fell by 69,060 at each of the three viewpoints. Draw calls did not change.
+
+  | viewpoint | draws | primitives (before → now) |
+  |---|---|---|
+  | (0, 31) | 1164 | 2,202,826 → 2,133,766 |
+  | (0, 16) | 1098 | 2,158,544 → 2,089,484 |
+  | Shrine steps | 1246 | 2,100,611 → 2,031,551 |
+
+- **Captures:** `tools/review_tripo.gd` saved all eleven views of both the previous and new GLB in the current village. Both are in `artifacts/mio-lowpoly-integration/`.
+- **Limits:**
+  - The first in-game captures showed a greyer, noisier face than the previous model. The bake's broken normals were then flattened, and Tripo's roughness/metallic maps were replaced by the previous matte values.
+  - A fine dot pattern from the sun's soft shadow remains on the face in close views. The previous model shows the same pattern in the same view, and it disappears when Mio casts no shadow.
+  - The dark strokes near the eye corners come from Tripo's bake and were left as they are.
+
 ## Sora, Nao and Toma Tripo integration — 2026-10-16
 
 Three Tripo Studio characters reached a live Blender session over DCC Bridge as rigged FBX, and nothing had saved them.

@@ -2,16 +2,32 @@
 
 All game assets were produced for this project. Art direction uses original warm, painterly anime JRPG imagery; combat references posture and timed-deflection mechanics.
 
-## Current Mio: user-provided Tripo import
+## Current Mio: user-provided low-poly Tripo model — 2026-10-16
 
-The user generated and imported this replacement through Tripo. It supersedes the authored Mio described in the historical sections below. The exact Tripo generation settings are not recorded here.
+The user sent a lower-polygon Mio from Tripo Studio to a live Blender session over Tripo DCC Bridge. It arrived as "3d fantasy character model": one 47,383-triangle mesh, a 65-bone Mixamo rig, no clips, and packed 4096×4096 base-color, normal, roughness and metallic maps.
+
+- Bridge save: `assets/source/tripo-bridge-20261016-mio.blend` (SHA-256 `3cbb7b35…`), saved unchanged with `save_as_mainfile(copy=True)`.
+- Repaired source: `assets/source/mio-lowpoly-fixed.blend` (SHA-256 `5ab0831f…`), Mio alone with the default cube/camera/light.
+  - Base color: the bake printed skin and white onto the bangs, side locks and the strands behind the ears. Off-colour texels on those strands were refilled from nearby hair texels, with eyes, ears, shirt collar and nape masked out. The JPEG was re-saved once with its original quantization tables.
+  - Normal map: the bake had steep, wrong normals around the eyes, lapels, cuffs and collar. All head texels and every steep normal elsewhere were flattened; the mild cloth detail remains.
+  - Three isolated triangles left by the reduction were deleted, leaving 47,380.
+  - Repair scripts and before/after renders: `artifacts/mio-lowpoly-hairfix/`.
+- Build: `tools/import_tripo_mio.py` binds the low-poly body to the dense import's 41-bone rig. Skin weights are transferred from the dense original by nearest-surface interpolation, so the twelve clips, the sword and the self-test rig contract are unchanged. Corner normals are recalculated. Tripo's roughness and metallic maps are not used; the material keeps the previous Mio's roughness 0.9 and metallic 0. Audit: `tools/check_mio_export.py`.
+- Runtime: `assets/models/mio.glb`, 47,980 triangles including the sword, 1.84 m tall, 8.0 MB. Editable game copy: `assets/source/mio-tripo-game.blend`.
+- Textures: `assets/art/mio-lowpoly-basecolor.jpg` and `mio-lowpoly-normal.png`, the repaired source images, embedded byte-for-byte in the GLB.
+- Previous GLB and game copy backup: `artifacts/mio-lowpoly-integration/before/`.
+- Limits: the rig has no finger bones or independently rigged coat/hair. A strand whose shape changed between the two Tripo generations follows the nearest part of the dense model. A few dark strokes from Tripo's bake remain on the face near the eye corners.
+
+## Previous Mio: dense Tripo import — 2026-09-13
+
+The user generated and imported this replacement through Tripo. It superseded the authored Mio described in the historical sections below and remains the rig and animation source. The exact Tripo generation settings are not recorded here.
 
 - Original: `assets/source/mio-tripo-original.blend`, 942,240 vertices / 1,884,692 faces, 41 bones, four supplied clips: idle, walk, run, jump.
-- Runtime: `assets/models/mio.glb`; editable game copy: `assets/source/mio-tripo-game.blend`. 150,600 triangles including the retained sword, 1.84 m tall, four supplied clips plus eight retargeted combat clips.
-- Textures: `assets/art/mio-tripo-basecolor.jpg` and `mio-tripo-normal.png`, copied byte-for-byte from the import's packed 4096×4096 textures. Both are embedded in the GLB.
-- Build: `tools/import_tripo_mio.py`; audit: `tools/check_mio_export.py`. Horizontal hip offsets are removed to keep the model aligned with the C# controller. Reduced-mesh corner normals are recalculated; no texture painting was performed.
+- Runtime until 2026-10-16: 150,600 triangles including the retained sword, decimated from the original, 1.84 m tall, four supplied clips plus eight retargeted combat clips.
+- Textures: `assets/art/mio-tripo-basecolor.jpg` and `mio-tripo-normal.png`, copied byte-for-byte from the import's packed 4096×4096 textures, are retained.
+- Horizontal hip offsets are removed to keep the model aligned with the C# controller. No texture painting was performed.
 - Previous model backup: `artifacts/tripo-integration/before/mio.glb`; its editable source remains `assets/source/characters.blend`.
-- The imported rig has no finger bones or independently rigged coat/hair. Open-hand sword contact and cloth deformation in extreme combat poses remain limitations of this integration.
+- Open-hand sword contact and cloth deformation in extreme combat poses remained limitations of this integration.
 
 ## Chiyo: user-provided Tripo NPC — 2026-09-16
 

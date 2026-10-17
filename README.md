@@ -114,12 +114,12 @@ The importer regression check exercises all four input formats, transformed mult
 - `scripts/Game.cs`, `Hud.cs`: quest, camera, dialogue, presentation and audio.
 - `scripts/Prologue.cs`: every line of the prologue's visual-novel scenes, kept apart from the code that plays them.
 - `assets/art/portraits/`: dialogue portraits generated with Codex from each character's reference art and cut out with `tools/cut_portrait.gd`. A speaker without a file there shows only a name plate.
-- `assets/models/mio.glb`: the user's Tripo character, with a 41-bone rig, its four supplied animations and eight adapted combat clips.
+- `assets/models/mio.glb`: the user's low-poly Tripo character on the dense Tripo import's 41-bone rig, with its four supplied animations and eight adapted combat clips.
 - `assets/models/chiyo.glb`: Chiyo's Tripo model with a 41-bone rig and a gentle authored idle. Her original import is preserved in `assets/source/chiyo-tripo-original.blend`; rebuild the game copy with `tools/import_tripo_chiyo.py` in background Blender.
 - `assets/models/koma7.glb`: KOMA-7's Tripo robot with a 65-bone rig and an authored head-turn idle. Preserved source: `assets/source/koma7-tripo-original.blend`; rebuild with `tools/import_tripo_koma7.py` in background Blender.
-- `assets/source/mio-tripo-original.blend`: preserved full-resolution Tripo import and packed textures; `mio-tripo-game.blend` is the game copy.
+- `assets/source/mio-tripo-original.blend`: preserved full-resolution Tripo import, packed textures, rig and clips. `mio-lowpoly-fixed.blend` is the low-poly model with repaired hair colour and normal map; `mio-tripo-game.blend` is the game copy.
 - `assets/source/characters.blend`: previous authored Mio, villagers and original sword, retained for reference and combat retargeting.
-- `tools/import_tripo_mio.py`: rebuilds the current Mio GLB from the Tripo source in a separate background Blender process.
+- `tools/import_tripo_mio.py`: rebuilds the current Mio GLB from those two Tripo sources in a separate background Blender process.
 - `tools/build_characters.py`: legacy full character regeneration. It recreates the previous Mio; run `tools/import_tripo_mio.py` afterward to restore the Tripo character.
 - `tools/refine_humans.py`: shared human helpers, 58-bone rigs, normalized skinning and all 12 action clips.
 - `tools/mio_illustrated.py`: Mio facial geometry, garment UVs, layered hair and key-art costume.
@@ -135,6 +135,6 @@ KOMA-7 uses his own cream-and-jade Tripo gardener model in Hoshikawa. The 1.25 m
 
 Sora (Hoshikawa), Nao and Toma (Komorebi) use their own Tripo models, sent from Tripo Studio over DCC Bridge. Each keeps all of its geometry (18,215–19,591 triangles), a 4K base-colour map and 2K normal/roughness/metallic maps, and a four-second breathing idle. Sora is 1.78 m, Nao 1.64 m and Toma 1.74 m, with fitted collision and labels. Their positions, conversations and Komorebi services are unchanged. Rebuild them with `python3 tools/import_tripo_villagers.py [sora nao toma]`. `tools/review_villagers.gd` (`-- --only=sora,toma` narrows it) captures each one's appearance, idle and village dialogue under `artifacts/{sora,nao,toma}-integration/`.
 
-The game copy has 150,600 triangles including the sword, a height of 1.84 m, and unchanged 4096×4096 Tripo base-color and normal textures. The original 1,884,692-face import remains intact. The imported rig has no finger bones; combat uses the existing motions and the open-hand sword grip still needs a dedicated animation pass.
+The game copy is the user's low-poly Tripo model: 47,980 triangles including the sword (the decimated dense import had 150,600), a height of 1.84 m, and repaired 4096×4096 base-color and normal textures. It takes the dense import's 41-bone rig and skin weights, so every clip is unchanged; the original 1,884,692-face import remains intact. The rig has no finger bones; combat uses the existing motions and the open-hand sword grip still needs a dedicated animation pass.
 
-Run `python3 tools/check_mio_export.py` to verify the runtime rig, all 12 clips, skin weights and exact texture bytes. `tools/review_tripo.gd` captures the model and animation poses inside the village; results and the pre-replacement backup are in `artifacts/tripo-integration/`. Earlier face review tools and `MioControlCages` apply only to the preserved authored model.
+Run `python3 tools/check_mio_export.py` to verify the runtime rig, all 12 clips, skin weights and exact texture bytes. `tools/review_tripo.gd` captures the model and animation poses inside the village; results and the pre-replacement backup are in `artifacts/tripo-integration/`, and the low-poly replacement's evidence is in `artifacts/mio-lowpoly-integration/`. Earlier face review tools and `MioControlCages` apply only to the preserved authored model.
