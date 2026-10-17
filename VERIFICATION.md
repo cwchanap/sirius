@@ -1,5 +1,23 @@
 # MVP verification
 
+## Mio's Tripo Studio clips — 2026-10-16
+
+The user rigged the low-poly Mio in Tripo Studio and made her clips there. Two bridge sends and one FBX download carried no animation or an incomplete set; the third bridge send held all fifteen actions.
+
+- **Preservation:** the bridge scene was saved unchanged with `save_as_mainfile(copy=True)`. The open session was not edited.
+- **Identification:** six frames of every action were rendered and the right hand's path was traced, to match each action to its prompt. The weak first attack1 and the unused slash and standing_relax presets were set aside.
+- **Same mesh:** the animated send's vertices and UVs equal the first send's exactly, so the repaired textures apply unchanged.
+- **Timing:** each clip keeps the previous clip's length. Measured in the exported game copy, the fastest right-hand frame is 7 of 15 for attack1 (hit at about 6), 5–6 of 16 for attack2 (about 7), 8 of 20 for attack3 (about 8) and 12–16 of 31 for skill (about 17).
+- **GLB audit:** `check_mio_export.py` passes: 65 bones, 12 clips, 47,980 triangles, maximum skin weight-sum error 9.69e-8, exact embedded base-color and normal bytes. The GLB is 8.6 MB.
+- **Poses:** Blender renders of all 12 clips beside the previous ones, and close renders of the sword hand in idle, walk, guard and attack1, show the sword held in the right palm.
+- **Self-test:** the player rig checks now expect 65 bones and Mixamo bone names. **333 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro). Both runs exit 0 with `SELF_TEST_PASS`, and the native log has no input restores.
+- **Render cost:** draw calls are unchanged. Primitives rose by 118,460 at each of the three viewpoints compared with the dense-rig low-poly build (2,133,766 → 2,252,226 at (0, 31)). The triangle count is the same, so this is more passes over Mio, probably shadow cascades; the cause was not investigated.
+- **Captures:** `tools/review_tripo.gd` saved all eleven views in the current village. They and side-by-side comparisons with the previous build are in `artifacts/mio-tripo-animation/`.
+- **Limits:**
+  - Tripo's hands stay open, so the sword rests in an open palm.
+  - attack2's swing opens its clip, so it lands about two frames before the hit.
+  - The guard loop is the held block played forward and back.
+
 ## Low-poly Mio — 2026-10-16
 
 The user sent a 47,383-triangle Mio over Tripo DCC Bridge. It replaces the 150,600-triangle decimation of the dense import.

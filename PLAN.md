@@ -99,3 +99,4 @@ C# build succeeded. The final graphical integration run passed 57 checks with `S
 - [x] Repaint the skin and white that Tripo's bake printed onto her bangs, side locks and the strands behind her ears, and flatten the bake's broken normals.
 - [x] Bind the 47,380-triangle body to the dense import's 41-bone rig and weights, so all twelve clips and the sword carry over. Keep the previous matte material.
 - [x] 333 checks pass headless and in native Metal; Mio's triangles drop from 150,600 to 47,980 and the GLB from 17.4 MB to 8.0 MB.
+- [x] Replace the dense import's rig and clips with Tripo's 65-bone rig and twelve clips the user made in Tripo Studio, each cut and retimed to the game's timing. 333 checks pass headless and in native Metal.

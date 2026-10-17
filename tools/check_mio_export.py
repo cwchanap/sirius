@@ -39,7 +39,7 @@ def main():
 
     assert len(gltf['skins']) == 1
     bones = len(gltf['skins'][0]['joints'])
-    assert bones == 41
+    assert bones == 65
     clips = [a['name'] for a in gltf['animations']]
     expected = {'idle', 'walk', 'run', 'attack1', 'attack2', 'attack3', 'guard',
                 'dodge', 'jump', 'skill', 'stagger', 'death'}
