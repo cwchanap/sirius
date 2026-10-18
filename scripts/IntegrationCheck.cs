@@ -174,7 +174,7 @@ public static class IntegrationCheck
         await Frames(30);Check(g.Player.IsOnFloor(),"player starts on physical terrain");
         foreach(var enemy in g.Enemies)enemy.SetPhysicsProcess(false);
         var before=g.Player.GlobalPosition;await Press("forward",60);
-        float walk=before.DistanceTo(g.Player.GlobalPosition);Check(walk>3&&walk<5,"camera-relative walking");
+        float walk=before.DistanceTo(g.Player.GlobalPosition);Check(walk>1.5f&&walk<2.5f,"camera-relative walking");
         before=g.Player.GlobalPosition;Hold("run");await Press("forward",60);Release("run");
         Check(before.DistanceTo(g.Player.GlobalPosition)>walk*1.5f,"running is faster than walking");
         Check(Math.Abs(animator.GetAnimation("jump").Length-13/24.0)<.01,"jump contains one Tripo hop, not the repeated source sequence");

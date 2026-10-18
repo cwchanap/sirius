@@ -8,17 +8,19 @@ Player.cs was tuned against and kept over the hips; translation belongs to Godot
 import bpy
 import bmesh
 import json
+import math
 from pathlib import Path
-from mathutils import Matrix, Vector
+from mathutils import Matrix, Quaternion, Vector
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'artifacts/mio-tripo-animation'
 SOURCE = 'assets/source/tripo-bridge-20261016-mio-anim.blend'
-FIXED = 'assets/source/mio-lowpoly-fixed.blend'
+FIXED = 'assets/source/mio-lowpoly-fixed-face.blend'
 # Game clip: Tripo action (after 'Armature|', names are cut at 63 characters), source frames,
-# game frames. Game lengths are the previous clips'. Windows put the fastest swing near the
-# hit Player.cs times (frames 6/7/8 of attack1/2/3, 17 of skill); attack2's swing opens its
-# clip, so it lands a little early. Jump frames 2/6/9 are takeoff/apex/descent, 10-13 landing.
+# game frames. Game lengths are the previous clips', except the dodge, which fills Player.cs's
+# 0.6 s roll. Windows put the fastest swing near the hit Player.cs times (frames 6/7/8 of
+# attack1/2/3, 17 of skill); attack2's short backhand spans frames 2-11 around its hit.
+# Jump frames 2/6/9 are takeoff/apex/descent, 10-13 landing.
 CLIPS = {
     'idle': ('idle', 1, 369, 369),
     'walk': ('walk', 1, 57, 57),
@@ -28,11 +30,36 @@ CLIPS = {
     'attack2': ('A swordswoman holding a one-handed sword in her right hand does', 1, 10, 16),
     'attack3': ('A swordswoman holding a one-handed sword in her right hand rais', 16, 48, 20),
     'guard': ('A swordswoman in a defensive guard stance: knees bent, her righ', 17, 25, 48),
-    'dodge': ('A swordswoman does a quick forward combat roll over her shoulde', 1, 48, 16),
+    'dodge': ('A swordswoman does a quick forward combat roll over her shoulde', 8, 46, 15),
     'skill': ('A swordswoman crouches and pulls her sword back with her right ', 1, 50, 31),
     'stagger': ('A swordswoman holding a sword in her right hand is hit hard in ', 1, 48, 18),
     'death': ('A swordswoman is struck by a fatal blow, drops to her knees, th', 1, 60, 36),
 }
+# Generated clips leave the fingers straight. Close the right fingers around the hilt (degrees per
+# joint about their curl axis, local X) and take the thumb from the slash preset's tightest fist.
+GRIP_CURL = (70, 85, 45)
+GRIP_THUMB = 'slash'
+# The attacks open from and settle into the attack1 prompt's ready stance, so the combo chains
+# through one pose instead of snapping between three.
+READY = 'A swordswoman steps forward and swings a one-handed sword in he'
+ATTACK_IN, ATTACK_OUT = 3, 4
+# Tripo's jump is a straight-legged hop. Per game frame: crouch on the ground (1-2, 10-13) and
+# tuck in the air (3-9). Degrees about the armature's +X axis; she faces -Y.
+JUMP_CROUCH = (.5, .25, 0, 0, 0, 0, 0, 0, 0, .2, .7, .45, .15)
+JUMP_TUCK = (0, 0, .35, .7, .9, 1, .9, .6, .25, 0, 0, 0, 0)
+
+
+def turn(bone, degrees):
+    rest = bone.bone.matrix_local.to_3x3()
+    return (rest.inverted() @ Quaternion((1, 0, 0), math.radians(degrees)).to_matrix() @ rest).to_quaternion()
+
+
+def mix(a, b, w):
+    out = {}
+    for name in a:
+        (la, ra, sa), (lb, rb, sb) = a[name].decompose(), b[name].decompose()
+        out[name] = Matrix.LocRotScale(la.lerp(lb, w), ra.slerp(rb, w), sa.lerp(sb, w))
+    return out
 
 
 def activate(rig, action):
@@ -123,6 +150,19 @@ def main():
     hip = rig.pose.bones['Hips']
     basis = hip.bone.matrix_local.to_3x3().inverted()
     feet = [rig.pose.bones[n] for n in ('LeftFoot', 'RightFoot')]
+    thumb = [pb for pb in rig.pose.bones if pb.name.startswith('RightHandThumb')]
+    activate(rig, source_actions[GRIP_THUMB])
+    first, last = map(int, source_actions[GRIP_THUMB].frame_range)
+    frame = max(range(first, last + 1), key=lambda f: (scene.frame_set(f), sum(pb.matrix_basis.to_quaternion().angle for pb in thumb))[1])
+    scene.frame_set(frame)
+    grip = {pb.name: pb.matrix_basis.copy() for pb in thumb}
+    for finger in ('Index', 'Middle', 'Ring', 'Pinky'):
+        for joint, degrees in enumerate(GRIP_CURL, 1):
+            grip[f'RightHand{finger}{joint}'] = Quaternion((1, 0, 0), math.radians(degrees)).to_matrix().to_4x4()
+    activate(rig, source_actions[READY])
+    scene.frame_set(1)
+    ready = {pb.name: pb.matrix_basis.copy() for pb in rig.pose.bones}
+    ready['Hips'].translation -= basis @ Vector((hip.matrix.translation.x, hip.matrix.translation.y, 0))
     actions = []
     for name, (source, first, last, frames) in CLIPS.items():
         activate(rig, source_actions[source])
@@ -141,7 +181,29 @@ def main():
             lift = max(0, min(f.head.z for f in feet) - foot_floor) if name == 'jump' else 0
             pose = {pb.name: pb.matrix_basis.copy() for pb in rig.pose.bones}
             pose['Hips'].translation -= basis @ Vector((p.x, p.y, lift))
+            if name.startswith('attack'):
+                w = min(1, t / ATTACK_IN, (frames - 1 - t) / ATTACK_OUT)
+                pose = mix(ready, pose, w * w * (3 - 2 * w))
+            pose.update({n: m.copy() for n, m in grip.items()})
             poses.append(pose)
+        if name == 'jump':
+            rig.animation_data.action = None
+            for t, pose in enumerate(poses):
+                for pb in rig.pose.bones:
+                    pb.rotation_mode = 'QUATERNION'
+                    pb.matrix_basis = pose[pb.name]
+                c, k = JUMP_CROUCH[t], JUMP_TUCK[t]
+                for side in ('Left', 'Right'):
+                    for bone, degrees in (('UpLeg', -50 * c - 60 * k), ('Leg', 90 * c + 80 * k), ('Foot', -40 * c - 20 * k)):
+                        pb = rig.pose.bones[side + bone]
+                        pb.rotation_quaternion = turn(pb, degrees) @ pb.rotation_quaternion
+                spine = rig.pose.bones['Spine']
+                spine.rotation_quaternion = turn(spine, 20 * c + 10 * k) @ spine.rotation_quaternion
+                if c:
+                    # A crouch on the ground lowers the hips until the feet are back on the floor.
+                    bpy.context.view_layer.update()
+                    hip.location -= basis @ Vector((0, 0, min(f.head.z for f in feet) - foot_floor))
+                pose.update({pb.name: pb.matrix_basis.copy() for pb in rig.pose.bones})
         action = bpy.data.actions.new(name)
         activate(rig, action)
         for t, pose in enumerate(poses, 1):

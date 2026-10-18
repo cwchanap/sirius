@@ -42,8 +42,8 @@ func review():
 		for frame in range(110 if case=="falling" else 75):
 			await process_frame
 			if frame==1: Input.action_release("jump")
-			var hip=skeleton.global_transform*skeleton.get_bone_global_pose(skeleton.find_bone("Hip")).origin
-			var foot=skeleton.global_transform*skeleton.get_bone_global_pose(skeleton.find_bone("R_Foot")).origin
+			var hip=skeleton.global_transform*skeleton.get_bone_global_pose(skeleton.find_bone("Hips")).origin
+			var foot=skeleton.global_transform*skeleton.get_bone_global_pose(skeleton.find_bone("RightFoot")).origin
 			samples.append({"frame":frame,"body_y":player.position.y,"hip_y":hip.y,"foot_y":foot.y,
 				"vy":player.velocity.y,"floor":player.is_on_floor(),"clip":str(animator.current_animation),
 				"time":animator.current_animation_position if animator.current_animation!="" else -1})

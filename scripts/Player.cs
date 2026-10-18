@@ -72,11 +72,11 @@ public partial class Player : CharacterBody3D
                 Game.Toast("RESONANCE CUT", "Zero: their actuator frequency is exposed.",2.5f);
             }
         }
-        float speed=Guarding?1.7f:Input.IsActionPressed("run")?7.8f:4.3f;
+        float speed=Guarding?1.7f:Input.IsActionPressed("run")?7.8f:2f;
         if(attack>0)speed=1.4f;
         if(Stun>0||skillCast>0||healTimer>0)speed=0;
         Vector3 horizontal=dir*speed;
-        if(dodge>0){dodge-=dt;horizontal=dodgeDirection*11;}
+        if(dodge>0){dodge-=dt;horizontal=dodgeDirection*7;}
         else if(dir.LengthSquared()>.01f&&Stun<=0&&skillCast<=0)
             Model.Rotation=new(0,Mathf.LerpAngle(Model.Rotation.Y,Mathf.Atan2(dir.X,dir.Z),dt*13),0);
         if(Game.Locked is { Dead:false } target&&dodge<=0)
@@ -103,7 +103,11 @@ public partial class Player : CharacterBody3D
                 Visual.Play("jump",1,true);Visual.Animator!.Seek(10/24.0,true);landing=3/24f;
             }
             else if(landing<=0)
-                Visual.Play(Guarding?"guard":dir.Length()>.1f?(speed>5?"run":"walk"):"idle");
+            {
+                // Played this fast, the walk and run feet slide least at 2 and 7.8 m/s (measured in game: 0.36 and 1.9 m/s).
+                string clip=Guarding?"guard":dir.Length()>.1f?(speed>5?"run":"walk"):"idle";
+                Visual.Play(clip,clip=="walk"?speed/1.26f:clip=="run"?2:1);
+            }
         }
     }
     public bool CanReach(Vector3 target,float range,float facingDot)
@@ -128,9 +132,9 @@ public partial class Player : CharacterBody3D
     public void Dodge(Vector3 direction)
     {
         if(dodgeCooldown>0||Stun>0||Health<=0)return;
-        dodge=.38f;dodgeCooldown=.65f;Invulnerable=.29f;
+        dodge=.6f;dodgeCooldown=.85f;Invulnerable=.4f;
         dodgeDirection=direction.LengthSquared()>.01f?direction.Normalized():Facing;
-        attack=0;comboQueued=false;Guarding=false;Visual.Play("dodge",1.6f,true);Game.Sound("dodge");
+        attack=0;comboQueued=false;Guarding=false;Visual.Play("dodge",1,true);Game.Sound("dodge");
     }
     public bool Skill()
     {
