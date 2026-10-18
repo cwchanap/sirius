@@ -108,4 +108,4 @@ C# build succeeded. The final graphical integration run passed 57 checks with `S
 - [x] Audition three Japanese ElevenLabs voices (Kurea, Haruno, Yuki) on five of Mio's lines.
 - [x] The user picked Yuki for Mio.
 - [x] Voice all of Mio's lines with Yuki into `assets/audio/voice/ja/Mio/`: thirteen mp3s, 1.1 MB.
-- [ ] Play voice lines in dialogue.
+- [x] Play each beat's voice line in dialogue, looked up by `Prologue.SceneNames`; stop it on the next beat, Esc or the end of the scene. 338 checks pass headless and in native Metal.

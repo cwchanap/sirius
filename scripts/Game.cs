@@ -26,6 +26,8 @@ public partial class Game : Node3D
     private readonly Dictionary<string,AudioStreamWav> sounds=new();
     private readonly List<(Node3D Node,float Life,float Total,float Radius)> effects=new();
     private AudioStreamPlayer ambience=null!;
+    public AudioStreamPlayer Voice=null!;
+    private string? scene;
     private double elapsed;
     private bool captured;
     private string capturePath="";
@@ -49,6 +51,7 @@ public partial class Game : Node3D
         foreach(string name in new[]{"swing","impact","guard","deflect","break","skill","hurt","jump","dodge","heal","warning"})
             sounds[name]=GD.Load<AudioStreamWav>("res://assets/audio/"+name+".wav");
         ambience=new AudioStreamPlayer {Stream=GD.Load<AudioStreamWav>("res://assets/audio/valley.wav"),VolumeDb=-16};AddChild(ambience);ambience.Finished+=()=>ambience.Play();ambience.Play();
+        Voice=new AudioStreamPlayer();AddChild(Voice);
         var args=OS.GetCmdlineUserArgs();SelfTest=args.Contains("--self-test");
         var capture=args.FirstOrDefault(a=>a.StartsWith("--capture="));if(capture!=null)capturePath=capture[10..];
         if(SelfTest||args.Contains("--play")||(capturePath!=""&&!args.Contains("--title-view")))Start();
@@ -63,7 +66,7 @@ public partial class Game : Node3D
     }
     // A stopped playback, and the valley.wav it holds, is only released on the audio thread's next mix step; if the engine
     // shuts the AudioServer down first, both leak at exit. Blocking briefly at quit lets that step run first.
-    public override void _ExitTree(){ambience.Stop();OS.DelayMsec(100);}
+    public override void _ExitTree(){ambience.Stop();Voice.Stop();OS.DelayMsec(100);}
     public void Start()
     {
         Mode=GameMode.Playing;Input.MouseMode=SelfTest?Input.MouseModeEnum.Visible:Input.MouseModeEnum.Captured;
@@ -192,16 +195,18 @@ public partial class Game : Node3D
         }
     }
     public void Play(params (string Speaker,string Text)[] beats)
-    {Script.Clear();Script.AddRange(beats);Beat=-1;NightFrom=-1;Mode=GameMode.Dialogue;Input.MouseMode=Input.MouseModeEnum.Visible;Advance();}
+    {Script.Clear();Script.AddRange(beats);scene=Prologue.SceneNames.GetValueOrDefault(beats);Beat=-1;NightFrom=-1;Mode=GameMode.Dialogue;Input.MouseMode=Input.MouseModeEnum.Visible;Advance();}
     // The first press finishes a line still typing out; the next one moves on.
     public void Advance()
     {
         if(Beat>=0&&Reveal<Dialogue.Length){Reveal=Dialogue.Length;return;}
         if(++Beat>=Script.Count){EndDialogue();return;}
         (Speaker,Dialogue)=Script[Beat];Reveal=0;
+        var line=$"res://assets/audio/voice/ja/{Speaker}/{scene}.{Beat}.mp3";
+        Voice.Stop();Voice.Stream=scene!=null&&ResourceLoader.Exists(line)?GD.Load<AudioStream>(line):null;if(Voice.Stream!=null)Voice.Play();
         SpeakerRole=Speaker switch {"Mio"=>"OFFLINE RUNNER","Zero"=>"SENSORY LINK · CITY SIDE",_=>World.Residents.FirstOrDefault(r=>r.Name==Speaker).Role??""};
     }
-    public void EndDialogue(){Mode=GameMode.Playing;Input.MouseMode=SelfTest?Input.MouseModeEnum.Visible:Input.MouseModeEnum.Captured;}
+    public void EndDialogue(){Voice.Stop();Mode=GameMode.Playing;Input.MouseMode=SelfTest?Input.MouseModeEnum.Visible:Input.MouseModeEnum.Captured;}
     public void OnEnemyDefeated()
     {
         if(QuestStage==1&&Enemies.All(e=>e.Dead)){QuestStage=2;Toast("ROAD CLEARED","Follow the lanterns to the manual relay.",5);}

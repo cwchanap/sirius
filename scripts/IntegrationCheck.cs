@@ -356,9 +356,14 @@ public static class IntegrationCheck
         g.Begin();
         Check(g.Mode==GameMode.Dialogue&&g.Speaker=="Zero"&&g.Script.Count==Prologue.Intro.Length,"the journey opens on Zero's voice over the link");
         Check(g.Hud.Portrait("Mio")!=null&&g.World.Residents.All(r=>g.Hud.Portrait(r.Name)!=null)&&g.Hud.Portrait("Zero")==null,"Mio and every resident have a dialogue portrait; unseen Zero has none");
+        var mioLines=Prologue.SceneNames.SelectMany(s=>s.Key.Select((b,i)=>(b.Speaker,Path:$"res://assets/audio/voice/ja/Mio/{s.Value}.{i}.mp3"))).Where(b=>b.Speaker=="Mio").ToArray();
+        Check(mioLines.Length>0&&mioLines.All(b=>ResourceLoader.Load(b.Path) is AudioStreamMP3 mp3&&mp3.GetLength()>.5),$"each of Mio's {mioLines.Length} prologue lines has her Japanese voice at its beat");
         await Frames(10);Check(g.Reveal>0&&g.Reveal<g.Dialogue.Length,"dialogue text types out");
         await Tap(Key.E);Check(g.Beat==0&&g.Reveal==g.Dialogue.Length,"the first press completes the typing line instead of skipping it");
-        int presses=1;while(g.Mode==GameMode.Dialogue&&presses<100){await Tap(Key.E);presses++;}
+        Check(g.Voice.Stream==null,"Zero's line over the link is unvoiced");
+        await Tap(Key.E);Check(g.Beat==1&&g.Voice.Playing&&g.Voice.Stream?.ResourcePath=="res://assets/audio/voice/ja/Mio/Intro.1.mp3","Mio's reply plays her Japanese voice line");
+        await Tap(Key.E);Check(g.Reveal==g.Dialogue.Length&&g.Voice.Playing,"completing the typing line lets her voice play on");
+        int presses=3;while(g.Mode==GameMode.Dialogue&&presses<100){await Tap(Key.E);presses++;}
         Check(g.Mode==GameMode.Playing&&presses==2*Prologue.Intro.Length,$"the opening scene plays every line, two presses each ({presses})");
         g.CameraYaw=0;g.Player.Respawn();await Frames(5);
         foreach(var resident in g.World.Residents)
@@ -417,7 +422,9 @@ public static class IntegrationCheck
         Check(g.QuestStage==4,"returning to Ren completes the prologue");
         int mother=g.Script.FindIndex(b=>b.Speaker=="Mio"&&b.Text.Contains("mother"));
         Check(g.Script[^1].Speaker==""&&g.Script[g.NightFrom].Text.StartsWith("Night")&&mother>g.NightFrom&&g.Script[mother+1].Speaker=="Zero","the prologue closes on the lantern night, where Zero changes the subject from Mio's mother");
-        await Tap(Key.Escape);Check(g.Mode==GameMode.Playing,"escape skips the rest of a scene");
+        for(int i=0;i<40&&g.Speaker!="Mio";i++)await Tap(Key.E);
+        Check(g.Voice.Playing&&g.Voice.Stream?.ResourcePath=="res://assets/audio/voice/ja/Mio/Homecoming.6.mp3","the homecoming voices Mio under its own scene key");
+        await Tap(Key.Escape);Check(g.Mode==GameMode.Playing&&!g.Voice.Playing,"escape skips the rest of a scene and silences its voice");
         if(DisplayServer.GetName()!="headless"){g.SaveScreenshot("res://artifacts/mission-complete.png");await Frames(5);}
         g.Restart();Check(g.QuestStage==0&&g.Enemies.All(e=>!e.Dead)&&g.Player.Health==100,"restart restores a fresh playable mission");
         Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Intro),"restarting the prologue replays its opening scene");g.EndDialogue();

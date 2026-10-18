@@ -100,4 +100,8 @@ public static class Prologue
             ("Sora","...Mio, is your wrist talking again?"),
         },
     };
+    // Beat i of a scene is voiced by assets/audio/voice/ja/<Speaker>/<name>.<i>.mp3, the same key as assets/dialogue/ja.json.
+    // Declared last so the scenes it names are already initialized.
+    public static readonly Dictionary<(string Speaker,string Text)[],string> SceneNames=new[]{("Intro",Intro),("Briefing",Briefing),("Homecoming",Homecoming),("RelayOnline",RelayOnline)}
+        .Concat(FirstMeeting.Select(m=>("FirstMeeting."+m.Key,m.Value))).ToDictionary(s=>s.Item2,s=>s.Item1);
 }
