@@ -356,12 +356,12 @@ public static class IntegrationCheck
         g.Begin();
         Check(g.Mode==GameMode.Dialogue&&g.Speaker=="Zero"&&g.Script.Count==Prologue.Intro.Length,"the journey opens on Zero's voice over the link");
         Check(g.Hud.Portrait("Mio")!=null&&g.World.Residents.All(r=>g.Hud.Portrait(r.Name)!=null)&&g.Hud.Portrait("Zero")==null,"Mio and every resident have a dialogue portrait; unseen Zero has none");
-        var mioLines=Prologue.SceneNames.SelectMany(s=>s.Key.Select((b,i)=>(b.Speaker,Path:$"res://assets/audio/voice/ja/Mio/{s.Value}.{i}.mp3"))).Where(b=>b.Speaker=="Mio").ToArray();
-        Check(mioLines.Length>0&&mioLines.All(b=>ResourceLoader.Load(b.Path) is AudioStreamMP3 mp3&&mp3.GetLength()>.5),$"each of Mio's {mioLines.Length} prologue lines has her Japanese voice at its beat");
+        var voiced=Prologue.SceneNames.SelectMany(s=>s.Key.Select((b,i)=>(b.Speaker,Path:$"res://assets/audio/voice/ja/{b.Speaker}/{s.Value}.{i}.mp3"))).Where(b=>b.Speaker is "Mio" or "Zero").ToArray();
+        Check(voiced.Length>0&&voiced.All(b=>ResourceLoader.Load(b.Path) is AudioStreamMP3 mp3&&mp3.GetLength()>.5),$"each of Mio's and Zero's {voiced.Length} prologue lines has its Japanese voice at its beat");
         await Frames(10);Check(g.Reveal>0&&g.Reveal<g.Dialogue.Length,"dialogue text types out");
         await Tap(Key.E);Check(g.Beat==0&&g.Reveal==g.Dialogue.Length,"the first press completes the typing line instead of skipping it");
-        Check(g.Voice.Stream==null,"Zero's line over the link is unvoiced");
-        await Tap(Key.E);Check(g.Beat==1&&g.Voice.Playing&&g.Voice.Stream?.ResourcePath=="res://assets/audio/voice/ja/Mio/Intro.1.mp3","Mio's reply plays her Japanese voice line");
+        Check(g.Voice.Playing&&g.Voice.Stream?.ResourcePath=="res://assets/audio/voice/ja/Zero/Intro.0.mp3","Zero wakes Mio in Japanese over the link");
+        await Tap(Key.E);Check(g.Beat==1&&g.Voice.Playing&&g.Voice.Stream?.ResourcePath=="res://assets/audio/voice/ja/Mio/Intro.1.mp3","Mio's reply cuts Zero's voice off and plays her own");
         await Tap(Key.E);Check(g.Reveal==g.Dialogue.Length&&g.Voice.Playing,"completing the typing line lets her voice play on");
         int presses=3;while(g.Mode==GameMode.Dialogue&&presses<100){await Tap(Key.E);presses++;}
         Check(g.Mode==GameMode.Playing&&presses==2*Prologue.Intro.Length,$"the opening scene plays every line, two presses each ({presses})");
@@ -374,6 +374,7 @@ public static class IntegrationCheck
             Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-talk.X,g.Player.GlobalPosition.Z-talk.Z).Length()<.2f,"talk spot is standable: "+resident.Name);
             g.Interact();
             Check(g.Mode==GameMode.Dialogue&&g.Speaker==resident.Name,"dialogue: "+resident.Name);
+            if(resident.Name=="Ren")Check(g.Voice.Stream==null,"Ren, who has no voice files, stays silent");
             if(resident.Name=="Chiyo")Check(g.Script.Any(b=>b.Speaker=="Mio")&&g.Script.Any(b=>b.Text.Contains("Shio")),"Chiyo recognises Shio's terminal at the first meeting");
             g.Mode=GameMode.Playing;
         }

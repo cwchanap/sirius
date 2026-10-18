@@ -43,7 +43,7 @@ Tap guard within **190 ms** of a frontal normal strike to deflect it. Deflection
 4. Interact with the manual relay below the broken viaduct; Zero responds from the city.
 5. Return to Ren to secure the evacuation route.
 
-The story plays as visual-novel scenes over the paused game: portraits, a name plate and typed-out lines. Beginning the journey, or restarting the prologue from the pause menu, opens with Zero waking Mio through the sensory link. Ren's briefing, the relay restart and the homecoming at nightfall are scenes of their own, and each Hoshikawa resident has a short first conversation before falling back to their usual line. Zero speaks from Mio's wrist terminal, so it appears as a link emblem rather than a portrait. The first press finishes a line that is still typing; the next moves on. Mio speaks her lines in Japanese (the English text stays on screen); the voice stops when the scene moves on or is skipped.
+The story plays as visual-novel scenes over the paused game: portraits, a name plate and typed-out lines. Beginning the journey, or restarting the prologue from the pause menu, opens with Zero waking Mio through the sensory link. Ren's briefing, the relay restart and the homecoming at nightfall are scenes of their own, and each Hoshikawa resident has a short first conversation before falling back to their usual line. Zero speaks from Mio's wrist terminal, so it appears as a link emblem rather than a portrait. The first press finishes a line that is still typing; the next moves on. Mio and Zero speak their lines in Japanese (the English text stays on screen); the voice stops when the scene moves on or is skipped.
 
 Hoshikawa is a small Japanese hamlet with **six buildings**: a workshop with a lean-to, a kura granary, an irimoya assembly hall, a teahouse, a clinic with an engawa and a thatched farmhouse. It has **six named residents** (Ren, Chiyo, Aki, Hana, Sora, KOMA-7). A brook with a plank footbridge runs past the rice fields, a raised terrace behind a stone wall edges the west side, and the road climbs through a torii to a small shrine in a cedar grove. Countryside includes textured rolling terrain, a river and bridge, rice beds, forest, rocks, meadow vegetation, wildflowers, and a distant machine-city skyline.
 
@@ -113,7 +113,7 @@ The importer regression check exercises all four input formats, transformed mult
 - `scripts/Player.cs`, `Enemy.cs`: action timing, movement, and robot behavior.
 - `scripts/Game.cs`, `Hud.cs`: quest, camera, dialogue, presentation and audio.
 - `scripts/Prologue.cs`: every line of the prologue's visual-novel scenes, kept apart from the code that plays them. `SceneNames` gives each scene the key its voice files use.
-- `assets/audio/voice/ja/Mio/`: Mio's Japanese voice, one mp3 per line named by its key (`Intro.1.mp3`). `Game.Advance()` plays the file for the beat it shows.
+- `assets/audio/voice/ja/Mio/`, `Zero/`: Mio's and Zero's Japanese voices, one mp3 per line named by its key (`Intro.1.mp3`). `Game.Advance()` plays the file for the beat it shows.
 - `assets/art/portraits/`: dialogue portraits generated with Codex from each character's reference art and cut out with `tools/cut_portrait.gd`. A speaker without a file there shows only a name plate.
 - `assets/models/mio.glb`: the user's low-poly Tripo character with Tripo's 65-bone rig and twelve clips made in Tripo Studio.
 - `assets/models/chiyo.glb`: Chiyo's Tripo model with a 41-bone rig and a gentle authored idle. Her original import is preserved in `assets/source/chiyo-tripo-original.blend`; rebuild the game copy with `tools/import_tripo_chiyo.py` in background Blender.
@@ -127,7 +127,7 @@ The importer regression check exercises all four input formats, transformed mult
 - `tools/render_human_review.py`: temporary Blender studio renders of faces, idle, running and guard poses.
 - `assets/art/`: original imagegen art used directly in the game; prompts in `ASSETS.md`.
 - `tools/build_audio.py`: original synthesized ambient loop and combat sounds using Python's standard library.
-- `assets/dialogue/ja.json`: Japanese text for Mio's prologue lines, keyed like `Intro.1` by scene and beat in `Prologue.cs`.
+- `assets/dialogue/ja.json`: Japanese text for Mio's and Zero's prologue lines, keyed like `Intro.1` by scene and beat in `Prologue.cs`.
 - `tools/build_voice.py`: Japanese voice lines from ElevenLabs text-to-speech, standard library only. `--check` validates `ja.json` against `Prologue.cs`; `--audition` renders candidate voices to `artifacts/voice-audition/`. The procedure is `.claude/skills/voicing-dialogue/SKILL.md`.
 
 Mio uses the user's low-poly Tripo model, with all twelve clips made in Tripo Studio: the idle, walk, run and jump presets, and the attack combo, guard, dodge, Resonance Cut, stagger and death generated from text prompts. Each is cut and retimed to the game's timing, and the original sword follows the right hand. Movement stays under the C# collision controller. The game jump uses the first hop from Tripo's repeated sequence, removes its extra vertical travel, follows physical ascent/descent and starts landing recovery on ground contact.

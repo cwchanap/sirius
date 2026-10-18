@@ -13,10 +13,10 @@ MODEL='eleven_v4'
 FORMAT='mp3_44100_128'
 SEED=2189
 # The chosen voice per speaker, from the voice record in .claude/skills/voicing-dialogue/SKILL.md.
-CAST={'Mio':'JTlYtJrcTzPC71hMLOxo'}
+CAST={'Mio':'JTlYtJrcTzPC71hMLOxo','Zero':'nvAEN8lxUT4UJcAyxcCQ'}
 # Candidates for a speaker still being auditioned, e.g. {'Ren':{'shortname':voice_id}} and {'Ren':['Briefing.0',...]}.
-AUDITION={'Zero':{'kei':'XKJWAGK4dewYkzr1hsNs','koume':'nvAEN8lxUT4UJcAyxcCQ','toru':'wGSNAQwhUbFf1J43d5Tw'}}
-AUDITION_KEYS={'Zero':['Intro.0','Intro.2','RelayOnline.0','Homecoming.9','Homecoming.11']}
+AUDITION={}
+AUDITION_KEYS={}
 def english():
     """Prologue.cs as {'Intro.1': ('Mio', text), 'FirstMeeting.Chiyo.2': ...}: the keys ja.json uses."""
     lines,scene,index={},None,0

@@ -9,7 +9,7 @@ description: Use when giving a Hoshikawa character a Japanese voice, auditioning
 
 Japanese text is data: `assets/dialogue/ja.json` holds every translated line, keyed by its position in `scripts/Prologue.cs`. The same file is the source for a future Japanese localization, so it stores the displayed text, never TTS markup. `tools/build_voice.py` turns it into speech. In-game text stays English; the dialogue plays the Japanese voice under it.
 
-**Playback.** When `Game.Advance()` shows beat *i* of a scene, it plays `res://assets/audio/voice/ja/<Speaker>/<scene>.<i>.mp3` if that file exists, and stops it on the next beat, Esc or the end of the scene. The scene name comes from `Prologue.SceneNames`, so a new scene array must be added there to be voiced; one-line `Play((speaker,text))` calls build a fresh array and stay silent. Any speaker is voiced as soon as their files exist; there is no per-character switch. `IntegrationCheck` requires every Mio beat in a named scene to have its mp3, so a new or moved Mio line fails the self-test until it is voiced.
+**Playback.** When `Game.Advance()` shows beat *i* of a scene, it plays `res://assets/audio/voice/ja/<Speaker>/<scene>.<i>.mp3` if that file exists, and stops it on the next beat, Esc or the end of the scene. The scene name comes from `Prologue.SceneNames`, so a new scene array must be added there to be voiced; one-line `Play((speaker,text))` calls build a fresh array and stay silent. Any speaker is voiced as soon as their files exist; there is no per-character switch. `IntegrationCheck` requires every Mio and Zero beat in a named scene to have its mp3, so a new or moved line of theirs fails the self-test until it is voiced. Zero's relay one-liners (`RelayAsleep`, `RelayGuarded`, `RelaySteady`) are single strings and stay silent.
 
 | What | Where | In git |
 |---|---|---|
@@ -58,10 +58,10 @@ Add a row with the character brief before auditioning a new speaker.
 
 | Speaker | Brief | Status | Voices (name: id) |
 |---|---|---|---|
-| Zero | city railway system heard only through Mio's wrist terminal; curious like a child, counts things, gender unstated ("it") | audition 2026-10-18, awaiting pick | Kei (light, androgynous anime): `XKJWAGK4dewYkzr1hsNs`; Koume (sweet, playful, childlike): `nvAEN8lxUT4UJcAyxcCQ`; Toru (calm neutral boy): `wGSNAQwhUbFf1J43d5Tw` |
+| Zero | city railway system heard only through Mio's wrist terminal; curious like a child, counts things, gender unstated ("it") | cast 2026-10-18: **Koume** | Koume (sweet, playful, childlike): `nvAEN8lxUT4UJcAyxcCQ`, chosen. Auditioned: Kei (light, androgynous anime): `XKJWAGK4dewYkzr1hsNs`; Toru (calm neutral boy): `wGSNAQwhUbFf1J43d5Tw` |
 | Mio | 22, scavenger and repairer; practical, warm, a little dry | cast 2026-10-18: **Yuki** | Yuki (calm anime): `JTlYtJrcTzPC71hMLOxo`, chosen. Auditioned: Kurea (warm, expressive): `IgiTcMDSHJPIJjnlwIdM`; Haruno (calm, low): `b02kNc4YmZR6NvjjXr2a` |
 
-Mio's audition rendered Intro.1/3/6/8 and Homecoming.8 through the connector (eleven_v4, default settings, no seed) for about 450 credits. On 2026-10-18 all 13 of her lines landed in `assets/audio/voice/ja/Mio/` (1.1 MB): Yuki's five audition takes were copied over unchanged and the other eight were rendered the same way for 184 credits. Zero's audition rendered Intro.0/2, RelayOnline.0 and Homecoming.9/11 the same way for 759 credits; no Japanese library voice is tagged robotic, so its candidates span androgynous, childlike girl and boy.
+Mio's audition rendered Intro.1/3/6/8 and Homecoming.8 through the connector (eleven_v4, default settings, no seed) for about 450 credits. On 2026-10-18 all 13 of her lines landed in `assets/audio/voice/ja/Mio/` (1.1 MB): Yuki's five audition takes were copied over unchanged and the other eight were rendered the same way for 184 credits. Zero's audition rendered Intro.0/2, RelayOnline.0 and Homecoming.9/11 the same way for 759 credits; no Japanese library voice is tagged robotic, so its candidates span androgynous, childlike girl and boy. All 18 of Zero's lines then landed in `assets/audio/voice/ja/Zero/` (2.4 MB): Koume's five audition takes copied over and thirteen more for 453 credits.
 
 ## Common mistakes
 

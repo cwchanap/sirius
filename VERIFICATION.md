@@ -1,5 +1,11 @@
 # MVP verification
 
+## Zero's Japanese voice — 2026-10-18
+
+- **Audio:** 18 Koume mp3s (eleven_v4, 44.1 kHz mono, 2.4 MB) in `assets/audio/voice/ja/Zero/`, one per Zero beat, each imported as `AudioStreamMP3`. `python3 tools/build_voice.py --check` passes for all 31 Japanese lines.
+- **Self-test:** the voice-file check now covers all 31 Mio and Zero beats. Zero's opening line plays `Zero/Intro.0.mp3`, Mio's reply cuts it off and plays her own, and Ren, who has no voice files, stays silent. **339 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro); both runs exit 0 with `SELF_TEST_PASS` and no leak or error output.
+- **Limits:** as for Mio's voice, the checks confirm which file plays, not how it sounds; no native-speaker review and no physical keyboard/mouse session.
+
 ## Mio's Japanese voice — 2026-10-18
 
 - **Audio:** 13 Yuki mp3s (eleven_v4, 44.1 kHz mono, 1.1 MB) in `assets/audio/voice/ja/Mio/`, one per Mio beat, each imported by Godot as `AudioStreamMP3`. `python3 tools/build_voice.py --check` confirms `ja.json` still matches `Prologue.cs`.
