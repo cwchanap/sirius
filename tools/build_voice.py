@@ -12,10 +12,11 @@ LINES=ROOT/'assets/dialogue/ja.json'
 MODEL='eleven_v4'
 FORMAT='mp3_44100_128'
 SEED=2189
-# The chosen voice per speaker. Empty until a voice wins its audition.
-CAST={}
-AUDITION={'Mio':{'kurea':'IgiTcMDSHJPIJjnlwIdM','haruno':'b02kNc4YmZR6NvjjXr2a','yuki':'JTlYtJrcTzPC71hMLOxo'}}
-AUDITION_KEYS={'Mio':['Intro.1','Intro.3','Intro.6','Intro.8','Homecoming.8']}
+# The chosen voice per speaker, from the voice record in .claude/skills/voicing-dialogue/SKILL.md.
+CAST={'Mio':'JTlYtJrcTzPC71hMLOxo'}
+# Candidates for a speaker still being auditioned, e.g. {'Ren':{'shortname':voice_id}} and {'Ren':['Briefing.0',...]}.
+AUDITION={}
+AUDITION_KEYS={}
 def english():
     """Prologue.cs as {'Intro.1': ('Mio', text), 'FirstMeeting.Chiyo.2': ...}: the keys ja.json uses."""
     lines,scene,index={},None,0

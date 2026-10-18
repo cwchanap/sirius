@@ -56,7 +56,7 @@ Add a row with the character brief before auditioning a new speaker.
 
 | Speaker | Brief | Status | Voices (name: id) |
 |---|---|---|---|
-| Mio | 22, scavenger and repairer; practical, warm, a little dry | audition 2026-10-17, awaiting pick | Kurea (warm, expressive): `IgiTcMDSHJPIJjnlwIdM`; Haruno (calm, low): `b02kNc4YmZR6NvjjXr2a`; Yuki (calm anime): `JTlYtJrcTzPC71hMLOxo` |
+| Mio | 22, scavenger and repairer; practical, warm, a little dry | cast 2026-10-18: **Yuki** | Yuki (calm anime): `JTlYtJrcTzPC71hMLOxo`, chosen. Auditioned: Kurea (warm, expressive): `IgiTcMDSHJPIJjnlwIdM`; Haruno (calm, low): `b02kNc4YmZR6NvjjXr2a` |
 
 Mio's audition rendered Intro.1/3/6/8 and Homecoming.8 through the connector (eleven_v4, default settings, no seed) for about 450 credits.
 
