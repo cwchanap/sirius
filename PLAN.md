@@ -107,5 +107,5 @@ C# build succeeded. The final graphical integration run passed 57 checks with `S
 - [x] Add `tools/build_voice.py`, which refuses to voice a line whose English changed in `Prologue.cs`, and the `voicing-dialogue` skill as the procedure.
 - [x] Audition three Japanese ElevenLabs voices (Kurea, Haruno, Yuki) on five of Mio's lines.
 - [x] The user picked Yuki for Mio.
-- [ ] Voice all of Mio's lines with Yuki into `assets/audio/voice/ja/Mio/`.
+- [x] Voice all of Mio's lines with Yuki into `assets/audio/voice/ja/Mio/`: thirteen mp3s, 1.1 MB.
 - [ ] Play voice lines in dialogue.
