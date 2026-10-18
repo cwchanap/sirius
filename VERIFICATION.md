@@ -6,6 +6,12 @@
 - **Self-test:** the voice-file check now covers all 31 Mio and Zero beats. Zero's opening line plays `Zero/Intro.0.mp3`, Mio's reply cuts it off and plays her own, and Ren, who has no voice files, stays silent. **339 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro); both runs exit 0 with `SELF_TEST_PASS` and no leak or error output.
 - **Limits:** as for Mio's voice, the checks confirm which file plays, not how it sounds; no native-speaker review and no physical keyboard/mouse session.
 
+## Unit and e2e test suites — 2026-10-18
+
+- **Local runs:** in a Linux cloud container with Godot 4.6.2.stable.mono.official and .NET SDK 8.0.131: `just unit` passes 15 cases in under a second, `just e2e` passes 4 cases in about 30 s (one headless game start each), and the existing self-test passes 338 checks headless on Linux in 20 s.
+- **Mutation checks:** shifting a terrain-shader road constant, inserting an intro line before Mio's voiced beats, moving `NightFalls` and moving the clinic onto the road each fail the matching unit test; letting Escape only pause, and reversing Mio's forward input, fail the pause and steering e2e tests, which leave `scene_tree.json`, engine logs and process output under `test_output/`.
+- **Limits:** e2e runs headless, so failure artifacts carry no screenshot. A windowed run under Xvfb with software Vulkan (llvmpipe) did not reach its first capture within four minutes, so CI does not attempt rendered runs; the Metal graphical self-test stays a local check. E2E input is engine-injected; no physical keyboard/mouse session is claimed.
+
 ## Mio's Japanese voice — 2026-10-18
 
 - **Audio:** 13 Yuki mp3s (eleven_v4, 44.1 kHz mono, 1.1 MB) in `assets/audio/voice/ja/Mio/`, one per Mio beat, each imported by Godot as `AudioStreamMP3`. `python3 tools/build_voice.py --check` confirms `ja.json` still matches `Prologue.cs`.

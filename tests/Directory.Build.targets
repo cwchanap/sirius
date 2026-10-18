@@ -1,0 +1,8 @@
+<Project>
+  <!-- Godot's script generators arrive with GodotSharp, but no test defines a Godot script; left in, they fail for want of a Godot project. -->
+  <Target Name="DropGodotGenerators" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <Analyzer Remove="@(Analyzer)" Condition="'%(Analyzer.NuGetPackageId)'=='Godot.SourceGenerators'" />
+    </ItemGroup>
+  </Target>
+</Project>

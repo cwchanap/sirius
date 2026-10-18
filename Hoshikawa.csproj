@@ -5,4 +5,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
+  <!-- The test projects and godot-e2e's client build on their own; the SDK would otherwise glob them into the game. -->
+  <ItemGroup>
+    <Compile Remove="tests/**" />
+    <Compile Remove="addons/gdunit_e2e/csharp/**" />
+  </ItemGroup>
 </Project>

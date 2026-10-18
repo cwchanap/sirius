@@ -1,0 +1,41 @@
+name: Unit tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unit-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: gdUnit4Net
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      # Plain .NET: the suites test the game's static data and geometry, so no Godot install is needed.
+      - name: Run unit tests
+        run: >-
+          dotnet test tests/unit/Hoshikawa.UnitTests.csproj --nologo
+          --logger trx --results-directory TestResults/unit
+
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          if-no-files-found: ignore
+          path: TestResults/unit
