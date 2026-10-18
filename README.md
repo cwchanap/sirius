@@ -9,10 +9,10 @@ Open `project.godot` in **Godot Mono** and press **F6** on `scenes/Main.tscn`, o
 On this Mac:
 
 ```sh
-sh run.sh
+just run
 ```
 
-`run.sh` builds C#, imports the included assets, and launches the game. Set `GODOT_MONO` to your Mono engine executable on another machine. The project defaults to the Mobile renderer with native Metal on macOS. For older graphics hardware, launch with `--rendering-method gl_compatibility --rendering-driver opengl3`. The plain `godot` command on this machine points to a different, non-Mono engine; use the Mono application.
+`just run` builds C#, imports the included assets, and launches the game. Set `GODOT_MONO` to your Mono engine executable on another machine. The project defaults to the Mobile renderer with native Metal on macOS. For older graphics hardware, launch with `--rendering-method gl_compatibility --rendering-driver opengl3`. The plain `godot` command on this machine points to a different, non-Mono engine; use the Mono application.
 
 ## Controls
 
