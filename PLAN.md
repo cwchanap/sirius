@@ -114,4 +114,4 @@ C# build succeeded. The final graphical integration run passed 57 checks with `S
 
 - [x] Translate Zero's eighteen prologue lines into `assets/dialogue/ja.json`: no first-person pronoun, counting and railway words.
 - [x] Audition three Japanese ElevenLabs voices (Kei, Koume, Toru) on five of Zero's lines.
-- [ ] Voice all of Zero's lines with the voice the user picks.
+- [x] The user picked Koume. Voice all eighteen of Zero's lines into `assets/audio/voice/ja/Zero/` (2.4 MB); 339 checks pass headless and in native Metal.
