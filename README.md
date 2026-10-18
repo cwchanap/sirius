@@ -61,6 +61,13 @@ dotnet build Hoshikawa.csproj
 
 Success prints `SELF_TEST_PASS` and exits 0. Current evidence and environment limitations are recorded in `VERIFICATION.md`. Checks cover imported animations, both villages and all ten residents, walking, running, jumping, evasion, both bridge crossings, the entire northern route in both directions, shelter and overlook access, both medics, dialogue, deflection, guard, perilous attacks, damage timing, skill cooldown, finishers, enemy patrol/aggro, pause, the full mission, and restart.
 
+Two more suites run on plain `dotnet test`, and CI runs all three on every pull request (`.github/workflows/`; the unit tests also run on every push):
+
+```sh
+just unit   # gdUnit4Net unit tests of the terrain, road, house pads and prologue data; no Godot needed
+just e2e    # gdUnit4Net tests that drive a headless game through godot-e2e: title, intro, pause, steering, Ren's briefing
+```
+
 For reproducible rendered evidence, append `-- --play --capture=res://artifacts/village.png` to a graphical launch. Optional `--overview`, `--combat-view`, `--portrait`, and `--portrait-close` select useful inspection viewpoints. These options are development conveniences; normal play begins at the illustrated title screen.
 
 Run Godot with `--script res://tools/review_dialogue.gd` to capture the prologue's dialogue scenes under `artifacts/dialogue/`. Run Godot with `--script res://tools/review_hamlet.gd` for Hoshikawa captures under `artifacts/hamlet/` (`-- --out=<subdir> --only=square,overview` narrows them). Use `--komorebi` or `--pass-view` with `--play` to inspect the new areas. Run Godot with `--script res://tools/review_valley.gd` for six landscape captures under `artifacts/countryside/`.
@@ -128,6 +135,9 @@ The importer regression check exercises all four input formats, transformed mult
 - `assets/art/`: original imagegen art used directly in the game; prompts in `ASSETS.md`.
 - `tools/build_audio.py`: original synthesized ambient loop and combat sounds using Python's standard library.
 - `assets/dialogue/ja.json`: Japanese text for Mio's and Zero's prologue lines, keyed like `Intro.1` by scene and beat in `Prologue.cs`.
+- `tests/unit/`: gdUnit4Net unit tests on plain .NET against the game assembly: the road against the terrain shader, house pads and clearances, the brook bed, regions, Tripo resident assets, and the prologue's voice files, Japanese lines and portraits.
+- `tests/e2e/`, `addons/gdunit_e2e/`: gdUnit4Net end-to-end tests and the vendored godot-e2e v0.1.1 addon they use to launch and drive a headless game process.
+- `.github/workflows/`: `unit.yml` runs the unit tests on every push and pull request; `e2e.yml` installs Godot 4.6.2 .NET and runs the self-test and e2e tests on pull requests and by manual dispatch.
 - `tools/build_voice.py`: Japanese voice lines from ElevenLabs text-to-speech, standard library only. `--check` validates `ja.json` against `Prologue.cs`; `--audition` renders candidate voices to `artifacts/voice-audition/`. The procedure is `.claude/skills/voicing-dialogue/SKILL.md`.
 
 Mio uses the user's low-poly Tripo model, with all twelve clips made in Tripo Studio: the idle, walk, run and jump presets, and the attack combo, guard, dodge, Resonance Cut, stagger and death generated from text prompts. Each is cut and retimed to the game's timing, and the original sword follows the right hand. Movement stays under the C# collision controller. The game jump uses the first hop from Tripo's repeated sequence, removes its extra vertical travel, follows physical ascent/descent and starts landing recovery on ground contact.

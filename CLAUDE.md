@@ -11,6 +11,9 @@ Hoshikawa — The Offline Valley: a Godot 4.6.2 Mono (C# / .NET 8) action-JRPG p
 ```sh
 just run                      # build C#, import assets, launch (the whole loop)
 just run -- --play            # skip the title screen
+just unit                     # gdUnit4Net unit tests, plain .NET
+just self-test                # build, import, in-engine self-test
+just e2e                      # build, import, godot-e2e tests
 dotnet build Hoshikawa.csproj # C# only
 ```
 
@@ -20,7 +23,11 @@ dotnet build Hoshikawa.csproj # C# only
 
 ### Tests
 
-There is no test framework. The whole suite is `scripts/IntegrationCheck.cs`, a single async method that runs inside a real Godot instance, injecting input and asserting against the actual controllers and physics:
+Three suites, all C#. CI (`.github/workflows/`) runs the unit tests on every push and PR, and the self-test plus e2e tests on PRs and by manual dispatch. CI is headless Linux only: GitHub's runners have no GPU and software Vulkan draws the valley at well under 1 fps, so graphical runs stay a local Metal job.
+
+- **Unit** (`tests/unit/`, `just unit`): gdUnit4Net (`[TestSuite]`, `[TestCase]`, `AssertThat`) on plain .NET against the game assembly, with no engine running. Only static data and pure functions work there (`World.Height`, `RoadX`, the `Hamlet` table, `Prologue`, files under `assets/`); nodes, `GD`, and native singletons such as `Geometry2D` or `RandomNumberGenerator` need the engine, so behaviour that touches them belongs in the self-test or e2e.
+- **E2E** (`tests/e2e/`, `just e2e`): gdUnit4Net tests that launch the game as a separate headless Godot process through godot-e2e (`addons/gdunit_e2e/`, vendored unmodified from the v0.1.1 release zip; update by replacing the folder). Tests reach nodes by path (`/root/Hoshikawa`, `/root/Hoshikawa/Mio`) and read C# fields by name (`Mode`, `QuestStage`, `Speaker`); keys, frame waits and vectors go through the raw commands in `tests/e2e/Hoshikawa.cs`. The child finds Godot through `GODOT_BIN`, which `just e2e` sets from `GODOT_MONO`. A failing test leaves its scene tree and logs in `test_output/csharp/<suite>/<test>/` (no screenshot headless). Each test pays a full game start, about eight seconds.
+- **Self-test** (`just self-test`): `scripts/IntegrationCheck.cs`, the main suite, a single async method that runs inside a real Godot instance, injecting input and asserting against the actual controllers and physics:
 
 ```sh
 dotnet build Hoshikawa.csproj
@@ -60,7 +67,7 @@ To compare render cost between commits, compare `render_cost.gd`'s draw and prim
 
 ## Architecture
 
-**The entire game is built in C# at runtime.** `scenes/Main.tscn` is six lines: a `Node3D` with `scripts/Game.cs` attached. There are no other scenes, no editor-authored nodes, no autoloads, and no `.tres` resources. Do not reach for the Godot editor to add content — add it to the constructing code.
+**The entire game is built in C# at runtime.** `scenes/Main.tscn` is six lines: a `Node3D` with `scripts/Game.cs` attached. There are no other game scenes, no editor-authored nodes, no autoloads, and no `.tres` resources; godot-e2e's `addons/gdunit_e2e/runtime/bootstrap.tscn` is loaded only by e2e test processes. Do not reach for the Godot editor to add content — add it to the constructing code.
 
 - `Game.cs` — root `Node3D`. Owns `GameMode` (Title/Playing/Dialogue/Paused/Defeated), quest stage and objective text, the camera rig (`Node3D` → `SpringArm3D` → `Camera3D`), lock-on, dialogue, toasts, effects (`Burst`/`Slash`/`FloatingNumber`), audio, screenshots, and the input map. `InputBindings()` registers every action in code — `project.godot` has no `[input]` section.
 - `World.cs` — deterministic environment and both villages. Nothing here is random at runtime (`rng` is seeded 2189).
@@ -73,7 +80,7 @@ To compare render cost between commits, compare `render_cost.gd`'s draw and prim
 ### Invariants worth knowing before editing the world
 
 1. **`World.Height(x, z)` is the single source of truth for terrain.** The visible mesh, its trimesh collider, and every placement call read the same static function, so geometry and collision cannot drift. Placing anything means calling `Height()` — never hardcode a Y. Adding a landform means editing `Height()`, which moves collision with it. The water is the exception: the `Hoshikawa river` sheet (z −12…−4) and the brook strip are fixed planes at `World.WaterLevel` whose edges must stay buried in the river dip and bank in `BaseHeight()` and the brook channel in `HamletGround()`. Reshape those and the edges surface; `IntegrationCheck` requires ≥ 4 cm of burial, just above the water shader's 3.5 cm wave. The brook's mouth row reuses the river sheet's edge vertices, because the wave is computed per vertex and any other spacing opens a step at the joint.
-2. **`World.RoadX(z)` and `assets/shaders/terrain.gdshader` describe the same road curve in two languages.** Change one and you must change the other, or the painted road separates from the placement guide. The same applies to `RegionAt()`'s Z thresholds and the region names used in `Game._Process` toasts and the HUD minimap.
+2. **`World.RoadX(z)` and `assets/shaders/terrain.gdshader` describe the same road curve in two languages.** Change one and you must change the other, or the painted road separates from the placement guide; `TerrainTest` reads the shader's constants and fails when they drift. The same applies to `RegionAt()`'s Z thresholds and the region names used in `Game._Process` toasts and the HUD minimap.
 3. **Hoshikawa's layout is data.** The `World.Hamlet` table (name, centre, size, yaw, style) drives the levelled house pads inside `Height()`, the `Minka()` buildings, the shrubs and the stepping stones. Move a house by editing the table, never one placement. `World.BrookX(z)` is shared by the `Height()` channel, the water strip, the footbridge and the minimap line; `World.Footpaths` by the footpath strips, the shrub clearance and the grass exclusion.
 4. **Seeded streams are pinned.** The countryside and northern valley draw from `rng` (seed 2189), and `IntegrationCheck` pins the first boulder's exact position. Hoshikawa's dressing draws only from `villageRng` (seed 3301). `Tree()` always consumes exactly three draws from whichever generator it is given, so changing a species or model never shifts later scatter.
 5. **Static primitives are baked.** At the end of `World._Ready`, `Merge()` bakes every box, sphere and cylinder under `World`'s plain `Node3D` containers into one mesh per material and 32 m cell. The originals stay, hidden, for their colliders, names and `IntegrationCheck`'s lookups. Moving or recolouring an original after `_Ready` changes nothing on screen. Anything that must change at runtime goes under a non-`Node3D` parent or is added after `_Ready`. `Mat()` returns one shared material per colour, emission and `twoSided`, which is what lets `Merge()` group by reference: never change a material `Mat()` returns. Pass `twoSided: true`, or build your own material.

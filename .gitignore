@@ -7,3 +7,5 @@ obj/
 artifacts/
 __pycache__/
 .env
+test_output/
+TestResults/

@@ -1,0 +1,76 @@
+name: E2E tests
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: godot-e2e and self-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Godot .NET
+        uses: chickensoft-games/setup-godot@v2.4.3
+        with:
+          version: 4.6.2
+          use-dotnet: true
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Resolve Godot executable
+        run: echo "GODOT_BIN=$(command -v godot)" >> "$GITHUB_ENV"
+
+      # Before any Godot process, so the editor import never has to drive the C# build.
+      - name: Build game C#
+        run: dotnet build Hoshikawa.csproj --nologo
+
+      - name: Restore imported assets
+        uses: actions/cache@v4
+        with:
+          path: .godot/imported
+          key: godot-imported-4.6.2-${{ hashFiles('project.godot', 'assets/**', 'addons/**') }}
+          restore-keys: godot-imported-4.6.2-
+
+      - name: Import assets
+        id: import
+        run: '"$GODOT_BIN" --headless --editor --path . --import'
+
+      # GitHub's Linux runners have no GPU; software Vulkan renders the valley at well under 1 fps, so both suites run headless.
+      - name: Run in-engine self-test
+        run: '"$GODOT_BIN" --headless --path . --fixed-fps 60 -- --self-test'
+
+      - name: Run E2E tests
+        if: ${{ !cancelled() && steps.import.outcome == 'success' }}
+        run: >-
+          dotnet test tests/e2e/Hoshikawa.E2E.csproj --nologo
+          --logger trx --results-directory TestResults/e2e
+
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          if-no-files-found: ignore
+          path: TestResults/e2e
+
+      - name: Upload E2E failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-failure-artifacts
+          if-no-files-found: ignore
+          path: test_output

@@ -115,3 +115,10 @@ C# build succeeded. The final graphical integration run passed 57 checks with `S
 - [x] Translate Zero's eighteen prologue lines into `assets/dialogue/ja.json`: no first-person pronoun, counting and railway words.
 - [x] Audition three Japanese ElevenLabs voices (Kei, Koume, Toru) on five of Zero's lines.
 - [x] The user picked Koume. Voice all eighteen of Zero's lines into `assets/audio/voice/ja/Zero/` (2.4 MB); 339 checks pass headless and in native Metal.
+
+## Automated tests and CI
+
+- [x] Add gdUnit4Net unit tests (`tests/unit/`) on plain .NET: the road against the terrain shader, house pads and clearances, the brook bed, region order, Tripo resident assets, and the prologue's voice files, Japanese lines, portraits and night beat. 15 cases.
+- [x] Vendor godot-e2e v0.1.1 (`addons/gdunit_e2e/`) and add gdUnit4Net e2e tests (`tests/e2e/`) against a headless game: title to intro, pause and resume, steering Mio, Ren's briefing. 4 cases.
+- [x] Add `just unit`, `just e2e` and `just self-test`.
+- [x] Add GitHub Actions: unit tests on every push and pull request; self-test and e2e on pull requests and by manual dispatch, headless with Godot 4.6.2 .NET.
