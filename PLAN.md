@@ -100,3 +100,10 @@ C# build succeeded. The final graphical integration run passed 57 checks with `S
 - [x] Bind the 47,380-triangle body to the dense import's 41-bone rig and weights, so all twelve clips and the sword carry over. Keep the previous matte material.
 - [x] 333 checks pass headless and in native Metal; Mio's triangles drop from 150,600 to 47,980 and the GLB from 17.4 MB to 8.0 MB.
 - [x] Replace the dense import's rig and clips with Tripo's 65-bone rig and twelve clips the user made in Tripo Studio, each cut and retimed to the game's timing. 333 checks pass headless and in native Metal.
+
+## Mio's Japanese voice
+
+- [x] Translate Mio's thirteen prologue lines into `assets/dialogue/ja.json`, keyed by scene and beat so they double as localization text.
+- [x] Add `tools/build_voice.py`, which refuses to voice a line whose English changed in `Prologue.cs`, and the `voicing-dialogue` skill as the procedure.
+- [x] Audition three Japanese ElevenLabs voices (Kurea, Haruno, Yuki) on five of Mio's lines.
+- [ ] Voice all of Mio's lines with the voice the user picks and play them in dialogue.

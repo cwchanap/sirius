@@ -6,3 +6,4 @@ obj/
 *.blend1
 artifacts/
 __pycache__/
+.env
