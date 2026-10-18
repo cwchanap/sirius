@@ -126,6 +126,8 @@ The importer regression check exercises all four input formats, transformed mult
 - `tools/render_human_review.py`: temporary Blender studio renders of faces, idle, running and guard poses.
 - `assets/art/`: original imagegen art used directly in the game; prompts in `ASSETS.md`.
 - `tools/build_audio.py`: original synthesized ambient loop and combat sounds using Python's standard library.
+- `assets/dialogue/ja.json`: Japanese text for Mio's prologue lines, keyed like `Intro.1` by scene and beat in `Prologue.cs`.
+- `tools/build_voice.py`: Japanese voice lines from ElevenLabs text-to-speech, standard library only. `--check` validates `ja.json` against `Prologue.cs`; `--audition` renders candidate voices to `artifacts/voice-audition/`. The procedure is `.claude/skills/voicing-dialogue/SKILL.md`.
 
 Mio uses the user's low-poly Tripo model, with all twelve clips made in Tripo Studio: the idle, walk, run and jump presets, and the attack combo, guard, dodge, Resonance Cut, stagger and death generated from text prompts. Each is cut and retimed to the game's timing, and the original sword follows the right hand. Movement stays under the C# collision controller. The game jump uses the first hop from Tripo's repeated sequence, removes its extra vertical travel, follows physical ascent/descent and starts landing recovery on ground contact.
 

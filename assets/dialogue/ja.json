@@ -1,0 +1,15 @@
+{
+  "Intro.1": {"speaker": "Mio", "en": "Good morning to you too, Zero. It's rude to count someone's heartbeat, you know.", "ja": "はいはい、おはよう、ゼロ。人の心拍を数えるなんて、失礼だよ。"},
+  "Intro.3": {"speaker": "Mio", "en": "Rice paddies after the rain. Hoshikawa smells like this every morning in early summer.", "ja": "雨上がりの田んぼだよ。初夏の星川は、毎朝こんな匂いがするんだ。"},
+  "Intro.6": {"speaker": "Mio", "en": "But there are people inside.", "ja": "でも、中には人が乗ってる。"},
+  "Intro.8": {"speaker": "Mio", "en": "Then let's not keep him waiting.", "ja": "なら、待たせないうちに行こう。"},
+  "Briefing.2": {"speaker": "Mio", "en": "Then we stop it.", "ja": "なら、止めよう。"},
+  "Briefing.6": {"speaker": "Mio", "en": "Cross the bridge, follow the lanterns uphill. I know the way.", "ja": "橋を渡って、灯籠をたどって坂を上る。道なら知ってる。"},
+  "Homecoming.6": {"speaker": "Mio", "en": "Lanterns. Chiyo says every lantern means someone is waiting for you.", "ja": "灯籠だよ。灯籠がひとつ灯るたびに、誰かが帰りを待ってるんだって。チヨさんが言ってた。"},
+  "Homecoming.8": {"speaker": "Mio", "en": "Everyone here, I suppose. My mother used to light one on our porch every night, even after the cities went dark to us—", "ja": "ここのみんな、かな。母さんも毎晩、うちの縁側にひとつ灯してた。都市と繋がらなくなってからも、ずっと――", "tts": "[softly] ここのみんな、かな。母さんも毎晩、うちの縁側にひとつ灯してた。都市と繋がらなくなってからも、ずっと――"},
+  "Homecoming.10": {"speaker": "Mio", "en": "...Zero?", "ja": "……ゼロ？"},
+  "RelayOnline.2": {"speaker": "Mio", "en": "Cedar. The whole pass is full of them.", "ja": "杉だよ。峠は杉だらけなんだ。"},
+  "FirstMeeting.Chiyo.2": {"speaker": "Mio", "en": "I found it in the old signal box on the Hoshikawa line last year. It took me a month to get it working.", "ja": "去年、星川線の古い信号所で見つけたんです。動くようになるまで、ひと月かかりました。"},
+  "FirstMeeting.Chiyo.4": {"speaker": "Mio", "en": "Everyone who worked the line had one, didn't they?", "ja": "線路で働いてた人は、みんな持ってたんですよね？"},
+  "FirstMeeting.Hana.4": {"speaker": "Mio", "en": "So that's why the patrols can't give you orders.", "ja": "だからパトロール機は、あなたに命令できないんだね。"}
+}

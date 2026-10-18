@@ -1,0 +1,68 @@
+---
+name: voicing-dialogue
+description: Use when giving a Hoshikawa character a Japanese voice, auditioning ElevenLabs voices, voicing new or edited prologue lines, translating Prologue.cs dialogue into Japanese, or when tools/build_voice.py refuses to run because Prologue.cs changed.
+---
+
+# Voicing dialogue (Japanese, ElevenLabs)
+
+## Overview
+
+Japanese text is data: `assets/dialogue/ja.json` holds every translated line, keyed by its position in `scripts/Prologue.cs`. The same file is the source for a future Japanese localization, so it stores the displayed text, never TTS markup. `tools/build_voice.py` turns it into speech. In-game text stays English and voice playback is not wired into `Game.cs` yet.
+
+| What | Where | In git |
+|---|---|---|
+| Japanese lines | `assets/dialogue/ja.json` | yes |
+| Model, cast, auditions | constants at the top of `tools/build_voice.py` | yes |
+| Auditions | `artifacts/voice-audition/<Speaker>/<voice>/<key>.mp3` + `index.html` | no (artifacts/ is ignored) |
+| Game lines | `assets/audio/voice/ja/<Speaker>/<key>.mp3` | yes, committed directly like the other audio |
+| API key | `ELEVENLABS_API_KEY` in the shell, or `.env` at the repo root | never (.env is ignored) |
+
+## Keys and the line file
+
+A key is `<Array>.<index>` into `Prologue.cs`: `Intro.1`, `Briefing.6`, `FirstMeeting.Chiyo.2`. Indices count every beat, narration and other speakers included. The single-string constants (`RenReminder`, `RelaySteady`, ...) have no key yet; extend `english()` in the script when one needs voicing.
+
+```json
+"Homecoming.8": {"speaker": "Mio", "en": "<exact English from Prologue.cs>", "ja": "<displayed Japanese>", "tts": "[softly] <spoken Japanese>"}
+```
+
+- `en` must equal the current English beat; the script refuses to run otherwise, because a moved or edited line would voice the wrong text.
+- `ja` is what a player would read. No audio tags, no kana spelled out for pronunciation.
+- `tts` is optional, only when the spoken text differs: eleven_v4 audio tags (`[softly]`, `[sighs]`, `[warmly]`) or a kana reading for a misread kanji.
+- Style: names in katakana (ミオ, ゼロ, レン, チヨ), places in kanji (星川, 星川線). Mio talks plainly to friends and Zero, a little dry ("はいはい"), and uses です/ます with elders such as Chiyo.
+
+## Workflow
+
+1. **Translate.** Add or fix the speaker's lines in `ja.json`. `python3 tools/build_voice.py --check` validates against `Prologue.cs` with no key and no credits, and lists every translated speaker's lines still missing Japanese.
+2. **Find voices.** With the ElevenLabs connector: `creative_list_voices` with `languages: ["ja"]`, gender, age and `use_cases: ["characters_animation"]`. Voice IDs come only from that tool or the user. Pick about three that span the character brief (e.g. warm, low and dry, anime-heroine) rather than three similar ones.
+3. **Audition.** Put the candidates in `AUDITION` (`{'Speaker': {'shortname': voice_id}}`) and up to five of that speaker's translated lines in `AUDITION_KEYS['Speaker']`, including an emotional one if there is one. Remove finished auditions from both so they are not re-rendered, then `python3 tools/build_voice.py --audition` and `open artifacts/voice-audition/<Speaker>/index.html`. The user picks; do not wire audio in before that.
+4. **Cast.** Set `CAST['Speaker']=voice_id`, run `python3 tools/build_voice.py`, listen to every file, then `$GODOT_MONO --headless --editor --path . --import` and commit the mp3s with their `.import` files. Record the pick in the table below and in `ASSETS.md`.
+5. **New or changed lines later.** Update `ja.json`, delete the affected mp3s (their `.import` files can stay; Godot reimports), or pass `--force` to redo all, and rerun step 4. Existing files are skipped so reruns only pay for what changed.
+
+**No API key in the shell?** Ask the user to export it or put it in `.env`; never ask for it in chat, print it, or commit it. Meanwhile the ElevenLabs connector works without one: `creative_create_flow`, then one `creative_generate_speech` per take (`model_id: eleven_v4`, `generations_count: 1`, prompt = the line's `tts` or `ja`), then a single `creative_get_flow_run_status` for all session ids, download each media `master_url` to the same path the script would use, and call the script's `audition_page()` to write `index.html`. Never call `creative_generate_speech` again to retry; each call charges. The connector takes no seed or voice settings.
+
+## Settings
+
+| Setting | Value |
+|---|---|
+| Model | `eleven_v4` (supports audio tags) |
+| Output | `mp3_44100_128`, mono, about 16 KB per second |
+| Language | `language_code: ja` |
+| Seed | 2189, the repo's world seed, so a rerun of the same text and voice is reproducible |
+| Voice settings | the voice's own defaults |
+
+## Voice record
+
+Add a row with the character brief before auditioning a new speaker.
+
+| Speaker | Brief | Status | Voices (name: id) |
+|---|---|---|---|
+| Mio | 22, scavenger and repairer; practical, warm, a little dry | audition 2026-10-17, awaiting pick | Kurea (warm, expressive): `IgiTcMDSHJPIJjnlwIdM`; Haruno (calm, low): `b02kNc4YmZR6NvjjXr2a`; Yuki (calm anime): `JTlYtJrcTzPC71hMLOxo` |
+
+Mio's audition rendered Intro.1/3/6/8 and Homecoming.8 through the connector (eleven_v4, default settings, no seed) for about 450 credits.
+
+## Common mistakes
+
+- Writing tags or kana readings into `ja`: they belong in `tts`.
+- Editing `Prologue.cs` and voicing anyway: run `--check` first; a stale key means the Japanese and its audio are both out of date.
+- Committing audition audio: it stays in `artifacts/`.
+- Trusting kanji readings: listen for proper nouns such as 星川 (ほしかわ), and fix a misreading with kana in `tts`.
