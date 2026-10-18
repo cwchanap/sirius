@@ -1,5 +1,19 @@
 # MVP verification
 
+## Mio movement and combat polish — 2026-10-18
+
+The user found the jump looked unwired, walking too fast, the dodge too short and the attack combo jerky. They also asked for a sword grip, the face strokes, the render-cost rise and attack2's timing.
+
+- **Jump:** it was wired. Tripo's preset hops with straight legs, so once its height was removed the airborne frames looked like standing. `review_jump.gd` (its bone names updated for the new rig) now shows a crouch at takeoff, knees tucked in the air and a crouch on landing.
+- **Walk and run:** walking drops from 4.3 to 2 m/s. In a game probe of planted-toe speed, the walk's foot slide fell from 3.09 to 0.36 m/s and the run's from 5.13 to 1.86 m/s. Tripo's run is a jog, so at 7.8 m/s some slide remains.
+- **Dodge:** the whole 1.6 s roll used to be squeezed into 0.42 s. It now plays crouch, roll and rise in 0.6 s, at 7 m/s, so the distance is unchanged (4.2 m). Invulnerability is 0.4 s and the cooldown 0.85 s.
+- **Combo:** Blender renders show all three attacks starting and ending in the same ready stance. The fastest right-hand frames are 7 of 15 for attack1 and 8 of 20 for attack3. attack2's short backhand spans frames 2–11 around its hit at about frame 7.
+- **Grip:** close renders in idle, walk, guard and attack1 show the right fingers wrapped round the hilt.
+- **Face:** before/after flat-texture renders show the cheek strokes, the dark band beside her left eye, the nose-bridge streak and smaller marks gone. A slightly paler patch remains beside her left eye.
+- **Render cost:** primitives are unchanged from the previous build. The rise since the 65-bone rig was traced to level-of-detail choice. Old and new Mio meshes have identical LOD levels and the same mesh bounds. At the default LOD bias, Godot now draws the full-detail mesh (239,794 primitives per frame for Mio, against 121,334 before). At bias 0.01 both builds draw the same 2,030,620. Nothing is broken, and the change was left as it is.
+- **Self-test:** `camera-relative walking` now expects 1.5–2.5 m in a second. **339 checks pass headless and in native Metal** (main had 339). Both exit 0 with `SELF_TEST_PASS`; the native log has no input restores. `just unit` passes 15 cases and `just e2e` 4, including Mio's steering test at the slower walk.
+- **Evidence:** `artifacts/mio-polish/`.
+
 ## Zero's Japanese voice — 2026-10-18
 
 - **Audio:** 18 Koume mp3s (eleven_v4, 44.1 kHz mono, 2.4 MB) in `assets/audio/voice/ja/Zero/`, one per Zero beat, each imported as `AudioStreamMP3`. `python3 tools/build_voice.py --check` passes for all 31 Japanese lines.
