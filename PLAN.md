@@ -109,3 +109,9 @@ C# build succeeded. The final graphical integration run passed 57 checks with `S
 - [x] The user picked Yuki for Mio.
 - [x] Voice all of Mio's lines with Yuki into `assets/audio/voice/ja/Mio/`: thirteen mp3s, 1.1 MB.
 - [x] Play each beat's voice line in dialogue, looked up by `Prologue.SceneNames`; stop it on the next beat, Esc or the end of the scene. 338 checks pass headless and in native Metal.
+
+## Zero's Japanese voice
+
+- [x] Translate Zero's eighteen prologue lines into `assets/dialogue/ja.json`: no first-person pronoun, counting and railway words.
+- [x] Audition three Japanese ElevenLabs voices (Kei, Koume, Toru) on five of Zero's lines.
+- [ ] Voice all of Zero's lines with the voice the user picks.
