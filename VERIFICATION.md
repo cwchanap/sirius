@@ -1,5 +1,11 @@
 # MVP verification
 
+## Mio's Japanese voice — 2026-10-18
+
+- **Audio:** 13 Yuki mp3s (eleven_v4, 44.1 kHz mono, 1.1 MB) in `assets/audio/voice/ja/Mio/`, one per Mio beat, each imported by Godot as `AudioStreamMP3`. `python3 tools/build_voice.py --check` confirms `ja.json` still matches `Prologue.cs`.
+- **Self-test:** five new checks. Every Mio beat in a named scene has an mp3 longer than half a second. Zero's opening line plays nothing. Mio's reply plays `Intro.1.mp3` and keeps playing once its text is completed. The homecoming plays `Homecoming.6.mp3`. Esc stops the voice. **338 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro); both runs exit 0 with `SELF_TEST_PASS` and no leak or error output.
+- **Limits:** the checks confirm which file plays and that the player reports playing; nobody listened to the in-game mix during the run, and the Japanese readings were not reviewed by a native speaker. No physical keyboard/mouse session is claimed.
+
 ## Mio's Tripo Studio clips — 2026-10-16
 
 The user rigged the low-poly Mio in Tripo Studio and made her clips there. Two bridge sends and one FBX download carried no animation or an incomplete set; the third bridge send held all fifteen actions.

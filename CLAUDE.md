@@ -96,7 +96,7 @@ For new models use `python3 tools/import_character.py SOURCE --name NAME --heigh
 
 Trees and shrubs (`assets/models/props/*.glb`) have no `.blend` source. `/Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python tools/build_props.py` regenerates them deterministically. They carry material *names* only (`bark_<species>`, `foliage`); `World.Tree()` binds the bark textures and `foliage.gdshader` by those names. Newly imported textures default to `mipmaps/generate=false`: set it to true in their `.import` for anything that tiles or is alpha-cut.
 
-Audio is synthesized by `python3 tools/build_audio.py` (stdlib only). Art in `assets/art/` is imagegen output used unedited (except the chroma-keyed foliage atlas and the split bark atlas); prompts and provenance are in `ASSETS.md`, which should be updated whenever an asset is regenerated.
+Audio is synthesized by `python3 tools/build_audio.py` (stdlib only). Voice is different: Japanese dialogue lines come from ElevenLabs into `assets/audio/voice/ja/<Speaker>/<scene>.<beat>.mp3`, and `Game.Advance()` plays whichever file matches the beat. Follow `.claude/skills/voicing-dialogue/SKILL.md` to translate, audition or voice lines; editing a voiced line in `Prologue.cs` makes its Japanese and audio stale. Art in `assets/art/` is imagegen output used unedited (except the chroma-keyed foliage atlas and the split bark atlas); prompts and provenance are in `ASSETS.md`, which should be updated whenever an asset is regenerated.
 
 ## Code style
 
