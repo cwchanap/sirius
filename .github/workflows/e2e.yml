@@ -11,6 +11,10 @@ concurrency:
   group: e2e-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Pinned godot-e2e release; bump when a new upstream release should be picked up.
+  GODOT_E2E_VERSION: "0.1.2"
+
 jobs:
   e2e:
     name: godot-e2e and self-test
@@ -22,12 +26,13 @@ jobs:
         with:
           persist-credentials: false
 
-      # The addon is not versioned here; every run clones upstream main. The
-      # upstream repo's root LICENSE/NOTICE live inside the addon dir, matching
-      # how it was previously vendored.
+      # The addon is not versioned here; every run downloads the pinned
+      # upstream release zip. Its root LICENSE/NOTICE fold into the addon
+      # dir, matching how it was previously vendored.
       - name: Fetch godot-e2e addon
         run: |
-          git clone --depth 1 https://github.com/cwchanap/godot-e2e "$RUNNER_TEMP/godot-e2e"
+          curl -fsSL "https://github.com/cwchanap/godot-e2e/releases/download/v${GODOT_E2E_VERSION}/godot-e2e-${GODOT_E2E_VERSION}.zip" -o "$RUNNER_TEMP/godot-e2e.zip"
+          unzip -q "$RUNNER_TEMP/godot-e2e.zip" -d "$RUNNER_TEMP/godot-e2e"
           mkdir -p addons
           cp -R "$RUNNER_TEMP/godot-e2e/addons/gdunit_e2e" addons/gdunit_e2e
           cp "$RUNNER_TEMP/godot-e2e/LICENSE" "$RUNNER_TEMP/godot-e2e/NOTICE" addons/gdunit_e2e/
