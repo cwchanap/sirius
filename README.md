@@ -136,7 +136,7 @@ The importer regression check exercises all four input formats, transformed mult
 - `tools/build_audio.py`: original synthesized ambient loop and combat sounds using Python's standard library.
 - `assets/dialogue/ja.json`: Japanese text for Mio's and Zero's prologue lines, keyed like `Intro.1` by scene and beat in `Prologue.cs`.
 - `tests/unit/`: gdUnit4Net unit tests on plain .NET against the game assembly: the road against the terrain shader, house pads and clearances, the brook bed, regions, Tripo resident assets, and the prologue's voice files, Japanese lines and portraits.
-- `tests/e2e/`, `addons/gdunit_e2e/`: gdUnit4Net end-to-end tests and the vendored godot-e2e v0.1.1 addon they use to launch and drive a headless game process.
+- `tests/e2e/`, `addons/gdunit_e2e/`: gdUnit4Net end-to-end tests and the godot-e2e addon they use to launch and drive a headless game process. The addon is not versioned — CI clones [cwchanap/godot-e2e](https://github.com/cwchanap/godot-e2e) each run, and `just e2e` fetches it locally when missing.
 - `.github/workflows/`: `unit.yml` runs the unit tests on every push and pull request; `e2e.yml` installs Godot 4.6.2 .NET and runs the self-test and e2e tests on pull requests and by manual dispatch.
 - `tools/build_voice.py`: Japanese voice lines from ElevenLabs text-to-speech, standard library only. `--check` validates `ja.json` against `Prologue.cs`; `--audition` renders candidate voices to `artifacts/voice-audition/`. The procedure is `.claude/skills/voicing-dialogue/SKILL.md`.
 
