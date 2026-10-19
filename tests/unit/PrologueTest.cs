@@ -21,8 +21,11 @@ public class PrologueTest
     public void JapaneseLinesStillMatchTheEnglishScript()
     {
         var beats=Beats();using var doc=JsonDocument.Parse(File.ReadAllText(Repo.Path("assets/dialogue/ja.json")));
+        var keys=doc.RootElement.EnumerateObject().Select(l=>l.Name).ToHashSet();
         AssertThat(doc.RootElement.EnumerateObject().Where(l=>!beats.TryGetValue(l.Name,out var beat)||beat.Speaker!=l.Value.GetProperty("speaker").GetString()
             ||beat.Text!=l.Value.GetProperty("en").GetString()).Select(l=>l.Name)).IsEmpty();
+        // The voice corpus covers every Mio/Zero beat: a missing ja.json key fails too, not just a stale one.
+        AssertThat(beats.Where(b=>(b.Value.Speaker is "Mio" or "Zero")&&!keys.Contains(b.Key)).Select(b=>b.Key)).IsEmpty();
     }
     [TestCase]
     public void EverySpeakerWithAFaceHasAPortrait()
