@@ -22,6 +22,16 @@ jobs:
         with:
           persist-credentials: false
 
+      # The addon is not versioned here; every run clones upstream main. The
+      # upstream repo's root LICENSE/NOTICE live inside the addon dir, matching
+      # how it was previously vendored.
+      - name: Fetch godot-e2e addon
+        run: |
+          git clone --depth 1 https://github.com/cwchanap/godot-e2e "$RUNNER_TEMP/godot-e2e"
+          mkdir -p addons
+          cp -R "$RUNNER_TEMP/godot-e2e/addons/gdunit_e2e" addons/gdunit_e2e
+          cp "$RUNNER_TEMP/godot-e2e/LICENSE" "$RUNNER_TEMP/godot-e2e/NOTICE" addons/gdunit_e2e/
+
       - name: Install Godot .NET
         uses: chickensoft-games/setup-godot@v2.4.3
         with:
