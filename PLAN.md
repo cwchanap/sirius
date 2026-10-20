@@ -134,5 +134,7 @@ Bring the non-character environment up to the Tripo characters' detail: semi-rea
 - [x] Phase 1c: rice paddies with still water over wet soil and 374 upright rice clumps in place of 240 boxes.
 - [x] Phase 1d: warm afternoon light with sky ambient, distance-only depth fog, glow and a contrast/saturation lift.
 - [x] Phase 1e: camera-only roof colliders on layer 8, so the spring arm stays under the eaves. 345 checks pass headless and in native Metal.
-- [ ] Phase 2: props (complex ones generated with the Tripo API, simple ones built in Blender). Waiting on the user's review of phase 1.
+- [x] Phase 2 pilot, Tripo: the village well, generated with the Tripo API (55 credits), imported static at 8,182 triangles with 2048² PBR maps, and given fitted collision and a camera-only roof.
+- [x] Phase 2 pilot, Blender: `tools/build_village_props.py` builds the lamp, bench, barrel and bamboo fence on the existing atlases. `World.Prop()` swaps the box-built versions, keeping positions, node names and colliders, and `Merge()` bakes them. 348 checks pass headless and in native Metal.
+- [ ] Phase 2, remaining Tripo props (stone lanterns and others). Waiting on the user's review of the pilot.
 - [ ] Phase 3: buildings.

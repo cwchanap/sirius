@@ -55,7 +55,7 @@ public partial class World : Node3D
         {
             bool plain=true;for(var p=n.GetParent();p!=this;p=p.GetParent())plain&=p.GetType()==typeof(Node3D);
             // Transparent surfaces sort per instance; merged, they would blend in mesh order instead.
-            if(!plain||n.Mesh is not PrimitiveMesh||n.MaterialOverride==null||n.Mesh is PlaneMesh||n.MaterialOverride is BaseMaterial3D{Transparency:not BaseMaterial3D.TransparencyEnum.Disabled}||n.FindChildren("*","VisualInstance3D",true,false).Count>0)continue;
+            if(!plain||!(n.Mesh is PrimitiveMesh||propMeshes.Contains(n.Mesh))||n.MaterialOverride==null||n.Mesh is PlaneMesh||n.MaterialOverride is BaseMaterial3D{Transparency:not BaseMaterial3D.TransparencyEnum.Disabled}||n.FindChildren("*","VisualInstance3D",true,false).Count>0)continue;
             var cell=(n.GlobalPosition/32).Floor();var key=(n.MaterialOverride,n.CastShadow,cell.X,cell.Z);
             if(!groups.TryGetValue(key,out var list))groups[key]=list=new();
             list.Add(n);
@@ -145,6 +145,31 @@ public partial class World : Node3D
     {
         var n = new MeshInstance3D { Name = name, Mesh = mesh, Position = pos, MaterialOverride = material };
         parent.AddChild(n); return n;
+    }
+    // Blender props (tools/build_village_props.py) carry material names only. Each surface becomes its own single-surface
+    // mesh under one shared material, so Merge() bakes the props into the same per-cell meshes as the primitives.
+    private readonly Dictionary<string,(ArrayMesh Mesh,Material Material)[]> props=new();
+    private readonly HashSet<Mesh> propMeshes=new();
+    private readonly Dictionary<string,Material> propMaterials=new();
+    private MeshInstance3D[] Prop(Node3D parent,string name,string model,Vector3 pos,float yaw=0,Vector3? scale=null)
+    {
+        if(!props.TryGetValue(model,out var parts))
+        {
+            var scene=GD.Load<PackedScene>($"res://assets/models/props/{model}.glb").Instantiate<Node3D>();var source=ActorVisual.Descendants(scene).OfType<MeshInstance3D>().Single().Mesh;
+            props[model]=parts=Enumerable.Range(0,source.GetSurfaceCount()).Select(i=>
+            {
+                var part=new ArrayMesh{ResourceName="prop "+model};part.AddSurfaceFromArrays(Godot.Mesh.PrimitiveType.Triangles,source.SurfaceGetArrays(i));propMeshes.Add(part);
+                return (part,PropMaterial(source.SurfaceGetMaterial(i)?.ResourceName??""));
+            }).ToArray();
+            scene.Free();
+        }
+        return parts.Select(p=>{var n=Mesh(parent,name,p.Mesh,pos,p.Material);n.Rotation=new(0,yaw,0);n.Scale=scale??Vector3.One;return n;}).ToArray();
+    }
+    private Material PropMaterial(string name)
+    {
+        if(!propMaterials.TryGetValue(name,out var m))
+            propMaterials[name]=m=name switch{"cedar"=>VillageAtlas(new(1,0),Vector2.One),"paper"=>Mat(new("f8d48c"),.35f),_=>TreeMaterial(name)};
+        return m;
     }
     public static MeshInstance3D Box(Node3D parent, string name, Vector3 pos, Vector3 size, Material material, bool solid = false)
     {
@@ -260,15 +285,13 @@ public partial class World : Node3D
         Resident("Hana", "FARMER", "KOMA keeps our irrigation running without a network. Old machines are our neighbors. The amber-eyed patrols beyond the bridge are not.",new(6,0,37.5f),3,Face(6,37.5f));
         Resident("Sora", "COURIER", "I saw three sentries on the old relay road. Watch for the red diamond: that sweeping attack cannot be blocked. Dodge through it or jump away.",new(6.8f,0,22),4,Face(6.8f,22));
         Resident("KOMA-7", "OFFLINE GARDENER", "Morning diagnostic: tomatoes healthy. Humans worried. Zero is still in the city. This unit is KOMA. Different machine; equally excellent company.",new(8.3f,0,11.5f),5,Face(8.3f,11.5f));
-        var well=new Node3D {Name="Village well",Position=new(-3.2f,0,24)};AddChild(well);
-        Cylinder(well,"Stone well",new(0,.45f,0),1,.9f,stone);
-        Cylinder(well,"Well water",new(0,.92f,0),.78f,.025f,Mat(new("275863")));
-        foreach(float x in new[]{-1.2f,1.2f}) Box(well,"Well post",new(x,1.6f,0),new(.13f,3,.13f),wood);
-        Box(well,"Well beam",new(0,3.1f,0),new(2.6f,.15f,.15f),wood);
-        Roof(well,"Well roof",2.8f,1.6f,.55f,.25f,"gable",VillageAtlas(new(1,1),Vector2.One),.1f).Position=new(0,3.2f,0);
-        Cylinder(well,"Well rope",new(0,2,0),.017f,2,Mat(new("c9b581")));
+        // The Tripo well (assets/models/well.glb) stands its posts on its own Z axis; a quarter turn spans them east-west like the old well.
+        var well=new Node3D {Name="Village well",Position=new(-3.2f,Height(-3.2f,24),24),RotationDegrees=new(0,90,0)};AddChild(well);
+        well.AddChild(GD.Load<PackedScene>("res://assets/models/well.glb").Instantiate<Node3D>());
         var wellBody=new StaticBody3D();well.AddChild(wellBody);
-        wellBody.AddChild(new CollisionShape3D {Position=new(0,.45f,0),Shape=new CylinderShape3D {Radius=1,Height=.9f}});
+        wellBody.AddChild(new CollisionShape3D {Position=new(0,.46f,0),Shape=new CylinderShape3D {Radius=.84f,Height=.92f}});
+        foreach(float z in new[]{-.79f,.79f})wellBody.AddChild(new CollisionShape3D {Position=new(0,1,z),Shape=new BoxShape3D {Size=new(.22f,2,.22f)}});
+        var wellRoof=new Node3D {Position=new(0,2.35f,0)};well.AddChild(wellRoof);CameraStop(wellRoof,new BoxShape3D {Size=new(1.22f,.7f,2.08f)});
         var paddyWater=new StandardMaterial3D{AlbedoColor=new(.25f,.27f,.2f,.7f),Transparency=BaseMaterial3D.TransparencyEnum.Alpha,Roughness=.03f};
         var rice=new List<(Vector3 P,float H)>();
         for(int field=0;field<2;field++)
@@ -345,7 +368,7 @@ public partial class World : Node3D
             for(int i=0;i<3;i++) Cylinder(house,"Salvaged cell",new(w/2+1+i*.5f,1.4f,d/4),.17f,.6f,Mat(i==1?Jade:new("79918d")));
             Box(house,"Offline solar collector",new(w/3,h+1.6f,0),new(1.8f,.15f,2.3f),Mat(new("3b6974"))).Rotation=new(0,0,-slope);
         }
-        for(int i=0;i<barrels;i++) Cylinder(house,"Stored barrels",new(-w/2-.7f,.6f,-d/3+i*.9f),.4f,1.1f,wood);
+        for(int i=0;i<barrels;i++) Prop(house,"Stored barrels","barrel",new(-w/2-.7f,0,-d/3+i*.9f),i);
         return house;
     }
     private void Resident(string name,string role,string line,Vector3 p,int variant,float? face=null)
@@ -366,13 +389,7 @@ public partial class World : Node3D
         collision.AddChild(new CollisionShape3D { Position=new(0,height/2,0),Shape=new CapsuleShape3D { Radius=.32f,Height=height } });
         Residents.Add((name,role,line,n));
     }
-    private void Lamp(Vector3 p)
-    {
-        Box(this,"Lantern pole",p+new Vector3(0,1.5f,0),new(.13f,3,.13f),wood);
-        Box(this,"Lantern frame",p+new Vector3(0,2.7f,0),new(.54f,.73f,.54f),wood);
-        Box(this,"Paper lantern",p+new Vector3(0,2.7f,.02f),new(.43f,.55f,.56f),Mat(new("f8d48c"),.35f));
-        Box(this,"Lantern cap",p+new Vector3(0,3.12f,0),new(.7f,.12f,.7f),wood);
-    }
+    private void Lamp(Vector3 p)=>Prop(this,"Lantern pole","lamp",p);
     private void Fence(Vector3 a,Vector3 b)
     {
         int count=Math.Max(1,(int)a.DistanceTo(b)/2);
@@ -459,7 +476,7 @@ public partial class World : Node3D
         Box(shelter,"Resting bench",new(0,.6f,-1.4f),new(4,.2f,.6f),wood,true);
         Box(shelter,"Bench back",new(0,1.1f,-1.65f),new(4,.55f,.12f),wood);
         foreach(float x in new[]{-1.5f,1.5f})Box(shelter,"Bench support",new(x,.25f,-1.4f),new(.18f,.5f,.5f),wood);
-        for(int i=0;i<3;i++)Cylinder(shelter,"Rain barrel",new(3.4f,.6f,-1+i*1.1f),.42f,1.2f,wood);
+        for(int i=0;i<3;i++)Prop(shelter,"Rain barrel","barrel",new(3.4f,0,-1+i*1.1f),i*2,Vector3.One*1.2f);
         Label(shelter,"CEDAR PASS SHELTER",new(0,3.1f,2),Gold,26);
         Footpath(new(RoadX(-89),-89),new(-12,-87),1.2f);
         Footpath(new(-12,-87),new(-12,-88.75f),1.2f);

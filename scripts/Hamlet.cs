@@ -182,7 +182,7 @@ public partial class World
         Box(cart,"Cart bed",new(0,.62f,0),new(1,.1f,1.5f),boards);
         foreach(float s in new[]{-1f,1f}){Cylinder(cart,"Cart wheel",new(s*.58f,.42f,0),.42f,.07f,wood).Rotation=new(0,0,Mathf.Pi/2);Box(cart,"Cart handle",new(s*.4f,.66f,1.25f),new(.05f,.05f,1.2f),wood);}
         for(int i=0;i<2;i++)Sphere(cart,"Rice sack",new(0,.85f,-.35f+i*.62f),new(.36f,.24f,.28f),Mat(new("d9cfa8")));
-        foreach(var p in new Vector2[]{new(-12.4f,13.6f),new(-13.2f,13.9f),new(-12.8f,14.6f)})Cylinder(this,"Stored barrel",Ground(p,.5f),.34f,1,wood);
+        foreach(var p in new Vector2[]{new(-12.4f,13.6f),new(-13.2f,13.9f),new(-12.8f,14.6f)})Prop(this,"Stored barrel","barrel",Ground(p),p.X*3);
         // Grass tufts on the village lawns, clear of the road, square, pads, footpaths, brook and shrine mound; blades reach .35 m from their root.
         var tufts=new List<(Vector3 P,float H)>();
         bool Lawn(float x,float z)=>!(Math.Abs(x-RoadX(z))<3.8f||new Vector2(x,z-21).Length()<8||(Math.Abs(x-BrookX(z))<2.6f&&z<58)||new Vector2(x,z).DistanceTo(ShrineCenter)<10||OnPad(x,z)||OnFootpath(new(x,z),.35f)||(x>21&&x<38&&z>20&&z<40));
@@ -196,8 +196,8 @@ public partial class World
     private void Bench(Vector2 p,float yaw)
     {
         var n=new Node3D{Name="Village bench",Position=new(p.X,Height(p.X,p.Y),p.Y),RotationDegrees=new(0,yaw,0)};AddChild(n);
-        Box(n,"Bench seat",new(0,.45f,0),new(1.6f,.08f,.42f),wood,true);
-        foreach(float x in new[]{-.62f,.62f})Box(n,"Bench leg",new(x,.21f,0),new(.1f,.42f,.36f),wood);
+        Prop(n,"Bench seat","bench",Vector3.Zero);
+        var body=new StaticBody3D{CollisionMask=0};n.AddChild(body);body.AddChild(new CollisionShape3D{Position=new(0,.45f,0),Shape=new BoxShape3D{Size=new(1.6f,.08f,.42f)}});
     }
     private void Pot(Vector3 p)
     {
@@ -206,12 +206,9 @@ public partial class World
     }
     private void BambooFence(Vector2 a,Vector2 b)
     {
-        var culm=Mat(new("a9a266"));int n=Math.Max(1,(int)(a.DistanceTo(b)/1.2f));
-        for(int i=0;i<=n;i++){var p=a.Lerp(b,(float)i/n);Cylinder(this,"Bamboo fence post",new(p.X,Height(p.X,p.Y)+.42f,p.Y),.035f,.84f,culm);}
-        for(int i=0;i<n;i++)
-        {
-            var p=a.Lerp(b,(i+.5f)/n);float y=Height(p.X,p.Y);
-            foreach(float h in new[]{.25f,.5f,.75f})Cylinder(this,"Bamboo fence rail",new(p.X,y+h,p.Y),.025f,a.DistanceTo(b)/n+.05f,culm).Rotation=new(Mathf.Pi/2,Mathf.Atan2(b.X-a.X,b.Y-a.Y),0);
-        }
+        int n=Math.Max(1,(int)(a.DistanceTo(b)/1.2f));Vector3 Ground(Vector2 p)=>new(p.X,Height(p.X,p.Y),p.Y);
+        for(int i=0;i<=n;i++){var p=a.Lerp(b,(float)i/n);Prop(this,"Bamboo fence post","fence_post",Ground(p),i);}
+        // Each bay is modelled 1.2 m long and stretched to the post spacing.
+        for(int i=0;i<n;i++)Prop(this,"Bamboo fence rail","fence_panel",Ground(a.Lerp(b,(i+.5f)/n)),Mathf.Atan2(b.X-a.X,b.Y-a.Y),new(1,1,a.DistanceTo(b)/n/1.2f));
     }
 }

@@ -87,5 +87,24 @@ func review():
 		camera.position=view[1]
 		camera.look_at(view[2])
 		await shot(view[0])
+	# Prop close-ups for phase 2, fixed like the views above so a prop's replacement is framed exactly as the original was.
+	var props=[
+		["prop-lantern",Vector3(-.7,3.59,59),Vector3(-2.6,3.14,57.5),Vector3(0,.1,16)],
+		["prop-lantern-shrine",Vector3(-1.4,3.79,53.9),Vector3(-2.6,3.14,57.5),Vector3(-.5,.1,48)],
+		["prop-well",Vector3(.4,2.1,21.4),Vector3(-3.2,1.3,24),Vector3(1,.1,30)],
+		["prop-bench",Vector3(-3.3,1.271,26),Vector3(-5.4,.471,27.3),Vector3(1,.1,33)],
+		["prop-lamp",Vector3(-1.1746,1.999,4.6),Vector3(-3.5746,1.799,2),Vector3(2,.1,9)],
+		["prop-barrels",Vector3(-10,1.266,15.6),Vector3(-12.4,.166,13.6),Vector3(0,.1,22)],
+		["prop-bamboo-fence",Vector3(8.3,1.745,16.2),Vector3(9.9,.545,13),Vector3(4,.1,22)]]
+	for view in props:
+		if not wanted(view[0]): continue
+		mio.position=view[3]
+		mio.velocity=Vector3.ZERO
+		mio.set_physics_process(true)
+		for i in range(40): await physics_frame
+		mio.set_physics_process(false)
+		camera.position=view[1]
+		camera.look_at(view[2])
+		await shot(view[0])
 	print("REVAMP_REVIEW_OK")
 	quit()

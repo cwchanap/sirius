@@ -95,13 +95,15 @@ public static class IntegrationCheck
         Check(g.World.Residents.Count==10&&g.World.Residents.Select(r=>r.Name).Distinct().Count()==10,"ten named residents across two villages");
         Check(g.Enemies.Count==3,"three patrol robots");
         var merged=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().StartsWith("Merged statics")).ToArray();
-        var baked=g.World.FindChildren("*","MeshInstance3D",true,false).Cast<MeshInstance3D>().Where(n=>!n.Visible&&n.Mesh is PrimitiveMesh).ToArray();
+        var baked=g.World.FindChildren("*","MeshInstance3D",true,false).Cast<MeshInstance3D>().Where(n=>!n.Visible&&(n.Mesh is PrimitiveMesh||n.Mesh.ResourceName.StartsWith("prop "))).ToArray();
         Vector3[] Corners(IEnumerable<MeshInstance3D> meshes)=>meshes.SelectMany(n=>n.Mesh.GetFaces().Select(v=>n.GlobalTransform*v)).ToArray();
         var (mergedCorners,bakedCorners)=(Corners(merged),Corners(baked));
         Aabb Extent(Vector3[] points)=>points.Aggregate(new Aabb(points[0],Vector3.Zero),(box,p)=>box.Expand(p));
         Aabb mergedExtent=Extent(mergedCorners),bakedExtent=Extent(bakedCorners);
         Check(merged.Length>0&&mergedCorners.Length==bakedCorners.Length&&mergedExtent.Position.DistanceTo(bakedExtent.Position)<.01f&&mergedExtent.End.DistanceTo(bakedExtent.End)<.01f,
             $"{baked.Length} static primitives bake into {merged.Length} merged meshes, keeping all {bakedCorners.Length/3} triangles where they stood");
+        var props=baked.Where(n=>n.Mesh.ResourceName.StartsWith("prop ")).GroupBy(n=>n.Mesh.ResourceName.ToString()[5..]).ToDictionary(x=>x.Key,x=>x.Count());
+        Check("lamp bench barrel fence_post fence_panel".Split(' ').All(props.ContainsKey),"lamps, benches, barrels and the bamboo fence are baked Blender props: "+string.Join(", ",props.Select(x=>$"{x.Key} {x.Value}")));
         foreach(var model in g.World.Residents.Select(r=>r.Body))
         {
             var skeleton=ActorVisual.Descendants(model).OfType<Skeleton3D>().Single();
@@ -334,6 +336,12 @@ public static class IntegrationCheck
             bool Stops(uint mask)=>space.IntersectRay(PhysicsRayQueryParameters3D.Create(under,under+Vector3.Up*8,mask)).Count>0;
             Check(Stops(Hoshikawa.World.CameraLayer)&&!Stops(1),name+" eaves stop the camera's spring arm but not the player or robots");
         }
+        var well=g.World.GetNode<Node3D>("Village well");var wellMesh=ActorVisual.Descendants(well).OfType<MeshInstance3D>().Single();var wellBox=wellMesh.GlobalTransform*wellMesh.GetAabb();
+        Check(wellMesh.Mesh.GetFaces().Length/3<10000&&wellMesh.Mesh.SurfaceGetMaterial(0) is BaseMaterial3D{AlbedoTexture:not null,NormalEnabled:true}&&Math.Abs(wellBox.Position.Y-Hoshikawa.World.Height(-3.2f,24))<.05f&&wellBox.Size.Y>2.6f,
+            $"the village well is Tripo's textured model, grounded, {wellMesh.Mesh.GetFaces().Length/3} triangles");
+        var post=space.IntersectRay(PhysicsRayQueryParameters3D.Create(well.GlobalPosition+new Vector3(2,1.5f,0),well.GlobalPosition+new Vector3(0,1.5f,0),1));
+        var wellRoof=space.IntersectRay(PhysicsRayQueryParameters3D.Create(well.GlobalPosition+Vector3.Up*6,well.GlobalPosition+Vector3.Up*1.2f,Hoshikawa.World.CameraLayer));
+        Check(post.Count>0&&Math.Abs(((Vector3)post["position"]).X-well.GlobalPosition.X-.9f)<.05f&&wellRoof.Count>0,"the well's posts block the player and its roof stops the camera");
         var villageTrees=g.World.GetChildren().OfType<Node3D>().Where(n=>n.Position.Z>0&&n.Position.Z<76&&Math.Abs(n.Position.X)<40&&n.GetChildren().OfType<StaticBody3D>().Any()
             &&"keyaki sugi sakura bamboo shrub".Split(' ').Any(s=>n.Name.ToString().Contains(s))).ToArray();
         Check(villageTrees.Length>=30,$"Hoshikawa is planted with {villageTrees.Length} trees and shrubs");

@@ -1,5 +1,16 @@
 # MVP verification
 
+## Environment revamp, phase 2 pilot — 2026-10-19
+
+One Tripo prop (the village well) and five Blender props (lamp, bench, barrel, bamboo fence post and bay) replace box-built versions. No character, building or terrain changed.
+
+- **Captures:** `tools/review_revamp.gd` gained seven fixed prop close-ups (two stone lanterns, the well, a bench, a street lamp, stored barrels and the bamboo fence). Their before shots were taken on the phase-1 build from the same coordinates, in native Metal.
+- **Well:** the Tripo model has no baked-texture errors (renders from four sides and of its maps). In game it stands on `Height()` within 5 cm, its posts block the player, and its roof stops the camera. It reads darker than the surrounding props because Tripo's albedo is dark.
+- **Props:** all five are baked by `Merge()` (2,382 static primitives and props into 244 meshes). Node names and colliders are unchanged, so the `Plant pot` and `Fence rail` checks still pass without edits. The bench reads very dark, because the cedar atlas cell is dark yakisugi.
+- **Self-test:** **348 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro; phase 1 had 345). The three new checks cover the baked props, the well's model and the well's collision. Both runs exit 0 with `SELF_TEST_PASS`. `just unit` passes 15 cases, `just e2e` 4.
+- **Render cost** (`render_cost.gd`, `--disable-vsync --fixed-fps 60`): draws 1126–1129/1045/1212 → 1140/1072/1230, primitives 2.59M/2.48M/2.47M → 2.63M/2.48M/2.50M. That is +11 to +27 draws, from the props' three materials plus the well's own material, which is not merged. A first pass with stone and rope materials cost 1159/1092/1253, so those two were dropped. CPU median 0.74–0.82 ms; fps 119–120.
+- **Limits:** the stone lanterns, plant pots, field fences and Komorebi's benches are still box-built. No physical keyboard/mouse session is claimed.
+
 ## Environment revamp, phases 0 and 1 — 2026-10-19
 
 Vegetation, light and the camera at the eaves, so the environment matches the Tripo characters. No character model changed.
