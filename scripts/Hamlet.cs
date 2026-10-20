@@ -20,7 +20,8 @@ public partial class World
             float a=BrookX(z),b=BrookX(z+1);
             V(a-2.1f,z);V(b-2.1f,z+1);V(a+2.1f,z);V(a+2.1f,z);V(b-2.1f,z+1);V(b+2.1f,z+1);
         }
-        Mesh(this,"Hoshikawa brook",st.Commit(),Vector3.Zero,new ShaderMaterial{Shader=GD.Load<Shader>("res://assets/shaders/water.gdshader")});
+        var water=new ShaderMaterial{Shader=GD.Load<Shader>("res://assets/shaders/water.gdshader")};water.SetShaderParameter("flow",new Vector2(0,-.45f));
+        Mesh(this,"Hoshikawa brook",st.Commit(),Vector3.Zero,water);
         for(int i=0;i<6;i++)
         {
             float z=55.6f+i%3*.7f,x=BrookX(z)+(i-2.5f)*.55f,s=.35f+.12f*(i%3);
@@ -31,6 +32,15 @@ public partial class World
             float x=BrookX(z)+(((int)(z/4.5f))%2==0?1.95f:-1.95f),s=.3f+.15f*Mathf.Abs(Mathf.Sin(z));
             Sphere(this,"Bank stone",new(x,Height(x,z)+s*.15f,z),new(s,s*.55f,s*.8f),stone).Rotation=new(0,z,0);
         }
+        // Pebbles along the waterline and a few half-sunk rocks midstream, clear of the footbridge and the climb-out bank at z 33; their own stream.
+        var pebbles=new RandomNumberGenerator{Seed=4410};
+        for(float z=-1;z<54;z+=2.4f)
+        {
+            float side=pebbles.Randf()<.5f?-1:1,x=BrookX(z)+side*pebbles.RandfRange(1.3f,1.7f),at=z+pebbles.RandfRange(-.6f,.6f);
+            if(Math.Abs(at-15)>2)Prop(this,"River pebbles","pebbles",new(x,Height(x,at),at),pebbles.Randf()*Mathf.Tau);
+        }
+        foreach(float z in new[]{4.5f,9,21,26.5f,40,46})
+        {float x=BrookX(z)+(z%3<1.5f?-.9f:.9f);Prop(this,"Half-sunk rock","river_rock",new(x,WaterLevel-.08f,z),z,Vector3.One*(.8f+.03f*(z%4)));}
         // Planks are tilted to the arch tangent: stepped flat boxes would leave ledges the capsule cannot climb.
         float xa=BrookX(15)-2.1f,xb=BrookX(15)+2.1f;const int planks=9;
         float Deck(float t)=>Mathf.Lerp(Height(xa,15),Height(xb,15),t)+.28f*Mathf.Sin(Mathf.Pi*t);
@@ -47,6 +57,81 @@ public partial class World
             }
         }
         foreach(float side in new[]{-.85f,.85f})Box(bridge,"Footbridge post",new(xb,Deck(1)+.25f,15+side),new(.1f,.62f,.1f),wood);
+    }
+    // Reeds and rushes along the brook and both river banks, clear of the stone bridge, the footbridge, the footpaths and the sluice; their own stream.
+    private void Reeds()
+    {
+        var r=new RandomNumberGenerator{Seed=4421};var reeds=new List<(Vector3 P,float H)>();
+        void Clump(Vector2 at){if(r.Randf()<.4f)return;for(int i=3+r.RandiRange(0,2);i>0;i--){var q=at+Vector2.FromAngle(r.Randf()*Mathf.Tau)*r.RandfRange(0,.3f);reeds.Add((new(q.X,Height(q.X,q.Y),q.Y),r.RandfRange(.8f,1.35f)));}}
+        for(float z=-1.5f;z<53;z+=.9f)foreach(int side in new[]{-1,1})
+            if(Math.Abs(z-15)>2&&(side<0||Math.Abs(z-36.8f)>1.4f))Clump(new(BrookX(z)+side*r.RandfRange(1.4f,1.9f),z));
+        // The river's waterline, found outward from mid-stream; the village bank skips the brook's mouth.
+        for(float x=-60;x<60;x+=1.1f)foreach(int side in new[]{-1,1})
+        {
+            if(Math.Abs(x)<4.5f||(side>0&&Math.Abs(x-BrookX(-4))<2.8f))continue;
+            float z=-8;while(Math.Abs(z+8)<6&&Height(x,z)<WaterLevel+.03f)z+=side*.1f;
+            if(Math.Abs(z+8)<6)Clump(new(x,z-side*.15f));
+        }
+        Grass("River reeds",reeds,1,_=>true,9,.12f,new("3d5226"),new("9aa45a"),.25f,4425);
+    }
+    // Hoshikawa's paddies, levelled by Height(): aze around and between them, still water over the wet mud floors, rice in jittered hills
+    // of two or three tufts, an irrigation channel from the brook behind a sluice board, and a hasa rack of drying straw.
+    private void RiceFields()
+    {
+        // The aze: one .25 m heightfield over the terrain mesh, each crest .25 m above the higher ground .75 m either side, sinking 2 cm under
+        // the terrain mesh where its profile runs out. The channel's banks are aze too, meeting the x 24 one's ends across its gap.
+        var aze=new (Vector2 A,Vector2 B)[]{(new(24,20.8f),new(24,35.9f)),(new(24,37.7f),new(24,39.2f)),(new(31,20.8f),new(31,39.2f)),(new(38,20.8f),new(38,39.2f)),
+            (new(24,20.8f),new(38,20.8f)),(new(24,30),new(38,30)),(new(24,39.2f),new(38,39.2f)),(new(22.1f,35.9f),new(24,35.9f)),(new(22.1f,37.7f),new(24,37.7f))};
+        float Levee(float x,float z)
+        {
+            var p=new Vector2(x,z);float ground=MeshHeight(x,z)-.02f,y=ground;
+            foreach(var (a,b) in aze)
+            {
+                var c=Geometry2D.GetClosestPointToSegment(p,a,b);var n=(b-a).Normalized().Orthogonal()*.75f;
+                y=Math.Max(y,Mathf.Lerp(ground,Math.Max(Height(c.X+n.X,c.Y+n.Y),Height(c.X-n.X,c.Y-n.Y))+.25f,1-Mathf.SmoothStep(.2f,.75f,c.DistanceTo(p))));
+            }
+            return y;
+        }
+        const float s=.25f,x0=21.3f,z0=20;const int w=70,h=80;var y=new float[w+1,h+1];
+        for(int i=0;i<=w;i++)for(int j=0;j<=h;j++)y[i,j]=Levee(x0+i*s,z0+j*s);
+        var st=new SurfaceTool();st.Begin(Godot.Mesh.PrimitiveType.Triangles);
+        // Vertex red is terrain.gdshader's dryness, so each paddy's inner foot reads wet up to just above its water.
+        void V(int i,int j)
+        {
+            float x=x0+i*s,z=z0+j*s;int k=Array.FindIndex(Paddies,p=>p.HasPoint(new(x,z)));
+            st.SetNormal(new Vector3(y[Math.Max(i-1,0),j]-y[Math.Min(i+1,w),j],2*s,y[i,Math.Max(j-1,0)]-y[i,Math.Min(j+1,h)]).Normalized());
+            st.SetColor(new(k<0?1:Mathf.SmoothStep(PaddyLevel[k]+.05f,PaddyLevel[k]+.2f,y[i,j]),1,1));st.AddVertex(new(x,y[i,j],z));
+        }
+        bool Raised(int i,int j)=>y[i,j]>MeshHeight(x0+i*s,z0+j*s)-.015f;
+        for(int i=0;i<w;i++)for(int j=0;j<h;j++)if(Raised(i,j)||Raised(i+1,j)||Raised(i,j+1)||Raised(i+1,j+1)){V(i,j);V(i+1,j);V(i,j+1);V(i+1,j);V(i+1,j+1);V(i,j+1);}
+        st.Index();var mesh=st.Commit();
+        var earth=new ShaderMaterial{Shader=GD.Load<Shader>("res://assets/shaders/terrain.gdshader")};earth.SetShaderParameter("atlas",GD.Load<Texture2D>("res://assets/art/material-atlas.png"));earth.SetShaderParameter("rocks",0f);
+        Mesh(this,"Aze levees",mesh,Vector3.Zero,earth);
+        var body=new StaticBody3D{Name="Aze collision",CollisionMask=0};AddChild(body);body.AddChild(new CollisionShape3D{Shape=mesh.CreateTrimeshShape()});
+        var still=new ShaderMaterial{Shader=GD.Load<Shader>("res://assets/shaders/paddy.gdshader")};
+        for(int i=0;i<Paddies.Length;i++)Mesh(this,$"Rice paddy water {i}",new PlaneMesh{Size=Paddies[i].Size},new(Paddies[i].GetCenter().X,PaddyLevel[i]+.08f,Paddies[i].GetCenter().Y),still);
+        var plant=new RandomNumberGenerator{Seed=2213};var green=new List<(Vector3 P,float H)>();var pale=new List<(Vector3 P,float H)>();
+        foreach(var p in Paddies)for(float x=p.Position.X+.45f;x<p.End.X-.35f;x+=.55f)for(float z=p.Position.Y+.45f;z<p.End.Y-.35f;z+=.62f)
+        {
+            var hill=new Vector2(x+plant.RandfRange(-.06f,.06f),z+plant.RandfRange(-.06f,.06f));var field=plant.Randf()<.3f?pale:green;float tall=plant.RandfRange(.55f,.7f);
+            for(int i=plant.Randf()<.5f?3:2;i>0;i--){var q=hill+Vector2.FromAngle(plant.Randf()*Mathf.Tau)*plant.RandfRange(.03f,.08f);field.Add((new(q.X,Height(q.X,q.Y),q.Y),tall*plant.RandfRange(.85f,1.1f)));}
+        }
+        Grass("Rice",green,1,_=>true,8,.2f,new("3d5a2a"),new("93b052"),0,2207);
+        Grass("Rice, paler hills",pale,1,_=>true,8,.2f,new("4a6230"),new("b3c062"),0,2219);
+        var tuft=new RandomNumberGenerator{Seed=4431};var crest=new List<(Vector3 P,float H)>();
+        foreach(var (a,b) in aze)for(float t=0;t<a.DistanceTo(b);t+=.4f)foreach(float side in new[]{-.28f,.28f})
+        {
+            var q=a.MoveToward(b,t)+(b-a).Normalized().Orthogonal()*side+new Vector2(tuft.RandfRange(-.1f,.1f),tuft.RandfRange(-.1f,.1f));
+            crest.Add((new(q.X,Levee(q.X,q.Y),q.Y),tuft.RandfRange(.18f,.38f)));
+        }
+        Grass("Aze grass",crest,1,_=>true,6,.4f,new("3b5121"),new("8ea851"),.06f,4433);
+        // The channel runs level from a sluice board on the brook bank into paddy 2, between its banks and through the x 24 aze.
+        float level=Math.Max(PaddyLevel[2]+.08f,Enumerable.Range(0,10).Max(i=>MeshHeight(22+i*.25f,36.8f))+.04f);
+        var ditch=new ShaderMaterial{Shader=still.Shader};ditch.SetShaderParameter("size",new Vector2(2.4f,.9f));
+        Mesh(this,"Irrigation channel water",new PlaneMesh{Size=new(2.4f,.9f)},new(23.1f,level,36.8f),ditch);
+        Prop(this,"Sluice board","sluice",new(21.95f,Height(21.95f,36.8f),36.8f));
+        var rack=new Vector3(30,Height(30,40.7f),40.7f);Prop(this,"Hasa drying rack","hasa",rack);
+        var frame=new StaticBody3D{Position=rack+new Vector3(0,.8f,0),CollisionMask=0};AddChild(frame);frame.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(5.6f,1.6f,.5f)}});
     }
     private void Terrace()
     {
@@ -177,7 +262,7 @@ public partial class World
         foreach(var p in new Vector2[]{new(-12.4f,13.6f),new(-13.2f,13.9f),new(-12.8f,14.6f)})Prop(this,"Stored barrel","barrel",Ground(p),p.X*3);
         // Grass tufts on the village lawns, clear of the road, square, pads, footpaths, brook and shrine mound; blades reach .35 m from their root.
         var tufts=new List<(Vector3 P,float H)>();
-        bool Lawn(float x,float z)=>!(Math.Abs(x-RoadX(z))<3.8f||new Vector2(x,z-21).Length()<8||(Math.Abs(x-BrookX(z))<2.6f&&z<58)||new Vector2(x,z).DistanceTo(ShrineCenter)<10||OnPad(x,z)||OnFootpath(new(x,z),.35f)||(x>21&&x<38&&z>20&&z<40));
+        bool Lawn(float x,float z)=>!(Math.Abs(x-RoadX(z))<3.8f||new Vector2(x,z-21).Length()<8||(Math.Abs(x-BrookX(z))<2.6f&&z<58)||new Vector2(x,z).DistanceTo(ShrineCenter)<10||OnPad(x,z)||OnFootpath(new(x,z),.35f)||(x>21&&x<38.9f&&z>20&&z<40.1f));
         for(int i=0;i<2500;i++)
         {
             float x=r.RandfRange(-39,39),z=r.RandfRange(0,72),h=r.RandfRange(.16f,.5f);

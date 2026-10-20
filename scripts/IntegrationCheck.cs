@@ -65,12 +65,7 @@ public static class IntegrationCheck
                 mound=Math.Max(mound,Mathf.RadToDeg((c-a).Cross(b-a).AngleTo(Vector3.Up)));
         Check(mound<=25,$"shrine mound ramps stay under 25 degrees (steepest mesh face {mound:F1})");
         // The rendered terrain is 1 m triangles, so the water's edge is compared against the chords, not Height() itself.
-        float MeshHeight(float x,float z)
-        {
-            int x0=Mathf.FloorToInt(x),z0=Mathf.FloorToInt(z);float fx=x-x0,fz=z-z0;
-            return fx+fz<=1?MeshVertex(x0,z0).Y+fx*(MeshVertex(x0+1,z0).Y-MeshVertex(x0,z0).Y)+fz*(MeshVertex(x0,z0+1).Y-MeshVertex(x0,z0).Y)
-                :MeshVertex(x0+1,z0+1).Y+(1-fx)*(MeshVertex(x0,z0+1).Y-MeshVertex(x0+1,z0+1).Y)+(1-fz)*(MeshVertex(x0+1,z0).Y-MeshVertex(x0+1,z0+1).Y);
-        }
+        float MeshHeight(float x,float z)=>Hoshikawa.World.MeshHeight(x,z);
         var brookFaces=g.World.GetNode<MeshInstance3D>("Hoshikawa brook").Mesh.GetFaces();float hover=-9;Vector3 hoverAt=default;
         // The strip's sides are the lengthwise edges only one triangle uses; the rest lie over open water.
         var sides=Enumerable.Range(0,brookFaces.Length).Select(i=>(brookFaces[i],brookFaces[i/3*3+(i+1)%3])).Where(e=>Math.Abs(e.Item1.Z-e.Item2.Z)>=.5f)
@@ -85,6 +80,22 @@ public static class IntegrationCheck
         Check(riverHover<-.04f,$"river water edges stay buried in the banks (highest edge {riverHover:F3} m at {riverAt})");
         float cell=riverSize.X/(((PlaneMesh)river.Mesh).SubdivideWidth+1);var mouth=brookFaces.Where(v=>v.Z==-4).ToArray();
         Check(mouth.Min(v=>v.X)<=Hoshikawa.World.BrookX(-4)-2.1f&&mouth.Max(v=>v.X)>=Hoshikawa.World.BrookX(-4)+2.1f&&mouth.All(v=>v.Y==river.Position.Y&&Math.Abs(Mathf.PosMod(v.X+riverSize.X/2+cell/2,cell)-cell/2)<.001f),"brook mouth sits on the river sheet's edge vertices at its level");
+        // Every water sheet runs the depth-aware water shader, the brook's ripples drifting down to its mouth.
+        var sheets=new[]{"Hoshikawa river","Hoshikawa brook","Cedar River"}.Select(n=>g.World.GetNode<MeshInstance3D>(n).MaterialOverride as ShaderMaterial).ToArray();
+        Check(sheets.All(m=>m?.Shader.ResourcePath=="res://assets/shaders/water.gdshader")&&sheets[1]!.GetShaderParameter("flow").AsVector2().Y<0,"river, brook and Cedar River share the flowing water shader; the brook drifts toward its mouth");
+        // Height() levels each paddy under its own still water; the aze never dip more than their 2 cm under the terrain mesh, and crest well over the water.
+        var aze=g.World.GetNode<MeshInstance3D>("Aze levees").Mesh.GetFaces();
+        for(int i=0;i<Hoshikawa.World.Paddies.Length;i++)
+        {
+            var p=Hoshikawa.World.Paddies[i];var water=g.World.GetNode<MeshInstance3D>($"Rice paddy water {i}");float floor=Hoshikawa.World.Height(p.GetCenter().X,p.GetCenter().Y);
+            bool level=Enumerable.Range(0,49).All(k=>Math.Abs(Hoshikawa.World.Height(p.Position.X+.3f+(p.Size.X-.6f)*(k%7)/6,p.Position.Y+.3f+(p.Size.Y-.6f)*(k/7)/6)-floor)<.001f);
+            float lowestCrest=new[]{new Vector2(p.Position.X-.4f,p.GetCenter().Y),new(p.End.X+.4f,p.GetCenter().Y),new(p.GetCenter().X,p.Position.Y-.4f),new(p.GetCenter().X,p.End.Y+.4f)}
+                .Min(c=>aze.Where(v=>new Vector2(v.X,v.Z).DistanceTo(c)<.2f).Max(v=>v.Y))-water.Position.Y;
+            Check(level&&water.Position.Y-floor is >.05f and <.12f&&((ShaderMaterial)water.MaterialOverride).Shader.ResourcePath.EndsWith("paddy.gdshader")&&lowestCrest>.15f,
+                $"rice paddy {i} floor is level under still water, its aze cresting {lowestCrest:F2} m or more above it");
+        }
+        Check(aze.All(v=>v.Y>=MeshHeight(v.X,v.Z)-.021f),"the aze stand on the terrain mesh, sinking at most 2 cm where they end");
+        using(var crest=PhysicsRayQueryParameters3D.Create(new(31,3,25),new(31,-3,25),1))Check(g.GetWorld3D().DirectSpaceState.IntersectRay(crest) is {Count:>0} hit&&hit["collider"].As<Node>().Name=="Aze collision","the middle aze carries a walker");
         float step=0;Vector2 stepAt=default;
         for(float x=-20;x<20;x+=.05f)for(float z=-8.9f;z<50;z+=.05f)
         {
@@ -104,7 +115,8 @@ public static class IntegrationCheck
         Check(merged.Length>0&&mergedCorners.Length==bakedCorners.Length&&mergedExtent.Position.DistanceTo(bakedExtent.Position)<.01f&&mergedExtent.End.DistanceTo(bakedExtent.End)<.01f,
             $"{baked.Length} static primitives bake into {merged.Length} merged meshes, keeping all {bakedCorners.Length/3} triangles where they stood");
         var props=baked.Where(n=>n.Mesh.ResourceName.StartsWith("prop ")).GroupBy(n=>n.Mesh.ResourceName.ToString()[5..]).ToDictionary(x=>x.Key,x=>x.Count());
-        Check("lamp bench barrel fence_post fence_panel".Split(' ').All(props.ContainsKey),"lamps, benches, barrels and the bamboo fence are baked Blender props: "+string.Join(", ",props.Select(x=>$"{x.Key} {x.Value}")));
+        Check("lamp bench barrel fence_post fence_panel pebbles river_rock sluice hasa field_post field_rail cabbage daikon".Split(' ').All(props.ContainsKey),
+            "lamps, benches, barrels, the bamboo and field fences, brook stones, paddy sluice and rack and the Komorebi crops are baked Blender props: "+string.Join(", ",props.Select(x=>$"{x.Key} {x.Value}")));
         foreach(var model in g.World.Residents.Select(r=>r.Body))
         {
             var skeleton=ActorVisual.Descendants(model).OfType<Skeleton3D>().Single();
@@ -376,12 +388,15 @@ public static class IntegrationCheck
         Check(rails.Length>40,$"field fences are railed ({rails.Length} rails)");
         foreach(var rail in rails)
         {
-            var ends=new[]{-1f,1f}.Select(s=>rail.GlobalTransform*new Vector3(0,0,s*((BoxMesh)rail.Mesh).Size.Z/2)).Select(e=>e.Y-Hoshikawa.World.Height(e.X,e.Z)).ToArray();
+            var ends=new[]{rail.GetAabb().Position.Z,rail.GetAabb().End.Z}.Select(z=>rail.GlobalTransform*new Vector3(0,0,z)).Select(e=>e.Y-Hoshikawa.World.Height(e.X,e.Z)).ToArray();
             railTilt=Math.Max(railTilt,Math.Abs(ends[0]-ends[1]));
         }
         Check(railTilt<.08f,$"fence rails follow the ground (worst end-to-end height difference {railTilt:F2} m)");
         var lawn=ActorVisual.Descendants(g.World.GetNode("Village grass")).OfType<MeshInstance3D>().SelectMany(m=>m.Mesh.GetFaces().Select(v=>m.GlobalTransform*v)).ToArray();
         Check(lawn.Length>0&&lawn.All(v=>!Hoshikawa.World.OnFootpath(new(v.X,v.Z),0)),"village grass keeps off the footpaths");
+        var reeds=ActorVisual.Descendants(g.World.GetNode("River reeds")).OfType<MeshInstance3D>().SelectMany(m=>m.Mesh.GetFaces().Select(v=>m.GlobalTransform*v)).ToArray();
+        Check(reeds.Length>0&&reeds.All(v=>!Hoshikawa.World.OnFootpath(new(v.X,v.Z),0)&&!(Math.Abs(v.X)<3.6f&&v.Z is >-13.5f and <-2.5f)&&!(Math.Abs(v.Z-15)<1.2f&&v.X is >17 and <21.6f)),
+            $"reeds line the brook and river, clear of the footpaths, the stone bridge and the footbridge ({reeds.Length/9} blades)");
         // Scene 1 plays as a visual novel driven by the real key path: E first finishes the typing line, then moves on.
         async Task Tap(Key key)
         {

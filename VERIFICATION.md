@@ -1,5 +1,31 @@
 # MVP verification
 
+## Environment revamp, phase 4a water and fields — 2026-10-20
+
+The river, brook and farm fields, with no Tripo credits spent. No building, character or seeded scatter stream changed.
+
+- **Water:** `water.gdshader` is rewritten for the river, the brook and the Cedar River. It reads the depth texture for the water depth under each pixel, giving clear shallows over the bed, blue-green depths, a soft shore fade and a thin foam band. Flowing ripple normals drift along X on the rivers and down the brook toward its mouth (`flow` per material), with a fresnel sky reflection. The old stripes are gone. In native Metal (Forward Mobile) the depth texture works: the captures show shallow edges over gravel and deep teal mid-river. Headless runs draw nothing, so there the shader only compiles. Its no-depth fallback (water reads 2 m deep, the old opaque look) was not exercised. The per-vertex wave is still 3.5 cm and every edge stays buried: brook edges 17 cm, river edges 10.6 cm, and the brook mouth still sits on the river's edge vertices.
+- **Banks:** the terrain's vertex red is dryness from `World.Shore()`. `terrain.gdshader` paints wet earth darkening to gravel within 35 cm above each waterline, and on the paddy floors. The road constants are untouched and `TerrainTest` passes.
+- **Dressing:** reeds in clumps along the brook and both river banks, clear of the stone bridge, the footbridge, the footpaths and the sluice (5,976 blades; own generators 4421/4425). There are 21 pebble spills at the brook's waterline and six half-sunk rocks mid-stream, clear of the footbridge and the z 33 climb-out (generator 4410). The bank stones, stepping stones and footbridge are kept.
+- **Paddies:** `World.Paddies` holds four 6.2 × 8.4 m paddies. `Height()` levels each one 6 cm below the lowest ground it covers: −0.057 / 0.100 / −0.055 / 0.167 m, terraced up the slope toward +X. `RiceFields()` lays the aze as a 0.25 m heightfield over the terrain mesh, crests 25 cm above the higher ground beside them, with a trimesh collider you can walk on. Each paddy has its own still water (`paddy.gdshader`: sky sheen, muddy margin, faint ripples) 8 cm over a wet mud floor. There are 520 rice hills of two or three jittered tufts in two tones: `Grass("Rice")` keeps seed 2207, the paler hills are 2219, and the hill layout uses generator 2213. Aze grass uses 4431/4433. An irrigation channel runs from a sluice board on the brook bank, through a gap in the x 24 aze, into paddy 2 (x 24.4–30.6, z 30.4–38.8). A hasa rack of straw sheaves stands at z 40.7, beyond the paddies' z 39.2 aze, with a box collider.
+- **Fences and beds:** `Fence()` places weathered post and split-rail props. `Merge()` bakes them, and their colliders are separate bodies, since a rail is stretched to its span. The node names stay `Fence post` and `Fence rail N` (148 rails), and the rail check now measures each rail's mesh bounds. Komorebi's beds grow 32 cabbages and 48 daikon in place of the sphere crops.
+- **Self-test:** **368 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro; phase 3 had 360). The new checks:
+  - all three sheets run the water shader, and the brook flows toward its mouth;
+  - each paddy floor is level within 1 mm under its still water, with the aze cresting at least 17 cm above it (four checks);
+  - the aze never sit more than 2 cm under the terrain mesh;
+  - a ray onto the middle aze hits its collider;
+  - the reeds keep off the footpaths and both bridges.
+
+  The baked-props check now lists all thirteen Blender props. The fence-collision, rice-field route, footbridge, brook climb-out, garden-soil and first-boulder checks all still pass. `just unit` passes 16 cases (new: `PaddyFloorsAreLevel`) and `just e2e` passes 4.
+- **Render cost** (`render_cost.gd`, `--disable-vsync --fixed-fps 60`): draws 1071/1029/1140 → 1083/1032/1155. Primitives 2.992M/2.749M/2.853M → 3.068M/2.794M/2.953M (+1.6–3.5%), from the rice, reeds, aze grass and props. CPU median 0.70–0.76 ms. Fps read 119–120 in every run this session, including one with the old water shader swapped back in, so the cap is the display, not this change. It cannot be compared with phase 3's 207–252.
+- **Captures:** before (a15e599) and after, in native Metal, from the same points. These are `review_revamp.gd`'s new river-bridge, brook-close, paddies-wide, komorebi-beds and cedar-river views and the existing rice-paddies, plus `review_hamlet.gd`'s river, brook-bridge, brook-mouth, overview and east row. New after-only views show the paddy sluice and the hasa rack. `captures/hoshikawa-phase4a-water-fields/` holds the pairs.
+- **Limits:**
+  - The channel water is a flat strip 4 cm over the ground, not carved into `Height()`: the 1 m terrain mesh cannot hold a 60 cm ditch. It reads as a narrow grey ribbon.
+  - The pebbles, rocks, reeds and sluice have no collision.
+  - The Cedar River got the shader and wet banks but no reeds.
+  - The hasa rack holds straw while the rice is green.
+  - No physical keyboard/mouse session is claimed.
+
 ## Environment revamp, phase 3 houses — 2026-10-20
 
 The other five Hoshikawa buildings (Kisaragi Workshop, Seed & Grain, Village Assembly, Hoshikawa Clinic, Mori Farmhouse) are now Tripo models, placed with the teahouse by one generalised `Minka()`. Five image-to-model calls, 40 credits each, no retries: 200 spent, 555 left. No character or terrain landform changed; four table centres and sizes did (ASSETS.md).
