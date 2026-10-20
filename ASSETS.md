@@ -129,12 +129,12 @@ Use case: stylized-concept. Asset type: UV texture for the iris of an original a
 Generated with `codex exec` gpt-image; exact prompts and raw-output hashes are in `assets/art/hamlet-textures-generation.md`.
 
 - `assets/art/village-atlas.png`: 2×2 thatch / dark cedar boards / earthen plaster / grey kawara atlas used by the Minka kit in `scripts/Architecture.cs`. Red roofs are the kawara cell tinted in the shader; the pixels are unchanged.
-- `assets/art/foliage-atlas.png`: 2×2 keyaki / sakura / sugi / bamboo leaf-cluster sprites generated on a #0000FF key; the key was removed with `remove_chroma_key.py --auto-key border --soft-matte --despill --spill-cleanup` (RGBA, corners alpha 0). Sampled by `assets/shaders/foliage.gdshader` on the tree leaf cards.
+- `assets/art/foliage-atlas.png`: 2×2 keyaki / sakura / sugi / bamboo leaf-cluster sprites generated on a #0000FF key; the key was removed with `remove_chroma_key.py --auto-key border --soft-matte --despill --spill-cleanup` (RGBA, corners alpha 0). Sampled by `assets/shaders/foliage.gdshader` on the tree leaf cards. Regenerated 2026-10-19 (environment revamp): the first atlas held a few large blossoms and leaves per cell, which read as torn paper on small cards; the current one holds airy sprays of many small leaves and about two hundred tiny blossoms in the same cell layout. Prompt and hashes for both are in `assets/art/hamlet-textures-generation.md`.
 - `assets/art/bark-{keyaki,sugi,sakura,bamboo}.png`: the four unchanged 627×627 quadrants of one generated bark atlas.
 
 ## Tree models — 2026-09-29
 
-- `assets/models/props/{keyaki_a,b,c, sugi_a,b,c, sakura_a,b, bamboo_a, shrub_a,b}.glb`, 400–2,920 triangles each, built procedurally and deterministically by `tools/build_props.py` in background Blender 5.2 (no source .blend). They carry geometry, custom normals, UVs into the foliage atlas, and vertex colour (R wind sway, G ambient); materials are names only (`bark_<species>`, `foliage`) and `World.Tree()` binds the textures above.
+- `assets/models/props/{keyaki_a,b,c, sugi_a,b,c, sakura_a,b, bamboo_a, shrub_a,b}.glb`, 560–3,840 triangles each (rebuilt 2026-10-19 with smaller, outward-facing leaf cards and crown-ellipsoid normals), built procedurally and deterministically by `tools/build_props.py` in background Blender 5.2 (no source .blend). They carry geometry, custom normals, UVs into the foliage atlas, and vertex colour (R wind sway, G ambient); materials are names only (`bark_<species>`, `foliage`) and `World.Tree()` binds the textures above.
 
 ## Blender models
 

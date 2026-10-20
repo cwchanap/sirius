@@ -1,5 +1,17 @@
 # MVP verification
 
+## Environment revamp, phases 0 and 1 — 2026-10-19
+
+Vegetation, light and the camera at the eaves, so the environment matches the Tripo characters. No character model changed.
+
+- **Captures:** `tools/review_revamp.gd` (twelve close-ups, including the spring camera at the tea house eaves and a dialogue background) and the nine `review_hamlet.gd` views, before and after, from the same viewpoints in native Metal. One close-up viewpoint was moved after the first pass, because it sat inside the workshop; its before shot was retaken from an `origin/main` worktree. Comparisons are in `artifacts/hoshikawa-revamp/compare/`.
+- **Foliage:** the new atlas's alpha is clean: corners 0, no blue-tinted opaque pixels, 77–81% of each sprite's visible pixels fully opaque. Close up, the sakura reads as small blossoms, not large torn-paper flowers. Two artifacts were traced and removed. One was a dotted pattern on the cards: shadow acne from cards self-shadowing, plus alpha-to-coverage dithering cards that were faded edge-on. The other was a brown core on backlit crowns, where shadows blocked the transmitted light. Crowns now cast but do not receive shadows, and alpha-to-coverage was dropped.
+- **Seeded streams:** `countryside scatter is unchanged` still passes (first boulder pinned). Meadow seed positions keep their `rng` draws. Extra tufts and colours come from per-field generators. `villageRng` keeps its draws, and nothing draws from it after the lawn loop. The rice plants never drew from a stream.
+- **Camera:** in the eaves shots the spring arm now stops under the tea house roof instead of rising through it. A new check per Hoshikawa building casts up from under the front eave: the camera layer is hit and layer 1 is not.
+- **Self-test:** **345 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro; main had 339 — the six new ones are the eaves checks). Both exit 0 with `SELF_TEST_PASS` and no shader errors. `just unit` passes 15 cases, `just e2e` 4.
+- **Render cost** (`render_cost.gd`, `--disable-vsync --fixed-fps 60`): draws 1164/1098/1246 → 1126–1129/1045/1212, primitives 2.25M/2.21M/2.15M → 2.59M/2.48M/2.47M (+12–15%), from denser tree crowns and blade grass. Grass casts no shadow and its chunks drop beyond 90 m. CPU median 0.7–0.9 ms; fps is unchanged within run-to-run noise. The first viewpoint now varies by up to 3 draws between runs, likely a grass chunk at its visibility-range edge.
+- **Limits:** the distant ridge mesh and the terrain textures were not changed in this phase. No physical keyboard/mouse session is claimed.
+
 ## Mio movement and combat polish — 2026-10-18
 
 The user found the jump looked unwired, walking too fast, the dodge too short and the attack combo jerky. They also asked for a sword grip, the face strokes, the render-cost rise and attack2's timing.

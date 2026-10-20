@@ -28,6 +28,9 @@ public partial class World : Node3D
     public static bool OnFootpath(Vector2 p,float margin)=>Footpaths.Any(f=>Geometry2D.GetClosestPointToSegment(p,f.From,f.To).DistanceTo(p)<1.2f+margin);
     private static readonly float[] PadLevel=Hamlet.Select(h=>HamletGround(h.At.X,h.At.Y,BaseHeight(h.At.X,h.At.Y),false)).ToArray();
     public const float ShrineLevel=2.4f,WaterLevel=-.38f;
+    // Roofs stop the camera's spring arm on this layer alone; the player and robots only collide with layer 1.
+    public const int CameraLayer=8;
+    public static void CameraStop(Node3D n,Shape3D shape){var b=new StaticBody3D{CollisionLayer=CameraLayer,CollisionMask=0};n.AddChild(b);b.AddChild(new CollisionShape3D{Shape=shape});}
     // Height(), the water strip, the footbridge and the minimap all follow this one brook line.
     public static float BrookX(float z)=>19.3f+.6f*Mathf.Sin(z*.16f);
     public static string RegionAt(Vector3 p) => p.Z < -136 ? "Komorebi" : p.Z < -78 ? "Cedar Pass" : p.Z < -14 ? "Old Relay Road" : "Hoshikawa";
@@ -169,20 +172,25 @@ public partial class World : Node3D
     }
     private void Environment()
     {
+        // Warm afternoon: a low south-west sun, ambient taken from the sky, and a pale haze that only gathers in the distance.
+        // The Mobile renderer has no SSAO, SDFGI or volumetric fog; depth fog, sky ambient, glow and adjustments all run there.
         var skyMaterial = new ProceduralSkyMaterial
         {
-            SkyTopColor = new("457b99"), SkyHorizonColor = new("c5ddd2"),
-            GroundBottomColor = new("516653"), GroundHorizonColor = new("c5ddd2"), SkyCurve = .22f
+            SkyTopColor = new("4d83b0"), SkyHorizonColor = new("e6dcc4"),
+            GroundBottomColor = new("4b5440"), GroundHorizonColor = new("dacfb2"), SkyCurve = .16f, SunAngleMax = 24
         };
         AddChild(new WorldEnvironment { Environment = new Godot.Environment
         {
             BackgroundMode = Godot.Environment.BGMode.Sky, Sky = new Sky { SkyMaterial = skyMaterial },
-            AmbientLightSource = Godot.Environment.AmbientSource.Color, AmbientLightColor = new("bfdbc8"), AmbientLightEnergy = .2f,
+            AmbientLightSource = Godot.Environment.AmbientSource.Sky, AmbientLightColor = new("d9ccb0"), AmbientLightSkyContribution = .65f, AmbientLightEnergy = .6f,
             ReflectedLightSource = Godot.Environment.ReflectionSource.Sky, TonemapMode = Godot.Environment.ToneMapper.Aces,
-            FogEnabled = true, FogLightColor = new("a4c6ba"), FogDensity = .0027f, FogSkyAffect = .3f
+            FogEnabled = true, FogMode = Godot.Environment.FogModeEnum.Depth, FogLightColor = new("e9dcc0"), FogDensity = .7f,
+            FogDepthBegin = 25, FogDepthEnd = 250, FogDepthCurve = 1.2f, FogAerialPerspective = .4f, FogSunScatter = .08f, FogSkyAffect = .2f,
+            GlowEnabled = true, GlowIntensity = .2f, GlowBloom = .03f,
+            AdjustmentEnabled = true, AdjustmentContrast = 1.08f, AdjustmentSaturation = 1.1f
         }});
-        AddChild(new DirectionalLight3D { RotationDegrees = new(-48, -34, 0), LightColor = new("fff0c3"),
-            LightEnergy = .65f, ShadowEnabled = true, DirectionalShadowMaxDistance = 100, ShadowBias = .06f });
+        AddChild(new DirectionalLight3D { RotationDegrees = new(-34, -52, 0), LightColor = new("ffdfb0"),
+            LightEnergy = 1.2f, ShadowEnabled = true, DirectionalShadowMaxDistance = 100, ShadowBias = .06f });
         var ridges=new SurfaceTool();ridges.Begin(Godot.Mesh.PrimitiveType.Triangles);
         float Ridge(float x,float z)
         {
@@ -262,22 +270,21 @@ public partial class World : Node3D
         Cylinder(well,"Well rope",new(0,2,0),.017f,2,Mat(new("c9b581")));
         var wellBody=new StaticBody3D();well.AddChild(wellBody);
         wellBody.AddChild(new CollisionShape3D {Position=new(0,.45f,0),Shape=new CylinderShape3D {Radius=1,Height=.9f}});
-        // Rice beds and a kitchen garden give the village a working rural life.
+        // Flooded rice paddies: wet soil under a still, sky-reflecting water sheet, planted in rows of upright clumps.
+        var paddyWater=new StandardMaterial3D{AlbedoColor=new(.25f,.27f,.2f,.7f),Transparency=BaseMaterial3D.TransparencyEnum.Alpha,Roughness=.03f};
+        var rice=new List<(Vector3 P,float H)>();
         for(int field=0;field<2;field++)
         {
             float x=25+field*9;
-            GroundStrip("Terraced rice soil",new(x,21.5f),new(x,38.5f),3.5f,Mat(new("646346")));
-            for(int row=0;row<8;row++) for(int col=0;col<5;col++)
+            GroundStrip("Terraced rice soil",new(x,21.5f),new(x,38.5f),3.5f,Mat(new("4f4a35")));
+            GroundStrip("Rice paddy water",new(x,21.5f),new(x,38.5f),3.5f,paddyWater,.1f);
+            for(int row=0;row<17;row++)for(int col=0;col<11;col++)
             {
-                float px=x-2.5f+col*1.2f,pz=23+row*2;
-                var p=new Vector3(px,Height(px,pz)+.09f,pz);
-                for(int b=0;b<3;b++)
-                {
-                    var blade=Box(this,"Rice",p+new Vector3((b-1)*.12f,.28f,0),new(.06f,.65f,.07f),Mat(new("96a857")));
-                    blade.Rotation=new(0,0,(b-1)*.2f);
-                }
+                float px=x-3+col*.6f,pz=22.6f+row*.95f;
+                rice.Add((new(px,Height(px,pz)+.03f,pz),.62f+.08f*Mathf.Sin(px*7.1f+pz*3.3f)));
             }
         }
+        Grass("Rice",rice,1,_=>true,12,.22f,new("3d5a2a"),new("93b052"),0,2207);
         Fence(new(-24,0,0),new(-24,0,42));
         Fence(new(23,0,1),new(23,0,13));Fence(new(23,0,17),new(23,0,42));
         foreach(var (from,to) in Footpaths)Footpath(from,to,1.2f);
@@ -294,7 +301,7 @@ public partial class World : Node3D
         for(int s=-1;s<=1;s+=2)
         {
             var r=Box(house,"Ceramic tile roof",new(s*(w/4+.32f),h+1.35f,0),new(Mathf.Sqrt(Mathf.Pow(w/2+.65f,2)+rise*rise),.24f,d+1.4f),roof);
-            r.Rotation=new(0,0,-s*slope);
+            r.Rotation=new(0,0,-s*slope);CameraStop(r,new BoxShape3D{Size=((BoxMesh)r.Mesh).Size});
             Box(house,"Roof fascia",new(s*(w/2+.65f),h+.27f,0),new(.18f,.28f,d+1.5f),wood);
             for(int k=0;k<3;k++) Box(house,"Timber stud",new(s*(w/2+.035f),h/2+.3f,-d/2+k*d/2),new(.15f,h,.16f),wood);
         }
@@ -402,16 +409,15 @@ public partial class World : Node3D
             if(z>-9&&Math.Abs(x-BrookX(z))<2.3f+s)continue;
             Sphere(this,"Weathered boulder",new(x,Height(x,z)+s*.3f,z),new(s,s*.6f,s*.75f),stone).Rotation=tilt;
         }
-        var st=new SurfaceTool();st.Begin(Godot.Mesh.PrimitiveType.Triangles);
-        var gm=Mat(new("7d9d53"),twoSided:true);
+        var meadow=new List<(Vector3 P,float H)>();
+        bool Meadow(float x,float z)=>!(Math.Abs(x-Mathf.Sin(z*.068f)*2.4f)<3.6f||(z>0&&Math.Abs(x)<40)||Math.Abs(z+8)<4);
         for(int i=0;i<5000;i++)
         {
             float x=rng.RandfRange(-60,60),z=rng.RandfRange(-75,70);
-            if(Math.Abs(x-Mathf.Sin(z*.068f)*2.4f)<3.6f||(z>0&&Math.Abs(x)<40)||Math.Abs(z+8)<4)continue;
-            var p=new Vector3(x,Height(x,z),z);float h=rng.RandfRange(.18f,.6f);
-            st.SetNormal(Vector3.Up);st.AddVertex(p+new Vector3(-.09f,0,0));st.AddVertex(p+new Vector3(.04f,h,.05f));st.AddVertex(p+new Vector3(.09f,0,0));
+            if(!Meadow(x,z))continue;
+            meadow.Add((new(x,Height(x,z),z),rng.RandfRange(.18f,.6f)));
         }
-        Mesh(this,"Meadow grass",st.Commit(),Vector3.Zero,gm);
+        Grass("Meadow grass",meadow,3,p=>Meadow(p.X,p.Y),5,.45f,new("3a5122"),new("8ea54f"),.08f,5003);
         for(int i=0;i<180;i++)
         {
             float x=rng.RandfRange(-24,24),z=rng.RandfRange(-65,-17);if(Math.Abs(x)<4)continue;
@@ -451,7 +457,7 @@ public partial class World : Node3D
         foreach(float x in new[]{-2.6f,2.6f})foreach(float z in new[]{-1.8f,1.8f})
             Box(shelter,"Shelter pillar",new(x,1.6f,z),new(.2f,3.2f,.2f),wood,true);
         foreach(float side in new[]{-1f,1f})
-            Box(shelter,"Shelter tiled roof",new(side*1.65f,3.5f,0),new(3.7f,.2f,5.5f),roof).Rotation=new(0,0,-side*.38f);
+        {var r=Box(shelter,"Shelter tiled roof",new(side*1.65f,3.5f,0),new(3.7f,.2f,5.5f),roof);r.Rotation=new(0,0,-side*.38f);CameraStop(r,new BoxShape3D{Size=((BoxMesh)r.Mesh).Size});}
         Box(shelter,"Resting bench",new(0,.6f,-1.4f),new(4,.2f,.6f),wood,true);
         Box(shelter,"Bench back",new(0,1.1f,-1.65f),new(4,.55f,.12f),wood);
         foreach(float x in new[]{-1.5f,1.5f})Box(shelter,"Bench support",new(x,.25f,-1.4f),new(.18f,.5f,.5f),wood);
@@ -490,16 +496,14 @@ public partial class World : Node3D
             float s=rng.RandfRange(.35f,1.3f);
             Sphere(this,"Pass boulder",new(x,Height(x,z)+s*.3f,z),new(s,s*.7f,s),stone);
         }
-        var grass=new SurfaceTool();grass.Begin(Godot.Mesh.PrimitiveType.Triangles);
+        var grass=new List<(Vector3 P,float H)>();
         for(int i=0;i<6500;i++)
         {
             float x=rng.RandfRange(-60,60),z=rng.RandfRange(-193,-80);
             if(NorthClear(x,z))continue;
-            var p=new Vector3(x,Height(x,z),z);float h=rng.RandfRange(.18f,.55f);
-            grass.SetNormal(Vector3.Up);grass.AddVertex(p+new Vector3(-.1f,0,0));grass.AddVertex(p+new Vector3(0,h,.05f));grass.AddVertex(p+new Vector3(.1f,0,0));
+            grass.Add((new(x,Height(x,z),z),rng.RandfRange(.18f,.55f)));
         }
-        var gm=Mat(new("8b9d58"),twoSided:true);
-        Mesh(this,"Cedar Pass meadow",grass.Commit(),Vector3.Zero,gm);
+        Grass("Cedar Pass meadow",grass,3,p=>!NorthClear(p.X,p.Y),5,.45f,new("3d5124"),new("98a75a"),.12f,6511);
         for(int i=0;i<95;i++)
         {
             float z=rng.RandfRange(-135,-80),x=RoadX(z)+(i%2==0?1:-1)*rng.RandfRange(4,6.5f);
@@ -514,13 +518,13 @@ public partial class World : Node3D
     private void Footpath(Vector2 a,Vector2 b,float halfWidth)
         => GroundStrip("Connecting footpath",a,b,halfWidth,Atlas(new(1,0),Vector2.One));
 
-    private void GroundStrip(string name,Vector2 a,Vector2 b,float halfWidth,Material material)
+    private void GroundStrip(string name,Vector2 a,Vector2 b,float halfWidth,Material material,float lift=.045f)
     {
         int steps=Math.Max(1,(int)a.DistanceTo(b)*2);
         int across=Math.Max(1,(int)Math.Ceiling(halfWidth*2));
         Vector2 side=new(-(b-a).Normalized().Y,(b-a).Normalized().X);
         var st=new SurfaceTool();st.Begin(Godot.Mesh.PrimitiveType.Triangles);
-        void V(Vector2 p){st.SetNormal(Vector3.Up);st.SetUV(p*.22f);st.AddVertex(new(p.X,Height(p.X,p.Y)+.045f,p.Y));}
+        void V(Vector2 p){st.SetNormal(Vector3.Up);st.SetUV(p*.22f);st.AddVertex(new(p.X,Height(p.X,p.Y)+lift,p.Y));}
         for(int i=0;i<steps;i++)for(int j=0;j<across;j++)
         {
             var p=a.Lerp(b,(float)i/steps);var q=a.Lerp(b,(float)(i+1)/steps);
@@ -634,6 +638,50 @@ public partial class World : Node3D
         Fence(new(-24,0,-139),new(-24,0,-149.5f));Fence(new(-24,0,-153.5f),new(-24,0,-171));
         Fence(new(22,0,-139),new(22,0,-152));Fence(new(22,0,-156),new(22,0,-173));
         Fence(new(-24,0,-171),new(-20,0,-171));Fence(new(10,0,-173),new(22,0,-173));
+    }
+    private ShaderMaterial? grassMaterial;
+    // Grass and rice tufts in 32 m chunks, each around its own origin so culling and the visibility range drop what is out of sight.
+    // Each scattered tuft gathers per-1 neighbours where `open` allows. Neighbours, colours and blades come from `look`, seeded
+    // per field, so a field never draws from a scatter stream.
+    private void Grass(string name,List<(Vector3 P,float H)> seeds,int per,Func<Vector2,bool> open,int blades,float lean,Color root,Color tip,float dry,ulong seed)
+    {
+        grassMaterial??=new ShaderMaterial{Shader=GD.Load<Shader>("res://assets/shaders/grass.gdshader")};
+        var look=new RandomNumberGenerator{Seed=seed};var field=new Node3D{Name=name};AddChild(field);
+        var tufts=new List<(Vector3 P,float H)>(seeds);
+        foreach(var (p,h) in seeds)for(int i=1;i<per;i++)
+        {
+            var q=new Vector2(p.X,p.Z)+Vector2.FromAngle(look.Randf()*Mathf.Tau)*look.RandfRange(.4f,.9f);float k=look.RandfRange(.6f,1.1f);
+            if(open(q))tufts.Add((new(q.X,Height(q.X,q.Y),q.Y),h*k));
+        }
+        foreach(var chunk in tufts.GroupBy(t=>(Mathf.FloorToInt(t.P.X/32),Mathf.FloorToInt(t.P.Z/32))))
+        {
+            var origin=new Vector3(chunk.Key.Item1*32+16,chunk.Average(t=>t.P.Y),chunk.Key.Item2*32+16);
+            var st=new SurfaceTool();st.Begin(Godot.Mesh.PrimitiveType.Triangles);
+            foreach(var (p,h) in chunk)
+            {
+                float shade=look.RandfRange(.82f,1.1f);bool straw=look.Randf()<dry;
+                var top=(straw?new Color("c4b47c"):tip.Lerp(new("bfc46c"),look.Randf()*.55f))*shade;
+                Tuft(st,look,p-origin,h,blades,lean,(root*shade).SrgbToLinear(),top.SrgbToLinear());
+            }
+            st.Index();var m=Mesh(field,$"{name} {chunk.Key}",st.Commit(),origin,grassMaterial);
+            m.CastShadow=GeometryInstance3D.ShadowCastingSetting.Off;m.VisibilityRangeEnd=90;m.VisibilityRangeEndMargin=8;
+        }
+    }
+    // Arching blades, each a tapered quad and a tip; COLOR.a is grass.gdshader's sway weight.
+    private static void Tuft(SurfaceTool st,RandomNumberGenerator look,Vector3 p,float h,int blades,float lean,Color root,Color tip)
+    {
+        var mid=root.Lerp(tip,.55f);
+        for(int i=0;i<blades;i++)
+        {
+            float a=look.Randf()*Mathf.Tau,bh=h*look.RandfRange(.55f,1.05f),w=look.RandfRange(.022f,.04f),l=lean*look.RandfRange(.4f,1.3f);
+            var dir=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));var side=new Vector3(-dir.Z,0,dir.X)*w;
+            var b=p+dir*look.RandfRange(0,.05f);var m=b+dir*l*bh*.3f+Vector3.Up*bh*.55f;var t=b+dir*l*bh+Vector3.Up*bh*(1-.35f*l);
+            var n=(Vector3.Up+dir*.35f).Normalized();
+            void V(Vector3 v,Color c,float sway){st.SetNormal(n);st.SetColor(new(c.R,c.G,c.B,sway));st.AddVertex(v);}
+            V(b-side,root,0);V(b+side,root,0);V(m+side*.6f,mid,.3f);
+            V(b-side,root,0);V(m+side*.6f,mid,.3f);V(m-side*.6f,mid,.3f);
+            V(m-side*.6f,mid,.3f);V(m+side*.6f,mid,.3f);V(t,tip,1);
+        }
     }
     // Legacy sphere-canopy tree, kept for the Komorebi persimmon orchard whose fruit hangs at its canopy height.
     private void OrchardTree(Vector3 p,float scale)

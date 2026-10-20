@@ -183,16 +183,15 @@ public partial class World
         foreach(float s in new[]{-1f,1f}){Cylinder(cart,"Cart wheel",new(s*.58f,.42f,0),.42f,.07f,wood).Rotation=new(0,0,Mathf.Pi/2);Box(cart,"Cart handle",new(s*.4f,.66f,1.25f),new(.05f,.05f,1.2f),wood);}
         for(int i=0;i<2;i++)Sphere(cart,"Rice sack",new(0,.85f,-.35f+i*.62f),new(.36f,.24f,.28f),Mat(new("d9cfa8")));
         foreach(var p in new Vector2[]{new(-12.4f,13.6f),new(-13.2f,13.9f),new(-12.8f,14.6f)})Cylinder(this,"Stored barrel",Ground(p,.5f),.34f,1,wood);
-        // Grass tufts on the village lawns, clear of the road, square, pads, footpaths, brook and shrine mound.
-        var st=new SurfaceTool();st.Begin(Godot.Mesh.PrimitiveType.Triangles);
+        // Grass tufts on the village lawns, clear of the road, square, pads, footpaths, brook and shrine mound; blades reach .35 m from their root.
+        var tufts=new List<(Vector3 P,float H)>();
+        bool Lawn(float x,float z)=>!(Math.Abs(x-RoadX(z))<3.8f||new Vector2(x,z-21).Length()<8||(Math.Abs(x-BrookX(z))<2.6f&&z<58)||new Vector2(x,z).DistanceTo(ShrineCenter)<10||OnPad(x,z)||OnFootpath(new(x,z),.35f)||(x>21&&x<38&&z>20&&z<40));
         for(int i=0;i<2500;i++)
         {
             float x=r.RandfRange(-39,39),z=r.RandfRange(0,72),h=r.RandfRange(.16f,.5f);
-            if(Math.Abs(x-RoadX(z))<3.8f||new Vector2(x,z-21).Length()<8||(Math.Abs(x-BrookX(z))<2.6f&&z<58)||new Vector2(x,z).DistanceTo(ShrineCenter)<10||OnPad(x,z)||OnFootpath(new(x,z),.1f)||(x>21&&x<38&&z>20&&z<40))continue;
-            var p=Ground(new(x,z));
-            st.SetNormal(Vector3.Up);st.AddVertex(p+new Vector3(-.09f,0,0));st.AddVertex(p+new Vector3(.04f,h,.05f));st.AddVertex(p+new Vector3(.09f,0,0));
+            if(Lawn(x,z))tufts.Add((Ground(new(x,z)),h));
         }
-        var grass=Mat(new("7d9d53"),twoSided:true);Mesh(this,"Village grass",st.Commit(),Vector3.Zero,grass);
+        Grass("Village grass",tufts,3,p=>Lawn(p.X,p.Y),7,.45f,new("3b5121"),new("8ea851"),.05f,3307);
     }
     private void Bench(Vector2 p,float yaw)
     {

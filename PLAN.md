@@ -123,3 +123,16 @@ C# build succeeded. The final graphical integration run passed 57 checks with `S
 - [x] Vendor godot-e2e v0.1.1 (`addons/gdunit_e2e/`) and add gdUnit4Net e2e tests (`tests/e2e/`) against a headless game: title to intro, pause and resume, steering Mio, Ren's briefing. 4 cases.
 - [x] Add `just unit`, `just e2e` and `just self-test`.
 - [x] Add GitHub Actions: unit tests on every push and pull request; self-test and e2e on pull requests and by manual dispatch, headless with Godot 4.6.2 .NET.
+
+## Environment revamp (星川村翻新計畫)
+
+Bring the non-character environment up to the Tripo characters' detail: semi-realistic, painterly textures, normal lighting, no cel shading. Characters and the shared villager rig stay as they are.
+
+- [x] Phase 0: fixed before shots (`tools/review_revamp.gd` close-ups plus the nine `review_hamlet.gd` views) and a `render_cost.gd` baseline.
+- [x] Phase 1a: regenerate the foliage atlas with small leaves and blossoms; rebuild the trees with smaller, outward-facing cards, crown-ellipsoid normals and crown occlusion; fade edge-on cards; crowns no longer receive shadows.
+- [x] Phase 1b: lawn and meadow grass as swaying, colour-varied blade tufts in culled 32 m chunks, keeping every scatter stream's draws.
+- [x] Phase 1c: rice paddies with still water over wet soil and 374 upright rice clumps in place of 240 boxes.
+- [x] Phase 1d: warm afternoon light with sky ambient, distance-only depth fog, glow and a contrast/saturation lift.
+- [x] Phase 1e: camera-only roof colliders on layer 8, so the spring arm stays under the eaves. 345 checks pass headless and in native Metal.
+- [ ] Phase 2: props (complex ones generated with the Tripo API, simple ones built in Blender). Waiting on the user's review of phase 1.
+- [ ] Phase 3: buildings.

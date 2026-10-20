@@ -45,7 +45,7 @@ public partial class Game : Node3D
             var enemy=new Enemy {Game=this,Home=p,Position=p,Index=i+1};Enemies.Add(enemy);AddChild(enemy);
         }
         cameraRig=new Node3D {Position=Player.Position+Vector3.Up*1.3f};AddChild(cameraRig);
-        spring=new SpringArm3D {SpringLength=7.5f,Margin=.25f,CollisionMask=1,Shape=new SphereShape3D {Radius=.2f}};cameraRig.AddChild(spring);
+        spring=new SpringArm3D {SpringLength=7.5f,Margin=.25f,CollisionMask=1|Hoshikawa.World.CameraLayer,Shape=new SphereShape3D {Radius=.2f}};cameraRig.AddChild(spring);
         Camera=new Camera3D {Fov=59,Near=.08f,Far=260,Current=true};spring.AddChild(Camera);
         var layer=new CanvasLayer();AddChild(layer);Hud=new Hud {Game=this};layer.AddChild(Hud);
         foreach(string name in new[]{"swing","impact","guard","deflect","break","skill","hurt","jump","dodge","heal","warning"})

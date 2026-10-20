@@ -70,7 +70,7 @@ just e2e    # gdUnit4Net tests that drive a headless game through godot-e2e: tit
 
 For reproducible rendered evidence, append `-- --play --capture=res://artifacts/village.png` to a graphical launch. Optional `--overview`, `--combat-view`, `--portrait`, and `--portrait-close` select useful inspection viewpoints. These options are development conveniences; normal play begins at the illustrated title screen.
 
-Run Godot with `--script res://tools/review_dialogue.gd` to capture the prologue's dialogue scenes under `artifacts/dialogue/`. Run Godot with `--script res://tools/review_hamlet.gd` for Hoshikawa captures under `artifacts/hamlet/` (`-- --out=<subdir> --only=square,overview` narrows them). Use `--komorebi` or `--pass-view` with `--play` to inspect the new areas. Run Godot with `--script res://tools/review_valley.gd` for six landscape captures under `artifacts/countryside/`.
+Run Godot with `--script res://tools/review_dialogue.gd` to capture the prologue's dialogue scenes under `artifacts/dialogue/`. Run Godot with `--script res://tools/review_hamlet.gd` for Hoshikawa captures under `artifacts/hamlet/` (`-- --out=<subdir> --only=square,overview` narrows them). Use `--komorebi` or `--pass-view` with `--play` to inspect the new areas. Run Godot with `--script res://tools/review_valley.gd` for six landscape captures under `artifacts/countryside/`, and with `--script res://tools/review_revamp.gd` for the environment close-ups (sakura, lawn, rice, the tea house eaves through the gameplay camera, a dialogue background, Komorebi) under `artifacts/revamp/`.
 
 Komorebi now has angled service frontages, a smaller courtyard, an orchard packing station, and paths through the garden and orchard fence openings. Graded approaches meet the shelter and river-facing overlook floors; garden soil follows the hillside. Run Godot with `--script res://tools/review_arrangement.gd` for the placement review captures in `artifacts/arrangement-after/`.
 
@@ -113,10 +113,10 @@ The importer regression check exercises all four input formats, transformed mult
 
 ## Project notes
 
-- `scripts/World.cs`: deterministic environment and village construction; terrain and collision share the same surface. Static boxes, spheres and cylinders are baked into one mesh per material and 32 m cell after construction.
+- `scripts/World.cs`: deterministic environment and village construction; terrain and collision share the same surface. Static boxes, spheres and cylinders are baked into one mesh per material and 32 m cell after construction. Warm afternoon light: a low south-west sun, sky ambient and distance-only depth fog. `Grass()` lays lawn, meadow and rice as swaying blade tufts in 32 m chunks that drop out beyond 90 m; the paddies hold still water. Roofs carry camera-only colliders (`CameraLayer`) so the camera stays under the eaves.
 - `scripts/Architecture.cs`: Hoshikawa's Japanese buildings. `Roof()` generates curved gable, irimoya and thatch roofs; `Minka()` builds the timber frame and each style's extras from the `World.Hamlet` table.
 - `scripts/Hamlet.cs`: the brook, footbridge, terrace wall, torii and shrine, stone lanterns, and village dressing. All village randomness uses its own seeded generator.
-- `tools/build_props.py`: deterministic background-Blender generator for the tree and shrub GLBs in `assets/models/props/`; `assets/shaders/foliage.gdshader` gives their leaf cards alpha cut-out, backlight and wind sway.
+- `tools/build_props.py`: deterministic background-Blender generator for the tree and shrub GLBs in `assets/models/props/`. Small outward-facing leaf cards carry normals from the whole crown's ellipsoid, so a crown shades as one volume. `assets/shaders/foliage.gdshader` gives them alpha cut-out, a fade for cards seen edge-on, backlight and wind sway; `grass.gdshader` sways the grass and rice blades.
 - `scripts/Player.cs`, `Enemy.cs`: action timing, movement, and robot behavior.
 - `scripts/Game.cs`, `Hud.cs`: quest, camera, dialogue, presentation and audio.
 - `scripts/Prologue.cs`: every line of the prologue's visual-novel scenes, kept apart from the code that plays them. `SceneNames` gives each scene the key its voice files use.
