@@ -1,5 +1,16 @@
 # MVP verification
 
+## Environment revamp, phase 3 houses — 2026-10-20
+
+The other five Hoshikawa buildings (Kisaragi Workshop, Seed & Grain, Village Assembly, Hoshikawa Clinic, Mori Farmhouse) are now Tripo models, placed with the teahouse by one generalised `Minka()`. Five image-to-model calls, 40 credits each, no retries: 200 spent, 555 left. No character or terrain landform changed; four table centres and sizes did (ASSETS.md).
+
+- **Captures:** `tools/review_revamp.gd` gained, per house, a front view, a 45° oblique view and the gameplay spring camera half a metre out from its front wall. `tools/review_hamlet.gd` gained a west-row view. These and the square, east row and overview were taken before (668b06e's code, identical to bbd7b10's) and after, in native Metal, framed from the same points. `captures/hoshikawa-phase3-houses/` holds the before/after pairs and a pipeline sheet per house (reference, Tripo preview, before, front, oblique, eaves).
+- **Models:** 16,575 / 16,866 / 15,939 / 16,360 / 15,764 triangles (workshop, kura, hall, clinic, farmhouse) with 2048² maps, all under the 20k budget. Each stands on its pad, every vertex within 10 cm of its base on `Height()`'s level ground.
+- **Eaves:** the self-test measures the camera-layer hit straight up from beside each sign: workshop 3.67 m, kura 3.05 m (its door hood), hall 4.10 m (its porch ceiling; the main eave is 3.6 m), teahouse 4.02 m, clinic 3.69 m, farmhouse 2.91 m. Only the teahouse and the hall's porch reach the brief's 4 m: at 4 m the other walls would be 12–14 m wide. In the eaves captures the spring arm stops under the workshop, hall, clinic and farmhouse eaves. The kura's eave overhangs only about 0.4 m, so the camera rises past it, as it did past the `Minka()` kura's.
+- **Self-test:** **360 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro; the pilot fix had 355). The five archetype checks became the teahouse's model check for every house: under 20k triangles, textured and tinted, taller than 6 m, footprint on the level pad. The eaves check now casts from beside each sign and asserts the hit is within 0.3 m of the table's eave height. The wall check, which only the teahouse had, runs for all six and stops at the model's front wall within 10 cm. The decks-and-steps check became a check that each of the four pots stands within 3 cm of the deck or ground under it. All four village corridors stay clear and the water edges stay buried. Both runs exit 0 with `SELF_TEST_PASS`. `just unit` passes 15 cases, `just e2e` 4.
+- **Render cost** (`render_cost.gd`, `--disable-vsync --fixed-fps 60`): draws 1127/1071/1216 → 1071/1029/1140, since the timber frames' merged cells and roof meshes are gone. Primitives 2.773M/2.563M/2.642M → 2.992M/2.749M/2.853M (+7–8%), from the five 16k-triangle models in the colour and shadow passes. CPU median 0.68–0.75 ms; fps 207–252.
+- **Limits:** the hall's front view has the well in the foreground, as before. The workshop model is open at its doorway, with its interior modelled; the walls box keeps the player out. No physical keyboard/mouse session is claimed.
+
 ## Environment revamp, phase 3 pilot fix — 2026-10-20
 
 The user reviewed the pilot and asked to fix only the teahouse's eaves camera and its floating sign and lantern. No Tripo calls; the other five buildings are unchanged.

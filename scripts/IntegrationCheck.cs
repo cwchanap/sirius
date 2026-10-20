@@ -34,11 +34,10 @@ public static class IntegrationCheck
         foreach(var (name,_,_,_,style) in Hoshikawa.World.Hamlet)
         {
             var b=g.World.Buildings.Single(n=>n.Name==name);
-            if(style!="teahouse"){Check(b.FindChild(style=="farmhouse"?"Thatch roof":style is "kura" or "workshop" or "clinic"?"Gable roof":"Irimoya roof",false,false)!=null,name+" uses its "+style+" archetype");continue;}
             var mesh=ActorVisual.Descendants(b).OfType<MeshInstance3D>().Single(m=>m.Mesh is ArrayMesh);var box=b.GlobalTransform.AffineInverse()*mesh.GlobalTransform*mesh.GetAabb();int tris=mesh.Mesh.GetFaces().Length/3;
             var foot=mesh.Mesh.GetFaces().Select(v=>mesh.GlobalTransform*v).Where(v=>v.Y<b.GlobalPosition.Y+.1f).ToArray();
-            Check(tris<20000&&mesh.MaterialOverride is BaseMaterial3D{AlbedoTexture:not null,NormalEnabled:true,AlbedoColor.R:>1}&&Math.Abs(box.Position.Y)<.05f&&box.Size.Y>7
-                &&foot.Length>0&&foot.All(v=>Math.Abs(Hoshikawa.World.Height(v.X,v.Z)-b.GlobalPosition.Y)<.05f),$"{name} is Tripo's textured teahouse, brightened, and its footprint stands on its level pad, {tris} triangles");
+            Check(tris<20000&&mesh.MaterialOverride is BaseMaterial3D{AlbedoTexture:not null,NormalEnabled:true,AlbedoColor.R:>1}&&Math.Abs(box.Position.Y)<.05f&&box.Size.Y>6
+                &&foot.Length>0&&foot.All(v=>Math.Abs(Hoshikawa.World.Height(v.X,v.Z)-b.GlobalPosition.Y)<.05f),$"{name} is Tripo's textured {style}, brightened, and its footprint stands on its level pad, {tris} triangles");
         }
         Check(g.World.Buildings.Where(b=>b.Position.Z<-136).All(b=>b.FindChild("Ceramic tile roof",false,false)!=null),"Komorebi keeps its buildings");
         foreach(var (name,_,_,_,_) in Hoshikawa.World.Hamlet)
@@ -52,11 +51,6 @@ public static class IntegrationCheck
                 {best=hit.AsVector3().Y-p.Y;under=(faces[i+2]-faces[i]).Cross(faces[i+1]-faces[i]).Y<0;}
                 return under;}),name+" sign hangs under its eaves, clear of the roof");
         }
-        var decks=ActorVisual.Descendants(g.World).OfType<MeshInstance3D>().Where(m=>m.Name=="Engawa deck"||m.Name=="Wide stone step").ToArray();
-        var pots=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().StartsWith("Plant pot")).ToArray();
-        Check(pots.Length==4&&decks.Length==3,"hall and clinic have their potted plants, decks and steps");
-        foreach(var pot in pots)
-            Check(decks.All(d=>{var l=d.ToLocal(pot.GlobalPosition);var s=((BoxMesh)d.Mesh).Size;return Math.Abs(l.X)>s.X/2+.2f||Math.Abs(l.Z)>s.Z/2+.2f||l.Y-.16f>=s.Y/2-.01f;}),"plant pot stands clear of decks and steps: "+pot.Name);
         Check(Hoshikawa.World.Height(Hoshikawa.World.BrookX(30),30)<-.8f,"brook channel is carved");
         Vector3 MeshVertex(int x,int z)=>new(x,Hoshikawa.World.Height(x,z),z);
         float steepest=0;
@@ -337,16 +331,23 @@ public static class IntegrationCheck
                 return space.IntersectRay(PhysicsRayQueryParameters3D.Create(new(p.X-side.X,y,p.Y-side.Y),new(p.X+side.X,y,p.Y+side.Y),1)).Count>0;}).ToArray();
             Check(blocked.Length==0,$"village corridor {from}->{to} is clear {string.Join(" ",blocked)}");
         }
-        foreach(var (name,_,size,_,_) in Hoshikawa.World.Hamlet)
+        foreach(var (name,_,size,_,style) in Hoshikawa.World.Hamlet)
         {
-            var under=g.World.Buildings.Single(n=>n.Name==name).ToGlobal(new(0,1.2f,size.Z/2+.4f));
-            bool Stops(uint mask)=>space.IntersectRay(PhysicsRayQueryParameters3D.Create(under,under+Vector3.Up*8,mask)).Count>0;
-            Check(Stops(Hoshikawa.World.CameraLayer)&&!Stops(1),name+" eaves stop the camera's spring arm but not the player or robots");
+            // Up from beside the sign, the first thing met is the model's camera-only shell at the eave; along the ground, its front wall.
+            var b=g.World.Buildings.Single(n=>n.Name==name);var (_,walls,sign)=Hoshikawa.World.TripoHouses[style];var under=b.ToGlobal(new(sign.X,1.2f,walls.End.Y+.4f));
+            Godot.Collections.Dictionary Up(uint mask)=>space.IntersectRay(PhysicsRayQueryParameters3D.Create(under,under+Vector3.Up*8,mask));
+            var eave=Up(Hoshikawa.World.CameraLayer);float eaveY=eave.Count>0?b.ToLocal((Vector3)eave["position"]).Y:0;
+            Check(eave.Count>0&&Up(1).Count==0&&eaveY>size.Y-.3f,$"{name} eaves stop the camera's spring arm {eaveY:F2} m up but not the player or robots");
+            var front=space.IntersectRay(PhysicsRayQueryParameters3D.Create(b.ToGlobal(new(walls.Position.X+1,1,walls.End.Y+2.5f)),b.ToGlobal(new(walls.Position.X+1,1,0)),1));
+            Check(front.Count>0&&b.IsAncestorOf((Node)front["collider"])&&Math.Abs(b.ToLocal((Vector3)front["position"]).Z-walls.End.Y)<.1f,name+" walls stop the player at the Tripo model's front wall");
         }
-        var kettle=g.World.Buildings.Single(n=>n.Name=="The Copper Kettle");var front=space.IntersectRay(PhysicsRayQueryParameters3D.Create(kettle.ToGlobal(new(1.5f,1,6)),kettle.ToGlobal(new(1.5f,1,0)),1));
-        var eave=space.IntersectRay(PhysicsRayQueryParameters3D.Create(kettle.ToGlobal(new(0,1.2f,3.9f)),kettle.ToGlobal(new(0,8,3.9f)),Hoshikawa.World.CameraLayer));
-        Check(front.Count>0&&kettle.IsAncestorOf((Node)front["collider"])&&Math.Abs(kettle.ToLocal((Vector3)front["position"]).Z-3.5f)<.05f&&eave.Count>0&&kettle.ToLocal((Vector3)eave["position"]).Y>3.8f,
-            "The Copper Kettle's walls stop the player at the Tripo model's front wall, and its eaves stop the camera 4 m up");
+        var pots=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().StartsWith("Plant pot")).ToArray();
+        Check(pots.Length==4,"hall and clinic have their potted plants");
+        foreach(var pot in pots)
+        {
+            var bottom=pot.GlobalPosition-new Vector3(0,.16f,0);var hit=space.IntersectRay(PhysicsRayQueryParameters3D.Create(bottom+Vector3.Up*.3f,bottom-Vector3.Up*.3f,1));
+            Check(hit.Count>0&&Math.Abs(((Vector3)hit["position"]).Y-bottom.Y)<.03f,"plant pot stands on the deck or ground under it: "+pot.Name);
+        }
         var well=g.World.GetNode<Node3D>("Village well");var wellMesh=ActorVisual.Descendants(well).OfType<MeshInstance3D>().Single();var wellBox=wellMesh.GlobalTransform*wellMesh.GetAabb();
         Check(wellMesh.Mesh.GetFaces().Length/3<10000&&wellMesh.MaterialOverride is BaseMaterial3D{AlbedoTexture:not null,NormalEnabled:true,AlbedoColor.R:>1}&&Math.Abs(wellBox.Position.Y-Hoshikawa.World.Height(-3.2f,24))<.05f&&wellBox.Size.Y>2.6f,
             $"the village well is Tripo's textured model, brightened, grounded, {wellMesh.Mesh.GetFaces().Length/3} triangles");

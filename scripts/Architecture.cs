@@ -1,7 +1,7 @@
 using Godot;
 namespace Hoshikawa;
 
-// Japanese rural buildings for Hoshikawa: a curved-roof generator and a timber-frame kit driven by World.Hamlet.
+// Japanese rural buildings for Hoshikawa: a curved-roof generator (the shrine's) and the Tripo houses World.Hamlet places.
 public partial class World
 {
     private ShaderMaterial VillageAtlas(Vector2 cell,Vector2 repeats,Color? tint=null)
@@ -95,183 +95,58 @@ public partial class World
         if(!straw)foreach(float sx in new[]{-1f,1f})Box(roofNode,"Onigawara",new(sx*ridge/2,Y(0,0)+.2f,0),new(.18f,.5f,.42f),Mat(new("4d5358")));
         return roofNode;
     }
-    private static float DoorX(string style,float w)=>style switch{"workshop"=>-w*.18f,"farmhouse"=>-w*.2f,_=>0};
+    // Every Hoshikawa house is a Tripo model facing its own +X, so each turns a quarter to face its table's +Z. At is where the model's
+    // origin stands, Walls the footprint its walls box fills (the front wall on its far edge) and Sign the shop sign's centre, its Z out
+    // from that wall; the table's size.Y is the eave the sign's cords reach. The hall's porch steps and the clinic's engawa reach 2.1 m
+    // out, past the pad's 1.6 m apron, so those two walls sit back from the table's front edge to keep every foot vertex on level ground.
+    public static readonly Dictionary<string,(Vector2 At,Rect2 Walls,Vector3 Sign)> TripoHouses=new()
+    {
+        ["workshop"]=(new(-.02f,.3f),new(-5.83f,-2.89f,9.44f,6.39f),new(-.8f,3,.25f)),
+        ["kura"]=(new(0,.025f),new(-3.1f,-1.835f,6.2f,3.67f),new(0,2.7f,.5f)),
+        ["hall"]=(new(0,.22f),new(-5.41f,-3.7f,10.82f,6.75f),new(0,2.75f,.25f)),
+        ["teahouse"]=(new(0,.23f),new(-4.85f,-3,9.7f,6.5f),new(0,3.2f,.25f)),
+        ["clinic"]=(new(.05f,.18f),new(-5,-2.84f,10,4.94f),new(0,3,.25f)),
+        ["farmhouse"]=(new(0,.05f),new(-5.45f,-3.55f,10.9f,7.1f),new(-1.2f,2.5f,.25f)),
+    };
     public Node3D Minka(string name,Vector2 at,Vector3 size,float yaw,string style)
     {
         var b=new Node3D{Name=name,Position=new(at.X,Height(at.X,at.Y),at.Y),RotationDegrees=new(0,yaw,0)};AddChild(b);Buildings.Add(b);
-        if(style=="teahouse"){Teahouse(b,name,size.Z);return b;}
-        float w=size.X,h=size.Y,d=size.Z,f=.35f;
-        bool kura=style=="kura",thatch=style=="farmhouse",irimoya=style is "hall" or "farmhouse",engawa=style is "clinic" or "farmhouse";
-        var timber=Mat(new("3f3026"));var paper=Mat(new("efe6cf"),.08f);var boards=VillageAtlas(new(1,0),new(9,2));
-        Material plaster=style switch{"farmhouse" or "workshop"=>VillageAtlas(new(0,1),new(6,4)),"kura"=>Mat(new("ece6d6")),"clinic"=>Mat(new("e6e6d8")),_=>Mat(new("e9dfc6"))};
-        Material tiles=style switch{"clinic"=>VillageAtlas(new(1,1),Vector2.One,new(1,.62f,.52f)),"workshop"=>VillageAtlas(new(1,1),Vector2.One,new(.92f,.88f,.84f)),_=>VillageAtlas(new(1,1),Vector2.One)};
-        Box(b,"Stone foundation",new(0,f/2,0),new(w+.5f,f,d+.5f),stone,true);
-        Box(b,"Plaster walls",new(0,(f+h)/2,0),new(w,h-f,d),plaster,true);
-        float overhang=kura?.5f:engawa?1.3f:irimoya?1.05f:.85f,thick=thatch?.45f:kura?.32f:.24f;
-        float hz=d/2+overhang,rise=thatch?.95f*hz:kura?.5f*hz:.58f*hz;string kind=thatch?"thatch":irimoya?"irimoya":"gable";
-        var roofNode=Roof(b,thatch?"Thatch roof":irimoya?"Irimoya roof":"Gable roof",w,d,rise,overhang,kind,thatch?VillageAtlas(new(0,0),Vector2.One):tiles,thick,kura?plaster:null);
-        roofNode.Position=new(0,h,0);
-        float Under(float x,float z)=>h+RoofY(kind,w,d,rise,overhang,thick,x,z)-thick;
-        // Lower band: cedar wainscot, or the kura's namako tile panel with white diagonal battens.
-        float band=kura?1.4f:.9f;
-        foreach(float s in new[]{-1f,1f})
+        var (to,walls,sign)=TripoHouses[style];float eave=size.Y,front=walls.End.Y;
+        var mesh=ActorVisual.Descendants(Model(b,"Tripo "+style,style,new(to.X,0,to.Y),-90,new(1.3f,1.3f,1.3f))).OfType<MeshInstance3D>().Single();
+        var shell=mesh.Mesh.CreateTrimeshShape();shell.BackfaceCollision=true;CameraStop(mesh,shell);
+        // The player meets the model's own walls, posts, decks and steps below the eaves (not its ground faces), and a box fills the walls so doorways stay shut.
+        var local=b.GlobalTransform.AffineInverse()*mesh.GlobalTransform;var faces=mesh.Mesh.GetFaces();var low=new List<Vector3>();
+        for(int i=0;i<faces.Length;i+=3){var ys=faces[i..(i+3)].Select(v=>(local*v).Y).ToArray();if(ys.Min()<2.4f&&ys.Max()>.05f)low.AddRange(faces[i..(i+3)]);}
+        var solid=new StaticBody3D();mesh.AddChild(solid);solid.AddChild(new CollisionShape3D{Shape=new ConcavePolygonShape3D{Data=low.ToArray(),BackfaceCollision=true}});
+        var body=new StaticBody3D();b.AddChild(body);
+        body.AddChild(new CollisionShape3D{Position=new(walls.GetCenter().X,eave/2,walls.GetCenter().Y),Shape=new BoxShape3D{Size=new(walls.Size.X,eave,walls.Size.Y)}});
+        var timber=Mat(new("3f3026"));var hang=new Vector3(sign.X,sign.Y,front+sign.Z);
+        ShopSign(b,name,hang);
+        foreach(float x in new[]{-1.1f,1.1f})Box(b,"Sign cord",new(sign.X+x,(sign.Y+.21f+eave)/2,hang.Z),new(.025f,eave-sign.Y-.21f,.025f),timber);
+        if(style=="teahouse")
         {
-            Box(b,"Wainscot",new(0,f+band/2,s*(d/2+.03f)),new(w+.08f,band,.05f),kura?Mat(new("40454b")):boards);
-            Box(b,"Wainscot",new(s*(w/2+.03f),f+band/2,0),new(.05f,band,d+.08f),kura?Mat(new("40454b")):boards);
+            // The chochin hangs from the eave beside the sign, in front of the transom; a bench and a nodate umbrella stand out front.
+            var red=Mat(new("b23a2e"));
+            Sphere(b,"Chochin lantern",new(1.9f,2.9f,front+.35f),new(.2f,.3f,.2f),Mat(new("d4533a"),.45f));
+            foreach(float y in new[]{2.62f,3.18f})Cylinder(b,"Chochin rim",new(1.9f,y,front+.35f),.11f,.06f,timber);
+            Box(b,"Lantern cord",new(1.9f,(3.21f+eave)/2,front+.35f),new(.02f,eave-3.21f,.02f),timber);
+            Box(b,"Tea bench",new(2.2f,.45f,front+1.5f),new(1.9f,.12f,.6f),red,true);
+            foreach(float x in new[]{1.45f,2.95f})Box(b,"Bench leg",new(x,.2f,front+1.5f),new(.1f,.4f,.5f),timber);
+            Cylinder(b,"Nodate umbrella pole",new(3.4f,1.3f,front+1.9f),.03f,2.6f,timber);
+            Mesh(b,"Nodate umbrella",new CylinderMesh{TopRadius=.03f,BottomRadius=1.25f,Height=.45f,RadialSegments=16},new(3.4f,2.45f,front+1.9f),red);
         }
-        if(kura)
+        if(style=="clinic")
         {
-            var batten=Mat(new("f1eee4"));
-            foreach(float s in new[]{-1f,1f})for(float c=-w/2-band;c<w/2;c+=.42f)foreach(float dir in new[]{-1f,1f})
-            {
-                float x0=Math.Max(c,-w/2),x1=Math.Min(c+band,w/2);if(x1-x0<.05f)continue;
-                float y0=dir>0?x0-c:band-(x0-c),y1=dir>0?x1-c:band-(x1-c);
-                Box(b,"Namako batten",new((x0+x1)/2,f+(y0+y1)/2,s*(d/2+.065f)),new((x1-x0)*Mathf.Sqrt2,.045f,.03f),batten).Rotation=new(0,0,dir*Mathf.Pi/4);
-            }
-            Box(b,"Plaster band",new(0,h-.5f,0),new(w+.12f,.16f,d+.12f),plaster);
-        }
-        else
-        {
-            foreach(float s in new[]{-1f,1f})
-            {
-                for(int i=0,n=(int)Math.Ceiling(w/2);i<=n;i++)Box(b,"Timber post",new(-w/2+i*w/n,(f+h)/2,s*(d/2+.04f)),new(.2f,h-f,.1f),timber);
-                for(int i=1,n=(int)Math.Ceiling(d/2);i<n;i++)Box(b,"Timber post",new(s*(w/2+.04f),(f+h)/2,-d/2+i*d/n),new(.1f,h-f,.2f),timber);
-                foreach(float y in new[]{f+band,h-.3f})
-                {
-                    Box(b,"Nuki beam",new(0,y,s*(d/2+.06f)),new(w+.14f,.13f,.09f),timber);
-                    Box(b,"Nuki beam",new(s*(w/2+.06f),y,0),new(.09f,.13f,d+.14f),timber);
-                }
-            }
-        }
-        void Lattice(Vector3 c,float width,float height,float z,bool shoji)
-        {
-            Box(b,shoji?"Shoji paper":"Window paper",c,new(width,height,.04f),paper);
-            Box(b,"Window frame",c+new Vector3(0,height/2+.05f,z),new(width+.16f,.1f,.08f),timber);
-            Box(b,"Window frame",c+new Vector3(0,-height/2-.05f,z),new(width+.16f,.1f,.08f),timber);
-            int bars=(int)(width/(shoji?.3f:.13f));
-            for(int i=1;i<bars;i++)Box(b,"Lattice bar",c+new Vector3(-width/2+i*width/bars,0,z),new(.035f,height,.03f),timber);
-            if(shoji)for(int i=1;i<5;i++)Box(b,"Lattice bar",c+new Vector3(0,-height/2+i*height/5,z),new(width,.035f,.03f),timber);
-        }
-        float front=d/2+.04f,doorX=DoorX(style,w);
-        if(kura)
-        {
-            Box(b,"Kura door surround",new(doorX,f+1.2f,front+.1f),new(1.9f,2.4f,.24f),plaster);
-            Box(b,"Iron door",new(doorX,f+1.05f,front+.23f),new(1.2f,1.9f,.06f),Mat(new("2f3236")));
-            foreach(float s in new[]{-1f,1f})Box(b,"Kannon shutter",new(doorX+s*1.22f,f+1.2f,front+.55f),new(.6f,2.2f,.12f),plaster).Rotation=new(0,s*.9f,0);
-            foreach(float s in new[]{-1f,1f})
-            {
-                Box(b,"High window",new(s*(w/2+.05f),h-1.1f,0),new(.1f,.6f,.7f),Mat(new("2f3236")));
-                Box(b,"High window hood",new(s*(w/2+.16f),h-.72f,0),new(.3f,.12f,1),plaster);
-            }
-        }
-        else if(style is "workshop" or "farmhouse")
-        {
-            Box(b,"Open doorway",new(doorX,f+1.15f,front-.01f),new(2.3f,2.3f,.04f),Mat(new("1c1814")));
-            Box(b,"Sliding board door",new(doorX-1.1f,f+1.15f,front+.06f),new(1.2f,2.3f,.06f),boards);
-            Box(b,"Door lintel",new(doorX,f+2.36f,front+.05f),new(2.7f,.16f,.1f),timber);
-            Lattice(new(w*.28f,f+1.55f,front+.02f),1.6f,1,.03f,false);
-        }
-        else
-        {
-            foreach(float s in new[]{-1f,1f})Lattice(new(doorX+s*.45f,f+1.05f,front+.02f),.88f,2,.03f,true);
-            Box(b,"Door lintel",new(doorX,f+2.12f,front+.05f),new(2.1f,.14f,.1f),timber);
-            foreach(float s in new[]{-1f,1f})Lattice(new(s*w*.32f,f+1.6f,front+.02f),1.3f,.9f,.03f,false);
-        }
-        if(!kura)foreach(float s in new[]{-1f,1f})
-        {
-            var side=new Node3D{Position=new(s*(w/2+.04f),0,0),RotationDegrees=new(0,s*90,0)};b.AddChild(side);
-            Box(side,"Window paper",new(0,f+1.6f,0),new(1.1f,.8f,.04f),paper);
-            for(int i=1;i<8;i++)Box(side,"Lattice bar",new(-.55f+i*1.1f/8,f+1.6f,.03f),new(.035f,.8f,.03f),timber);
-        }
-        Box(b,"Stepping stone",new(doorX,.06f,front+.55f),new(1.4f,.16f,.6f),stone);
-        // The hall's sign sits lower to hang under its kohai porch roof rather than through it.
-        float signY=Math.Min(h-.45f,f+(style=="hall"?2.5f:2.75f));
-        ShopSign(b,name,new(doorX,signY,front+.12f));
-        for(float x=-w/2+.3f;x<=w/2-.3f;x+=.6f)foreach(float s in new[]{-1f,1f})
-        {
-            float z0=s*d/2,z1=s*(d/2+overhang-.08f),y0=Under(x,z0)-.05f,y1=Under(x,z1)-.05f;
-            Box(b,"Rafter tail",new(x,(y0+y1)/2,(z0+z1)/2),new(.07f,.09f,Mathf.Sqrt((z1-z0)*(z1-z0)+(y1-y0)*(y1-y0))),timber).Rotation=new(-Mathf.Atan2(y1-y0,z1-z0),0,0);
-        }
-        if(engawa)
-        {
-            // The farmhouse keeps its doma door and the ground in front of it clear; the veranda runs along the living rooms.
-            float deck=overhang-.25f,x0=thatch?doorX+1.5f:-w/2-.15f,x1=w/2+.15f,zp=d/2+deck-.1f;
-            Box(b,"Engawa deck",new((x0+x1)/2,.48f,d/2+deck/2),new(x1-x0,.1f,deck),boards,true);
-            for(int i=0;i<=4;i++)
-            {
-                float x=Mathf.Lerp(x0+.1f,x1-.1f,i/4f);
-                Box(b,"Engawa support",new(x,.22f,zp),new(.12f,.44f,.12f),timber);
-                if(i%4==0)Box(b,"Eave post",new(x,Under(x,zp)/2,zp),new(.16f,Under(x,zp),.16f),timber);
-            }
-        }
-        switch(style)
-        {
-            case "workshop":
-            {
-                float xs=w/2+3.1f,low=2.5f,high=h-.4f;
-                foreach(float z in new[]{-d/2+.4f,d/2-.4f})
-                {
-                    var g=b.ToGlobal(new(xs,0,z));float bottom=Height(g.X,g.Z)-b.Position.Y;
-                    Box(b,"Shed post",new(xs,(bottom+low)/2,z),new(.16f,low-bottom,.16f),timber);
-                }
-                var shed=Box(b,"Lean-to roof",new(w/2+1.6f,(low+high)/2+.1f,0),new(Mathf.Sqrt(3.4f*3.4f+(high-low)*(high-low)),.1f,d+.3f),boards);
-                shed.Rotation=new(0,0,-Mathf.Atan2(high-low,3.4f));CameraStop(shed,new BoxShape3D{Size=((BoxMesh)shed.Mesh).Size});
-                Box(b,"Worktable",new(w/2+1.3f,1,d/4),new(2.2f,.12f,1.1f),boards,true);
-                foreach(float x in new[]{w/2+.5f,w/2+2.1f})
-                {
-                    var g=b.ToGlobal(new(x,0,d/4));float bottom=Height(g.X,g.Z)-b.Position.Y-.02f;
-                    Box(b,"Worktable trestle",new(x,(bottom+.94f)/2,d/4),new(.12f,.94f-bottom,.8f),timber);
-                }
-                for(int i=0;i<3;i++)Cylinder(b,"Salvaged cell",new(w/2+.7f+i*.5f,1.35f,d/4),.16f,.58f,Mat(i==1?Jade:new("79918d")));
-                Cylinder(b,"Stovepipe",new(w/2+.45f,h/2+.6f,-d/2+1.1f),.1f,h+1.2f,Mat(new("33373a")));
-                Cylinder(b,"Stovepipe cap",new(w/2+.45f,h+1.25f,-d/2+1.1f),.2f,.1f,Mat(new("33373a")),.05f);
-                float cz=d/4,cy=Under(-w*.15f,cz)+thick+.08f,tilt=Mathf.Atan2(Under(-w*.15f,cz-.1f)-Under(-w*.15f,cz+.1f),.2f);
-                Box(b,"Offline solar collector",new(-w*.15f,cy,cz),new(2.2f,.08f,1.5f),Mat(new("2f5a66"),.05f)).Rotation=new(tilt,0,0);
-                break;
-            }
-            case "hall":
-            {
-                var porch=new Node3D{Position=new(0,f+2.7f,d/2+.9f),RotationDegrees=new(0,90,0)};b.AddChild(porch);
-                Roof(porch,"Kohai porch roof",2.2f,3,.95f,.35f,"gable",VillageAtlas(new(1,1),Vector2.One),.18f);
-                foreach(float s in new[]{-1.35f,1.35f})Box(b,"Porch post",new(s,(f+2.7f)/2,d/2+1.75f),new(.18f,f+2.7f,.18f),timber);
-                Box(b,"Porch beam",new(0,f+2.66f,d/2+1.75f),new(3,.16f,.16f),timber);
-                Box(b,"Wide stone step",new(0,.1f,d/2+1.1f),new(3.2f,.2f,1.4f),stone);
-                break;
-            }
-            case "clinic":
-            {
-                Box(b,"Medic banner",new(w/2-.4f,2.1f,d/2+overhang-.15f),new(.7f,1.5f,.04f),Mat(new("edf0d8")));
-                Box(b,"Medic cross vertical",new(w/2-.4f,2.2f,d/2+overhang-.12f),new(.14f,.62f,.03f),Mat(new("638d75")));
-                Box(b,"Medic cross horizontal",new(w/2-.4f,2.2f,d/2+overhang-.12f),new(.45f,.14f,.03f),Mat(new("638d75")));
-                Box(b,"Herb rack rail",new(-w/2-.9f,1.9f,0),new(.08f,.08f,2.4f),timber);
-                foreach(float z in new[]{-1.2f,1.2f})Box(b,"Herb rack post",new(-w/2-.9f,.95f,z),new(.1f,1.9f,.1f),timber);
-                for(int i=0;i<6;i++)Box(b,"Drying herbs",new(-w/2-.9f,1.62f,-1+i*.4f),new(.14f,.45f,.14f),Mat(new(i%2==0?"7f9a55":"a4a06a")));
-                break;
-            }
+            // The medic banner hangs just under the engawa's eave beam (3.16 m) at one end; herbs dry by the gable at the other.
+            Box(b,"Medic banner",new(4.3f,2.37f,front+1.16f),new(.7f,1.54f,.04f),Mat(new("edf0d8")));
+            Box(b,"Medic cross vertical",new(4.3f,2.5f,front+1.19f),new(.14f,.62f,.03f),Mat(new("638d75")));
+            Box(b,"Medic cross horizontal",new(4.3f,2.5f,front+1.19f),new(.45f,.14f,.03f),Mat(new("638d75")));
+            float hx=walls.Position.X-.75f,hz=walls.GetCenter().Y;
+            Box(b,"Herb rack rail",new(hx,1.9f,hz),new(.08f,.08f,2.4f),timber);
+            foreach(float z in new[]{-1.2f,1.2f})Box(b,"Herb rack post",new(hx,.95f,hz+z),new(.1f,1.9f,.1f),timber);
+            for(int i=0;i<6;i++)Box(b,"Drying herbs",new(hx,1.62f,hz-1+i*.4f),new(.14f,.45f,.14f),Mat(new(i%2==0?"7f9a55":"a4a06a")));
         }
         return b;
-    }
-    // The Tripo teahouse faces its own +X and is 6.5 m deep against the table's 7, so it turns a quarter and steps forward until its front wall stands on the table's.
-    // At 7.2 m its eaves are 4 m up, as the Minka's were, so the spring arm under them sits as high; its roof overhangs the pad's level apron, its foundation does not.
-    private void Teahouse(Node3D b,string name,float d)
-    {
-        float z=d/2-3.27f,eave=4.03f;
-        var mesh=ActorVisual.Descendants(Model(b,"Tripo teahouse","teahouse",new(0,0,z),-90,new(1.3f,1.3f,1.3f))).OfType<MeshInstance3D>().Single();
-        var shell=mesh.Mesh.CreateTrimeshShape();shell.BackfaceCollision=true;CameraStop(mesh,shell);
-        var body=new StaticBody3D();b.AddChild(body);
-        body.AddChild(new CollisionShape3D{Position=new(0,1.8f,z+.02f),Shape=new BoxShape3D{Size=new(9.7f,3.6f,6.5f)}});
-        body.AddChild(new CollisionShape3D{Position=new(0,.35f,z+.02f),Shape=new BoxShape3D{Size=new(10,.7f,6.92f)}});
-        // The sign and the chochin hang on cords from the eave's underside, in front of the noren and the transom.
-        var timber=Mat(new("3f3026"));var red=Mat(new("b23a2e"));
-        ShopSign(b,name,new(0,3.2f,d/2+.25f));
-        foreach(float x in new[]{-1.1f,1.1f})Box(b,"Sign cord",new(x,(3.41f+eave)/2,d/2+.25f),new(.025f,eave-3.41f,.025f),timber);
-        Sphere(b,"Chochin lantern",new(1.9f,2.9f,d/2+.35f),new(.2f,.3f,.2f),Mat(new("d4533a"),.45f));
-        foreach(float y in new[]{2.62f,3.18f})Cylinder(b,"Chochin rim",new(1.9f,y,d/2+.35f),.11f,.06f,timber);
-        Box(b,"Lantern cord",new(1.9f,(3.21f+eave)/2,d/2+.35f),new(.02f,eave-3.21f,.02f),timber);
-        Box(b,"Tea bench",new(2.2f,.45f,d/2+1.5f),new(1.9f,.12f,.6f),red,true);
-        foreach(float x in new[]{1.45f,2.95f})Box(b,"Bench leg",new(x,.2f,d/2+1.5f),new(.1f,.4f,.5f),timber);
-        Cylinder(b,"Nodate umbrella pole",new(3.4f,1.3f,d/2+1.9f),.03f,2.6f,timber);
-        Mesh(b,"Nodate umbrella",new CylinderMesh{TopRadius=.03f,BottomRadius=1.25f,Height=.45f,RadialSegments=16},new(3.4f,2.45f,d/2+1.9f),red);
     }
     private void ShopSign(Node3D b,string name,Vector3 at)
     {
