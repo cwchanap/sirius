@@ -106,5 +106,19 @@ func review():
 		camera.position=view[1]
 		camera.look_at(view[2])
 		await shot(view[0])
+	# Later props are framed from the ground under them: [name, prop x/z, camera offset, look height].
+	var space=root.get_world_3d().direct_space_state
+	for view in [["prop-lantern-village",Vector2(-6.5,17.5),Vector3(2.3,1.5,-2.4),1.0],["prop-cart",Vector2(12.9,1.6),Vector3(2.4,1.6,-2.8),.6],["prop-notice",Vector2(6.4,17.2),Vector3(-2.9,.4,-1.7),1.4]]:
+		if not wanted(view[0]): continue
+		mio.position=Vector3(0,.1,22)
+		var ray=PhysicsRayQueryParameters3D.create(Vector3(view[1].x,50,view[1].y),Vector3(view[1].x,-50,view[1].y),1)
+		var hit=space.intersect_ray(ray)
+		while hit.collider.name!="Terrain collision":
+			ray.exclude+=[hit.rid]
+			hit=space.intersect_ray(ray)
+		var target=Vector3(view[1].x,hit.position.y+view[3],view[1].y)
+		camera.position=target+view[2]
+		camera.look_at(target)
+		await shot(view[0])
 	print("REVAMP_REVIEW_OK")
 	quit()
