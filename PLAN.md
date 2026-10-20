@@ -136,5 +136,7 @@ Bring the non-character environment up to the Tripo characters' detail: semi-rea
 - [x] Phase 1e: camera-only roof colliders on layer 8, so the spring arm stays under the eaves. 345 checks pass headless and in native Metal.
 - [x] Phase 2 pilot, Tripo: the village well, generated with the Tripo API (55 credits), imported static at 8,182 triangles with 2048² PBR maps, and given fitted collision and a camera-only roof.
 - [x] Phase 2 pilot, Blender: `tools/build_village_props.py` builds the lamp, bench, barrel and bamboo fence on the existing atlases. `World.Prop()` swaps the box-built versions, keeping positions, node names and colliders, and `Merge()` bakes them. 348 checks pass headless and in native Metal.
-- [ ] Phase 2, remaining Tripo props (stone lanterns and others). Waiting on the user's review of the pilot.
+- [x] Phase 2b: brighten the Tripo well (albedo tint) and the cedar props (atlas tint, no new material).
+- [x] Phase 2b, Tripo: the stone lantern (all four), the handcart with its rice bales and the notice board (150 credits), each under 8,200 triangles with 2048² PBR maps and fitted colliders. 354 checks pass headless and in native Metal.
+- [ ] Phase 2, remaining box-built props (plant pots, field fences, Komorebi's benches).
 - [ ] Phase 3: buildings.

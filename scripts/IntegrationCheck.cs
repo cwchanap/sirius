@@ -342,6 +342,14 @@ public static class IntegrationCheck
         var post=space.IntersectRay(PhysicsRayQueryParameters3D.Create(well.GlobalPosition+new Vector3(2,1.5f,0),well.GlobalPosition+new Vector3(0,1.5f,0),1));
         var wellRoof=space.IntersectRay(PhysicsRayQueryParameters3D.Create(well.GlobalPosition+Vector3.Up*6,well.GlobalPosition+Vector3.Up*1.2f,Hoshikawa.World.CameraLayer));
         Check(post.Count>0&&Math.Abs(((Vector3)post["position"]).X-well.GlobalPosition.X-.9f)<.05f&&wellRoof.Count>0,"the well's posts block the player and its roof stops the camera");
+        foreach(var (model,x,z,height) in new[]{("lantern",-2.6f,57.5f,1.75f),("lantern",.6f,57.5f,1.75f),("lantern",-6.5f,17.5f,1.75f),("lantern",-6.5f,29f,1.75f),("cart",12.9f,1.6f,1f),("notice",6.4f,17.2f,2.3f)})
+        {
+            var prop=g.World.GetChildren().OfType<Node3D>().Single(n=>Math.Abs(n.Position.X-x)<.01f&&Math.Abs(n.Position.Z-z)<.01f&&n.GetChildren().OfType<StaticBody3D>().Any());
+            var mesh=ActorVisual.Descendants(prop).OfType<MeshInstance3D>().Single();var box=mesh.GlobalTransform*mesh.GetAabb();int tris=mesh.Mesh.GetFaces().Length/3;
+            var hit=space.IntersectRay(PhysicsRayQueryParameters3D.Create(prop.ToGlobal(new(0,.6f,3)),prop.ToGlobal(new(0,.6f,0)),1));
+            Check(tris<10000&&mesh.MaterialOverride is BaseMaterial3D{AlbedoTexture:not null,NormalEnabled:true,AlbedoColor.R:>1}&&Math.Abs(box.Position.Y-Hoshikawa.World.Height(x,z))<.05f&&Math.Abs(box.Size.Y-height)<.1f
+                &&hit.Count>0&&prop.IsAncestorOf((Node)hit["collider"]),$"the {model} at ({x}, {z}) is Tripo's textured model, brightened, grounded and solid, {tris} triangles");
+        }
         var villageTrees=g.World.GetChildren().OfType<Node3D>().Where(n=>n.Position.Z>0&&n.Position.Z<76&&Math.Abs(n.Position.X)<40&&n.GetChildren().OfType<StaticBody3D>().Any()
             &&"keyaki sugi sakura bamboo shrub".Split(' ').Any(s=>n.Name.ToString().Contains(s))).ToArray();
         Check(villageTrees.Length>=30,$"Hoshikawa is planted with {villageTrees.Length} trees and shrubs");

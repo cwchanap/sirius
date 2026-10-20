@@ -1,5 +1,15 @@
 # MVP verification
 
+## Environment revamp, phase 2b — 2026-10-19
+
+The Tripo well and the cedar props (benches, lamps, barrels) are brightened. Three more Tripo models replace box-built props: the stone lantern (all four), the handcart and the notice board. No character, building or terrain changed.
+
+- **Captures:** `tools/review_revamp.gd` gained three views framed from the ground under the prop: a village lantern, the cart and the notice board. All 22 views were taken before (4a1de3e) and after, in native Metal.
+- **Models:** 7,748 / 8,168 / 7,605 triangles with 2048² maps. Tripo previews and in-game views from front and back show no baked-texture errors. The first capture showed the notice board's blank back to the road, so it was turned 180°.
+- **Self-test:** **354 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro; the pilot had 348). The six new checks cover each placement: under 10k triangles, textured and tinted, standing on `Height()` within 5 cm at the expected height, and solid to a ray at hip height. Both runs exit 0 with `SELF_TEST_PASS`. `just unit` passes 15 cases, `just e2e` 4.
+- **Render cost** (`render_cost.gd`, `--disable-vsync --fixed-fps 60`): draws 1140/1072/1230 → 1139/1071/1230, primitives 2.63M/2.48M/2.50M → 2.72M/2.57M/2.60M. Each Tripo model adds a draw, which roughly offsets the merged primitive cells it replaced. The extra ~47k triangles, drawn in both the colour and shadow passes, account for the primitives. Four lanterns did not justify a MultiMesh. CPU median 0.72–0.80 ms; fps 150–241.
+- **Limits:** the plant pots, field fences and Komorebi's benches are still box-built. The lanterns' paper screens no longer glow. No physical keyboard/mouse session is claimed.
+
 ## Environment revamp, phase 2 pilot — 2026-10-19
 
 One Tripo prop (the village well) and five Blender props (lamp, bench, barrel, bamboo fence post and bay) replace box-built versions. No character, building or terrain changed.
