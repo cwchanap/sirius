@@ -337,8 +337,8 @@ public static class IntegrationCheck
             Check(Stops(Hoshikawa.World.CameraLayer)&&!Stops(1),name+" eaves stop the camera's spring arm but not the player or robots");
         }
         var well=g.World.GetNode<Node3D>("Village well");var wellMesh=ActorVisual.Descendants(well).OfType<MeshInstance3D>().Single();var wellBox=wellMesh.GlobalTransform*wellMesh.GetAabb();
-        Check(wellMesh.Mesh.GetFaces().Length/3<10000&&wellMesh.Mesh.SurfaceGetMaterial(0) is BaseMaterial3D{AlbedoTexture:not null,NormalEnabled:true}&&Math.Abs(wellBox.Position.Y-Hoshikawa.World.Height(-3.2f,24))<.05f&&wellBox.Size.Y>2.6f,
-            $"the village well is Tripo's textured model, grounded, {wellMesh.Mesh.GetFaces().Length/3} triangles");
+        Check(wellMesh.Mesh.GetFaces().Length/3<10000&&wellMesh.MaterialOverride is BaseMaterial3D{AlbedoTexture:not null,NormalEnabled:true,AlbedoColor.R:>1}&&Math.Abs(wellBox.Position.Y-Hoshikawa.World.Height(-3.2f,24))<.05f&&wellBox.Size.Y>2.6f,
+            $"the village well is Tripo's textured model, brightened, grounded, {wellMesh.Mesh.GetFaces().Length/3} triangles");
         var post=space.IntersectRay(PhysicsRayQueryParameters3D.Create(well.GlobalPosition+new Vector3(2,1.5f,0),well.GlobalPosition+new Vector3(0,1.5f,0),1));
         var wellRoof=space.IntersectRay(PhysicsRayQueryParameters3D.Create(well.GlobalPosition+Vector3.Up*6,well.GlobalPosition+Vector3.Up*1.2f,Hoshikawa.World.CameraLayer));
         Check(post.Count>0&&Math.Abs(((Vector3)post["position"]).X-well.GlobalPosition.X-.9f)<.05f&&wellRoof.Count>0,"the well's posts block the player and its roof stops the camera");

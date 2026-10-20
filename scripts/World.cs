@@ -168,8 +168,19 @@ public partial class World : Node3D
     private Material PropMaterial(string name)
     {
         if(!propMaterials.TryGetValue(name,out var m))
-            propMaterials[name]=m=name switch{"cedar"=>VillageAtlas(new(1,0),Vector2.One),"paper"=>Mat(new("f8d48c"),.35f),_=>TreeMaterial(name)};
+            propMaterials[name]=m=name switch{"cedar"=>VillageAtlas(new(1,0),Vector2.One,new(1.55f,1.5f,1.45f)),"paper"=>Mat(new("f8d48c"),.35f),_=>TreeMaterial(name)};
         return m;
+    }
+    // Tripo props (assets/models/NAME.glb) are placed whole, unmerged. Their albedo comes out darker than the village atlas,
+    // so one tinted copy of the model's material, shared by its instances, lifts it; the tint is the per-model brightness knob.
+    private readonly Dictionary<string,Material> modelMaterials=new();
+    private Node3D Model(Node3D parent,string name,string model,Vector3 pos,float yaw,Color tint)
+    {
+        var n=new Node3D{Name=name,Position=pos,RotationDegrees=new(0,yaw,0)};parent.AddChild(n);
+        var scene=GD.Load<PackedScene>($"res://assets/models/{model}.glb").Instantiate<Node3D>();n.AddChild(scene);
+        var mesh=ActorVisual.Descendants(scene).OfType<MeshInstance3D>().Single();
+        if(!modelMaterials.TryGetValue(model,out var m)){var copy=(BaseMaterial3D)mesh.Mesh.SurfaceGetMaterial(0).Duplicate();copy.AlbedoColor=tint;modelMaterials[model]=m=copy;}
+        mesh.MaterialOverride=m;return n;
     }
     public static MeshInstance3D Box(Node3D parent, string name, Vector3 pos, Vector3 size, Material material, bool solid = false)
     {
@@ -286,8 +297,7 @@ public partial class World : Node3D
         Resident("Sora", "COURIER", "I saw three sentries on the old relay road. Watch for the red diamond: that sweeping attack cannot be blocked. Dodge through it or jump away.",new(6.8f,0,22),4,Face(6.8f,22));
         Resident("KOMA-7", "OFFLINE GARDENER", "Morning diagnostic: tomatoes healthy. Humans worried. Zero is still in the city. This unit is KOMA. Different machine; equally excellent company.",new(8.3f,0,11.5f),5,Face(8.3f,11.5f));
         // The Tripo well (assets/models/well.glb) stands its posts on its own Z axis; a quarter turn spans them east-west like the old well.
-        var well=new Node3D {Name="Village well",Position=new(-3.2f,Height(-3.2f,24),24),RotationDegrees=new(0,90,0)};AddChild(well);
-        well.AddChild(GD.Load<PackedScene>("res://assets/models/well.glb").Instantiate<Node3D>());
+        var well=Model(this,"Village well","well",new(-3.2f,Height(-3.2f,24),24),90,new(1.45f,1.45f,1.45f));
         var wellBody=new StaticBody3D();well.AddChild(wellBody);
         wellBody.AddChild(new CollisionShape3D {Position=new(0,.46f,0),Shape=new CylinderShape3D {Radius=.84f,Height=.92f}});
         foreach(float z in new[]{-.79f,.79f})wellBody.AddChild(new CollisionShape3D {Position=new(0,1,z),Shape=new BoxShape3D {Size=new(.22f,2,.22f)}});
