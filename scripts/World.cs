@@ -20,9 +20,9 @@ public partial class World : Node3D
         return Mathf.Lerp(original, pass, Mathf.SmoothStep(0,12,-z-72)) * (1-Mathf.SmoothStep(0,12,-z-134));
     }
     public static readonly (string Name,Vector2 At,Vector3 Size,float Yaw,string Style)[] Hamlet={
-        ("Kisaragi Workshop",new(-11,9),new(8,4,7),75,"workshop"),("Seed & Grain",new(12.5f,6),new(6,4.6f,5.5f),-95,"kura"),
-        ("Village Assembly",new(-12.5f,21),new(9,5,7),82,"hall"),("The Copper Kettle",new(12,24),new(8,4.5f,7),-80,"teahouse"),
-        ("Hoshikawa Clinic",new(-11.5f,37),new(7,3.5f,6),98,"clinic"),("Mori Farmhouse",new(11,41.5f),new(8.5f,3.4f,6.5f),-70,"farmhouse")};
+        ("Kisaragi Workshop",new(-10.37f,6.63f),new(9.2f,3.61f,7),75,"workshop"),("Seed & Grain",new(12.5f,6),new(6.2f,3.24f,3.67f),-95,"kura"),
+        ("Village Assembly",new(-12.8f,21.78f),new(10.82f,3.6f,7.4f),82,"hall"),("The Copper Kettle",new(12,24),new(8,4.03f,7),-80,"teahouse"),
+        ("Hoshikawa Clinic",new(-11.05f,37.54f),new(10,3.62f,5.68f),98,"clinic"),("Mori Farmhouse",new(11.81f,42.27f),new(10.9f,2.9f,7.1f),-70,"farmhouse")};
     public static readonly Vector2 ShrineCenter=new(-1,63);
     public static readonly (Vector2 From,Vector2 To)[] Footpaths={(new(0,15),new(17.2f,15)),(new(21.4f,15),new(34,15)),(new(34,15),new(34,20))};
     public static bool OnFootpath(Vector2 p,float margin)=>Footpaths.Any(f=>Geometry2D.GetClosestPointToSegment(p,f.From,f.To).DistanceTo(p)<1.2f+margin);

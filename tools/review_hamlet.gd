@@ -29,6 +29,7 @@ func review():
 		["square",Vector3(9,7,34),Vector3(-3,1,22),Vector3(1,.1,27)],
 		["workshop",Vector3(3,5.5,1),Vector3(-11,2,10),Vector3(-3,.1,12)],
 		["east-row",Vector3(-5,6,16),Vector3(12,2,30),Vector3(3,.1,20)],
+		["west-row",Vector3(6,6,44),Vector3(-12,2,18),Vector3(3,.1,30)],
 		["brook-bridge",Vector3(27,4.5,7),Vector3(19.5,0,15),Vector3(15,.1,15)],
 		["brook-mouth",Vector3(25,2.2,-1),Vector3(18.5,-.6,-6.5),Vector3(14,.1,1)],
 		["shrine-approach",Vector3(3,4,43),Vector3(-1,3,62),Vector3(-.5,.1,48)],

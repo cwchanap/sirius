@@ -1,10 +1,13 @@
 extends SceneTree
 
 # Fixed before/after viewpoints for the environment revamp: close-ups of the vegetation and light review_hamlet.gd misses,
-# the gameplay spring camera at the tea house eaves, and a dialogue background.
+# the gameplay spring camera at the tea house eaves, a dialogue background, and each phase 3 house from the front, at 45° and under its eaves.
 # Usage: $GODOT_MONO --path . --script res://tools/review_revamp.gd [-- --out=subdir] [--only=name,name]
 var out="res://artifacts/revamp"
 var only=[]
+# The five phase 3 Tripo houses from World.Hamlet: [name, table centre, yaw, the front wall's local Z, Mio's local X along it, oblique side].
+const HOUSES=[["workshop",Vector2(-10.37,6.63),75.0,3.5,-1.66,-45.0],["kura",Vector2(12.5,6),-95.0,1.835,-1.66,-45.0],["hall",Vector2(-12.8,21.78),82.0,3.05,-3.0,-45.0],
+	["clinic",Vector2(-11.05,37.54),98.0,2.1,-1.66,45.0],["farmhouse",Vector2(11.81,42.27),-70.0,3.55,-1.66,-45.0]]
 
 func _initialize():
 	call_deferred("review")
@@ -47,6 +50,26 @@ func review():
 		spring.spring_length=view[4]
 		for i in range(60): await physics_frame
 		await shot(view[0])
+	# The same spring camera half a metre out from each other house's front wall, in the relation eaves-front has to the tea house.
+	var space=root.get_world_3d().direct_space_state
+	for house in HOUSES:
+		if not wanted("eaves-"+house[0]): continue
+		var turn=deg_to_rad(house[2])
+		var at=house[1]+Vector2(house[4],house[3]+.5).rotated(-turn)
+		var ray=PhysicsRayQueryParameters3D.create(Vector3(at.x,50,at.y),Vector3(at.x,-50,at.y),1)
+		var hit=space.intersect_ray(ray)
+		while hit.collider.name!="Terrain collision":
+			ray.exclude+=[hit.rid]
+			hit=space.intersect_ray(ray)
+		# Cast again from below the eaves, so Mio stands on a deck or step under them rather than on a roof or inside the deck.
+		hit=space.intersect_ray(PhysicsRayQueryParameters3D.create(hit.position+Vector3(0,2.3,0),hit.position-Vector3(0,1,0),1))
+		mio.position=hit.position+Vector3(0,.1,0)
+		mio.velocity=Vector3.ZERO
+		game.set("CameraYaw",turn+deg_to_rad(80))
+		game.set("CameraPitch",-.62)
+		spring.spring_length=7.5
+		for i in range(60): await physics_frame
+		await shot("eaves-"+house[0])
 	if wanted("dialogue"):
 		hud.visible=true
 		var sora=game.get("World").find_child("Sora",false,false)
@@ -107,8 +130,12 @@ func review():
 		camera.look_at(view[2])
 		await shot(view[0])
 	# Later props are framed from the ground under them: [name, prop x/z, camera offset, look height].
-	var space=root.get_world_3d().direct_space_state
-	for view in [["prop-lantern-village",Vector2(-6.5,17.5),Vector3(2.3,1.5,-2.4),1.0],["prop-cart",Vector2(12.9,1.6),Vector3(2.4,1.6,-2.8),.6],["prop-notice",Vector2(6.4,17.2),Vector3(-2.9,.4,-1.7),1.4],
+	var framed=[]
+	for house in HOUSES:
+		var front=Vector2(sin(deg_to_rad(house[2])),cos(deg_to_rad(house[2])))
+		var oblique=front.rotated(deg_to_rad(house[5]))*12.5
+		framed+=[["house-%s-front"%house[0],house[1],Vector3(front.x*13.5,-1,front.y*13.5),2.6],["house-%s-oblique"%house[0],house[1],Vector3(oblique.x,2,oblique.y),2.2]]
+	for view in framed+[["prop-lantern-village",Vector2(-6.5,17.5),Vector3(2.3,1.5,-2.4),1.0],["prop-cart",Vector2(12.9,1.6),Vector3(2.4,1.6,-2.8),.6],["prop-notice",Vector2(6.4,17.2),Vector3(-2.9,.4,-1.7),1.4],
 			["house-kettle-front",Vector2(12,24),Vector3(-12.6,-.9,2.2),2.8],["house-kettle-oblique",Vector2(12,24),Vector3(-6.9,2.2,9.85),2.4]]:
 		if not wanted(view[0]): continue
 		mio.position=Vector3(0,.1,22)

@@ -138,16 +138,16 @@ public partial class World
         }
         foreach(var (name,at,size,yaw,style) in Hamlet)
         {
-            var b=Buildings.Single(n=>n.Name==name);float dz=size.Z/2;
+            var b=Buildings.Single(n=>n.Name==name);float dz=size.Z/2;var (_,walls,sign)=TripoHouses[style];
             Vector2 World2(float x,float z){var g=b.ToGlobal(new(x,0,z));return new(g.X,g.Z);}
             foreach(float s in new[]{-1f,1f}){var p=World2(s*(size.X/2+.7f),dz+.7f);if(Clear(p,1.3f))Tree(Ground(p),r.RandfRange(.8f,1.15f),"shrub",r);}
-            var door=World2(DoorX(style,size.X),dz+(style=="hall"?2.1f:1.3f));
+            var door=World2(sign.X,walls.End.Y+(style is "hall" or "clinic"?2.5f:1.3f));
             var road=new Vector2(RoadX(door.Y)+Math.Sign(door.X-RoadX(door.Y))*2.9f,door.Y);
             for(float t=0;t<=door.DistanceTo(road);t+=.8f)
             {var p=door.MoveToward(road,t)+new Vector2(r.RandfRange(-.1f,.1f),r.RandfRange(-.1f,.1f));Cylinder(this,"Stepping stone",Ground(p,.02f),r.RandfRange(.24f,.32f),.08f,stone);}
-            // Hall pots flank its wide porch step; the clinic's stand on the engawa deck, whose top is .53 m up.
-            if(style=="hall")foreach(float s in new[]{-2.1f,2.1f})Pot(Ground(World2(s,dz+.9f)));
-            if(style=="clinic")foreach(float s in new[]{-1.4f,1.4f})Pot(b.ToGlobal(new(s,.53f,dz+.45f)));
+            // Hall pots flank its porch steps; the clinic's stand on the engawa deck either side of its steps, the deck's top .83 m up.
+            if(style=="hall")foreach(float s in new[]{-2.4f,2.4f})Pot(Ground(World2(s,walls.End.Y+1.6f)));
+            if(style=="clinic")foreach(float s in new[]{-1.4f,1.4f})Pot(b.ToGlobal(new(s,.83f,walls.End.Y+.45f)));
         }
         // KOMA-7's kitchen garden and the farmhouse vegetable plot.
         GroundStrip("Kitchen garden soil",new(10.2f,11.55f),new(14.8f,11.55f),1.15f,soil);
@@ -168,9 +168,9 @@ public partial class World
         Cylinder(line,"Laundry pole",new(0,1.85f,0),.03f,3.4f,Mat(new("a9a266"))).Rotation=new(0,0,Mathf.Pi/2);
         for(int i=0;i<4;i++)Box(line,"Drying cloth",new(-1.1f+i*.72f,1.45f,0),new(.52f,.75f,.02f),Mat(new(i%2==0?"eeeadf":"3b5379")));
         var wood2=Mat(new("7a5a3c"));
-        for(int row=0;row<3;row++)for(int i=0;i<5-row;i++)Cylinder(this,"Firewood",Ground(new(13.2f+i*.24f+row*.12f,47.3f),.12f+row*.21f),.11f,1,wood2).Rotation=new(Mathf.Pi/2,0,0);
-        Box(this,"Woodpile roof",Ground(new(13.7f,47.3f),.95f),new(1.7f,.06f,1.3f),boards).Rotation=new(.2f,0,0);
-        foreach(var p in new Vector2[]{new(15.3f,47.9f),new(15.9f,46.9f)})Cylinder(this,"Straw roll",Ground(p,.45f),.45f,.9f,Mat(new("d6bd78"))).Rotation=new(0,0,Mathf.Pi/2);
+        for(int row=0;row<3;row++)for(int i=0;i<5-row;i++)Cylinder(this,"Firewood",Ground(new(13.95f+i*.24f+row*.12f,49.37f),.12f+row*.21f),.11f,1,wood2).Rotation=new(Mathf.Pi/2,0,0);
+        Box(this,"Woodpile roof",Ground(new(14.45f,49.37f),.95f),new(1.7f,.06f,1.3f),boards).Rotation=new(.2f,0,0);
+        foreach(var p in new Vector2[]{new(16.05f,49.97f),new(16.65f,48.97f)})Cylinder(this,"Straw roll",Ground(p,.45f),.45f,.9f,Mat(new("d6bd78"))).Rotation=new(0,0,Mathf.Pi/2);
         var cart=Model(this,"Handcart","cart",Ground(new(12.9f,1.6f)),160,new(1.3f,1.3f,1.3f));
         var cartBody=new StaticBody3D();cart.AddChild(cartBody);
         cartBody.AddChild(new CollisionShape3D{Position=new(-.72f,.5f,0),Shape=new BoxShape3D{Size=new(1.24f,1,1.42f)}});cartBody.AddChild(new CollisionShape3D{Position=new(.61f,.5f,0),Shape=new BoxShape3D{Size=new(1.42f,.4f,1)}});
