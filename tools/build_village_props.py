@@ -1,12 +1,15 @@
-"""Deterministic village prop GLBs for Hoshikawa: street lamp, bench, barrel and the bamboo fence post and panel.
+"""Deterministic village prop GLBs for Hoshikawa: street lamp, bench, barrel, the bamboo fence post and panel, and the
+water and field props: brook pebbles and rocks, the paddy sluice and hasa rack, field fence post and rail, cabbage and daikon.
 
 Run: /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python tools/build_village_props.py
 
 Built to real-world scale for 1.6-1.8 m characters, origin on the ground, Z up in Blender (Y up once exported).
 Each GLB carries geometry, UVs and material *names* only; World.Prop() binds them to the existing art:
 cedar = village-atlas.png boards (one tile = TILE metres, grain along V), bark_bamboo = bark-bamboo.png (wraps once
-round a culm, a node every half tile) and paper = the lit lantern colour. Three materials only: Merge() bakes one mesh per
-material per 32 m cell, so each extra material costs a draw call (and its shadow passes) in every cell a prop stands in.
+round a culm, a node every half tile) and paper = the lit lantern colour. The water and field props add stone (the masonry
+atlas cell, two tiles per UV unit), straw, leaf, leaf_dark and root, flat colours. Merge() bakes one mesh per material per
+32 m cell, so each material costs a draw call (and its shadow passes) in every cell a prop stands in: stone and straw are
+the materials the primitives there already use, and the three crop colours stand only in Komorebi's garden beds.
 Nothing is random, so a rebuild reproduces the committed files.
 """
 import math
@@ -18,7 +21,12 @@ from mathutils import Matrix, Vector
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "assets", "models", "props")
 TILE = 1.2
-MATERIALS = ("cedar", "paper", "bark_bamboo")
+MATERIALS = ("cedar", "paper", "bark_bamboo", "stone", "straw", "leaf", "leaf_dark", "root")
+
+
+def jitter(i, k):
+    """Deterministic noise in 0..1."""
+    return math.sin(i * 12.9898 + k * 78.233) * 43758.5453 % 1.0
 
 
 class Builder:
@@ -80,6 +88,24 @@ class Builder:
             if on:
                 pts = list(reversed(ring)) if flip else ring
                 self.face(pts, [(p.x / TILE, p.y / TILE) for p in pts], mat)
+
+    def rock(self, centre, radii, mat, sides=8, rings=5, seed=0, rough=.18, rot=Matrix.Identity(3)):
+        """A lumpy smooth ellipsoid, its vertex radii jittered from seed; UVs are planar, one unit per metre."""
+        c = Vector(centre)
+        base = len(self.verts)
+        def point(r, s):
+            t, p = math.pi * r / rings, 2 * math.pi * s / sides
+            k = 1 + rough * (jitter(seed, r * sides + s) - .5)
+            return c + rot @ Vector((math.sin(t) * math.cos(p) * radii[0] * k, math.sin(t) * math.sin(p) * radii[1] * k, math.cos(t) * radii[2] * k))
+        pts = [point(0, 0)] + [point(r, s) for r in range(1, rings) for s in range(sides)] + [point(rings, 0)]
+        self.verts += [tuple(p) for p in pts]
+        def vid(r, s):
+            return base if r == 0 else base + len(pts) - 1 if r == rings else base + 1 + (r - 1) * sides + s % sides
+        for r in range(rings):
+            for s in range(sides):
+                # Down a meridian, then on round it: the winding faces out. The poles collapse their quads to triangles.
+                ids = list(dict.fromkeys([vid(r, s), vid(r + 1, s), vid(r + 1, s + 1), vid(r, s + 1)]))
+                self.face(None, [(self.verts[i][0] + .5 * self.verts[i][1], self.verts[i][2] + .5 * self.verts[i][1]) for i in ids], mat, True, ids)
 
     def tris(self):
         return sum(len(f) - 2 for f in self.faces)
@@ -168,6 +194,97 @@ def fence_panel():
     return b
 
 
+def pebbles():
+    """A spill of seven flattened river pebbles within half a metre, each a third below the origin to bed into a sloping bank."""
+    b = Builder()
+    for i in range(7):
+        a, d, r = i * 2.4, .1 + .3 * jitter(i, 1), .05 + .07 * jitter(i, 2)
+        b.rock((math.cos(a) * d, math.sin(a) * d, r * .15), (r * (1 + .3 * jitter(i, 3)), r, r * .5), "stone", sides=7, rings=4, seed=i + 10)
+    return b
+
+
+def river_rock():
+    """One water-worn rock, origin at its middle: World sinks it to leave its upper third above the brook."""
+    b = Builder()
+    b.rock((0, 0, 0), (.48, .36, .3), "stone", sides=10, rings=6, seed=3, rough=.22)
+    return b
+
+
+def sluice():
+    """A sluice gate for a 0.9 m channel across Y (the game's Z): grooved posts, the board in its slots, a beam across the top."""
+    b = Builder()
+    for y in (-.5, .5):
+        b.box((0, y, .2), (.1, .1, .9), "cedar", shift=(y, 0))
+        for x in (-.035, .035):
+            b.box((x, y - math.copysign(.065, y), .2), (.02, .03, .9), "cedar", shift=(x, y))
+    b.box((0, 0, .17), (.03, .92, .36), "cedar", grain=1, shift=(.3, .2))
+    b.box((0, 0, .41), (.03, .14, .12), "cedar", shift=(.6, .1))
+    b.box((0, 0, .69), (.12, 1.16, .08), "cedar", grain=1, shift=(.1, .7))
+    return b
+
+
+def hasa():
+    """A hasa-gake drying rack 5.4 m along X: crossed bamboo legs holding two rails, straw sheaves split over the top one."""
+    b = Builder()
+    legs = (-2.55, -.85, .85, 2.55)
+    for x in legs:
+        for s in (-1, 1):
+            b.tube((x, s * .42, -.15), (x, -s * .12, 1.62), .025, .02, 6, "bark_bamboo", v_scale=1 / .6)
+    for z, r in ((1.42, .026), (.92, .022)):
+        b.tube((-2.75, 0, z), (2.75, 0, z), r, r, 6, "bark_bamboo", v_scale=1 / .6)
+    # Each sheaf is bound at the rail and split over it, its two halves flaring to a brush; open-ended, as only their sides show.
+    for i in range(30):
+        x = -2.32 + i * .16
+        if min(abs(x - leg) for leg in legs) < .1:
+            continue
+        drop = .55 + .15 * jitter(i, 4)
+        for s in (-1, 1):
+            b.tube((x, s * .035, 1.44), (x + .03 * (jitter(i, 5) - .5), s * (.13 + .04 * jitter(i, 6)), 1.44 - drop), .03, .075, 5, "straw",
+                   cap_top=False, cap_bottom=False)
+    return b
+
+
+def field_post():
+    """A weathered field-fence post, seven rough faces, 0.2 m in the ground and cut to a shallow point 1.31 m up."""
+    b = Builder()
+    b.tube((0, 0, -.2), (0, 0, 1.24), .075, .068, 7, "cedar", u_tiles=.4, v_scale=1 / TILE, smooth=False, cap_top=False)
+    top, apex = b.ring((0, 0, 1.24), (0, 0, 1), .068, 7), Vector((0, 0, 1.31))
+    for i in range(7):
+        tri = [top[i], top[(i + 1) % 7], apex]
+        b.face(tri, [(p.x / TILE + i * .1, p.z / TILE) for p in tri], "cedar")
+    return b
+
+
+def field_rail():
+    """A split field-fence rail, 2 m along Y (the game's Z): World stretches it to each post-to-post span."""
+    b = Builder()
+    b.tube((0, -1, 0), (0, 1, 0), .06, .055, 6, "cedar", u_tiles=.3, v_scale=1 / TILE, smooth=False)
+    return b
+
+
+def cabbage():
+    """A cabbage head cupped by five outer leaves, half a metre across."""
+    b = Builder()
+    b.rock((0, 0, .13), (.15, .15, .13), "leaf", seed=21, rough=.08)
+    for i in range(5):
+        a = i * 2 * math.pi / 5 + .3
+        rot = Matrix.Rotation(a, 3, 'Z') @ Matrix.Rotation(math.radians(-35), 3, 'Y')
+        b.rock((math.cos(a) * .15, math.sin(a) * .15, .08), (.15, .11, .025), "leaf_dark", sides=7, rings=4, seed=30 + i, rough=.12, rot=rot)
+    return b
+
+
+def daikon():
+    """A daikon's white shoulder above the soil under a rosette of six long leaves."""
+    b = Builder()
+    b.tube((0, 0, -.06), (0, 0, .1), .045, .04, 8, "root", cap_bottom=False)
+    for i in range(6):
+        a, lift = i * math.pi / 3 + .2, math.radians(50 + 8 * (i % 2))
+        rot = Matrix.Rotation(a, 3, 'Z') @ Matrix.Rotation(-lift, 3, 'Y')
+        b.rock((math.cos(a) * .2 * math.cos(lift), math.sin(a) * .2 * math.cos(lift), .1 + .2 * math.sin(lift)), (.2, .05, .015), "leaf_dark",
+               sides=6, rings=4, seed=40 + i, rough=.15, rot=rot)
+    return b
+
+
 def export(builder, name, limit):
     mesh = bpy.data.meshes.new(name)
     mesh.from_pydata(builder.verts, [], builder.faces)
@@ -198,7 +315,9 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     for o in list(bpy.data.objects):
         bpy.data.objects.remove(o)
-    for name, build, limit in (("lamp", lamp, 600), ("bench", bench, 600), ("barrel", barrel, 900), ("fence_post", fence_post, 200), ("fence_panel", fence_panel, 600)):
+    for name, build, limit in (("lamp", lamp, 600), ("bench", bench, 600), ("barrel", barrel, 900), ("fence_post", fence_post, 200), ("fence_panel", fence_panel, 600),
+                              ("pebbles", pebbles, 600), ("river_rock", river_rock, 300), ("sluice", sluice, 300), ("hasa", hasa, 1200),
+                              ("field_post", field_post, 100), ("field_rail", field_rail, 60), ("cabbage", cabbage, 400), ("daikon", daikon, 400)):
         export(build(), name, limit)
     print("VILLAGE_PROPS_OK")
 

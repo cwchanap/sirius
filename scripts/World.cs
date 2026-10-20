@@ -27,12 +27,30 @@ public partial class World : Node3D
     public static readonly (Vector2 From,Vector2 To)[] Footpaths={(new(0,15),new(17.2f,15)),(new(21.4f,15),new(34,15)),(new(34,15),new(34,20))};
     public static bool OnFootpath(Vector2 p,float margin)=>Footpaths.Any(f=>Geometry2D.GetClosestPointToSegment(p,f.From,f.To).DistanceTo(p)<1.2f+margin);
     private static readonly float[] PadLevel=Hamlet.Select(h=>HamletGround(h.At.X,h.At.Y,BaseHeight(h.At.X,h.At.Y),false)).ToArray();
+    // The four rice paddies, terraced: Height() levels each 6 cm under the lowest ground it covers, and RiceFields() raises the aze between them.
+    public static readonly Rect2[] Paddies={new(24.4f,21.2f,6.2f,8.4f),new(31.4f,21.2f,6.2f,8.4f),new(24.4f,30.4f,6.2f,8.4f),new(31.4f,30.4f,6.2f,8.4f)};
+    private static readonly float[] PaddyLevel=Paddies.Select(p=>Enumerable.Range(0,64).Min(i=>
+        {float x=p.Position.X+p.Size.X*(i%8)/7,z=p.Position.Y+p.Size.Y*(i/8)/7;return HamletGround(x,z,BaseHeight(x,z),true);})-.06f).ToArray();
     public const float ShrineLevel=2.4f,WaterLevel=-.38f;
     // Roofs stop the camera's spring arm on this layer alone; the player and robots only collide with layer 1.
     public const int CameraLayer=8;
     public static void CameraStop(Node3D n,Shape3D shape){var b=new StaticBody3D{CollisionLayer=CameraLayer,CollisionMask=0};n.AddChild(b);b.AddChild(new CollisionShape3D{Shape=shape});}
     // Height(), the water strip, the footbridge and the minimap all follow this one brook line.
     public static float BrookX(float z)=>19.3f+.6f*Mathf.Sin(z*.16f);
+    // Wetness, 0..1, that terrain.gdshader paints as damp earth and gravel: rising from .35 m above the river, brook and Cedar River waterlines to them, and half wet across the paddy floors.
+    public static float Shore(float x,float z)
+    {
+        if(Paddies.Any(p=>p.HasPoint(new(x,z))))return .5f;
+        bool cedar=z<-60,near=cedar?Math.Abs(z+111)<7:Math.Abs(z+8)<6||(z>-6&&z<57.5f&&Math.Abs(x-BrookX(z))<3.2f);
+        return near?1-Mathf.SmoothStep(.05f,.35f,Height(x,z)-(cedar?.7f:WaterLevel)):0;
+    }
+    // The rendered terrain between its 1 m vertices: Terrain() splits each cell on the (x+1,z)-(x,z+1) diagonal.
+    public static float MeshHeight(float x,float z)
+    {
+        int x0=Mathf.FloorToInt(x),z0=Mathf.FloorToInt(z);float fx=x-x0,fz=z-z0;
+        return fx+fz<=1?Height(x0,z0)+fx*(Height(x0+1,z0)-Height(x0,z0))+fz*(Height(x0,z0+1)-Height(x0,z0))
+            :Height(x0+1,z0+1)+(1-fx)*(Height(x0,z0+1)-Height(x0+1,z0+1))+(1-fz)*(Height(x0+1,z0)-Height(x0+1,z0+1));
+    }
     public static string RegionAt(Vector3 p) => p.Z < -136 ? "Komorebi" : p.Z < -78 ? "Cedar Pass" : p.Z < -14 ? "Old Relay Road" : "Hoshikawa";
     public Vector3 RelayPosition => new(1, Height(1, -61), -61);
     public static readonly Color Jade = new("72e5cc"), Gold = new("eacb89"), Ink = new("152c33");
@@ -77,7 +95,18 @@ public partial class World : Node3D
             Mesh(this,$"Merged statics {GetChildCount()}",mesh,Vector3.Zero,list[0].MaterialOverride).CastShadow=list[0].CastShadow;
         }
     }
-    public static float Height(float x, float z) => z > -9 ? HamletGround(x, z, BaseHeight(x, z), true) : BaseHeight(x, z);
+    public static float Height(float x, float z) => z > -9 ? PaddyGround(x, z, HamletGround(x, z, BaseHeight(x, z), true)) : BaseHeight(x, z);
+    // Each paddy floor is flat to 30 cm inside its edge and back on the ground 5 cm outside it, under the aze.
+    private static float PaddyGround(float x,float z,float y)
+    {
+        if(x<23.5f||x>38.5f||z<20.3f||z>39.7f)return y;
+        for(int i=0;i<Paddies.Length;i++)
+        {
+            var p=Paddies[i];float d=Math.Max(Math.Max(p.Position.X-x,x-p.End.X),Math.Max(p.Position.Y-z,z-p.End.Y));
+            y=Mathf.Lerp(y,PaddyLevel[i],1-Mathf.SmoothStep(-.3f,.05f,d));
+        }
+        return y;
+    }
     private static float BaseHeight(float x, float z)
     {
         float rural = Mathf.SmoothStep(0, 45, -z);
@@ -168,7 +197,8 @@ public partial class World : Node3D
     private Material PropMaterial(string name)
     {
         if(!propMaterials.TryGetValue(name,out var m))
-            propMaterials[name]=m=name switch{"cedar"=>VillageAtlas(new(1,0),Vector2.One,new(1.55f,1.5f,1.45f)),"paper"=>Mat(new("f8d48c"),.35f),_=>TreeMaterial(name)};
+            propMaterials[name]=m=name switch{"cedar"=>VillageAtlas(new(1,0),Vector2.One,new(1.55f,1.5f,1.45f)),"paper"=>Mat(new("f8d48c"),.35f),"stone"=>stone,
+                "straw"=>Mat(new("d6bd78")),"leaf"=>Mat(new("8eaa63")),"leaf_dark"=>Mat(new("728f60")),"root"=>Mat(new("ebe5d3")),_=>TreeMaterial(name)};
         return m;
     }
     // Tripo props (assets/models/NAME.glb) are placed whole, unmerged. Their albedo comes out darker than the village atlas,
@@ -260,7 +290,7 @@ public partial class World : Node3D
         void Add(float x,float z)
         {
             var n = new Vector3(Height(x-.1f,z)-Height(x+.1f,z),.2f,Height(x,z-.1f)-Height(x,z+.1f)).Normalized();
-            st.SetNormal(n); st.SetUV(new(x*.15f,z*.15f)); st.AddVertex(new(x,Height(x,z),z));
+            st.SetNormal(n); st.SetUV(new(x*.15f,z*.15f)); st.SetColor(new(1-Shore(x,z),1,1)); st.AddVertex(new(x,Height(x,z),z));
         }
         st.Index(); var mesh = st.Commit();
         var material = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shaders/terrain.gdshader") };
@@ -302,24 +332,11 @@ public partial class World : Node3D
         wellBody.AddChild(new CollisionShape3D {Position=new(0,.46f,0),Shape=new CylinderShape3D {Radius=.84f,Height=.92f}});
         foreach(float z in new[]{-.79f,.79f})wellBody.AddChild(new CollisionShape3D {Position=new(0,1,z),Shape=new BoxShape3D {Size=new(.22f,2,.22f)}});
         var wellRoof=new Node3D {Position=new(0,2.35f,0)};well.AddChild(wellRoof);CameraStop(wellRoof,new BoxShape3D {Size=new(1.22f,.7f,2.08f)});
-        var paddyWater=new StandardMaterial3D{AlbedoColor=new(.25f,.27f,.2f,.7f),Transparency=BaseMaterial3D.TransparencyEnum.Alpha,Roughness=.03f};
-        var rice=new List<(Vector3 P,float H)>();
-        for(int field=0;field<2;field++)
-        {
-            float x=25+field*9;
-            GroundStrip("Terraced rice soil",new(x,21.5f),new(x,38.5f),3.5f,Mat(new("4f4a35")));
-            GroundStrip("Rice paddy water",new(x,21.5f),new(x,38.5f),3.5f,paddyWater,.1f);
-            for(int row=0;row<17;row++)for(int col=0;col<11;col++)
-            {
-                float px=x-3+col*.6f,pz=22.6f+row*.95f;
-                rice.Add((new(px,Height(px,pz)+.03f,pz),.62f+.08f*Mathf.Sin(px*7.1f+pz*3.3f)));
-            }
-        }
-        Grass("Rice",rice,1,_=>true,12,.22f,new("3d5a2a"),new("93b052"),0,2207);
+        RiceFields();
         Fence(new(-24,0,0),new(-24,0,42));
         Fence(new(23,0,1),new(23,0,13));Fence(new(23,0,17),new(23,0,42));
         foreach(var (from,to) in Footpaths)Footpath(from,to,1.2f);
-        Brook();Terrace();Shrine();Dressing();
+        Brook();Reeds();Terrace();Shrine();Dressing();
         Label(this,"OLD RELAY ROAD  ↑",new(4,2.6f,-.3f),Gold,27);
     }
     private Node3D House(string name,Vector3 pos,Vector3 size,Color wall,bool workshop,float yaw=0,int barrels=3,float signProjection=.25f)
@@ -400,19 +417,22 @@ public partial class World : Node3D
         Residents.Add((name,role,line,n));
     }
     private void Lamp(Vector3 p)=>Prop(this,"Lantern pole","lamp",p);
+    // Weathered posts and split rails from tools/build_village_props.py. A rail is its 2 m model stretched to the span, so the colliders are bodies of their own.
     private void Fence(Vector3 a,Vector3 b)
     {
         int count=Math.Max(1,(int)a.DistanceTo(b)/2);
+        void Solid(Vector3 p,Vector3 turn,Vector3 size){var body=new StaticBody3D{Position=p,Rotation=turn,CollisionMask=0};AddChild(body);body.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=size}});}
         for(int i=0;i<=count;i++)
-        {var p=a.Lerp(b,(float)i/count);p.Y=Height(p.X,p.Z);Box(this,"Fence post",p+new Vector3(0,.65f,0),new(.16f,1.3f,.16f),wood,true);}
+        {var p=a.Lerp(b,(float)i/count);p.Y=Height(p.X,p.Z);Prop(this,"Fence post","field_post",p,i*1.7f);Solid(p+new Vector3(0,.65f,0),Vector3.Zero,new(.16f,1.3f,.16f));}
         // Rails run post to post, so they climb a ramp with the ground instead of floating level over it.
         for(int i=0;i<count;i++)
         {
             Vector3 p0=a.Lerp(b,(float)i/count),p1=a.Lerp(b,(float)(i+1)/count);p0.Y=Height(p0.X,p0.Z);p1.Y=Height(p1.X,p1.Z);
+            var turn=new Vector3(-Mathf.Atan2(p1.Y-p0.Y,new Vector2(p1.X-p0.X,p1.Z-p0.Z).Length()),Mathf.Atan2(b.X-a.X,b.Z-a.Z),0);float length=p0.DistanceTo(p1)+.1f;
             foreach(float y in new[]{.48f,1f})
             {
-                var rail=Box(this,$"Fence rail {GetChildCount()}",(p0+p1)/2+new Vector3(0,y,0),new(.12f,.12f,p0.DistanceTo(p1)+.1f),wood,true);
-                rail.Rotation=new(-Mathf.Atan2(p1.Y-p0.Y,new Vector2(p1.X-p0.X,p1.Z-p0.Z).Length()),Mathf.Atan2(b.X-a.X,b.Z-a.Z),0);
+                foreach(var rail in Prop(this,$"Fence rail {GetChildCount()}","field_rail",(p0+p1)/2+new Vector3(0,y,0),0,new(1,1,length/2)))rail.Rotation=turn;
+                Solid((p0+p1)/2+new Vector3(0,y,0),turn,new(.12f,.12f,length));
             }
         }
     }
@@ -654,10 +674,11 @@ public partial class World : Node3D
         {
             float x=-29-field*7;
             GroundStrip($"Komorebi garden bed {field}-{(int)-z}",new(x,z-4),new(x,z+4),2.5f,Mat(new("716348")));
-            for(int row=0;row<4;row++)for(int col=0;col<4;col++)
+            // Cabbages in the x -29 beds, daikon rows in the x -36 beds, standing on the soil strip's 4.5 cm lift.
+            for(int row=0;row<(field==0?4:6);row++)for(int col=0;col<4;col++)
             {
-                float px=x-1.8f+col*1.2f,pz=z-2.7f+row*1.8f;
-                Sphere(this,"Leafy crop",new(px,Height(px,pz)+.22f,pz),new(.35f,.25f,.35f),Mat(new(field==0?"8eaa63":"728f60")));
+                float px=x-1.8f+col*1.2f,pz=field==0?z-2.7f+row*1.8f:z-3.25f+row*1.3f;
+                Prop(this,field==0?"Cabbage":"Daikon",field==0?"cabbage":"daikon",new(px,Height(px,pz)+.045f,pz),row*2.3f+col*1.1f);
             }
         }
         Fence(new(-24,0,-139),new(-24,0,-149.5f));Fence(new(-24,0,-153.5f),new(-24,0,-171));

@@ -1,7 +1,7 @@
 extends SceneTree
 
 # Fixed before/after viewpoints for the environment revamp: close-ups of the vegetation and light review_hamlet.gd misses,
-# the gameplay spring camera at the tea house eaves, a dialogue background, and each phase 3 house from the front, at 45° and under its eaves.
+# the gameplay spring camera at the tea house eaves, a dialogue background, and each phase 3 house from the front, at 45° and under its eaves. Phase 4a adds the river, brook, paddies, sluice, hasa rack, Komorebi beds and Cedar River.
 # Usage: $GODOT_MONO --path . --script res://tools/review_revamp.gd [-- --out=subdir] [--only=name,name]
 var out="res://artifacts/revamp"
 var only=[]
@@ -99,7 +99,15 @@ func review():
 		["rice-paddies",Vector3(21.5,2.3,18.5),Vector3(29,0,29),Vector3(1,.1,27)],
 		["village-trees",Vector3(-2,8,-4),Vector3(-21,2,14),Vector3(-3,.1,12)],
 		["road-countryside",Vector3(1.5,2.6,-24),Vector3(-1,1.5,-48),Vector3(0,.1,-20)],
-		["komorebi-road",Vector3(3,6.6,-127),Vector3(-1,4.8,-150),Vector3(0,4.6,-136)]]
+		["komorebi-road",Vector3(3,6.6,-127),Vector3(-1,4.8,-150),Vector3(0,4.6,-136)],
+		# Phase 4a water and fields: the river from the stone bridge, the brook bank, the paddies wide, Komorebi's beds and the Cedar River.
+		["river-bridge",Vector3(3.4,2.4,-9),Vector3(24,-.4,-7),Vector3(-3,.1,3)],
+		["brook-close",Vector3(21.9,1.5,26),Vector3(19,-.5,31.5),Vector3(14,.1,22)],
+		["paddies-wide",Vector3(41,8,13),Vector3(30,0,31),Vector3(34,.1,17)],
+		["komorebi-beds",Vector3(-21,7,-140),Vector3(-32.5,4.3,-151.5),Vector3(-12,6,-151.5)],
+		["cedar-river",Vector3(26,5.5,-102),Vector3(6,.7,-111),Vector3(9.5,6,-100)],
+		["paddy-sluice",Vector3(20.2,1.5,34.2),Vector3(22.8,0,36.8),Vector3(14,.1,22)],
+		["hasa-rack",Vector3(31.5,1.7,45.2),Vector3(29.5,.9,40.7),Vector3(14,.1,22)]]
 	for view in views:
 		if not wanted(view[0]): continue
 		mio.position=view[3]

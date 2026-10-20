@@ -141,6 +141,12 @@ Generated with `codex exec` gpt-image; exact prompts and raw-output hashes are i
 - `assets/models/props/{lamp,bench,barrel,fence_post,fence_panel}.glb`: 234 / 156 / 400 / 28 / 252 triangles, built procedurally and deterministically by `tools/build_village_props.py` in background Blender (no source .blend; two rebuilds were byte-identical). They are at real-world scale for 1.6–1.8 m characters: the lamp is 2.27 m to the finial, the bench seat 0.49 m, and a barrel 0.8 m by 0.63 m. One fence bay is 1.2 m; `BambooFence()` stretches it to the post spacing.
 - They carry three material names only: `cedar` (the boards cell of `village-atlas.png`, one tile per 1.2 m with the grain along V), `bark_bamboo` (`bark-bamboo.png`) and `paper` (the lit lantern colour). `World.Prop()` binds them. There are no new textures. Stone and rope materials were dropped after the first render-cost pass: each material is one more merged draw in every 32 m cell a prop stands in.
 
+## Water and field props — 2026-10-20
+
+- `assets/models/props/{pebbles,river_rock,sluice,hasa,field_post,field_rail,cabbage,daikon}.glb`: 294 / 100 / 108 / 760 / 26 / 20 / 274 / 238 triangles, from the same `tools/build_village_props.py` (no source .blend; the five earlier props rebuilt byte-identical). A pebble spill is 0.72 m across, the half-sunk rock 0.96 × 0.75 × 0.59 m, the sluice spans a 0.9 m channel, the hasa rack is 5.5 m long and 1.63 m tall, a field post stands 1.31 m (another 0.2 m in the ground), a field rail is 2 m and `Fence()` stretches it to each span, a cabbage is 0.5 m across and a daikon rosette 0.45 m tall.
+- Five more material names: `stone` (the masonry atlas cell the bank stones use), `straw` (`d6bd78`, the straw rolls' colour), `leaf` and `leaf_dark` (`8eaa63` / `728f60`, the colours of the sphere crops they replace) and `root` (`ebe5d3`). Stone and straw join draws already in their cells; the crop colours stand only in Komorebi's garden beds. No new textures, and no Tripo credits.
+- `assets/shaders/water.gdshader` (rewritten) and `paddy.gdshader` (new) are procedural, with no texture inputs.
+
 ## Village well: Tripo prop pilot — 2026-10-19
 
 The first environment prop generated with the Tripo API (tripo-cli 0.7.1). The well was the worst-looking prop: a box ring, two posts and a flat box roof. Credits spent: 55 of 1,000 (balance 945).

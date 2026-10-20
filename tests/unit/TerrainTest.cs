@@ -21,6 +21,11 @@ public class TerrainTest
     [TestCase]
     public void BrookBedStaysUnderTheWater()=>
         AssertThat(Span(54,-3,.25f).Where(z=>World.Height(World.BrookX(z),z)>World.WaterLevel-.04f)).IsEmpty();
+    // Each paddy is one level from 30 cm inside its edge, where the aze's inner foot meets it.
+    [TestCase]
+    public void PaddyFloorsAreLevel()=>
+        AssertThat(World.Paddies.Where(p=>Enumerable.Range(0,81).Select(i=>World.Height(p.Position.X+.3f+(p.Size.X-.6f)*(i%9)/8,p.Position.Y+.3f+(p.Size.Y-.6f)*(i/9)/8))
+            .Any(h=>Math.Abs(h-World.Height(p.GetCenter().X,p.GetCenter().Y))>.001f))).IsEmpty();
     [TestCase]
     public void RoadMatchesTheTerrainShader()
     {
