@@ -13,21 +13,22 @@ The user sent a lower-polygon Mio from Tripo Studio to a live Blender session ov
   - Three isolated triangles left by the reduction were deleted, leaving 47,380.
   - Repair scripts and before/after renders: `artifacts/mio-lowpoly-hairfix/`.
 - Face repair: `assets/source/mio-lowpoly-fixed-face.blend` (SHA-256 `da45ca7d…`) is the repaired source with one more base-color pass. Dark strokes from the bake on her cheeks, beside her left eye and on the nose bridge were traced on close-up renders, mapped to texels by ray casting, and refilled from the surrounding skin. Eyes, brows and the eyeliner wings were left alone.
+- Second face pass: `assets/source/mio-lowpoly-fixed-face2.blend` (SHA-256 `5f17ef2d…`). The first pass had filled from only the lightest skin, which left a pale patch beside her left eye. That patch, pale squares on her right cheek, a grey hair-shadow smudge beside her left eye, small cheek flecks and the strand strokes crossing her brows were refilled with a smooth membrane solved from the surrounding skin texels.
 - Clips: the user then rigged the same model in Tripo Studio and made its clips there. They arrived over DCC Bridge as "3d fantasy character model.002" with fifteen actions; the unchanged save is `assets/source/tripo-bridge-20261016-mio-anim.blend` (SHA-256 `8a4e5eea…`). Its mesh and UVs equal the first send's vertex for vertex.
   - Tripo presets: idle, walk, run, jump.
   - Generated from the text prompts in `artifacts/mio-tripo-upload/mio-tripo-animation-guide.md`: attack1–3, guard, dodge, skill, stagger and death. The guide's attack1 prompt was replaced by a stronger "steps forward and swings" prompt after review.
   - Unused: the slash and standing_relax presets and a first, weak attack1.
 - Build: `tools/import_tripo_mio.py` keeps Tripo's 65-bone Mixamo rig and weights, with the `mixamorig:` prefix removed. Each clip is cut to its motion and retimed to a game length; the fastest swing of each attack sits within two frames of its hit. Hips are held over the collision body. On top of Tripo's motion:
-  - The three attacks open from and settle into the attack1 prompt's ready stance over 3 and 4 frames, so the combo chains through one pose.
+  - The three attacks open from and settle into the attack1 prompt's ready stance over 3 and 4 frames, so the combo chains through one pose. The stance takes the held guard's left arm, braced at the waist, because that frame raises her left hand to her head.
   - The jump keeps the first of the preset's repeated hops with its vertical travel removed, then adds an authored crouch on the ground frames and a knee tuck in the air, because the preset hops with straight legs.
-  - The dodge uses the whole roll (crouch, roll, rise) in 15 frames.
+  - The dodge uses the whole roll (crouch, roll, rise) in 15 frames, hurrying through the stretch where Tripo's roll lies on its back and sits up.
   - The right fingers close around the hilt in every clip, with the thumb from the slash preset's tightest fist; the generated clips left them straight.
   - Guard plays its held block forward and back as a loop.
-- The textures come from the face-repaired source; corner normals are recalculated. Tripo's roughness and metallic maps are not used; the material keeps the previous Mio's roughness 0.9 and metallic 0. The original sword is fitted to `RightHand`. Audit: `tools/check_mio_export.py`.
+- The textures come from the second face-repaired source; corner normals are recalculated. Tripo's roughness and metallic maps are not used; the material keeps the previous Mio's roughness 0.9 and metallic 0. The original sword is seated in the closed right fist: the hilt runs through circles fitted to the curled fingers, the blade leaves the index side and the edge follows the knuckles. The previous fit had carried it along the hand. Audit: `tools/check_mio_export.py`.
 - Runtime: `assets/models/mio.glb`, 65 bones, 12 clips, 47,980 triangles including the sword, 1.84 m tall, 8.4 MB. Editable game copy: `assets/source/mio-tripo-game.blend`.
 - Textures: `assets/art/mio-lowpoly-basecolor.jpg` and `mio-lowpoly-normal.png`, the repaired source images, embedded byte-for-byte in the GLB.
 - Backups: the dense-rig low-poly GLB is `artifacts/mio-tripo-animation/before-mio.glb`; the earlier GLB and game copy are in `artifacts/mio-lowpoly-integration/before/`.
-- Limits: coat and hair have no bones of their own. Tripo's run is a jog, so at 7.8 m/s its feet still slide. A slightly paler patch remains where the stroke beside her left eye was.
+- Limits: coat and hair have no bones of their own. Tripo's run is a jog, so at 7.8 m/s its feet still slide. Hair-strand faces at the edge of her left temple keep the bake's grey; they read as hair.
 
 ## Previous Mio: dense Tripo import — 2026-09-13
 
