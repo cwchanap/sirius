@@ -251,22 +251,27 @@ public partial class World
         }
         return b;
     }
-    // The Tripo teahouse faces its own +X and is 5.4 m deep against the table's 7, so it turns a quarter and steps forward until its front wall stands on the table's.
+    // The Tripo teahouse faces its own +X and is 6.5 m deep against the table's 7, so it turns a quarter and steps forward until its front wall stands on the table's.
+    // At 7.2 m its eaves are 4 m up, as the Minka's were, so the spring arm under them sits as high; its roof overhangs the pad's level apron, its foundation does not.
     private void Teahouse(Node3D b,string name,float d)
     {
-        float z=d/2-2.69f;
+        float z=d/2-3.27f,eave=4.03f;
         var mesh=ActorVisual.Descendants(Model(b,"Tripo teahouse","teahouse",new(0,0,z),-90,new(1.3f,1.3f,1.3f))).OfType<MeshInstance3D>().Single();
         var shell=mesh.Mesh.CreateTrimeshShape();shell.BackfaceCollision=true;CameraStop(mesh,shell);
         var body=new StaticBody3D();b.AddChild(body);
-        body.AddChild(new CollisionShape3D{Position=new(0,1.6f,z+.02f),Shape=new BoxShape3D{Size=new(8,3.2f,5.35f)}});
-        body.AddChild(new CollisionShape3D{Position=new(0,.3f,z+.02f),Shape=new BoxShape3D{Size=new(8.24f,.6f,5.7f)}});
-        ShopSign(b,name,new(0,2.7f,d/2+.25f));
+        body.AddChild(new CollisionShape3D{Position=new(0,1.8f,z+.02f),Shape=new BoxShape3D{Size=new(9.7f,3.6f,6.5f)}});
+        body.AddChild(new CollisionShape3D{Position=new(0,.35f,z+.02f),Shape=new BoxShape3D{Size=new(10,.7f,6.92f)}});
+        // The sign and the chochin hang on cords from the eave's underside, in front of the noren and the transom.
         var timber=Mat(new("3f3026"));var red=Mat(new("b23a2e"));
+        ShopSign(b,name,new(0,3.2f,d/2+.25f));
+        foreach(float x in new[]{-1.1f,1.1f})Box(b,"Sign cord",new(x,(3.41f+eave)/2,d/2+.25f),new(.025f,eave-3.41f,.025f),timber);
+        Sphere(b,"Chochin lantern",new(1.9f,2.9f,d/2+.35f),new(.2f,.3f,.2f),Mat(new("d4533a"),.45f));
+        foreach(float y in new[]{2.62f,3.18f})Cylinder(b,"Chochin rim",new(1.9f,y,d/2+.35f),.11f,.06f,timber);
+        Box(b,"Lantern cord",new(1.9f,(3.21f+eave)/2,d/2+.35f),new(.02f,eave-3.21f,.02f),timber);
         Box(b,"Tea bench",new(2.2f,.45f,d/2+1.5f),new(1.9f,.12f,.6f),red,true);
         foreach(float x in new[]{1.45f,2.95f})Box(b,"Bench leg",new(x,.2f,d/2+1.5f),new(.1f,.4f,.5f),timber);
         Cylinder(b,"Nodate umbrella pole",new(3.4f,1.3f,d/2+1.9f),.03f,2.6f,timber);
         Mesh(b,"Nodate umbrella",new CylinderMesh{TopRadius=.03f,BottomRadius=1.25f,Height=.45f,RadialSegments=16},new(3.4f,2.45f,d/2+1.9f),red);
-        Sphere(b,"Chochin lantern",new(1.35f,2.4f,d/2+.3f),new(.2f,.3f,.2f),Mat(new("d4533a"),.45f));
     }
     private void ShopSign(Node3D b,string name,Vector3 at)
     {

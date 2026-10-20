@@ -1,5 +1,16 @@
 # MVP verification
 
+## Environment revamp, phase 3 pilot fix — 2026-10-20
+
+The user reviewed the pilot and asked to fix only the teahouse's eaves camera and its floating sign and lantern. No Tripo calls; the other five buildings are unchanged.
+
+- **Eaves camera:** the model is re-imported at 7.2 m (was 5.93 m) from the same `teahouse-tripo-2k.glb`. Its eave underside is now about 4.0 m up at the front (was 3.3 m; the Minka's was 4.1 m). In the eaves-under view the spring arm again frames Mio from above the sign, as it did under the Minka eaves. I didn't raise the camera-only stop above the 3.3 m eave instead, because the camera would then sit inside the model's roof.
+- **Sign and lantern:** the sign hangs at 3.2 m on two cords up into the eave, and the chochin hangs on its own cord with dark rims. Front close-ups show both cords meeting the eave beam.
+- **Fit:** the walls are 9.7 × 6.5 m and stay on the pad's level apron. The roof (12.1 m) overhangs the apron's edge, so the teahouse check now tests the model's footprint, its vertices within 10 cm of its base, against `Height()`, instead of the whole bounding box. The tea bench, umbrella and stepping stones keep their places, since the front wall did not move. All four village corridors stay clear.
+- **Self-test:** **355 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro). The wall check also asserts that the camera-layer eave over the front is more than 3.8 m up. Both runs exit 0 with `SELF_TEST_PASS`. `just unit` passes 15 cases, `just e2e` 4.
+- **Render cost** (`render_cost.gd`, `--disable-vsync --fixed-fps 60`): draws 1127/1071/1216, unchanged; primitives 2.772M/2.561M/2.641M → 2.773M/2.563M/2.642M from the cords and rims. CPU median 0.79–0.89 ms.
+- **Captures:** the teahouse front and oblique, the three eaves views, the dialogue background and the east row, before (7c50cdf) and after, in native Metal.
+
 ## Environment revamp, phase 3 pilot — 2026-10-20
 
 One Tripo building, The Copper Kettle teahouse, replaces its `Minka()` version. The other five Hoshikawa buildings stay on `Minka()` for comparison. No character, terrain or pad changed.
