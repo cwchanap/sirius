@@ -104,17 +104,10 @@ public partial class World
         Box(t,"Torii kasagi",new(0,4.37f,0),new(4.6f,.24f,.36f),black);
         foreach(float s in new[]{-1f,1f})Box(t,"Torii kasagi tip",new(s*2.65f,4.45f,0),new(.9f,.24f,.36f),black).Rotation=new(0,0,s*.2f);
     }
-    public void StoneLantern(Node3D parent,Vector3 p,float scale=1)
+    public void StoneLantern(Node3D parent,Vector3 p)
     {
-        var n=new Node3D{Name="Stone lantern",Position=p,Scale=Vector3.One*scale};parent.AddChild(n);
-        Cylinder(n,"Lantern plinth",new(0,.12f,0),.32f,.24f,stone);
-        Cylinder(n,"Lantern shaft",new(0,.6f,0),.11f,.75f,stone,.09f);
-        Box(n,"Lantern platform",new(0,1.02f,0),new(.52f,.1f,.52f),stone);
-        foreach(float x in new[]{-.18f,.18f})foreach(float z in new[]{-.18f,.18f})Box(n,"Lantern corner",new(x,1.23f,z),new(.07f,.32f,.07f),stone);
-        Box(n,"Lantern light",new(0,1.23f,0),new(.26f,.24f,.26f),Mat(new("f5d9a0"),.6f));
-        Mesh(n,"Lantern roof",new CylinderMesh{TopRadius=.05f,BottomRadius=.44f,Height=.26f,RadialSegments=4},new(0,1.52f,0),stone).Rotation=new(0,Mathf.Pi/4,0);
-        Sphere(n,"Lantern finial",new(0,1.7f,0),Vector3.One*.07f,stone);
-        var body=new StaticBody3D();n.AddChild(body);body.AddChild(new CollisionShape3D{Position=new(0,.85f,0),Shape=new CylinderShape3D{Radius=.3f,Height=1.7f}});
+        var n=Model(parent,"Stone lantern","lantern",p,0,new(1.2f,1.2f,1.2f));
+        var body=new StaticBody3D();n.AddChild(body);body.AddChild(new CollisionShape3D{Position=new(0,.875f,0),Shape=new CylinderShape3D{Radius=.33f,Height=1.75f}});
     }
     private readonly RandomNumberGenerator villageRng=new(){Seed=3301};
     private static bool OnPad(float x,float z)=>Hamlet.Any(h=>{var l=new Vector2(x-h.At.X,z-h.At.Y).Rotated(Mathf.DegToRad(h.Yaw));return Math.Abs(l.X)<h.Size.X/2+1.6f&&Math.Abs(l.Y)<h.Size.Z/2+1.6f;});
@@ -127,11 +120,11 @@ public partial class World
         Vector3 Ground(Vector2 p,float lift=0)=>new(p.X,Height(p.X,p.Y)+lift,p.Y);
         StoneLantern(this,Ground(new(-6.5f,17.5f)));StoneLantern(this,Ground(new(-6.5f,29)));
         Bench(new(-5.4f,27.3f),90);Bench(new(5.2f,26.5f),-90);
-        var board=new Node3D{Name="Notice board",Position=Ground(new(6.4f,17.2f)),RotationDegrees=new(0,-90,0)};AddChild(board);
-        foreach(float x in new[]{-.85f,.85f})Box(board,"Notice post",new(x,1.1f,0),new(.12f,2.2f,.12f),wood,true);
-        Box(board,"Notice panel",new(0,1.45f,.02f),new(1.7f,1,.06f),boards);
-        Box(board,"Notice roof",new(0,2.26f,0),new(2.1f,.08f,.55f),wood).Rotation=new(.12f,0,0);
-        for(int i=0;i<5;i++)Box(board,"Posted notice",new(r.RandfRange(-.6f,.6f),r.RandfRange(1.2f,1.7f),.06f),new(.26f,.34f,.01f),Mat(new("f1ead6"),.05f)).Rotation=new(0,0,r.RandfRange(-.12f,.12f));
+        var board=Model(this,"Notice board","notice",Ground(new(6.4f,17.2f)),180,new(1.3f,1.3f,1.3f));
+        var boardBody=new StaticBody3D();board.AddChild(boardBody);
+        foreach(float z in new[]{-.98f,.98f})boardBody.AddChild(new CollisionShape3D{Position=new(0,1.1f,z),Shape=new BoxShape3D{Size=new(.24f,2.2f,.18f)}});
+        // The notices are painted into the model now; their fifteen draws stay so every later village placement keeps its seed.
+        for(int i=0;i<15;i++)r.Randf();
         int side=-1;
         foreach(float z in new[]{2f,10,19,29,37,45}){var p=new Vector2(RoadX(z)+side*3.9f,z);if(keep.All(k=>k.DistanceTo(p)>1.5f))Lamp(Ground(p));side=-side;}
         foreach(var p in new Vector2[]{new(-7,27.5f),new(2.4f,63.2f)})Tree(Ground(p),r.RandfRange(.8f,.95f),"sakura",r);
@@ -178,10 +171,9 @@ public partial class World
         for(int row=0;row<3;row++)for(int i=0;i<5-row;i++)Cylinder(this,"Firewood",Ground(new(13.2f+i*.24f+row*.12f,47.3f),.12f+row*.21f),.11f,1,wood2).Rotation=new(Mathf.Pi/2,0,0);
         Box(this,"Woodpile roof",Ground(new(13.7f,47.3f),.95f),new(1.7f,.06f,1.3f),boards).Rotation=new(.2f,0,0);
         foreach(var p in new Vector2[]{new(15.3f,47.9f),new(15.9f,46.9f)})Cylinder(this,"Straw roll",Ground(p,.45f),.45f,.9f,Mat(new("d6bd78"))).Rotation=new(0,0,Mathf.Pi/2);
-        var cart=new Node3D{Name="Handcart",Position=Ground(new(12.9f,1.6f)),RotationDegrees=new(0,20,0)};AddChild(cart);
-        Box(cart,"Cart bed",new(0,.62f,0),new(1,.1f,1.5f),boards);
-        foreach(float s in new[]{-1f,1f}){Cylinder(cart,"Cart wheel",new(s*.58f,.42f,0),.42f,.07f,wood).Rotation=new(0,0,Mathf.Pi/2);Box(cart,"Cart handle",new(s*.4f,.66f,1.25f),new(.05f,.05f,1.2f),wood);}
-        for(int i=0;i<2;i++)Sphere(cart,"Rice sack",new(0,.85f,-.35f+i*.62f),new(.36f,.24f,.28f),Mat(new("d9cfa8")));
+        var cart=Model(this,"Handcart","cart",Ground(new(12.9f,1.6f)),160,new(1.3f,1.3f,1.3f));
+        var cartBody=new StaticBody3D();cart.AddChild(cartBody);
+        cartBody.AddChild(new CollisionShape3D{Position=new(-.72f,.5f,0),Shape=new BoxShape3D{Size=new(1.24f,1,1.42f)}});cartBody.AddChild(new CollisionShape3D{Position=new(.61f,.5f,0),Shape=new BoxShape3D{Size=new(1.42f,.4f,1)}});
         foreach(var p in new Vector2[]{new(-12.4f,13.6f),new(-13.2f,13.9f),new(-12.8f,14.6f)})Prop(this,"Stored barrel","barrel",Ground(p),p.X*3);
         // Grass tufts on the village lawns, clear of the road, square, pads, footpaths, brook and shrine mound; blades reach .35 m from their root.
         var tufts=new List<(Vector3 P,float H)>();
