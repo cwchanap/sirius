@@ -89,6 +89,7 @@ public partial class World
         var mesh=sts[0].Commit();sts[1].Commit(mesh);sts[2].Commit(mesh);
         mesh.SurfaceSetMaterial(0,top);mesh.SurfaceSetMaterial(1,wood);mesh.SurfaceSetMaterial(2,gable??VillageAtlas(new(1,0),new(1,1)));
         var roofNode=new MeshInstance3D{Name=name,Mesh=mesh};parent.AddChild(roofNode);
+        var shell=mesh.CreateTrimeshShape();shell.BackfaceCollision=true;CameraStop(roofNode,shell);
         float ridge=kind=="gable"?2*hx+.05f:2*(hx-b0)+.3f;bool straw=kind=="thatch";
         Box(roofNode,"Roof ridge",new(0,Y(0,0)+(straw?.12f:.06f),0),new(ridge,straw?.4f:.22f,straw?.55f:.3f),straw?Mat(new("3b3a33")):Mat(new("555b60")));
         if(!straw)foreach(float sx in new[]{-1f,1f})Box(roofNode,"Onigawara",new(sx*ridge/2,Y(0,0)+.2f,0),new(.18f,.5f,.42f),Mat(new("4d5358")));
@@ -213,7 +214,8 @@ public partial class World
                     var g=b.ToGlobal(new(xs,0,z));float bottom=Height(g.X,g.Z)-b.Position.Y;
                     Box(b,"Shed post",new(xs,(bottom+low)/2,z),new(.16f,low-bottom,.16f),timber);
                 }
-                Box(b,"Lean-to roof",new(w/2+1.6f,(low+high)/2+.1f,0),new(Mathf.Sqrt(3.4f*3.4f+(high-low)*(high-low)),.1f,d+.3f),boards).Rotation=new(0,0,-Mathf.Atan2(high-low,3.4f));
+                var shed=Box(b,"Lean-to roof",new(w/2+1.6f,(low+high)/2+.1f,0),new(Mathf.Sqrt(3.4f*3.4f+(high-low)*(high-low)),.1f,d+.3f),boards);
+                shed.Rotation=new(0,0,-Mathf.Atan2(high-low,3.4f));CameraStop(shed,new BoxShape3D{Size=((BoxMesh)shed.Mesh).Size});
                 Box(b,"Worktable",new(w/2+1.3f,1,d/4),new(2.2f,.12f,1.1f),boards,true);
                 foreach(float x in new[]{w/2+.5f,w/2+2.1f})
                 {

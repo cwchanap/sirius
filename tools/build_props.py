@@ -6,6 +6,7 @@ Each GLB carries geometry, UVs, custom normals and a COLOR_0 attribute (R = wind
 G = ambient occlusion tint) plus two material *names*: bark_<species> and foliage. No images
 are exported; World.Tree() assigns the shared bark textures and foliage shader by material name.
 Foliage UVs index assets/art/foliage-atlas.png: keyaki (0,0), sakura (1,0), sugi (0,1), bamboo (1,1).
+Foliage normals follow each crown's bounding ellipsoid (Builder.volume), so a tree shades as one volume, not as separate cards.
 """
 import math
 import os
@@ -22,8 +23,8 @@ SINK = .5  # trunks start below ground so World.Tree() placements on slopes neve
 
 
 class Builder:
-    def __init__(self, height, crown):
-        self.height, self.crown = height, crown
+    def __init__(self, height, crown, shade=.62):
+        self.height, self.crown, self.shade = height, crown, shade  # shade: the crown core's ambient occlusion
         self.verts, self.faces, self.mats, self.uvs, self.cols, self.nors = [], [], [], [], [], []
 
     def sway(self, p):
@@ -69,18 +70,34 @@ class Builder:
             phi = rng.uniform(0, 2 * math.pi)
             ring = math.sqrt(1 - z * z)
             out = Vector((ring * math.cos(phi), ring * math.sin(phi), z))
-            depth = rng.uniform(.55, 1.0)
+            depth = rng.uniform(.3, 1.0) ** .5
             p = center + Vector((out.x * radius, out.y * radius, out.z * radius * flat)) * depth
-            q = Quaternion(Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(-1, 1))).normalized(), rng.uniform(0, math.pi))
-            ax, ay = q @ Vector((1, 0, 0)), q @ Vector((0, 1, 0))
-            if ax.cross(ay).dot(out) < 0:
-                ax = -ax
-            h = rng.uniform(.7, 1.1) * card / 2
+            # Cards face out of the clump, jittered and rolled: random orientations left edge-on slivers and long intersection cuts.
+            facing = (out + Vector((rng.uniform(-.55, .55), rng.uniform(-.55, .55), rng.uniform(-.55, .55)))).normalized()
+            ax = Quaternion(facing, rng.uniform(0, 2 * math.pi)) @ facing.orthogonal().normalized()
+            ay = facing.cross(ax)
+            h = rng.uniform(.75, 1.15) * card / 2
             corners = [p - ax * h - ay * h, p + ax * h - ay * h, p + ax * h + ay * h, p - ax * h + ay * h]
-            facing = ax.cross(ay).normalized()
-            nors = [(c - center).normalized() * .7 + facing * .3 for c in corners]
-            cols = [(self.sway(c), (.72 + .28 * min(1, max(0, (c.z - center.z) / (2 * radius * flat) + .5))) * (.85 + .15 * depth), 0, 1) for c in corners]
-            self.face(corners, [(u0, v0), (u1, v0), (u1, v1), (u0, v1)], nors, cols, 1)
+            top = min(1, max(0, (p.z - center.z) / (2 * radius * flat) + .5))
+            self.face(corners, [(u0, v0), (u1, v0), (u1, v1), (u0, v1)], [(c - center).normalized() for c in corners],
+                      [(self.sway(c), .85 + .15 * top, 0, 1) for c in corners], 1)
+
+    def volume(self):
+        """Shade the foliage as one volume: normals follow the crown's bounding ellipsoid and the inside and underside darken."""
+        idx = [i for f, m in zip(self.faces, self.mats) if m == 1 for i in f]
+        if not idx:
+            return
+        lo = Vector(tuple(min(self.verts[i][k] for i in idx) for k in range(3)))
+        hi = Vector(tuple(max(self.verts[i][k] for i in idx) for k in range(3)))
+        c, r = (lo + hi) / 2, Vector(tuple(max(.4, (hi[k] - lo[k]) / 2) for k in range(3)))
+        for i in idx:
+            e = Vector(tuple((self.verts[i][k] - c[k]) / r[k] for k in range(3)))
+            grad = Vector((e.x / r.x, e.y / r.y, e.z / r.z)).normalized()
+            self.nors[i] = tuple((grad * .8 + Vector(self.nors[i]) * .2).normalized())
+            t = min(1, max(0, (e.length - .25) / .75))
+            ao = (self.shade + (1 - self.shade) * t * t * (3 - 2 * t)) * (.86 + .14 * min(1, max(0, (e.z + 1) / 2)))
+            col = self.cols[i]
+            self.cols[i] = (col[0], col[1] * ao, col[2], col[3])
 
     def tris(self):
         return sum(len(f) - 2 for f in self.faces)
@@ -119,7 +136,7 @@ def keyaki(seed):
         branch(b, rng, top, d, rng.uniform(3.0, 3.8), .16, 1, tips)
     rng.shuffle(tips)
     for tip in tips[:14]:
-        b.clump(rng, tip + Vector((0, 0, .3)), rng.uniform(1.1, 1.6), 76, "keyaki", .88, .8)
+        b.clump(rng, tip + Vector((0, 0, .3)), rng.uniform(1.1, 1.6), 120, "keyaki", .62, .8)
     return b
 
 
@@ -134,7 +151,7 @@ def sugi(seed):
         for k in range(4):
             ang = 2 * math.pi * k / 4 + levels * .7 + rng.uniform(-.2, .2)
             d = Vector((math.cos(ang), math.sin(ang), rng.uniform(-.25, -.05)))
-            pts = polyline(rng, Vector((0, 0, z)), d, 1.7 * (1 - f) + .35, 2, .1)
+            pts = polyline(rng, Vector((0, 0, z)), d, 1.35 * (1 - f) + .3, 2, .1)
             b.tube(pts, [.06 * (1 - f) + .02, .03, .012], 5)
         z += .75
         levels += 1
@@ -143,17 +160,17 @@ def sugi(seed):
         f = i / (count - 1)
         zc = 3.1 + f * (height - 3.6)
         r = 1.55 * (1 - f) + .45
-        b.clump(rng, Vector((rng.uniform(-.15, .15), rng.uniform(-.15, .15), zc)), r, 48, "sugi", .85, .7)
+        b.clump(rng, Vector((rng.uniform(-.15, .15), rng.uniform(-.15, .15), zc)), r, 64, "sugi", .62, .7)
         if f < .6:
             for _ in range(2):
                 ang = rng.uniform(0, 2 * math.pi)
-                b.clump(rng, Vector((math.cos(ang) * r * .75, math.sin(ang) * r * .75, zc - .2)), r * .55, 22, "sugi", .75, .7)
+                b.clump(rng, Vector((math.cos(ang) * r * .75, math.sin(ang) * r * .75, zc - .2)), r * .55, 30, "sugi", .55, .7)
     return b
 
 
 def sakura(seed):
     rng = random.Random(seed)
-    b = Builder(5.5, 4.5)
+    b = Builder(5.5, 4.5, .76)  # blossom is pale and translucent; a deep core reads as brown
     top = Vector((rng.uniform(-.2, .2), rng.uniform(-.2, .2), 1.4))
     b.tube(polyline(rng, Vector((0, 0, -SINK)), top - Vector((0, 0, -SINK)), top.length + SINK, 2, .08), [.32, .26, .22])
     tips, limbs = [], rng.randint(3, 4)
@@ -163,7 +180,7 @@ def sakura(seed):
         branch(b, rng, top, d, rng.uniform(2.8, 3.4), .15, 1, tips, lift=-.02, spread=.6)
     rng.shuffle(tips)
     for tip in tips[:10]:
-        b.clump(rng, tip + Vector((0, 0, .15)), rng.uniform(1.0, 1.35), 88, "sakura", .68, .6)
+        b.clump(rng, tip + Vector((0, 0, .15)), rng.uniform(1.0, 1.35), 140, "sakura", .56, .6)
     return b
 
 
@@ -185,7 +202,7 @@ def bamboo(seed):
             t = rng.uniform(.62, 1.0)
             k = min(4, int(t * 5))
             p = pts[k].lerp(pts[k + 1], t * 5 - k)
-            b.clump(rng, p + lean * 4, rng.uniform(.5, .8), 20, "bamboo", .75, .8)
+            b.clump(rng, p + lean * 4, rng.uniform(.5, .8), 30, "bamboo", .55, .8)
     return b
 
 
@@ -196,11 +213,12 @@ def shrub(seed):
         a, r = rng.uniform(0, 2 * math.pi), rng.uniform(0, .7)
         c = Vector((math.cos(a) * r, math.sin(a) * r, rng.uniform(.5, .8)))
         b.tube([Vector((c.x * .3, c.y * .3, -.2)), c * .6, c], [.035, .025, .015], 5)
-        b.clump(rng, c, rng.uniform(.5, .75), 40, "keyaki", .55, .85)
+        b.clump(rng, c, rng.uniform(.5, .75), 60, "keyaki", .42, .85)
     return b
 
 
 def export(builder, name, species):
+    builder.volume()
     mesh = bpy.data.meshes.new(name)
     mesh.from_pydata(builder.verts, [], builder.faces)
     uv = mesh.uv_layers.new(name="UVMap")

@@ -328,6 +328,12 @@ public static class IntegrationCheck
                 return space.IntersectRay(PhysicsRayQueryParameters3D.Create(new(p.X-side.X,y,p.Y-side.Y),new(p.X+side.X,y,p.Y+side.Y),1)).Count>0;}).ToArray();
             Check(blocked.Length==0,$"village corridor {from}->{to} is clear {string.Join(" ",blocked)}");
         }
+        foreach(var (name,_,size,_,_) in Hoshikawa.World.Hamlet)
+        {
+            var under=g.World.Buildings.Single(n=>n.Name==name).ToGlobal(new(0,1.2f,size.Z/2+.4f));
+            bool Stops(uint mask)=>space.IntersectRay(PhysicsRayQueryParameters3D.Create(under,under+Vector3.Up*8,mask)).Count>0;
+            Check(Stops(Hoshikawa.World.CameraLayer)&&!Stops(1),name+" eaves stop the camera's spring arm but not the player or robots");
+        }
         var villageTrees=g.World.GetChildren().OfType<Node3D>().Where(n=>n.Position.Z>0&&n.Position.Z<76&&Math.Abs(n.Position.X)<40&&n.GetChildren().OfType<StaticBody3D>().Any()
             &&"keyaki sugi sakura bamboo shrub".Split(' ').Any(s=>n.Name.ToString().Contains(s))).ToArray();
         Check(villageTrees.Length>=30,$"Hoshikawa is planted with {villageTrees.Length} trees and shrubs");
@@ -346,7 +352,8 @@ public static class IntegrationCheck
             railTilt=Math.Max(railTilt,Math.Abs(ends[0]-ends[1]));
         }
         Check(railTilt<.08f,$"fence rails follow the ground (worst end-to-end height difference {railTilt:F2} m)");
-        Check(g.World.GetNode<MeshInstance3D>("Village grass").Mesh.GetFaces().All(v=>!Hoshikawa.World.OnFootpath(new(v.X,v.Z),0)),"village grass keeps off the footpaths");
+        var lawn=ActorVisual.Descendants(g.World.GetNode("Village grass")).OfType<MeshInstance3D>().SelectMany(m=>m.Mesh.GetFaces().Select(v=>m.GlobalTransform*v)).ToArray();
+        Check(lawn.Length>0&&lawn.All(v=>!Hoshikawa.World.OnFootpath(new(v.X,v.Z),0)),"village grass keeps off the footpaths");
         // Scene 1 plays as a visual novel driven by the real key path: E first finishes the typing line, then moves on.
         async Task Tap(Key key)
         {
