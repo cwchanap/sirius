@@ -172,7 +172,6 @@ public partial class World : Node3D
     }
     private void Environment()
     {
-        // Warm afternoon: a low south-west sun, ambient taken from the sky, and a pale haze that only gathers in the distance.
         // The Mobile renderer has no SSAO, SDFGI or volumetric fog; depth fog, sky ambient, glow and adjustments all run there.
         var skyMaterial = new ProceduralSkyMaterial
         {
@@ -270,7 +269,6 @@ public partial class World : Node3D
         Cylinder(well,"Well rope",new(0,2,0),.017f,2,Mat(new("c9b581")));
         var wellBody=new StaticBody3D();well.AddChild(wellBody);
         wellBody.AddChild(new CollisionShape3D {Position=new(0,.45f,0),Shape=new CylinderShape3D {Radius=1,Height=.9f}});
-        // Flooded rice paddies: wet soil under a still, sky-reflecting water sheet, planted in rows of upright clumps.
         var paddyWater=new StandardMaterial3D{AlbedoColor=new(.25f,.27f,.2f,.7f),Transparency=BaseMaterial3D.TransparencyEnum.Alpha,Roughness=.03f};
         var rice=new List<(Vector3 P,float H)>();
         for(int field=0;field<2;field++)
