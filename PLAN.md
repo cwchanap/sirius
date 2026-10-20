@@ -101,6 +101,7 @@ C# build succeeded. The final graphical integration run passed 57 checks with `S
 - [x] 333 checks pass headless and in native Metal; Mio's triangles drop from 150,600 to 47,980 and the GLB from 17.4 MB to 8.0 MB.
 - [x] Replace the dense import's rig and clips with Tripo's 65-bone rig and twelve clips the user made in Tripo Studio, each cut and retimed to the game's timing. 333 checks pass headless and in native Metal.
 - [x] Polish Mio after play-testing: an authored jump crouch and knee tuck, a 2 m/s walk, gait-matched walk and run playback, a full 0.6 s dodge roll, a combo that chains through one ready stance, a closed right-hand grip, and the bake's face strokes repainted. 339 checks pass headless and in native Metal.
+- [x] Polish Mio again from the review image: refill the face's pale patches, smudges and brow strokes from the surrounding skin, seat the hilt across her closed fist, lower the ready stance's left hand to her waist, and skip the dodge's lying frames. 339 checks pass headless and in native Metal.
 
 ## Mio's Japanese voice
 

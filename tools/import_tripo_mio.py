@@ -9,13 +9,14 @@ import bpy
 import bmesh
 import json
 import math
+import numpy as np
 from pathlib import Path
 from mathutils import Matrix, Quaternion, Vector
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'artifacts/mio-tripo-animation'
 SOURCE = 'assets/source/tripo-bridge-20261016-mio-anim.blend'
-FIXED = 'assets/source/mio-lowpoly-fixed-face.blend'
+FIXED = 'assets/source/mio-lowpoly-fixed-face2.blend'
 # Game clip: Tripo action (after 'Armature|', names are cut at 63 characters), source frames,
 # game frames. Game lengths are the previous clips', except the dodge, which fills Player.cs's
 # 0.6 s roll. Windows put the fastest swing near the hit Player.cs times (frames 6/7/8 of
@@ -40,9 +41,13 @@ CLIPS = {
 GRIP_CURL = (70, 85, 45)
 GRIP_THUMB = 'slash'
 # The attacks open from and settle into the attack1 prompt's ready stance, so the combo chains
-# through one pose instead of snapping between three.
+# through one pose instead of snapping between three. That frame raises the left hand to her head;
+# the stance takes the held guard's left arm, braced at the waist.
 READY = 'A swordswoman steps forward and swings a one-handed sword in he'
 ATTACK_IN, ATTACK_OUT = 3, 4
+# Tripo's roll lands on her back and sits up (source frames 27-35). Knots of (game frame from 0,
+# source frame) hurry through that and give the rise the time instead.
+DODGE_KNOTS = ((0, 8), (7, 26), (8, 34), (9, 37), (14, 46))
 # Tripo's jump is a straight-legged hop. Per game frame: crouch on the ground (1-2, 10-13) and
 # tuck in the air (3-9). Degrees about the armature's +X axis; she faces -Y.
 JUMP_CROUCH = (.5, .25, 0, 0, 0, 0, 0, 0, 0, .2, .7, .45, .15)
@@ -67,6 +72,46 @@ def activate(rig, action):
     rig.animation_data.action = action
     if action.slots:
         rig.animation_data.action_slot = action.slots[0]
+
+
+def principal(points):
+    c = sum(points, Vector()) / len(points)
+    axes = np.linalg.svd(np.array([p - c for p in points]))[2]
+    return c, Vector(axes[0]), Vector(axes[1])
+
+
+def seat_sword(rig, grip, swords):
+    # The old rig carried the hilt along the hand; Tripo's swings expect it across the closed fist.
+    # Each curled finger rings the hilt: fit a circle to its joints, run the grip through the centres,
+    # blade out of the index side and edge along the knuckles.
+    for name, basis in grip.items():
+        rig.pose.bones[name].matrix_basis = basis
+    bpy.context.view_layer.update()
+    centres = []
+    for finger in ('Index', 'Middle', 'Ring', 'Pinky'):
+        bones = [rig.pose.bones[f'RightHand{finger}{j}'] for j in (1, 2, 3)]
+        p = [b.head for b in bones] + [bones[-1].tail]
+        c, u, v = principal(p)
+        q = np.array([((x - c).dot(u), (x - c).dot(v)) for x in p])
+        a, b, _ = np.linalg.lstsq(np.c_[2 * q, np.ones(len(q))], (q ** 2).sum(1), rcond=None)[0]
+        centres.append(c + float(a) * u + float(b) * v)
+    for pb in rig.pose.bones:
+        pb.matrix_basis = Matrix.Identity(4)
+    fist = sum(centres, Vector()) / 4
+    across = (centres[0] - centres[3]).normalized()
+    parts = {o.name.removeprefix('Sword '): [o.matrix_basis @ v.co for v in o.data.vertices] for o in swords}
+    hilt, along, _ = principal(parts['oxblood leather'])
+    blade, _, edge = principal(parts['blade steel'])
+    if along.dot(blade - hilt) < 0:
+        along.negate()
+    turn = along.rotation_difference(across)
+    edge = turn @ edge
+    knuckles = rig.data.bones['RightHand'].matrix_local.col[1].to_3d()
+    roll = math.atan2(edge.cross(knuckles).dot(across), edge.dot(knuckles))
+    turn = Quaternion(across, (roll + math.pi / 2) % math.pi - math.pi / 2) @ turn
+    seat = Matrix.Translation(fist) @ turn.to_matrix().to_4x4() @ Matrix.Translation(-hilt)
+    for obj in swords:
+        obj.data.transform(seat)
 
 
 def main():
@@ -163,6 +208,10 @@ def main():
     scene.frame_set(1)
     ready = {pb.name: pb.matrix_basis.copy() for pb in rig.pose.bones}
     ready['Hips'].translation -= basis @ Vector((hip.matrix.translation.x, hip.matrix.translation.y, 0))
+    activate(rig, source_actions[CLIPS['guard'][0]])
+    scene.frame_set(CLIPS['guard'][2])
+    ready.update({pb.name: pb.matrix_basis.copy() for pb in rig.pose.bones
+                  if pb.name.startswith(('LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand'))})
     actions = []
     for name, (source, first, last, frames) in CLIPS.items():
         activate(rig, source_actions[source])
@@ -175,6 +224,8 @@ def main():
             if name == 'guard':
                 u = 1 - abs(1 - 2 * u)
             frame = first + (last - first) * u
+            if name == 'dodge':
+                frame = float(np.interp(t, *zip(*DODGE_KNOTS)))
             scene.frame_set(int(frame), subframe=frame % 1)
             p = hip.matrix.translation
             # Tripo's jump travels upward; Godot's physics owns the height.
@@ -253,6 +304,7 @@ def main():
         sword.modifiers.new('Sword hand', 'ARMATURE').object = rig
         weapon_faces += len(faces)
     assert weapon_faces > 0
+    seat_sword(rig, grip, [o for o in scene.objects if o.name.startswith('Sword ')])
     for obj in list(old_scene.objects):
         bpy.data.objects.remove(obj, do_unlink=True)
     bpy.data.scenes.remove(old_scene)

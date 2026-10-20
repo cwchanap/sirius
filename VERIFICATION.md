@@ -1,5 +1,16 @@
 # MVP verification
 
+## Mio polish, second pass — 2026-10-20
+
+From the first pass's summary image the user asked for more polish. This pass took the flaws visible there.
+
+- **Face:** flat-texture close-ups before and after show the pale patch and grey smudge beside her left eye, the strand strokes crossing both brows, pale squares on her right cheek and small cheek flecks gone. The first pass had filled from only the lightest skin; this one solves a smooth fill from the surrounding skin texels. Hair-strand faces at her left temple keep the bake's grey.
+- **Grip:** the measured hilt ran along the hand, within 11° of the bone from wrist to knuckles, so the closed fingers wrapped nothing. The importer now fits a circle to each curled finger and seats the hilt through their centres, blade out of the index side. Blender close-ups in idle, guard, attack1 and walk show the hilt across the fist; in-game captures under Metal show the guard block held horizontally and the ready stance with the blade upright.
+- **Ready stance:** the attack1 frame raised her left hand to her head. The stance now takes the held guard's left arm, at her waist; the combo sheet shows all three attacks starting and ending in it.
+- **Dodge:** the roll no longer shows her lying flat on her back. Game frame 9 now samples source frame 34 (sitting up) instead of 29.7 (lying flat), and frames 10-15 give the rise the time.
+- **Checks:** `check_mio_export.py` passes (65 bones, 12 clips, 47,980 triangles). **339 checks pass headless and in native Metal**, both `SELF_TEST_PASS`; `just e2e` passes 4 and `just unit` 15.
+- **Evidence:** `artifacts/mio-polish/mio-polish2-summary.jpg`, `ingame2.jpg`, `selftest2-*.log`, `build2.log`; scripts in `artifacts/mio-polish/second-pass/`.
+
 ## Environment revamp, phase 4d boat and washing steps — 2026-10-20
 
 Two Tripo props on the river's village bank: 80 credits, balance 475 → 395 (task ids and prompts in ASSETS.md). The river's course is unchanged. No building or character changed, and the seeded streams draw as before; only where they place is filtered.
