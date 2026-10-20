@@ -99,11 +99,12 @@ public partial class World
     public Node3D Minka(string name,Vector2 at,Vector3 size,float yaw,string style)
     {
         var b=new Node3D{Name=name,Position=new(at.X,Height(at.X,at.Y),at.Y),RotationDegrees=new(0,yaw,0)};AddChild(b);Buildings.Add(b);
+        if(style=="teahouse"){Teahouse(b,name,size.Z);return b;}
         float w=size.X,h=size.Y,d=size.Z,f=.35f;
-        bool kura=style=="kura",thatch=style=="farmhouse",irimoya=style is "hall" or "teahouse" or "farmhouse",engawa=style is "clinic" or "farmhouse";
+        bool kura=style=="kura",thatch=style=="farmhouse",irimoya=style is "hall" or "farmhouse",engawa=style is "clinic" or "farmhouse";
         var timber=Mat(new("3f3026"));var paper=Mat(new("efe6cf"),.08f);var boards=VillageAtlas(new(1,0),new(9,2));
         Material plaster=style switch{"farmhouse" or "workshop"=>VillageAtlas(new(0,1),new(6,4)),"kura"=>Mat(new("ece6d6")),"clinic"=>Mat(new("e6e6d8")),_=>Mat(new("e9dfc6"))};
-        Material tiles=style switch{"teahouse" or "clinic"=>VillageAtlas(new(1,1),Vector2.One,new(1,.62f,.52f)),"workshop"=>VillageAtlas(new(1,1),Vector2.One,new(.92f,.88f,.84f)),_=>VillageAtlas(new(1,1),Vector2.One)};
+        Material tiles=style switch{"clinic"=>VillageAtlas(new(1,1),Vector2.One,new(1,.62f,.52f)),"workshop"=>VillageAtlas(new(1,1),Vector2.One,new(.92f,.88f,.84f)),_=>VillageAtlas(new(1,1),Vector2.One)};
         Box(b,"Stone foundation",new(0,f/2,0),new(w+.5f,f,d+.5f),stone,true);
         Box(b,"Plaster walls",new(0,(f+h)/2,0),new(w,h-f,d),plaster,true);
         float overhang=kura?.5f:engawa?1.3f:irimoya?1.05f:.85f,thick=thatch?.45f:kura?.32f:.24f;
@@ -185,8 +186,7 @@ public partial class World
         Box(b,"Stepping stone",new(doorX,.06f,front+.55f),new(1.4f,.16f,.6f),stone);
         // The hall's sign sits lower to hang under its kohai porch roof rather than through it.
         float signY=Math.Min(h-.45f,f+(style=="hall"?2.5f:2.75f));
-        Box(b,"Hanging shop sign",new(doorX,signY,front+.12f),new(2.6f,.42f,.08f),timber);
-        var sign=Label(b,name.ToUpperInvariant(),new(doorX,signY,front+.18f),Gold,23);sign.Billboard=BaseMaterial3D.BillboardModeEnum.Disabled;sign.PixelSize=.0043f;
+        ShopSign(b,name,new(doorX,signY,front+.12f));
         for(float x=-w/2+.3f;x<=w/2-.3f;x+=.6f)foreach(float s in new[]{-1f,1f})
         {
             float z0=s*d/2,z1=s*(d/2+overhang-.08f),y0=Under(x,z0)-.05f,y1=Under(x,z1)-.05f;
@@ -238,19 +238,6 @@ public partial class World
                 Box(b,"Wide stone step",new(0,.1f,d/2+1.1f),new(3.2f,.2f,1.4f),stone);
                 break;
             }
-            case "teahouse":
-            {
-                var indigo=Mat(new("2c3f66"));
-                for(int i=-1;i<=1;i++)Box(b,"Noren",new(i*.6f,f+1.72f,front+.1f),new(.56f,.72f,.02f),indigo);
-                Box(b,"Noren rod",new(0,f+2.1f,front+.1f),new(1.9f,.04f,.04f),timber);
-                var red=Mat(new("b23a2e"));
-                Box(b,"Tea bench",new(2.2f,.45f,d/2+1.5f),new(1.9f,.12f,.6f),red,true);
-                foreach(float x in new[]{1.45f,2.95f})Box(b,"Bench leg",new(x,.2f,d/2+1.5f),new(.1f,.4f,.5f),timber);
-                Cylinder(b,"Nodate umbrella pole",new(3.4f,1.3f,d/2+1.9f),.03f,2.6f,timber);
-                Mesh(b,"Nodate umbrella",new CylinderMesh{TopRadius=.03f,BottomRadius=1.25f,Height=.45f,RadialSegments=16},new(3.4f,2.45f,d/2+1.9f),red);
-                Sphere(b,"Chochin lantern",new(1.35f,f+2.05f,front+.3f),new(.2f,.3f,.2f),Mat(new("d4533a"),.45f));
-                break;
-            }
             case "clinic":
             {
                 Box(b,"Medic banner",new(w/2-.4f,2.1f,d/2+overhang-.15f),new(.7f,1.5f,.04f),Mat(new("edf0d8")));
@@ -263,5 +250,27 @@ public partial class World
             }
         }
         return b;
+    }
+    // The Tripo teahouse faces its own +X and is 5.4 m deep against the table's 7, so it turns a quarter and steps forward until its front wall stands on the table's.
+    private void Teahouse(Node3D b,string name,float d)
+    {
+        float z=d/2-2.69f;
+        var mesh=ActorVisual.Descendants(Model(b,"Tripo teahouse","teahouse",new(0,0,z),-90,new(1.3f,1.3f,1.3f))).OfType<MeshInstance3D>().Single();
+        var shell=mesh.Mesh.CreateTrimeshShape();shell.BackfaceCollision=true;CameraStop(mesh,shell);
+        var body=new StaticBody3D();b.AddChild(body);
+        body.AddChild(new CollisionShape3D{Position=new(0,1.6f,z+.02f),Shape=new BoxShape3D{Size=new(8,3.2f,5.35f)}});
+        body.AddChild(new CollisionShape3D{Position=new(0,.3f,z+.02f),Shape=new BoxShape3D{Size=new(8.24f,.6f,5.7f)}});
+        ShopSign(b,name,new(0,2.7f,d/2+.25f));
+        var timber=Mat(new("3f3026"));var red=Mat(new("b23a2e"));
+        Box(b,"Tea bench",new(2.2f,.45f,d/2+1.5f),new(1.9f,.12f,.6f),red,true);
+        foreach(float x in new[]{1.45f,2.95f})Box(b,"Bench leg",new(x,.2f,d/2+1.5f),new(.1f,.4f,.5f),timber);
+        Cylinder(b,"Nodate umbrella pole",new(3.4f,1.3f,d/2+1.9f),.03f,2.6f,timber);
+        Mesh(b,"Nodate umbrella",new CylinderMesh{TopRadius=.03f,BottomRadius=1.25f,Height=.45f,RadialSegments=16},new(3.4f,2.45f,d/2+1.9f),red);
+        Sphere(b,"Chochin lantern",new(1.35f,2.4f,d/2+.3f),new(.2f,.3f,.2f),Mat(new("d4533a"),.45f));
+    }
+    private void ShopSign(Node3D b,string name,Vector3 at)
+    {
+        Box(b,"Hanging shop sign",at,new(2.6f,.42f,.08f),Mat(new("3f3026")));
+        var sign=Label(b,name.ToUpperInvariant(),at+new Vector3(0,0,.06f),Gold,23);sign.Billboard=BaseMaterial3D.BillboardModeEnum.Disabled;sign.PixelSize=.0043f;
     }
 }

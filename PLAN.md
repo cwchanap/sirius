@@ -139,4 +139,5 @@ Bring the non-character environment up to the Tripo characters' detail: semi-rea
 - [x] Phase 2b: brighten the Tripo well (albedo tint) and the cedar props (atlas tint, no new material).
 - [x] Phase 2b, Tripo: the stone lantern (all four), the handcart with its rice bales and the notice board (150 credits), each under 8,200 triangles with 2048² PBR maps and fitted colliders. 354 checks pass headless and in native Metal.
 - [ ] Phase 2, remaining box-built props (plant pots, field fences, Komorebi's benches).
-- [ ] Phase 3: buildings.
+- [x] Phase 3 pilot, Tripo: The Copper Kettle teahouse (Codex reference, one 40-credit image-to-model), 16,282 triangles with 2048² PBR maps, on its table pad with the shop sign, fitted wall colliders and its own mesh as the camera-only eaves. The other five stay on `Minka()` for comparison. 355 checks pass headless and in native Metal.
+- [ ] Phase 3: the other five Hoshikawa buildings, once the pilot is reviewed.

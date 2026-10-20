@@ -1,5 +1,15 @@
 # MVP verification
 
+## Environment revamp, phase 3 pilot — 2026-10-20
+
+One Tripo building, The Copper Kettle teahouse, replaces its `Minka()` version. The other five Hoshikawa buildings stay on `Minka()` for comparison. No character, terrain or pad changed.
+
+- **Captures:** `tools/review_revamp.gd` gained a front and an oblique view of the teahouse, framed from the ground at its centre. These, the three eaves spring-camera views, the dialogue background and the `review_hamlet.gd` east row, square and overview were taken before (5bb7119's code) and after, in native Metal.
+- **Model:** 16,282 triangles with 2048² maps, 5.93 m tall against the Minka's 7.2 m to its ridge. In game it stands on its pad, inside the pad's flat apron, and its front wall is where the old one was. Its eaves are lower: their underside is about 3.3 m up at the front, against the Minka's 4.1 m. In the eaves-under view the spring arm now stops right behind Mio, because it meets that lower eave sooner.
+- **Self-test:** **355 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro; phase 2b had 354). For the teahouse, the archetype check is replaced by a model check: under 20k triangles, textured and tinted, grounded on the pad, taller than 5.5 m, and its bounds inside the pad's flat apron. The sign check now casts up against every array mesh under a building instead of meshes named "roof", so for the teahouse the first face above the sign must be the model's eave underside. The eaves check is unchanged and passes against the model's trimesh. A new check casts at the front wall on layer 1 and stops at the model's wall line (3.5 m). Both runs exit 0 with `SELF_TEST_PASS`. `just unit` passes 15 cases, `just e2e` 4.
+- **Render cost** (`render_cost.gd`, `--disable-vsync --fixed-fps 60`): draws 1139/1071/1230 → 1127/1071/1216, primitives 2.72M/2.57M/2.60M → 2.77M/2.56M/2.64M. The Minka teahouse's merged material cells and its roof mesh cost more draws than the one model. Its 16k triangles, drawn in the colour and shadow passes, add up to 2% primitives where it is in view. CPU median 0.82–0.91 ms; fps 182–197.
+- **Limits:** the other five buildings are still `Minka()`. No physical keyboard/mouse session is claimed.
+
 ## Environment revamp, phase 2b — 2026-10-19
 
 The Tripo well and the cedar props (benches, lamps, barrels) are brightened. Three more Tripo models replace box-built props: the stone lantern (all four), the handcart and the notice board. No character, building or terrain changed.
