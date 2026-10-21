@@ -32,8 +32,13 @@ just run
 | Pause / release pointer | Esc |
 | Zoom camera | Mouse wheel |
 | Save screenshot | F8 (`artifacts/gameplay.png`) |
+| Language | The English / 日本語 / 繁體中文 buttons on the title screen and pause menu |
 
 Tap guard within **190 ms** of a frontal normal strike to deflect it. Deflection damages enemy posture. Holding guard builds your own posture; reaching its limit staggers you. A **red diamond** warns of an unblockable low sweep: dodge or jump. Fill an enemy's posture bar, then attack nearby during its **4.5-second** opening to finish it. Resonance Cut hits nearby robots for health and posture damage, with a **12-second** cooldown. Three remedies restore 45 health each; Aki replenishes health and remedies.
+
+## Languages
+
+The game is playable in English, Japanese (日本語) and Traditional Chinese (繁體中文, Taiwan usage). The first launch follows the operating system's language, the language buttons on the title screen and the pause menu switch it at any time, and the choice is kept in `user://settings.cfg`. `--lang=en|ja|zh_TW` after `--` overrides both for one run. The Japanese voice plays under every language. Everything shown is translated: the HUD, menus, toasts, signs, name labels and every line of dialogue. `assets/dialogue/glossary.md` fixes the names and terms; `assets/dialogue/*.json` hold the text.
 
 ## Prologue route
 
@@ -59,7 +64,7 @@ dotnet build Hoshikawa.csproj
 /Applications/Godot_mono.app/Contents/MacOS/Godot --headless --path . --fixed-fps 60 -- --self-test
 ```
 
-Success prints `SELF_TEST_PASS` and exits 0. Current evidence and environment limitations are recorded in `VERIFICATION.md`. Checks cover imported animations, both villages and all ten residents, walking, running, jumping, evasion, both bridge crossings, the entire northern route in both directions, shelter and overlook access, both medics, dialogue, deflection, guard, perilous attacks, damage timing, skill cooldown, finishers, enemy patrol/aggro, pause, the full mission, and restart.
+Success prints `SELF_TEST_PASS` and exits 0. Append `--lang=ja` or `--lang=zh_TW` to run the same flow with that language on screen, which also fails on any string drawn without a translation; `just self-test` runs all three. Current evidence and environment limitations are recorded in `VERIFICATION.md`. Checks cover imported animations, both villages and all ten residents, walking, running, jumping, evasion, both bridge crossings, the entire northern route in both directions, shelter and overlook access, both medics, dialogue, deflection, guard, perilous attacks, damage timing, skill cooldown, finishers, enemy patrol/aggro, pause, the full mission, and restart.
 
 Two more suites run on plain `dotnet test`, and CI runs all three on every pull request (`.github/workflows/`; the unit tests also run on every push):
 
@@ -70,7 +75,7 @@ just e2e    # gdUnit4Net tests that drive a headless game through godot-e2e: tit
 
 For reproducible rendered evidence, append `-- --play --capture=res://artifacts/village.png` to a graphical launch. Optional `--overview`, `--combat-view`, `--portrait`, and `--portrait-close` select useful inspection viewpoints. These options are development conveniences; normal play begins at the illustrated title screen.
 
-Run Godot with `--script res://tools/review_dialogue.gd` to capture the prologue's dialogue scenes under `artifacts/dialogue/`. Run Godot with `--script res://tools/review_hamlet.gd` for Hoshikawa captures under `artifacts/hamlet/` (`-- --out=<subdir> --only=square,overview` narrows them). Use `--komorebi` or `--pass-view` with `--play` to inspect the new areas. Run Godot with `--script res://tools/review_valley.gd` for six landscape captures under `artifacts/countryside/`, and with `--script res://tools/review_revamp.gd` for the environment close-ups (sakura, lawn, rice, the tea house eaves through the gameplay camera, a dialogue background, Komorebi, and each house from the front, at 45° and under its eaves) under `artifacts/revamp/`.
+Run Godot with `--script res://tools/review_dialogue.gd` to capture the prologue's dialogue scenes under `artifacts/dialogue/`. Run it with `--script res://tools/review_languages.gd -- --lang=ja` (or `zh_TW`, `en`) for the title, HUD, menus and scenes in one language under `artifacts/i18n/<lang>/`. Run Godot with `--script res://tools/review_hamlet.gd` for Hoshikawa captures under `artifacts/hamlet/` (`-- --out=<subdir> --only=square,overview` narrows them). Use `--komorebi` or `--pass-view` with `--play` to inspect the new areas. Run Godot with `--script res://tools/review_valley.gd` for six landscape captures under `artifacts/countryside/`, and with `--script res://tools/review_revamp.gd` for the environment close-ups (sakura, lawn, rice, the tea house eaves through the gameplay camera, a dialogue background, Komorebi, and each house from the front, at 45° and under its eaves) under `artifacts/revamp/`.
 
 Komorebi now has angled service frontages, a smaller courtyard, an orchard packing station, and paths through the garden and orchard fence openings. Graded approaches meet the shelter and river-facing overlook floors; garden soil follows the hillside. Run Godot with `--script res://tools/review_arrangement.gd` for the placement review captures in `artifacts/arrangement-after/`.
 
@@ -122,7 +127,8 @@ The importer regression check exercises all four input formats, transformed mult
 - `tools/cut_glb.py`: deletes the faces of a generated GLB that lie wholly inside a box, in background Blender, passing everything else through. Used to cut a stray fragment off the Tripo water wheel.
 - `scripts/Player.cs`, `Enemy.cs`: action timing, movement, and robot behavior.
 - `scripts/Game.cs`, `Hud.cs`: quest, camera, dialogue, presentation and audio.
-- `scripts/Prologue.cs`: every line of the prologue's visual-novel scenes, kept apart from the code that plays them. `SceneNames` gives each scene the key its voice files use.
+- `scripts/Prologue.cs`: every line of the prologue's visual-novel scenes, kept apart from the code that plays them, including each resident's repeated line and Zero's relay reminders. `SceneNames` gives each scene the key its voice files and translations use.
+- `scripts/Localization.cs`: the three languages. UI text is keyed by its English wording and registered with Godot's `TranslationServer`, so `Label3D` signs and `Button`s follow a switch by themselves and the HUD calls `T()`/`F()`; dialogue is looked up by scene position (`Line`). Also picks the language at launch, saves the choice, and sets the CJK fallback faces. Strings it cannot find are collected in `Localization.Missing`, which the self-test requires to stay empty.
 - `assets/audio/voice/ja/Mio/`, `Zero/`: Mio's and Zero's Japanese voices, one mp3 per line named by its key (`Intro.1.mp3`). `Game.Advance()` plays the file for the beat it shows.
 - `assets/art/portraits/`: dialogue portraits generated with Codex from each character's reference art and cut out with `tools/cut_portrait.gd`. A speaker without a file there shows only a name plate.
 - `assets/models/mio.glb`: the user's low-poly Tripo character with Tripo's 65-bone rig and twelve clips made in Tripo Studio.
@@ -137,11 +143,12 @@ The importer regression check exercises all four input formats, transformed mult
 - `tools/render_human_review.py`: temporary Blender studio renders of faces, idle, running and guard poses.
 - `assets/art/`: original imagegen art used directly in the game; prompts in `ASSETS.md`.
 - `tools/build_audio.py`: original synthesized ambient loop and combat sounds using Python's standard library.
-- `assets/dialogue/ja.json`: Japanese text for Mio's and Zero's prologue lines, keyed like `Intro.1` by scene and beat in `Prologue.cs`.
-- `tests/unit/`: gdUnit4Net unit tests on plain .NET against the game assembly: the road against the terrain shader, house pads and clearances, the brook bed, level paddy floors, regions, Tripo resident assets, and the prologue's voice files, Japanese lines and portraits.
+- `assets/dialogue/ja.json`, `zh_TW.json`: every prologue line in Japanese and Traditional Chinese, keyed like `Intro.1` by scene and beat in `Prologue.cs`; `ja.json` is also the script for the Japanese voice. `ui.ja.json`, `ui.zh_TW.json`: the interface strings, keyed by their English text. `glossary.md`: names, places, game terms and each character's tone in all three languages.
+- `assets/fonts/`: Noto Sans and Serif CJK (JP and TC), cut down to the characters the translations use by `tools/build_fonts.py` (needs fontTools and the Noto CJK collections; re-run it after adding a character). OFL licence in `OFL.txt`.
+- `tests/unit/`: gdUnit4Net unit tests on plain .NET against the game assembly: the road against the terrain shader, house pads and clearances, the brook bed, level paddy floors, regions, Tripo resident assets, the prologue's voice files and portraits, and that both translations cover every line and string with matching placeholders and no dead entries.
 - `tests/e2e/`, `addons/gdunit_e2e/`: gdUnit4Net end-to-end tests and the godot-e2e addon they use to launch and drive a headless game process. The addon is not versioned — CI downloads the pinned [cwchanap/godot-e2e](https://github.com/cwchanap/godot-e2e) release zip each run, and `just e2e` fetches the same release locally.
 - `.github/workflows/`: `unit.yml` runs the unit tests on every push and pull request; `e2e.yml` installs Godot 4.6.2 .NET and runs the self-test and e2e tests on pull requests and by manual dispatch.
-- `tools/build_voice.py`: Japanese voice lines from ElevenLabs text-to-speech, standard library only. `--check` validates `ja.json` against `Prologue.cs`; `--audition` renders candidate voices to `artifacts/voice-audition/`. The procedure is `.claude/skills/voicing-dialogue/SKILL.md`.
+- `tools/build_voice.py`: Japanese voice lines from ElevenLabs text-to-speech, standard library only. `--check` validates `ja.json` against `Prologue.cs` (`zh_TW.json` is checked by the unit tests); `--audition` renders candidate voices to `artifacts/voice-audition/`. The procedure is `.claude/skills/voicing-dialogue/SKILL.md`.
 
 Mio uses the user's low-poly Tripo model, with all twelve clips made in Tripo Studio: the idle, walk, run and jump presets, and the attack combo, guard, dodge, Resonance Cut, stagger and death generated from text prompts. Each is cut and retimed to the game's timing, and the original sword sits in her closed right hand. The three attacks start and end in one ready stance, so the combo flows from swing to swing. Movement stays under the C# collision controller: walking is 2 m/s and running 7.8 m/s, with both cycles played at a matching rate. The dodge is a 0.6 s roll over the same distance as before. The game jump uses the first hop from Tripo's repeated sequence with an added crouch and knee tuck, removes its extra vertical travel, follows physical ascent/descent and starts landing recovery on ground contact.
 

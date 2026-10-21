@@ -7,9 +7,9 @@ description: Use when giving a Hoshikawa character a Japanese voice, auditioning
 
 ## Overview
 
-Japanese text is data: `assets/dialogue/ja.json` holds every translated line, keyed by its position in `scripts/Prologue.cs`. The same file is the source for a future Japanese localization, so it stores the displayed text, never TTS markup. `tools/build_voice.py` turns it into speech. In-game text stays English; the dialogue plays the Japanese voice under it.
+Japanese text is data: `assets/dialogue/ja.json` holds every prologue line, keyed by its position in `scripts/Prologue.cs`, and is both the Japanese subtitle shown when the player picks 日本語 and the script for the voice, so it stores the displayed text, never TTS markup. `assets/dialogue/zh_TW.json` is the same set in Traditional Chinese; names and terms for all three languages are fixed in `assets/dialogue/glossary.md`. `tools/build_voice.py` turns `ja.json` into speech, and the Japanese voice plays under every language.
 
-**Playback.** When `Game.Advance()` shows beat *i* of a scene, it plays `res://assets/audio/voice/ja/<Speaker>/<scene>.<i>.mp3` if that file exists, and stops it on the next beat, Esc or the end of the scene. The scene name comes from `Prologue.SceneNames`, so a new scene array must be added there to be voiced; one-line `Play((speaker,text))` calls build a fresh array and stay silent. Any speaker is voiced as soon as their files exist; there is no per-character switch. `IntegrationCheck` requires every Mio and Zero beat in a named scene to have its mp3, so a new or moved line of theirs fails the self-test until it is voiced. Zero's relay one-liners (`RelayAsleep`, `RelayGuarded`, `RelaySteady`) are single strings and stay silent.
+**Playback.** When `Game.Advance()` shows beat *i* of a scene, it plays `res://assets/audio/voice/ja/<Speaker>/<scene>.<i>.mp3` if that file exists, and stops it on the next beat, Esc or the end of the scene. The scene name comes from `Prologue.SceneNames`, so a new scene array must be added there to be voiced or translated; never `Play((speaker,text))` an ad hoc array. Any speaker is voiced as soon as their files exist; there is no per-character switch. `IntegrationCheck` requires every Mio and Zero beat in a named scene to have its mp3, so a new or moved line of theirs fails the self-test until it is voiced, except the scenes in `Prologue.Unvoiced`: Zero's relay reminders (`RelayAsleep`, `RelayGuardedNone` to `RelayGuardedThree`, `RelaySteady`), which repeat on every visit and stay silent. Voice them and remove them from that set together.
 
 | What | Where | In git |
 |---|---|---|
@@ -21,7 +21,7 @@ Japanese text is data: `assets/dialogue/ja.json` holds every translated line, ke
 
 ## Keys and the line file
 
-A key is `<Array>.<index>` into `Prologue.cs`: `Intro.1`, `Briefing.6`, `FirstMeeting.Chiyo.2`. Indices count every beat, narration and other speakers included. The single-string constants (`RenReminder`, `RelaySteady`, ...) have no key yet; extend `english()` in the script when one needs voicing.
+A key is `<Array>.<index>` into `Prologue.cs`: `Intro.1`, `Briefing.6`, `FirstMeeting.Chiyo.2`, `Komorebi.Nao.0`, `RelayGuardedTwo.0`. Indices count every beat, narration and other speakers included; a one-line scene is index 0. A resident's repeated line is the first beat of their first meeting, so it shares that key.
 
 ```json
 "Homecoming.8": {"speaker": "Mio", "en": "<exact English from Prologue.cs>", "ja": "<displayed Japanese>", "tts": "[softly] <spoken Japanese>"}
@@ -34,7 +34,7 @@ A key is `<Array>.<index>` into `Prologue.cs`: `Intro.1`, `Briefing.6`, `FirstMe
 
 ## Workflow
 
-1. **Translate.** Add or fix the speaker's lines in `ja.json`. `python3 tools/build_voice.py --check` validates against `Prologue.cs` with no key and no credits, and lists every translated speaker's lines still missing Japanese.
+1. **Translate.** Add or fix the speaker's lines in `ja.json` (and `zh_TW.json`, whose `en` must match too; the unit tests fail on a stale or missing entry). `python3 tools/build_voice.py --check` validates against `Prologue.cs` with no key and no credits, and lists every translated speaker's lines still missing Japanese.
 2. **Find voices.** With the ElevenLabs connector: `creative_list_voices` with `languages: ["ja"]`, gender, age and `use_cases: ["characters_animation"]`. Voice IDs come only from that tool or the user. Pick about three that span the character brief (e.g. warm, low and dry, anime-heroine) rather than three similar ones.
 3. **Audition.** Put the candidates in `AUDITION` (`{'Speaker': {'shortname': voice_id}}`) and up to five of that speaker's translated lines in `AUDITION_KEYS['Speaker']`, including an emotional one if there is one. Remove finished auditions from both so they are not re-rendered, then `python3 tools/build_voice.py --audition` and `open artifacts/voice-audition/<Speaker>/index.html`. The user picks; do not wire audio in before that.
 4. **Cast.** Set `CAST['Speaker']=voice_id`. Copy the winner's audition takes into the game folder first (same text, voice and model), so only the remaining lines are paid for. Run `python3 tools/build_voice.py`, listen to every file, then `$GODOT_MONO --headless --editor --path . --import` and commit the mp3s with their `.import` files. Run the self-test (headless and graphical) to confirm the lines play. Record the pick in the table below and in `ASSETS.md`.

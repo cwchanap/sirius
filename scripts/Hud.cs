@@ -1,4 +1,5 @@
 using Godot;
+using static Hoshikawa.Localization;
 namespace Hoshikawa;
 
 public partial class Hud : Control
@@ -11,6 +12,7 @@ public partial class Hud : Control
     private readonly Dictionary<string,Texture2D?> portraits=new();
     private Control menu=null!;
     private float scale=1,w=1440,h=900;
+    public int Redraws;
     private Color ink=new("12282f"),cream=new("f1ead5"),muted=new("aec0b4"),gold=World.Gold,jade=World.Jade;
     public override void _Ready()
     {
@@ -20,8 +22,9 @@ public partial class Hud : Control
             Gradient=new Gradient {Colors=new[]{new Color(.028f,.068f,.076f,.86f),new Color(.028f,.068f,.076f,.30f),new Color(.028f,.068f,.076f,0)},Offsets=new[]{0f,.45f,1f}}};
         sceneShade=new GradientTexture2D {Width=1,Height=256,FillFrom=Vector2.Zero,FillTo=Vector2.Down,
             Gradient=new Gradient {Colors=new[]{new Color(.012f,.03f,.035f,0),new Color(.012f,.03f,.035f,.9f)},Offsets=new[]{0f,1f}}};
-        menu=new Control {MouseFilter=MouseFilterEnum.Ignore};AddChild(menu);Resized+=RefreshMenu;
+        menu=new Control {MouseFilter=MouseFilterEnum.Ignore};AddChild(menu);Resized+=RefreshMenu;serif.Fallbacks=SerifFallbacks();
     }
+    public void ApplyLanguage(){serif.Fallbacks=SerifFallbacks();wrapped=("",0,"",new());RefreshMenu();}
     public override void _ExitTree() { serif.Dispose(); titleShade.Dispose(); sceneShade.Dispose(); }
     // Portraits are looked up by speaker (KOMA-7 -> koma7.png); a speaker without one is shown by name plate alone.
     public Texture2D? Portrait(string who)
@@ -47,28 +50,28 @@ public partial class Hud : Control
     }
     public override void _Draw()
     {
-        scale=Math.Min(GetViewportRect().Size.X/1440,GetViewportRect().Size.Y/900);
+        Redraws++;scale=Math.Min(GetViewportRect().Size.X/1440,GetViewportRect().Size.Y/900);
         w=GetViewportRect().Size.X/scale;h=GetViewportRect().Size.Y/scale;
         DrawSetTransform(Vector2.Zero,0,Vector2.One*scale);menu.Scale=Vector2.One*scale;
         if(Game.Mode==GameMode.Title){Title();return;}
         if(Game.Mode==GameMode.Dialogue){Dialogue();return;}
         Panel(new(30,24,385,160),.78f);
-        Text(Game.Region.ToUpperInvariant(),new(42,52),25,cream,true);
-        Text(Game.Region switch { "Komorebi"=>"NORTHERN SETTLEMENT  /  LODGE & CLINIC", "Cedar Pass"=>"CEDAR RIVER  /  ORCHARDS & HIGHLANDS",
-            "Old Relay Road"=>"MANUAL RELAY  /  PATROL ROAD", _=>"THE OFFLINE VALLEY  /  HUMAN SETTLEMENT" },new(44,77),11,gold);
+        Text(T(Game.Region.ToUpperInvariant()),new(42,52),25,cream,true);
+        Text(T(Game.Region switch { "Komorebi"=>"NORTHERN SETTLEMENT  /  LODGE & CLINIC", "Cedar Pass"=>"CEDAR RIVER  /  ORCHARDS & HIGHLANDS",
+            "Old Relay Road"=>"MANUAL RELAY  /  PATROL ROAD", _=>"THE OFFLINE VALLEY  /  HUMAN SETTLEMENT" }),new(44,77),11,gold);
         DrawLine(new(44,93),new(350,93),new Color(gold,.55f));
-        Text("01   THE TRAIN WITH NO PASSENGERS",new(44,120),12,gold);
-        Text(Game.Objective,new(44,145),17,cream);
-        if(Game.QuestStage<4)Text($"{(int)Game.Player.GlobalPosition.DistanceTo(Game.ObjectivePosition)} m",new(44,169),12,muted);
+        Text(T("01   THE TRAIN WITH NO PASSENGERS"),new(44,120),12,gold);
+        Text(Game.ObjectiveText,new(44,145),17,cream);
+        if(Game.QuestStage<4)Text(F("{0} m",(int)Game.Player.GlobalPosition.DistanceTo(Game.ObjectivePosition)),new(44,169),12,muted);
         Minimap();Vitals();Controls();
-        Text("2147  /  SHIKOKU HIGHLANDS",new(w-280,h-26),11,new Color(cream,.65f));
+        Text(T("2147  /  SHIKOKU HIGHLANDS"),new(w-280,h-26),11,new Color(cream,.65f));
         var closest=Game.Locked??Game.Enemies.Where(e=>!e.Dead&&e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)<12).OrderBy(e=>e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)).FirstOrDefault();
         if(closest!=null)
         {
-            float x=w/2-170;Text("SIRIUS  /  PATROL "+closest.Index.ToString("00"),new(x,80),13,cream);
+            float x=w/2-170;Text(F("SIRIUS  /  PATROL {0}",closest.Index.ToString("00")),new(x,80),13,cream);
             Bar(new(x,94),new(340,7),closest.Health/100,new("d48568"));
             Bar(new(x,106),new(340,4),closest.Posture/100,gold);
-            Text(closest.Broken?"POSTURE BROKEN · ATTACK TO FINISH":closest.Perilous&&closest.State=="PERILOUS"?"◆ PERILOUS SWEEP · DODGE / JUMP":Game.Locked==closest?"TARGET LOCKED":"TAB   LOCK TARGET",new(x,131),11,closest.Perilous?new("ff9c83"):gold);
+            Text(T(closest.Broken?"POSTURE BROKEN · ATTACK TO FINISH":closest.Perilous&&closest.State=="PERILOUS"?"◆ PERILOUS SWEEP · DODGE / JUMP":Game.Locked==closest?"TARGET LOCKED":"TAB   LOCK TARGET"),new(x,131),11,closest.Perilous?new("ff9c83"):gold);
             if(Game.Locked!=null&&!Game.Camera.IsPositionBehind(closest.GlobalPosition))
             {
                 var p=Game.Camera.UnprojectPosition(closest.GlobalPosition+Vector3.Up*1.4f)/scale;
@@ -92,14 +95,14 @@ public partial class Hud : Control
         if(Game.ToastTime>0&&Game.Mode!=GameMode.Dialogue)
         {
             Panel(new(w/2-280,174,560,83),.83f);
-            Center(Game.ToastTitle,208,23,gold,true);Center(Game.ToastBody,235,14,cream);
+            Center(T(Game.ToastTitle),208,23,gold,true);Center(T(Game.ToastBody),235,14,cream);
         }
-        if(Game.FeedbackTime>0)Center(Game.FeedbackText,h*.46f,21,Game.FeedbackColor);
+        if(Game.FeedbackTime>0)Center(T(Game.FeedbackText),h*.46f,21,Game.FeedbackColor);
         if(Game.Mode==GameMode.Paused||Game.Mode==GameMode.Defeated)
         {
             DrawRect(new(0,0,w,h),new Color(.025f,.055f,.067f,.77f));
-            Center(Game.Mode==GameMode.Paused?"A moment of quiet":"The light has not gone out",h*.28f,39,cream,true);
-            Center(Game.Mode==GameMode.Paused?"HOSHIKAWA  /  JOURNEY PAUSED":"Recover in the village. Disabled patrols stay disabled.",h*.28f+37,14,muted);
+            Center(T(Game.Mode==GameMode.Paused?"A moment of quiet":"The light has not gone out"),h*.28f,39,cream,true);
+            Center(T(Game.Mode==GameMode.Paused?"HOSHIKAWA  /  JOURNEY PAUSED":"Recover in the village. Disabled patrols stay disabled."),h*.28f+37,14,muted);
         }
     }
     private void Title()
@@ -107,42 +110,42 @@ public partial class Hud : Control
         DrawTextureRect(art,new(0,0,w,h),false);
         DrawTextureRect(titleShade,new(0,0,w,h),false);
         DrawRect(new(0,h-88,w,88),new Color(.018f,.04f,.05f,.6f));
-        Text("A STORY OF TWO WORLDS",new(83,h*.25f-38),13,gold);
-        Text("Hoshikawa",new(78,h*.25f+35),70,cream,true);
-        Text("T H E   O F F L I N E   V A L L E Y",new(84,h*.25f+74),15,gold);
+        Text(T("A STORY OF TWO WORLDS"),new(83,h*.25f-38),13,gold);
+        Text(T("Hoshikawa"),new(78,h*.25f+35),70,cream,true);
+        Text(T("T H E   O F F L I N E   V A L L E Y"),new(84,h*.25f+74),15,gold);
         DrawLine(new(85,h*.25f+101),new(445,h*.25f+101),new Color(gold,.65f));
-        Text("Beyond the cities of machines,",new(85,h*.25f+143),20,cream,true);
-        Text("a small village still keeps its lights on.",new(85,h*.25f+174),20,cream,true);
-        Text("PROLOGUE  01",new(85,h*.25f+220),11,gold);
-        Text("The train with no passengers",new(85,h*.25f+248),19,cream);
-        Text("MIO  /  HUMAN SIDE",new(w-280,h-51),12,gold);
-        Text("GODOT 4  ·  PLAYABLE PROLOGUE",new(83,h-36),11,new Color(cream,.75f));
+        Text(T("Beyond the cities of machines,"),new(85,h*.25f+143),20,cream,true);
+        Text(T("a small village still keeps its lights on."),new(85,h*.25f+174),20,cream,true);
+        Text(T("PROLOGUE  01"),new(85,h*.25f+220),11,gold);
+        Text(T("The train with no passengers"),new(85,h*.25f+248),19,cream);
+        Text(T("MIO  /  HUMAN SIDE"),new(w-280,h-51),12,gold);
+        Text(T("GODOT 4  ·  PLAYABLE PROLOGUE"),new(83,h-36),11,new Color(cream,.75f));
     }
     private void Vitals()
     {
         Panel(new(36,h-159,376,119),.91f);
         DrawTextureRectRegion(art,new Rect2(46,h-148,77,96),new Rect2(1040,140,350,435));
         DrawRect(new Rect2(46,h-148,77,96),new Color(gold,.5f),false);
-        Text("MIO",new(140,h-128),24,cream,true);
-        Text("OFFLINE RUNNER",new(210,h-129),10,muted);
+        Text(T("Mio").ToUpperInvariant(),new(140,h-128),24,cream,true);
+        Text(T("OFFLINE RUNNER"),new(Math.Max(210,150+serif.GetStringSize(T("Mio").ToUpperInvariant(),fontSize:24).X),h-129),10,muted);
         Bar(new(140,h-110),new(250,9),Game.Player.Health/100,jade);
-        Text($"VITALITY  {(int)Game.Player.Health} / 100",new(140,h-87),11,cream);
+        Text(F("VITALITY  {0} / 100",(int)Game.Player.Health),new(140,h-87),11,cream);
         Bar(new(140,h-72),new(250,5),Game.Player.Posture/100,gold);
-        Text("POSTURE",new(140,h-54),10,gold);
-        Text($"H   REMEDY  ×{Game.Player.Remedies}",new(274,h-54),10,cream);
+        Text(T("POSTURE"),new(140,h-54),10,gold);
+        Text(F("H   REMEDY  ×{0}",Game.Player.Remedies),new(274,h-54),10,cream);
         float sx=441;Panel(new(sx,h-124,236,84));
         DrawArc(new(sx+41,h-83),26,-Mathf.Pi/2,-Mathf.Pi/2+Mathf.Tau*(1-Game.Player.SkillCooldown/12),40,jade,2);
         Text("Q",new(sx+32,h-76),23,cream);
-        Text("RESONANCE CUT",new(sx+79,h-93),12,jade);
-        Text(Game.Player.SkillCooldown>0?$"{Game.Player.SkillCooldown:0.0}s  /  RECHARGING":"ZERO LINK  ·  READY",new(sx+79,h-69),10,cream);
+        Text(T("RESONANCE CUT"),new(sx+79,h-93),12,jade);
+        Text(Game.Player.SkillCooldown>0?F("{0:0.0}s  /  RECHARGING",Game.Player.SkillCooldown):T("ZERO LINK  ·  READY"),new(sx+79,h-69),10,cream);
     }
     private void Controls()
     {
         float x=w-410;Panel(new(x,h-166,370,122),.75f);
-        Text("WASD  Move      SHIFT  Run      SPACE  Jump",new(x+18,h-139),13,cream);
-        Text("LMB / J  Attack     RMB / K  Guard & deflect",new(x+18,h-112),13,cream);
-        Text("CTRL / ALT  Dodge     TAB  Lock     Q  Skill",new(x+18,h-85),13,cream);
-        Text("E  Interact    H  Remedy    ESC  Pause",new(x+18,h-59),12,gold);
+        Text(T("WASD  Move      SHIFT  Run      SPACE  Jump"),new(x+18,h-139),13,cream);
+        Text(T("LMB / J  Attack     RMB / K  Guard & deflect"),new(x+18,h-112),13,cream);
+        Text(T("CTRL / ALT  Dodge     TAB  Lock     Q  Skill"),new(x+18,h-85),13,cream);
+        Text(T("E  Interact    H  Remedy    ESC  Pause"),new(x+18,h-59),12,gold);
     }
     private void Minimap()
     {
@@ -171,7 +174,7 @@ public partial class Hud : Control
         {var p=Map(e.GlobalPosition);if(p.Length()<r-4)DrawCircle(center+p,3,new("e58b66"));}
         DrawCircle(center,4,cream);DrawLine(center,center+new Vector2(-Mathf.Sin(Game.CameraYaw),-Mathf.Cos(Game.CameraYaw))*10,cream,2);
         if(Game.QuestStage<4)Diamond(center+Map(Game.ObjectivePosition).LimitLength(r-9),4,gold);
-        Text("SENSORY LINK  •",new(w-195,238),10,jade);
+        Text(T("SENSORY LINK  •"),new(w-195,238),10,jade);
     }
     private void Diamond(Vector2 p,float radius,Color c)
         =>DrawPolyline(new[]{p+Vector2.Up*radius,p+Vector2.Right*radius,p+Vector2.Down*radius,p+Vector2.Left*radius,p+Vector2.Up*radius},c,2);
@@ -192,24 +195,25 @@ public partial class Hud : Control
         DrawLine(box.Position,box.Position+new Vector2(box.Size.X,0),gold,2);
         if(who!="")
         {
-            bool right=Other(who);int nameSize=27;string role=Game.SpeakerRole;
-            float plate=serif.GetStringSize(who,fontSize:nameSize).X+font.GetStringSize(role,fontSize:11).X+62;
+            bool right=Other(who);int nameSize=27;string name=T(who),role=T(Game.SpeakerRole);
+            float nameWidth=serif.GetStringSize(name,fontSize:nameSize).X,plate=nameWidth+font.GetStringSize(role,fontSize:11).X+62;
             float px=right?box.End.X-30-plate:box.Position.X+30;
             Panel(new(px,box.Position.Y-38,plate,42),.97f);
-            Text(who,new(px+18,box.Position.Y-8),nameSize,who=="Zero"?jade:gold,true);
-            Text(role,new(px+serif.GetStringSize(who,fontSize:nameSize).X+32,box.Position.Y-12),11,who=="Zero"?gold:jade);
+            Text(name,new(px+18,box.Position.Y-8),nameSize,who=="Zero"?jade:gold,true);
+            Text(role,new(px+nameWidth+32,box.Position.Y-12),11,who=="Zero"?gold:jade);
         }
-        int shown=(int)Game.Reveal;float y=box.Position.Y+58;
-        foreach(string line in Wrap(Game.Dialogue,1030,20))
+        int shown=(int)Game.Reveal;float y=box.Position.Y+58;string text=Game.Dialogue;
+        foreach(var (start,end) in Wrap(text,1030,20))
         {
-            if(shown<=0)break;string part=line.Length<=shown?line:line[..shown];shown-=line.Length+1;
+            if(shown<=start)break;string line=text[start..end].TrimEnd(),part=text[start..Math.Min(end,shown)];
             if(who=="")Text(part,new((w-serif.GetStringSize(line,fontSize:21).X)/2,y),21,new Color(cream,.86f),true);
             else Text(part,new(box.Position.X+44,y),20,cream);
             y+=32;
         }
-        Text("E / ENTER   Next        ESC   Skip scene",new(box.End.X-322,box.End.Y-18),12,new Color(gold,.8f));
+        string hint=T("E / ENTER   Next        ESC   Skip scene");float hintX=box.End.X-26-font.GetStringSize(hint,fontSize:12).X;
+        Text(hint,new(hintX,box.End.Y-18),12,new Color(gold,.8f));
         if(Game.Reveal>=Game.Dialogue.Length&&(Time.GetTicksMsec()/450)%2==0)
-        {var c=new Vector2(box.End.X-346,box.End.Y-23);DrawColoredPolygon(new[]{c+new Vector2(-6,-4),c+new Vector2(6,-4),c+new Vector2(0,4)},gold);}
+        {var c=new Vector2(hintX-24,box.End.Y-23);DrawColoredPolygon(new[]{c+new Vector2(-6,-4),c+new Vector2(6,-4),c+new Vector2(0,4)},gold);}
     }
     private void Figure(string who,bool right,bool speaking)
     {
@@ -231,14 +235,16 @@ public partial class Hud : Control
             float level=voicing?.35f+.65f*Mathf.Abs(Mathf.Sin(t*11+i*1.7f)*Mathf.Sin(t*4.3f+i)):.12f;
             DrawRect(new Rect2(c.X+72+i*9,c.Y-level*22,4,level*44),new Color(jade,.4f+.6f*glow));
         }
-        Text("ZERO  ·  LINK",new(c.X+72,c.Y+44),11,new Color(jade,.5f+.5f*glow));
+        Text(T("ZERO  ·  LINK"),new(c.X+72,c.Y+44),11,new Color(jade,.5f+.5f*glow));
     }
-    private List<string> Wrap(string text,float width,int size)
+    private (string Text,int Size,string Language,List<(int Start,int End)> Lines) wrapped=("",0,"",new());
+    // Line breaks come from the text server, which knows where CJK text may break; the ranges index into text.
+    private List<(int Start,int End)> Wrap(string text,float width,int size)
     {
-        List<string> lines=new();string line="";
-        foreach(string word in text.Split(' '))
-        {string next=line==""?word:line+" "+word;if(font.GetStringSize(next,fontSize:size).X>width){lines.Add(line);line=word;}else line=next;}
-        if(line!="")lines.Add(line);return lines;
+        if(wrapped.Text==text&&wrapped.Size==size&&wrapped.Language==Current)return wrapped.Lines;
+        var paragraph=new TextParagraph {Width=width};paragraph.AddString(text,font,size,Current);
+        var lines=Enumerable.Range(0,paragraph.GetLineCount()).Select(i=>{var r=paragraph.GetLineRange(i);return (r.X,r.Y);}).ToList();
+        wrapped=(text,size,Current,lines);return lines;
     }
     public void RefreshMenu()
     {
@@ -250,6 +256,7 @@ public partial class Hud : Control
         {
             Button("BEGIN JOURNEY     →",new(84,h*.25f+295),new(320,58),Game.Begin,true);
             Button("Quit",new(84,h*.25f+367),new(110,40),()=>GetTree().Quit(),false);
+            LanguageButtons(214,h*.25f+367,104,40,8);
         }
         if(Game.Mode==GameMode.Paused)
         {
@@ -257,14 +264,21 @@ public partial class Hud : Control
             Button("Recover at the village",new(w/2-155,h*.40f+65),new(310,48),Game.Retry,false);
             Button("Restart prologue",new(w/2-155,h*.40f+126),new(310,48),Game.Restart,false);
             Button("Quit game",new(w/2-155,h*.40f+187),new(310,48),()=>GetTree().Quit(),false);
+            LanguageButtons(w/2-155,h*.40f+250,98,40,8);
         }
         if(Game.Mode==GameMode.Defeated)
             Button("R   Return to Hoshikawa",new(w/2-160,h*.43f),new(320,55),Game.Retry,true);
     }
-    private void Button(string text,Vector2 pos,Vector2 size,Action action,bool primary)
+    // One button per language, each named in its own script; the current one is lit.
+    private void LanguageButtons(float x,float y,float width,float height,float gap)
+    {
+        foreach(var (code,name) in Languages)
+        {Button(name,new(x,y),new(width,height),()=>Game.SetLanguage(code),code==Current,NameFont(code),15);x+=width+gap;}
+    }
+    private void Button(string text,Vector2 pos,Vector2 size,Action action,bool primary,Font? face=null,int fontSize=17)
     {
         var b=new Button {Text=text,Position=pos,Size=size,MouseDefaultCursorShape=CursorShape.PointingHand};
-        b.AddThemeFontSizeOverride("font_size",17);
+        b.AddThemeFontSizeOverride("font_size",fontSize);if(face!=null)b.AddThemeFontOverride("font",face);
         foreach(string color in new[]{"font_color","font_hover_color","font_pressed_color","font_focus_color"})
             b.AddThemeColorOverride(color,primary?ink:cream);
         foreach(string state in new[]{"normal","hover","pressed","focus"})
