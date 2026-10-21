@@ -578,6 +578,8 @@ public static class IntegrationCheck
             g.Mode=GameMode.Title;g.Hud.RefreshMenu();await Frames(2);
             g.Hud.FindChildren("*","Button",true,false).OfType<Button>().Single(b=>b.Text==name).EmitSignal(BaseButton.SignalName.Pressed);await Frames(2);
             Check(Localization.Current==code&&TranslationServer.GetLocale()==code,$"the title screen's {name} button switches the game to it");
+            foreach(var (mode,action) in new[]{(GameMode.Title,"BEGIN JOURNEY     →"),(GameMode.Paused,"Resume journey")})
+            {g.Mode=mode;g.Hud.RefreshMenu();await Frames(2);Check((g.Hud.GetViewport().GuiGetFocusOwner() as Button)?.Text==action,$"{name}: on the {mode} screen the main button, not a language button, holds focus, so Enter does what it says");}
             foreach(var mode in new[]{GameMode.Title,GameMode.Paused,GameMode.Defeated,GameMode.Playing})
             {int drawn=g.Hud.Redraws;g.Mode=mode;g.Hud.RefreshMenu();await Frames(3);Check(g.Hud.Redraws>drawn,$"{name}: the HUD draws its {mode} screen");}
         }

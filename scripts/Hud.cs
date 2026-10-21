@@ -273,9 +273,9 @@ public partial class Hud : Control
     private void LanguageButtons(float x,float y,float width,float height,float gap)
     {
         foreach(var (code,name) in Languages)
-        {Button(name,new(x,y),new(width,height),()=>Game.SetLanguage(code),code==Current,NameFont(code),15);x+=width+gap;}
+        {Button(name,new(x,y),new(width,height),()=>Game.SetLanguage(code),code==Current,NameFont(code),15,false);x+=width+gap;}
     }
-    private void Button(string text,Vector2 pos,Vector2 size,Action action,bool primary,Font? face=null,int fontSize=17)
+    private void Button(string text,Vector2 pos,Vector2 size,Action action,bool primary,Font? face=null,int fontSize=17,bool grab=true)
     {
         var b=new Button {Text=text,Position=pos,Size=size,MouseDefaultCursorShape=CursorShape.PointingHand};
         b.AddThemeFontSizeOverride("font_size",fontSize);if(face!=null)b.AddThemeFontOverride("font",face);
@@ -285,6 +285,6 @@ public partial class Hud : Control
             b.AddThemeStyleboxOverride(state,new StyleBoxFlat {BgColor=primary?(state=="hover"?cream:gold):new Color(ink,.9f),
                 BorderColor=gold,BorderWidthLeft=1,BorderWidthRight=1,BorderWidthTop=1,BorderWidthBottom=1,
                 ContentMarginLeft=16,ContentMarginRight=16,CornerRadiusTopLeft=2,CornerRadiusBottomRight=2});
-        b.Pressed+=()=>action();menu.AddChild(b);if(primary)b.GrabFocus();
+        b.Pressed+=()=>action();menu.AddChild(b);if(primary&&grab)b.GrabFocus();
     }
 }
