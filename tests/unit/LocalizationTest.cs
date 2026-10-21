@@ -39,7 +39,8 @@ public class LocalizationTest
                 }
             }
         }
-        foreach(Match name in Regex.Matches(File.ReadAllText(Repo.Path("scripts/World.cs")),@"\(""([A-Z][^""]+)"",new\(-?\d"))yield return name.Groups[1].Value.ToUpperInvariant();
+        // Table rows only: a helper such as Well("Village well",new(...)) names a node, not a sign.
+        foreach(Match name in Regex.Matches(File.ReadAllText(Repo.Path("scripts/World.cs")),@"(?<![A-Za-z])\(""([A-Z][^""]+)"",new\(-?\d"))yield return name.Groups[1].Value.ToUpperInvariant();
     }
     [TestCase("ja")]
     [TestCase("zh_TW")]

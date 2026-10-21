@@ -18,6 +18,13 @@ public class TerrainTest
     [TestCase]
     public void HousesKeepOffTheRoadAndTheBrook()=>
         AssertThat(World.Hamlet.Where(h=>Corners(h).Append(h.At).Any(c=>Math.Abs(c.X-World.RoadX(c.Y))<3.3f||Math.Abs(c.X-World.BrookX(c.Y))<2.3f)).Select(h=>h.Name)).IsEmpty();
+    // Komorebi's ground is level without pads; its meeting hall closes the road's north end, the other houses keep off it.
+    [TestCase]
+    public void KomorebiHousesStandOnLevelGroundOffTheRoad()
+    {
+        AssertThat(World.KomorebiHouses.Where(h=>Corners(h).Any(c=>Math.Abs(World.Height(c.X,c.Y)-World.Height(h.At.X,h.At.Y))>=.05f)).Select(h=>h.Name)).IsEmpty();
+        AssertThat(World.KomorebiHouses.Where(h=>h.Style!="hall"&&Corners(h).Append(h.At).Any(c=>Math.Abs(c.X-World.RoadX(c.Y))<3.3f)).Select(h=>h.Name)).IsEmpty();
+    }
     [TestCase]
     public void BrookBedStaysUnderTheWater()=>
         AssertThat(Span(54,-3,.25f).Where(z=>World.Height(World.BrookX(z),z)>World.WaterLevel-.04f)).IsEmpty();
@@ -44,6 +51,7 @@ public class TerrainTest
         AssertThat(regions).ContainsExactly("Hoshikawa","Old Relay Road","Cedar Pass","Komorebi");
         AssertThat(World.RegionAt(World.KomorebiCenter)).IsEqual("Komorebi");
         AssertThat(World.Hamlet.Select(h=>World.RegionAt(new Vector3(h.At.X,0,h.At.Y))).Distinct()).ContainsExactly("Hoshikawa");
+        AssertThat(World.KomorebiHouses.Select(h=>World.RegionAt(new Vector3(h.At.X,0,h.At.Y))).Distinct()).ContainsExactly("Komorebi");
     }
     [TestCase]
     public void TripoResidentsHaveModelsAndLabelsAboveTheirHeads()
