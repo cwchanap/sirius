@@ -1,6 +1,46 @@
 # MVP verification
 
-## Environment revamp, phase 4b water wheel and scarecrow — 2026-10-21
+## Environment revamp, phase 4c bridges and banks — 2026-10-20
+
+Both river bridges rebuilt and the river banks dressed, with no Tripo credits spent and the river's course unchanged. No building, character or existing seeded scatter stream changed.
+
+- **Bridges:** `World.TimberBridge()` builds both from props:
+  - 21 and 33 `plank` boards (new, 12 triangles, one atlas board wide and one tile long, so no seam crosses the deck), each jittered and every other one turned end for end (own generator 4441);
+  - three `field_rail` log stringers, and a log cap on each pair of stone piers;
+  - `field_post` posts every 2 m, with a top rail and a knee rail each side.
+
+  The walkers' colliders are the flat bridges' own: one slab with its top at the old deck height (0.82 m and 4.1 m) and a box along each top rail. The stone piers, now footed 0.4 m into the ground, are solid.
+- **Stone bridge:** `Height()`'s causeway now stops at the terrain mesh's z −13 and −3 rows, so the river runs open under the deck. Two stone abutments hide the one-metre slopes down to the natural banks, and two bents of piers stand in the water. Under the deck the bed is 1.5 m below the water.
+- **Banks:**
+  - The Cedar River gets reeds (own generators 4451/4455; 2,538 blades) at its waterline, clear of the Cedar Bridge's embankments.
+  - Both rivers get pebble spills just above the waterline and the odd half-sunk rock just below it (own generator 4461): 15 along the Cedar River and 25 along the river, clear of both bridges and the brook's mouth.
+  - The waterline search is now `Waterline()`, shared with the river reeds, whose 5,976 blades are unchanged.
+  - Pebble spills, half-sunk rocks and bank stones now get numbered names, so the water wheel's clearance check sees every one, not just the first.
+- **Self-test:** **379 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro; phase 4b had 375). The new checks:
+  - each bridge is its planks on three stringers over stone piers, footed at least 0.3 m in the ground and under the deck;
+  - a ray meets the stone bridge's deck at 0.82 m over a bed more than 1 m under the water;
+  - the Cedar River's reeds stand only where it holds water and clear of its bridge;
+  - more than ten stones line each river, none within 5.5 m of a bridge.
+
+  The baked-props check now lists the plank. The terrain continuity check's bridge exemption now covers the approaches dropping into the river. Both existing walks still cross the decks: village to countryside, and relay over Cedar Bridge into Komorebi (deck floor ≥ 3.8 m). `just unit` passes 16 cases and `just e2e` passes 4.
+- **Render cost** (`render_cost.gd`, `--disable-vsync --fixed-fps 60`):
+  - draws 1083/1032/1157 → 1082/1030/1155;
+  - primitives 3.066M/2.794M/2.984M → 3.097M/2.827M/3.013M (+1.0–1.2%, the river stones);
+  - CPU median 0.69–0.74 ms;
+  - fps read 120/120/121, capped again on this run, so not comparable with phase 4b's.
+- **Captures:** before (10089fe) and after pairs, in native Metal, of eight `review_revamp.gd` views, in `captures/hoshikawa-phase4c-bridges-banks/`:
+  - river-bridge;
+  - new: bridge-village-bank, bridge-far-bank and bridge-deck;
+  - cedar-river;
+  - new: cedar-bridge-west, cedar-banks and cedar-deck.
+
+  The wet gravel banks read along the Cedar River's water.
+- **Limits:**
+  - The Cedar River is dry from x ≈ −56 to −2. The hill at (−29, −116) lifts its bed up to 3.7 m above the 0.7 m water sheet, which runs buried under it. Reeds and stones skip that stretch. This predates phase 4c and is left for the river-course decision.
+  - The deck slab is one collider, so the planks' gaps and jitter are visual only.
+  - No physical keyboard/mouse session is claimed.
+
+## Environment revamp, phase 4b water wheel and scarecrow — 2026-10-20
 
 Two Tripo props for the fields: 80 credits, balance 555 → 475 (task ids and prompts in ASSETS.md). No building, character or seeded scatter stream changed.
 

@@ -123,8 +123,11 @@ public partial class World : Node3D
         y += .3f * Mathf.Exp(-(z + 4) * (z + 4) / 4f);
         // The village flattening fades in over 3 m; switching it on at z=0 left a 0.38 m step across the terrain.
         if (Math.Abs(x) < 30) y *= Mathf.Lerp(1, Mathf.SmoothStep(0, 12, Math.Abs(x) - 18), Mathf.SmoothStep(-3, 0, z));
+        // The stone bridge's earth approaches, level with its deck to the terrain mesh's z -13 and -3 rows; between them the river runs
+        // under the deck, and the abutments hide the one-metre slopes down to the natural banks.
         if (Math.Abs(x) < 4 && z > -16 && z < 0)
-            y = Mathf.Lerp(y, .82f, (1 - Mathf.SmoothStep(3, 4, Math.Abs(x))) * Mathf.SmoothStep(0, 2, Math.Min(z + 16, -z)));
+            y = Mathf.Lerp(y, .82f, (1 - Mathf.SmoothStep(3, 4, Math.Abs(x))) * Mathf.SmoothStep(0, 2, Math.Min(z + 16, -z))
+                * Math.Max(1 - Mathf.SmoothStep(-13, -12.6f, z), Mathf.SmoothStep(-3.4f, -3, z)));
         if (z < -78)
         {
             y += Mathf.SmoothStep(0,18,-z-78)*(1.5f+1.1f*Mathf.Sin(x*.055f)*Mathf.Sin((z+75)*.06f));
@@ -306,13 +309,12 @@ public partial class World : Node3D
         ground.AddChild(new CollisionShape3D { Shape = mesh.CreateTrimeshShape() });
         var water = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shaders/water.gdshader") };
         Mesh(this,"Hoshikawa river",new PlaneMesh { Size = new(127,8), SubdivideWidth = 100 },new(0,WaterLevel,-8),water);
-        for(int i=0;i<21;i++)
-            Box(this,"Bridge plank",new(0,.72f,-13+i*.5f),new(6,.2f,.46f),wood,true);
-        foreach(float x in new[]{-2.9f,2.9f})
+        var bridge=new Node3D{Name="Stone Bridge",Position=new(0,0,-8)};AddChild(bridge);
+        TimberBridge(bridge,.82f,5,1.8f,new[]{-1.2f,1.2f});
+        foreach(float side in new[]{-1f,1f})
         {
-            Box(this,"Bridge handrail",new(x,1.8f,-8),new(.12f,.12f,10.5f),wood,true);
-            for(int i=0;i<6;i++) Box(this,"Bridge post",new(x,1.25f,-13+i*2),new(.17f,1.25f,.17f),wood);
-            for(int i=0;i<3;i++) Box(this,"Stone bridge pier",new(x*.7f,-.35f,-12+i*4),new(.75f,2,.8f),stone);
+            float bottom=Height(0,-8+side*3.4f)-.6f;
+            Box(bridge,$"Stone bridge abutment {side}",new(0,(.73f+bottom)/2,side*4.325f),new(6.6f,.73f-bottom,1.85f),stone,true);
         }
         // Physical map boundary, dressed by forest and ridge silhouettes.
         float middle=(NorthEdge+SouthEdge)*.5f, depth=SouthEdge-NorthEdge;
@@ -342,7 +344,7 @@ public partial class World : Node3D
         Fence(new(-24,0,0),new(-24,0,42));
         Fence(new(23,0,1),new(23,0,13));Fence(new(23,0,17),new(23,0,42));
         foreach(var (from,to) in Footpaths)Footpath(from,to,1.2f);
-        Brook();WaterWheel();Reeds();Terrace();Shrine();Dressing();
+        Brook();WaterWheel();Reeds();RiverStones();Terrace();Shrine();Dressing();
         Label(this,"OLD RELAY ROAD  ↑",new(4,2.6f,-.3f),Gold,27);
     }
     private Node3D House(string name,Vector3 pos,Vector3 size,Color wall,bool workshop,float yaw=0,int barrels=3,float signProjection=.25f)
@@ -422,6 +424,27 @@ public partial class World : Node3D
         collision.AddChild(new CollisionShape3D { Position=new(0,height/2,0),Shape=new CapsuleShape3D { Radius=.32f,Height=height } });
         Residents.Add((name,role,line,n));
     }
+    // A timber bridge along its node's Z from -half to half: a plank every half metre with its top at deck, on three log stringers and a log cap
+    // across each bent's pair of stone piers, with a post every 2 m and a top and knee rail each side. One slab carries walkers at the deck and
+    // each top rail fences them in, as the flat bridges' boxes did.
+    private void TimberBridge(Node3D bridge,float deck,float half,float rail,float[] bents)
+    {
+        var o=bridge.Position;var r=new RandomNumberGenerator{Seed=4441};
+        for(int i=0;i<=half*4;i++)Prop(bridge,$"Bridge plank {i}","plank",new(r.RandfRange(-.05f,.05f),deck-r.RandfRange(0,.012f),i*.5f-half),i%2*Mathf.Pi+r.RandfRange(-.01f,.01f));
+        foreach(float x in new[]{-2.2f,0,2.2f})Prop(bridge,$"Bridge stringer {x}","field_rail",new(x,deck-.21f,0),0,new(2,2,half+.4f));
+        foreach(float z in bents)
+        {
+            Prop(bridge,$"Bridge pier cap {z}","field_rail",new(0,deck-.45f,z),Mathf.Pi/2,new(2,2,1.4f));
+            foreach(float x in new[]{-2f,2f}){float top=deck-.57f,bottom=Height(o.X+x,o.Z+z)-.4f;Box(bridge,$"Stone bridge pier {bridge.GetChildCount()}",new(x,(top+bottom)/2,z),new(.8f,top-bottom,.9f),stone,true);}
+        }
+        foreach(float x in new[]{-2.9f,2.9f})
+        {
+            for(float z=-half;z<=half;z+=2)Prop(bridge,$"Bridge post {bridge.GetChildCount()}","field_post",new(x,deck,z),z,new(1.2f,(rail+.1f-deck)/1.31f,1.2f));
+            foreach(float y in new[]{rail,deck+.45f})Prop(bridge,$"{(y==rail?"Bridge rail":"Bridge knee rail")} {x}","field_rail",new(x,y,0),0,new(1,1,half+.25f));
+            Solid(o+new Vector3(x,rail,0),Vector3.Zero,new(.12f,.12f,2*half+.5f));
+        }
+        Solid(o+new Vector3(0,deck-.1f,0),Vector3.Zero,new(6,.2f,2*half+.46f));
+    }
     private void Solid(Vector3 p,Vector3 turn,Vector3 size){var body=new StaticBody3D{Position=p,Rotation=turn,CollisionMask=0};AddChild(body);body.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=size}});}
     private void Lamp(Vector3 p)=>Prop(this,"Lantern pole","lamp",p);
     // Weathered posts and split rails from tools/build_village_props.py. A rail is its 2 m model stretched to the span, so the colliders are bodies of their own.
@@ -495,13 +518,7 @@ public partial class World : Node3D
         var water = new ShaderMaterial { Shader=GD.Load<Shader>("res://assets/shaders/water.gdshader") };
         Mesh(this,"Cedar River",new PlaneMesh { Size=new(126,7.5f),SubdivideWidth=64 },new(0,.7f,-111),water);
         var bridge=new Node3D {Name="Cedar Bridge",Position=new(RoadX(-111),0,-111)};AddChild(bridge);
-        for(int i=0;i<33;i++) Box(bridge,"Cedar bridge plank",new(0,4,-8+i*.5f),new(6,.2f,.47f),wood,true);
-        foreach(float side in new[]{-1f,1f})
-        {
-            Box(bridge,"Bridge rail",new(side*2.9f,5.2f,0),new(.14f,.14f,16.5f),wood,true);
-            for(int i=0;i<9;i++) Box(bridge,"Bridge post",new(side*2.9f,4.7f,-8+i*2),new(.18f,1.4f,.18f),wood);
-            for(int i=0;i<3;i++) Box(bridge,"Masonry support",new(side*2.15f,2.2f,-6+i*6),new(.8f,3.6f,1.2f),stone);
-        }
+        TimberBridge(bridge,4.1f,8,5.2f,new[]{-6f,0,6f});
         Label(bridge,"CEDAR RIVER",new(0,6.6f,0),Gold,29);
         var shelter=new Node3D {Name="Cedar Pass Shelter",Position=new(-12,Height(-12,-91),-91)};AddChild(shelter);
         Box(shelter,"Shelter floor",new(0,-.12f,0),new(6,.3f,4.5f),stone,true);

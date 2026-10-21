@@ -114,10 +114,29 @@ public static class IntegrationCheck
         // The scarecrow stands in a paddy, the rice left unplanted round its pole.
         var rice=new[]{"Rice","Rice, paler hills"}.SelectMany(n=>ActorVisual.Descendants(g.World.GetNode(n)).OfType<MeshInstance3D>()).SelectMany(m=>m.Mesh.GetFaces().Select(v=>m.GlobalTransform*v)).ToArray();
         Check(Hoshikawa.World.Paddies.Any(p=>p.HasPoint(Hoshikawa.World.Scarecrow))&&rice.Length>0&&rice.All(v=>new Vector2(v.X,v.Z).DistanceTo(Hoshikawa.World.Scarecrow)>.35f),"the scarecrow stands in a paddy, the rice cleared round its pole");
+        // Both bridges are plank decks on log stringers over stone piers standing in their river beds; under the stone bridge the river runs open.
+        foreach(var (name,planks,deck) in new[]{("Stone Bridge",21,.82f),("Cedar Bridge",33,4.1f)})
+        {
+            var parts=g.World.GetNode(name).GetChildren().OfType<MeshInstance3D>().ToArray();
+            var piers=parts.Where(n=>n.Name.ToString().Contains("Stone bridge pier")).Select(n=>(n.GlobalPosition,((BoxMesh)n.Mesh).Size)).ToArray();
+            Check(parts.Count(n=>n.Name.ToString().Contains("Bridge plank"))==planks&&parts.Count(n=>n.Name.ToString().Contains("Bridge stringer"))==3&&piers.Length>=4
+                &&piers.All(p=>p.GlobalPosition.Y-p.Size.Y/2<Hoshikawa.World.Height(p.GlobalPosition.X,p.GlobalPosition.Z)-.3f&&p.GlobalPosition.Y+p.Size.Y/2<deck-.5f),
+                $"{name} is {planks} planks on stringers over {piers.Length} stone piers footed in the ground");
+        }
+        using(var deck=PhysicsRayQueryParameters3D.Create(new(0,3,-8),new(0,-3,-8),1))Check(g.GetWorld3D().DirectSpaceState.IntersectRay(deck) is {Count:>0} hit&&Math.Abs(hit["position"].AsVector3().Y-.82f)<.01f
+            &&Hoshikawa.World.Height(0,-8)<Hoshikawa.World.WaterLevel-1,"the stone bridge's deck carries walkers at .82 m over open river");
+        // The Cedar River's banks carry reeds, pebbles and half-sunk rocks where it holds water, clear of the Cedar Bridge and its embankments;
+        // the stone bridge keeps its span clear too.
+        var cedarReeds=ActorVisual.Descendants(g.World.GetNode("Cedar River reeds")).OfType<MeshInstance3D>().SelectMany(m=>m.Mesh.GetFaces().Select(v=>m.GlobalTransform*v)).ToArray();
+        var stones=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().Contains("River pebbles")||n.Name.ToString().Contains("Half-sunk rock")).Select(n=>n.GlobalPosition).ToArray();
+        bool Cedar(Vector3 v)=>Math.Abs(v.Z+111)<6;bool River(Vector3 v)=>Math.Abs(v.Z+8)<6;float bridgeX=Hoshikawa.World.RoadX(-111);
+        Check(cedarReeds.Length>0&&cedarReeds.All(v=>Cedar(v)&&Math.Abs(v.X-bridgeX)>5.5f&&Hoshikawa.World.Height(v.X,-111)<1)&&stones.Count(Cedar)>10&&stones.Count(River)>10
+            &&stones.All(v=>!(Cedar(v)&&Math.Abs(v.X-bridgeX)<5.5f)&&!(River(v)&&Math.Abs(v.X)<5.5f)),
+            $"reeds ({cedarReeds.Length/9} blades) and {stones.Count(Cedar)} stones line the Cedar River, {stones.Count(River)} stones the river, clear of both bridges");
         float step=0;Vector2 stepAt=default;
         for(float x=-20;x<20;x+=.05f)for(float z=-8.9f;z<50;z+=.05f)
         {
-            if(z<-3&&Math.Abs(x)<4.5f)continue;// the old bridge's causeway banks are steep by design
+            if(z<-3&&Math.Abs(x)<4.5f)continue;// the stone bridge's approaches drop into the river under its abutments
             float h=Hoshikawa.World.Height(x,z),d=Math.Max(Math.Abs(Hoshikawa.World.Height(x+.05f,z)-h),Math.Abs(Hoshikawa.World.Height(x,z+.05f)-h));
             if(d>step){step=d;stepAt=new(x,z);}
         }
@@ -133,8 +152,8 @@ public static class IntegrationCheck
         Check(merged.Length>0&&mergedCorners.Length==bakedCorners.Length&&mergedExtent.Position.DistanceTo(bakedExtent.Position)<.01f&&mergedExtent.End.DistanceTo(bakedExtent.End)<.01f,
             $"{baked.Length} static primitives bake into {merged.Length} merged meshes, keeping all {bakedCorners.Length/3} triangles where they stood");
         var props=baked.Where(n=>n.Mesh.ResourceName.StartsWith("prop ")).GroupBy(n=>n.Mesh.ResourceName.ToString()[5..]).ToDictionary(x=>x.Key,x=>x.Count());
-        Check("lamp bench barrel fence_post fence_panel pebbles river_rock sluice trough hasa field_post field_rail cabbage daikon".Split(' ').All(props.ContainsKey),
-            "lamps, benches, barrels, the bamboo and field fences, brook stones, paddy sluice, wheel trough and rack and the Komorebi crops are baked Blender props: "+string.Join(", ",props.Select(x=>$"{x.Key} {x.Value}")));
+        Check("lamp bench barrel fence_post fence_panel pebbles river_rock sluice trough hasa field_post field_rail plank cabbage daikon".Split(' ').All(props.ContainsKey),
+            "lamps, benches, barrels, the bamboo and field fences, brook stones, paddy sluice, wheel trough and rack, bridge planks and the Komorebi crops are baked Blender props: "+string.Join(", ",props.Select(x=>$"{x.Key} {x.Value}")));
         foreach(var model in g.World.Residents.Select(r=>r.Body))
         {
             var skeleton=ActorVisual.Descendants(model).OfType<Skeleton3D>().Single();
