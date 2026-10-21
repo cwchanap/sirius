@@ -133,6 +133,24 @@ public static class IntegrationCheck
         Check(cedarReeds.Length>0&&cedarReeds.All(v=>Cedar(v)&&Math.Abs(v.X-bridgeX)>5.5f&&Hoshikawa.World.Height(v.X,-111)<1)&&stones.Count(Cedar)>10&&stones.Count(River)>10
             &&stones.All(v=>!(Cedar(v)&&Math.Abs(v.X-bridgeX)<5.5f)&&!(River(v)&&Math.Abs(v.X)<5.5f)),
             $"reeds ({cedarReeds.Length/9} blades) and {stones.Count(Cedar)} stones line the Cedar River, {stones.Count(River)} stones the river, clear of both bridges");
+        // The moored boat is Tripo's, floating in the river clear of the bridge and its bed, bobbing on the swell and tied by its bow to a post on the bank.
+        var boat=g.World.GetNode<Node3D>("Moored boat");var boatMesh=ActorVisual.Descendants(boat).OfType<MeshInstance3D>().Single();int boatTris=boatMesh.Mesh.GetFaces().Length/3;
+        var hullFaces=boatMesh.Mesh.GetFaces().Select(v=>boatMesh.GlobalTransform*v).ToArray();float keel=hullFaces.Min(v=>v.Y),gunwale=hullFaces.Max(v=>v.Y),hullBed=hullFaces.Min(v=>v.Y-MeshHeight(v.X,v.Z));
+        Check(boatTris<10000&&boatMesh.MaterialOverride is BaseMaterial3D{AlbedoTexture:not null,NormalEnabled:true,AlbedoColor.R:>1}&&keel<Hoshikawa.World.WaterLevel-.1f&&gunwale>Hoshikawa.World.WaterLevel+.4f&&hullBed>.05f
+            &&hullFaces.All(v=>v.Z is >-12 and <-4&&Math.Abs(v.X)>5.5f),$"the boat is Tripo's textured model, brightened, its keel {Hoshikawa.World.WaterLevel-keel:F2} m under the river and {hullBed:F2} m over its bed, clear of the bridge, {boatTris} triangles");
+        var rest=boat.Position;await Frames(20);
+        Check(boat.Position!=rest&&Math.Abs(boat.Position.Y-Hoshikawa.World.BoatRest.Y)<=.026f&&new Vector2(boat.Position.X-rest.X,boat.Position.Z-rest.Z).Length()<.001f,"the boat bobs in place on the swell");
+        using(var hull=PhysicsRayQueryParameters3D.Create(new(Hoshikawa.World.Mooring.X,3,Hoshikawa.World.Mooring.Y),new(Hoshikawa.World.Mooring.X,-3,Hoshikawa.World.Mooring.Y),1))
+            Check(g.GetWorld3D().DirectSpaceState.IntersectRay(hull) is {Count:>0} hit&&hit["collider"].As<Node>().Name=="Boat collision","the boat is solid");
+        var mooring=g.World.GetNode<Node3D>("Mooring post").GlobalPosition;var rope=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().StartsWith("Mooring rope")).ToArray();
+        var ropeEnds=rope.SelectMany(r=>new[]{r.GlobalTransform*new Vector3(0,0,-1),r.GlobalTransform*new Vector3(0,0,1)}).ToArray();
+        Check(Math.Abs(mooring.Y-Hoshikawa.World.Height(mooring.X,mooring.Z))<.001f&&rope.Length==2&&ropeEnds.Any(e=>e.DistanceTo(mooring+Vector3.Up*.7f)<.05f)&&ropeEnds.Any(e=>hullFaces.Min(v=>v.DistanceTo(e))<.25f),
+            "the mooring post stands on the ground at the water's edge and its rope reaches the boat's bow");
+        // The washing steps are Tripo's, their walls buried in the bank and their slab just over the river.
+        var steps=g.World.GetNode<Node3D>("Washing steps");var stepsMesh=ActorVisual.Descendants(steps).OfType<MeshInstance3D>().Single();int stepsTris=stepsMesh.Mesh.GetFaces().Length/3;
+        var base_=stepsMesh.Mesh.GetFaces().Select(v=>stepsMesh.GlobalTransform*v).Where(v=>v.Y<steps.Position.Y+.02f).ToArray();
+        Check(stepsTris<10000&&stepsMesh.MaterialOverride is BaseMaterial3D{AlbedoTexture:not null,NormalEnabled:true,AlbedoColor.R:>1}&&base_.Length>0
+            &&base_.All(v=>v.Y<Math.Max(MeshHeight(v.X,v.Z),Hoshikawa.World.WaterLevel)),$"the washing steps are Tripo's textured model, brightened, their base under the bank or the river, {stepsTris} triangles");
         float step=0;Vector2 stepAt=default;
         for(float x=-20;x<20;x+=.05f)for(float z=-8.9f;z<50;z+=.05f)
         {
@@ -167,7 +185,7 @@ public static class IntegrationCheck
                 var visual=model.GetChildren().OfType<ActorVisual>().Single();
                 Check(visual.HasClip("idle")&&visual.Animator!.IsPlaying()&&visual.Animator.GetAnimation("idle").LoopMode==Animation.LoopModeEnum.Linear,model.Name+" idle plays and loops");
                 int joint=skeleton.FindBone(koma?"Head":chiyo?"Spine02":"Spine1"),foot=skeleton.FindBone(mixamo?"LeftFoot":"L_Foot");
-                visual.Play("idle",1,true);visual.Animator!.Advance(0);
+                visual.Animator!.Seek(0,true);
                 var pose=skeleton.GetBonePoseRotation(joint);var planted=skeleton.GetBoneGlobalPose(foot).Origin;
                 visual.Animator.Advance(1);
                 Check(pose.AngleTo(skeleton.GetBonePoseRotation(joint))>.005f,model.Name+" idle animates the rig");
@@ -366,6 +384,10 @@ public static class IntegrationCheck
         Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Y>-.1f,"brook footbridge carries the player");
         Place(g.Player,new(Hoshikawa.World.BrookX(33),Hoshikawa.World.Height(Hoshikawa.World.BrookX(33),33)+.1f,33));await Frames(10);
         await WalkTo(new(15.5f,33));Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Y>-.2f,"player can climb out of the brook");
+        var kawabata=Hoshikawa.World.Kawabata;Place(g.Player,new(kawabata.X,Hoshikawa.World.Height(kawabata.X,kawabata.Y+1.9f)+.1f,kawabata.Y+1.9f));await Frames(10);
+        await WalkTo(new(kawabata.X,kawabata.Y-1.2f),false);await Frames(10);float slab=g.Player.GlobalPosition.Y;
+        await WalkTo(new(kawabata.X,kawabata.Y+1.9f),false);
+        Check(Math.Abs(slab-(Hoshikawa.World.WaterLevel+.08f))<.06f&&g.Player.IsOnFloor()&&g.Player.GlobalPosition.Y>.45f,$"the washing steps walk down to their slab at {slab:F2} m and back up the bank");
         g.Player.Respawn();await Frames(5);
         foreach(float z in new[]{40f,50f})await WalkTo(new(Hoshikawa.World.RoadX(z),z));
         await WalkTo(new(-1,60));
@@ -432,8 +454,8 @@ public static class IntegrationCheck
         var lawn=ActorVisual.Descendants(g.World.GetNode("Village grass")).OfType<MeshInstance3D>().SelectMany(m=>m.Mesh.GetFaces().Select(v=>m.GlobalTransform*v)).ToArray();
         Check(lawn.Length>0&&lawn.All(v=>!Hoshikawa.World.OnFootpath(new(v.X,v.Z),0)),"village grass keeps off the footpaths");
         var reeds=ActorVisual.Descendants(g.World.GetNode("River reeds")).OfType<MeshInstance3D>().SelectMany(m=>m.Mesh.GetFaces().Select(v=>m.GlobalTransform*v)).ToArray();
-        Check(reeds.Length>0&&reeds.All(v=>!Hoshikawa.World.OnFootpath(new(v.X,v.Z),0)&&!(Math.Abs(v.X)<3.6f&&v.Z is >-13.5f and <-2.5f)&&!(Math.Abs(v.Z-15)<1.2f&&v.X is >17 and <21.6f)),
-            $"reeds line the brook and river, clear of the footpaths, the stone bridge and the footbridge ({reeds.Length/9} blades)");
+        Check(reeds.Length>0&&reeds.All(v=>!Hoshikawa.World.OnFootpath(new(v.X,v.Z),0)&&!Hoshikawa.World.Landing(new(v.X,v.Z),0)&&!(Math.Abs(v.X)<3.6f&&v.Z is >-13.5f and <-2.5f)&&!(Math.Abs(v.Z-15)<1.2f&&v.X is >17 and <21.6f)),
+            $"reeds line the brook and river, clear of the footpaths, the landings, the stone bridge and the footbridge ({reeds.Length/9} blades)");
         // Scene 1 plays as a visual novel driven by the real key path: E first finishes the typing line, then moves on.
         async Task Tap(Key key)
         {

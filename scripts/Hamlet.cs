@@ -59,8 +59,17 @@ public partial class World
         }
         foreach(float side in new[]{-.85f,.85f})Box(bridge,"Footbridge post",new(xb,Deck(1)+.25f,15+side),new(.1f,.62f,.1f),wood);
     }
-    private Node3D wheel=null!;
-    public override void _Process(double delta)=>wheel.RotateX((float)delta*BrookFlow/WheelRadius);
+    private Node3D wheel=null!,boat=null!;private float clock;
+    // The rotation that lays a model's +Z along d.
+    private static Vector3 Along(Vector3 d)=>new(-Mathf.Atan2(d.Y,new Vector2(d.X,d.Z).Length()),Mathf.Atan2(d.X,d.Z),0);
+    // The moored boat floats with its bottom 15 cm under the water, bow upstream (the river flows toward +X).
+    public static Vector3 BoatRest=>new(Mooring.X,WaterLevel-.15f,Mooring.Y);
+    public override void _Process(double delta)
+    {
+        wheel.RotateX((float)delta*BrookFlow/WheelRadius);clock+=(float)delta;
+        // A slow swell on the boat: 2.5 cm of heave, 1.5 degrees of roll and half a degree of pitch, on unrelated periods.
+        boat.Position=BoatRest+Vector3.Up*.025f*Mathf.Sin(clock*1.3f);boat.Rotation=new(.026f*Mathf.Sin(clock*.83f),Mathf.Pi,.009f*Mathf.Sin(clock*1.1f+1));
+    }
     // An undershot wheel in the brook beside the sluice, turned by the current (its bottom moves with the water, toward -Z).
     // Crossed timber legs cradle its axle near both ends, on the brook bed and at the far waterline, and a board trough carries
     // what its buckets lift over the sluice board into the channel.
@@ -71,7 +80,7 @@ public partial class World
         body.AddChild(new CollisionShape3D{Shape=new CylinderShape3D{Radius=WheelRadius,Height=.75f}});
         void Timber(string name,string model,Vector3 a,Vector3 b,Vector3 size)
         {
-            var d=b-a;var turn=new Vector3(-Mathf.Atan2(d.Y,new Vector2(d.X,d.Z).Length()),Mathf.Atan2(d.X,d.Z),0);
+            var d=b-a;var turn=Along(d);
             foreach(var n in Prop(this,$"{name} {GetChildCount()}",model,(a+b)/2,0,new(1,1,d.Length()/2)))n.Rotation=turn;
             Solid((a+b)/2+Basis.FromEuler(turn)*new Vector3(0,model=="trough"?size.Y/2:0,0),turn,size with{Z=d.Length()});
         }
@@ -88,7 +97,7 @@ public partial class World
     private void Reeds()
     {
         var r=new RandomNumberGenerator{Seed=4421};var reeds=new List<(Vector3 P,float H)>();
-        void Clump(Vector2 at){if(r.Randf()<.4f)return;for(int i=3+r.RandiRange(0,2);i>0;i--){var q=at+Vector2.FromAngle(r.Randf()*Mathf.Tau)*r.RandfRange(0,.3f);reeds.Add((new(q.X,Height(q.X,q.Y),q.Y),r.RandfRange(.8f,1.35f)));}}
+        void Clump(Vector2 at){if(r.Randf()<.4f)return;for(int i=3+r.RandiRange(0,2);i>0;i--){var q=at+Vector2.FromAngle(r.Randf()*Mathf.Tau)*r.RandfRange(0,.3f);float h=r.RandfRange(.8f,1.35f);if(!Landing(q,.5f))reeds.Add((new(q.X,Height(q.X,q.Y),q.Y),h));}}
         for(float z=-1.5f;z<53;z+=.9f)foreach(int side in new[]{-1,1})
             if(Math.Abs(z-15)>2&&(side<0||Math.Abs(z-36.8f)>1.4f))Clump(new(BrookX(z)+side*r.RandfRange(1.4f,1.9f),z));
         // The river's waterline; the village bank skips the brook's mouth.
@@ -115,7 +124,36 @@ public partial class World
         float z=mid;while(Math.Abs(z-mid)<6&&Height(x,z)<level+.03f)z+=side*.1f;
         return z!=mid&&Math.Abs(z-mid)<6?z:float.NaN;
     }
-    // Pebbles just above both rivers' waterlines and the odd half-sunk rock just below, clear of the bridges and the brook's mouth.
+    // Two Tripo models on the river's village bank: a boat moored by its bow to a field post at the water's edge, and stone washing steps
+    // down the notch Height() cuts for them. Stairs are a ramp to the capsule, so a box under the treads' nosings carries walkers
+    // between boxes for the top step and the slab, with the side walls solid.
+    private void Landings()
+    {
+        boat=Model(this,"Moored boat","boat",BoatRest,180,new(1.3f,1.3f,1.3f));
+        var hull=new StaticBody3D{Name="Boat collision",CollisionMask=0};boat.AddChild(hull);
+        hull.AddChild(new CollisionShape3D{Position=new(0,.3f,0),Shape=new BoxShape3D{Size=new(3.6f,.6f,1.15f)}});
+        var post=new Vector3(Mooring.X-2.6f,0,-4.55f);post.Y=Height(post.X,post.Z);
+        Prop(this,"Mooring post","field_post",post,.7f);Solid(post+Vector3.Up*.55f,Vector3.Zero,new(.15f,1.3f,.15f));
+        var knot=post+Vector3.Up*.7f;var bow=new Vector3(Mooring.X-1.85f,BoatRest.Y+.85f,Mooring.Y);var sag=(knot+bow)/2-Vector3.Up*.12f;
+        foreach(var (a,b) in new[]{(knot,sag),(sag,bow)})
+        {
+            var d=b-a;var turn=Along(d);
+            foreach(var n in Prop(this,$"Mooring rope {GetChildCount()}","field_rail",(a+b)/2,0,new(.22f,.22f,d.Length()/2)))n.Rotation=turn;
+        }
+        // The model's slab top is 0.195 m over its base: set 8 cm over the water, its four treads land at 0.50, 0.30, 0.11 and -0.09 m.
+        float x=Kawabata.X,top=Kawabata.Y+1.19f;
+        Model(this,"Washing steps","kawabata",new(x,WaterLevel+.08f-.195f,Kawabata.Y),90,new(1.3f,1.3f,1.3f));
+        void Slope(Vector3 a,Vector3 b,float width,float depth)
+        {
+            var d=b-a;var turn=Along(d);
+            Solid((a+b)/2-Basis.FromEuler(turn)*Vector3.Up*depth/2,turn,new(width,depth,d.Length()));
+        }
+        Solid(new(x,.35f,top-.295f),Vector3.Zero,new(1.2f,.3f,.59f));
+        Slope(new(x,.5f,top-.59f),new(x,WaterLevel+.08f,top-1.79f),1.2f,.3f);
+        Solid(new(x,WaterLevel-.07f,top-2.09f),Vector3.Zero,new(1.7f,.3f,.6f));
+        foreach(float side in new[]{-.75f,.75f})Slope(new(x+side,.72f,top-.2f),new(x+side,.13f,top-2.2f),.3f,.9f);
+    }
+    // Pebbles just above both rivers' waterlines and the odd half-sunk rock just below, clear of the bridges, the brook's mouth and the landings.
     private void RiverStones()
     {
         var r=new RandomNumberGenerator{Seed=4461};
@@ -124,8 +162,8 @@ public partial class World
             {
                 float at=x+r.RandfRange(-.8f,.8f),z=Waterline(at,mid,level,side),pick=r.Randf();
                 if(float.IsNaN(z)||Math.Abs(at-bridge)<5.5f||(mid>-9&&side>0&&Math.Abs(at-BrookX(-4))<3))continue;
-                if(pick<.35f)Prop(this,$"River pebbles {GetChildCount()}","pebbles",new(at,Height(at,z+side*.35f),z+side*.35f),r.Randf()*Mathf.Tau);
-                else if(pick>.88f)Prop(this,$"Half-sunk rock {GetChildCount()}","river_rock",new(at,level-.08f,z-side*.5f),at,Vector3.One*(.8f+.4f*(pick-.88f)/.12f));
+                if(pick<.35f){float turn=r.Randf()*Mathf.Tau;if(!Landing(new(at,z),.8f))Prop(this,$"River pebbles {GetChildCount()}","pebbles",new(at,Height(at,z+side*.35f),z+side*.35f),turn);}
+                else if(pick>.88f&&!Landing(new(at,z),.8f))Prop(this,$"Half-sunk rock {GetChildCount()}","river_rock",new(at,level-.08f,z-side*.5f),at,Vector3.One*(.8f+.4f*(pick-.88f)/.12f));
             }
     }
     // Hoshikawa's paddies, levelled by Height(): aze around and between them, still water over the wet mud floors, rice in jittered hills

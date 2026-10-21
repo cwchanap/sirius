@@ -38,6 +38,10 @@ public partial class World : Node3D
     public static readonly Vector3 WheelAxle=new(19.5f,WaterLevel-.3f+WheelRadius,36.8f);
     // The scarecrow's pole, in paddy 1.
     public static readonly Vector2 Scarecrow=new(33.6f,25.8f);
+    // The boat's mooring on the river, off the village bank's low gravel shore, and the washing steps' centre on its higher bank at x 10,
+    // both clear of the bridge and the brook's mouth; reeds and river stones keep off both.
+    public static readonly Vector2 Mooring=new(-13,-5.6f),Kawabata=new(10,-4.4f);
+    public static bool Landing(Vector2 p,float margin)=>(Math.Abs(p.X-Mooring.X)<2.8f+margin||Math.Abs(p.X-Kawabata.X)<1.8f+margin)&&p.Y>-7.5f-margin&&p.Y<-2+margin;
     // Roofs stop the camera's spring arm on this layer alone; the player and robots only collide with layer 1.
     public const int CameraLayer=8;
     public static void CameraStop(Node3D n,Shape3D shape){var b=new StaticBody3D{CollisionLayer=CameraLayer,CollisionMask=0};n.AddChild(b);b.AddChild(new CollisionShape3D{Shape=shape});}
@@ -162,6 +166,9 @@ public partial class World : Node3D
         if(sum>0)y=Mathf.Lerp(y,level/sum,weight);
         // The channel only ever cuts down, so it also runs into the river dip south of the square without a seam; a 2.3 m bank keeps the 1 m mesh under 40 degrees.
         y=Math.Min(y,Mathf.Lerp(y,-.95f,(1-Mathf.SmoothStep(.6f,2.3f,Math.Abs(x-BrookX(z))))*(1-Mathf.SmoothStep(54,60,z))));
+        // The washing steps' notch: from their top end the bank is cut to a plane under their treads, fading out under their walls.
+        float down=Kawabata.Y+1.2f-z;
+        y=Math.Min(y,Mathf.Lerp(y,.35f-.4f*down,(1-Mathf.SmoothStep(.6f,.95f,Math.Abs(x-Kawabata.X)))*Mathf.SmoothStep(-.3f,0,down)*(1-Mathf.SmoothStep(2.4f,2.7f,down))));
         return Mathf.Lerp(y,ShrineLevel,1-Mathf.SmoothStep(4.5f,14,new Vector2(x,z).DistanceTo(ShrineCenter)));
     }
     // One material per look, so Merge() can batch by reference: never change a material Mat() returns.
@@ -344,7 +351,7 @@ public partial class World : Node3D
         Fence(new(-24,0,0),new(-24,0,42));
         Fence(new(23,0,1),new(23,0,13));Fence(new(23,0,17),new(23,0,42));
         foreach(var (from,to) in Footpaths)Footpath(from,to,1.2f);
-        Brook();WaterWheel();Reeds();RiverStones();Terrace();Shrine();Dressing();
+        Brook();WaterWheel();Reeds();RiverStones();Landings();Terrace();Shrine();Dressing();
         Label(this,"OLD RELAY ROAD  ↑",new(4,2.6f,-.3f),Gold,27);
     }
     private Node3D House(string name,Vector3 pos,Vector3 size,Color wall,bool workshop,float yaw=0,int barrels=3,float signProjection=.25f)
