@@ -32,6 +32,12 @@ public partial class World : Node3D
     private static readonly float[] PaddyLevel=Paddies.Select(p=>Enumerable.Range(0,64).Min(i=>
         {float x=p.Position.X+p.Size.X*(i%8)/7,z=p.Position.Y+p.Size.Y*(i/8)/7;return HamletGround(x,z,BaseHeight(x,z),true);})-.06f).ToArray();
     public const float ShrineLevel=2.4f,WaterLevel=-.38f;
+    // The brook's surface drifts toward its mouth at this many m/s; the water wheel's rim turns at the same speed.
+    public const float BrookFlow=.45f,WheelRadius=1.3f;
+    // The water wheel's axle, in the brook beside the sluice, low enough that its rim dips .3 m under the water.
+    public static readonly Vector3 WheelAxle=new(19.5f,WaterLevel-.3f+WheelRadius,36.8f);
+    // The scarecrow's pole, in paddy 1.
+    public static readonly Vector2 Scarecrow=new(33.6f,25.8f);
     // Roofs stop the camera's spring arm on this layer alone; the player and robots only collide with layer 1.
     public const int CameraLayer=8;
     public static void CameraStop(Node3D n,Shape3D shape){var b=new StaticBody3D{CollisionLayer=CameraLayer,CollisionMask=0};n.AddChild(b);b.AddChild(new CollisionShape3D{Shape=shape});}
@@ -336,7 +342,7 @@ public partial class World : Node3D
         Fence(new(-24,0,0),new(-24,0,42));
         Fence(new(23,0,1),new(23,0,13));Fence(new(23,0,17),new(23,0,42));
         foreach(var (from,to) in Footpaths)Footpath(from,to,1.2f);
-        Brook();Reeds();Terrace();Shrine();Dressing();
+        Brook();WaterWheel();Reeds();Terrace();Shrine();Dressing();
         Label(this,"OLD RELAY ROAD  ↑",new(4,2.6f,-.3f),Gold,27);
     }
     private Node3D House(string name,Vector3 pos,Vector3 size,Color wall,bool workshop,float yaw=0,int barrels=3,float signProjection=.25f)
@@ -416,12 +422,12 @@ public partial class World : Node3D
         collision.AddChild(new CollisionShape3D { Position=new(0,height/2,0),Shape=new CapsuleShape3D { Radius=.32f,Height=height } });
         Residents.Add((name,role,line,n));
     }
+    private void Solid(Vector3 p,Vector3 turn,Vector3 size){var body=new StaticBody3D{Position=p,Rotation=turn,CollisionMask=0};AddChild(body);body.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=size}});}
     private void Lamp(Vector3 p)=>Prop(this,"Lantern pole","lamp",p);
     // Weathered posts and split rails from tools/build_village_props.py. A rail is its 2 m model stretched to the span, so the colliders are bodies of their own.
     private void Fence(Vector3 a,Vector3 b)
     {
         int count=Math.Max(1,(int)a.DistanceTo(b)/2);
-        void Solid(Vector3 p,Vector3 turn,Vector3 size){var body=new StaticBody3D{Position=p,Rotation=turn,CollisionMask=0};AddChild(body);body.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=size}});}
         for(int i=0;i<=count;i++)
         {var p=a.Lerp(b,(float)i/count);p.Y=Height(p.X,p.Z);Prop(this,"Fence post","field_post",p,i*1.7f);Solid(p+new Vector3(0,.65f,0),Vector3.Zero,new(.16f,1.3f,.16f));}
         // Rails run post to post, so they climb a ramp with the ground instead of floating level over it.

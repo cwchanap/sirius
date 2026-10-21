@@ -1,5 +1,29 @@
 # MVP verification
 
+## Environment revamp, phase 4b water wheel and scarecrow — 2026-10-21
+
+Two Tripo props for the fields: 80 credits, balance 555 → 475 (task ids and prompts in ASSETS.md). No building, character or seeded scatter stream changed.
+
+- **Water wheel:** Tripo's wheel (8,196 triangles after `tools/cut_glb.py` removed a stray floating log) turns in the brook beside the sluice at `World.WheelAxle`. Its 1.3 m rim dips 0.29 m under the water and clears the bed. `World._Process` turns it at the brook's flow speed over its radius (0.35 rad/s), its bottom moving downstream with the water. Crossed `field_rail` legs cradle the axle, standing on the brook bed and at the far waterline through `Height()`; a new `trough` prop carries its water over the sluice board to the channel on two posts. The wheel has a cylinder collider; the legs, trough and posts have box colliders. One pebble spill and one bank stone that stood in its frame are dropped (the pebbles' draws still run, so the others keep their places); the reeds already skipped the sluice's stretch.
+- **Scarecrow:** Tripo's scarecrow (8,489 triangles) stands in paddy 1 at `World.Scarecrow`, facing the fields' fence opening, with a pole collider. The rice hills within 0.6 m of its pole are left out after their draws.
+- **Self-test:** **375 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro; phase 4a had 368). The new checks, beside the paddy and brook ones:
+  - the wheel turns, its bottom moving downstream (7.5 cm in 10 frames, on the 1.3 m rim);
+  - the wheel is Tripo's textured, brightened model under 10k triangles, its rim at least 0.2 m under the water and every vertex at least 5 cm over the terrain mesh;
+  - its four legs and two trough posts stand on the ground;
+  - a ray meets its collider at the rim;
+  - no reed, pebble spill or bank stone stands inside it;
+  - the scarecrow stands in a paddy, with no rice blade within 0.35 m of its pole;
+  - the Tripo props loop now covers the scarecrow too: textured, brightened, under 10k triangles, grounded within 5 cm, 1.7 m tall and solid.
+
+  The baked-props check now lists the trough. The brook edge burial (−0.170 m), river edge, brook mouth, footbridge and z 33 climb-out checks all still pass. `just unit` passes 16 cases and `just e2e` passes 4.
+- **Render cost** (`render_cost.gd`, `--disable-vsync --fixed-fps 60`): draws 1083/1032/1155 → 1083/1032/1157. Primitives 3.068M/2.794M/2.953M → 3.066M/2.794M/2.984M; the shrine viewpoint sees the wheel. CPU median 0.69–0.77 ms. Fps read 193/238/208, now uncapped, so it cannot be compared with phase 4a's capped 120.
+- **Captures:** before (6d139eb) and after, in native Metal, of `review_revamp.gd`'s paddy-sluice and paddies-wide views, and three new after-only views: water-wheel (from the bank below it, with the trough), water-wheel-far (from the far bank, its legs in the brook) and scarecrow. `captures/hoshikawa-phase4b-wheel-scarecrow/` holds them, with the Codex references beside Tripo's previews in `pipeline.jpg`.
+- **Limits:**
+  - The trough is dry, and no water falls from the wheel's buckets or the trough's spout.
+  - The trough and its posts block the bank path between the brook and the fence at z 37; the brook bed and the fields' fence opening are the ways round.
+  - The wheel's frame is the fence's timber props, not part of the Tripo model.
+  - No physical keyboard/mouse session is claimed.
+
 ## Environment revamp, phase 4a water and fields — 2026-10-20
 
 The river, brook and farm fields, with no Tripo credits spent. No building, character or seeded scatter stream changed.

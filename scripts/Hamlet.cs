@@ -20,7 +20,7 @@ public partial class World
             float a=BrookX(z),b=BrookX(z+1);
             V(a-2.1f,z);V(b-2.1f,z+1);V(a+2.1f,z);V(a+2.1f,z);V(b-2.1f,z+1);V(b+2.1f,z+1);
         }
-        var water=new ShaderMaterial{Shader=GD.Load<Shader>("res://assets/shaders/water.gdshader")};water.SetShaderParameter("flow",new Vector2(0,-.45f));
+        var water=new ShaderMaterial{Shader=GD.Load<Shader>("res://assets/shaders/water.gdshader")};water.SetShaderParameter("flow",new Vector2(0,-BrookFlow));
         Mesh(this,"Hoshikawa brook",st.Commit(),Vector3.Zero,water);
         for(int i=0;i<6;i++)
         {
@@ -29,15 +29,16 @@ public partial class World
         }
         for(float z=0;z<54;z+=4.5f)
         {
+            if(Math.Abs(z-WheelAxle.Z)<1.5f)continue;
             float x=BrookX(z)+(((int)(z/4.5f))%2==0?1.95f:-1.95f),s=.3f+.15f*Mathf.Abs(Mathf.Sin(z));
             Sphere(this,"Bank stone",new(x,Height(x,z)+s*.15f,z),new(s,s*.55f,s*.8f),stone).Rotation=new(0,z,0);
         }
-        // Pebbles along the waterline and a few half-sunk rocks midstream, clear of the footbridge and the climb-out bank at z 33; their own stream.
+        // Pebbles along the waterline and a few half-sunk rocks midstream, clear of the footbridge, the climb-out bank at z 33 and the water wheel; their own stream.
         var pebbles=new RandomNumberGenerator{Seed=4410};
         for(float z=-1;z<54;z+=2.4f)
         {
             float side=pebbles.Randf()<.5f?-1:1,x=BrookX(z)+side*pebbles.RandfRange(1.3f,1.7f),at=z+pebbles.RandfRange(-.6f,.6f);
-            if(Math.Abs(at-15)>2)Prop(this,"River pebbles","pebbles",new(x,Height(x,at),at),pebbles.Randf()*Mathf.Tau);
+            if(Math.Abs(at-15)>2&&Math.Abs(at-WheelAxle.Z)>1.6f)Prop(this,"River pebbles","pebbles",new(x,Height(x,at),at),pebbles.Randf()*Mathf.Tau);
         }
         foreach(float z in new[]{4.5f,9,21,26.5f,40,46})
         {float x=BrookX(z)+(z%3<1.5f?-.9f:.9f);Prop(this,"Half-sunk rock","river_rock",new(x,WaterLevel-.08f,z),z,Vector3.One*(.8f+.03f*(z%4)));}
@@ -57,6 +58,31 @@ public partial class World
             }
         }
         foreach(float side in new[]{-.85f,.85f})Box(bridge,"Footbridge post",new(xb,Deck(1)+.25f,15+side),new(.1f,.62f,.1f),wood);
+    }
+    private Node3D wheel=null!;
+    public override void _Process(double delta)=>wheel.RotateX((float)delta*BrookFlow/WheelRadius);
+    // An undershot wheel in the brook beside the sluice, turned by the current (its bottom moves with the water, toward -Z).
+    // Crossed timber legs cradle its axle near both ends, on the brook bed and at the far waterline, and a board trough carries
+    // what its buckets lift over the sluice board into the channel.
+    private void WaterWheel()
+    {
+        wheel=Model(this,"Water wheel","waterwheel",WheelAxle,0,new(1.3f,1.3f,1.3f));wheel.GetChild<Node3D>(0).Position=new(0,-WheelRadius,0);
+        var body=new StaticBody3D{Name="Water wheel collision",Position=WheelAxle,RotationDegrees=new(0,0,90),CollisionMask=0};AddChild(body);
+        body.AddChild(new CollisionShape3D{Shape=new CylinderShape3D{Radius=WheelRadius,Height=.75f}});
+        void Timber(string name,string model,Vector3 a,Vector3 b,Vector3 size)
+        {
+            var d=b-a;var turn=new Vector3(-Mathf.Atan2(d.Y,new Vector2(d.X,d.Z).Length()),Mathf.Atan2(d.X,d.Z),0);
+            foreach(var n in Prop(this,$"{name} {GetChildCount()}",model,(a+b)/2,0,new(1,1,d.Length()/2)))n.Rotation=turn;
+            Solid((a+b)/2+Basis.FromEuler(turn)*new Vector3(0,model=="trough"?size.Y/2:0,0),turn,size with{Z=d.Length()});
+        }
+        foreach(float x in new[]{WheelAxle.X-1.1f,WheelAxle.X+1.1f})foreach(float side in new[]{-1f,1f})
+        {
+            var foot=new Vector3(x,0,WheelAxle.Z+side*.85f);foot.Y=Height(foot.X,foot.Z)-.1f;var cradle=new Vector3(x,WheelAxle.Y-.1f,WheelAxle.Z);
+            Timber("Water wheel leg","field_rail",foot,cradle+(cradle-foot).Normalized()*.3f,new(.12f,.12f,0));
+        }
+        float z=WheelAxle.Z+.25f;var top=new Vector3(WheelAxle.X+.55f,WheelAxle.Y+WheelRadius-.35f,z);var spout=new Vector3(22.45f,Height(22.45f,z)+.8f,z);
+        Timber("Water wheel trough","trough",top,spout,new(.32f,.19f,0));
+        foreach(float x in new[]{20.95f,21.6f})Timber("Water wheel trough post","field_rail",new(x,Height(x,z)-.1f,z),new(x,Mathf.Lerp(top.Y,spout.Y,(x-top.X)/(spout.X-top.X)),z),new(.12f,.12f,0));
     }
     // Reeds and rushes along the brook and both river banks, clear of the stone bridge, the footbridge, the footpaths and the sluice; their own stream.
     private void Reeds()
@@ -114,7 +140,8 @@ public partial class World
         foreach(var p in Paddies)for(float x=p.Position.X+.45f;x<p.End.X-.35f;x+=.55f)for(float z=p.Position.Y+.45f;z<p.End.Y-.35f;z+=.62f)
         {
             var hill=new Vector2(x+plant.RandfRange(-.06f,.06f),z+plant.RandfRange(-.06f,.06f));var field=plant.Randf()<.3f?pale:green;float tall=plant.RandfRange(.55f,.7f);
-            for(int i=plant.Randf()<.5f?3:2;i>0;i--){var q=hill+Vector2.FromAngle(plant.Randf()*Mathf.Tau)*plant.RandfRange(.03f,.08f);field.Add((new(q.X,Height(q.X,q.Y),q.Y),tall*plant.RandfRange(.85f,1.1f)));}
+            // The scarecrow's ring is left unplanted after the draws, so every other hill keeps its place.
+            for(int i=plant.Randf()<.5f?3:2;i>0;i--){var q=hill+Vector2.FromAngle(plant.Randf()*Mathf.Tau)*plant.RandfRange(.03f,.08f);if(hill.DistanceTo(Scarecrow)>.6f)field.Add((new(q.X,Height(q.X,q.Y),q.Y),tall*plant.RandfRange(.85f,1.1f)));}
         }
         Grass("Rice",green,1,_=>true,8,.2f,new("3d5a2a"),new("93b052"),0,2207);
         Grass("Rice, paler hills",pale,1,_=>true,8,.2f,new("4a6230"),new("b3c062"),0,2219);
@@ -130,6 +157,8 @@ public partial class World
         var ditch=new ShaderMaterial{Shader=still.Shader};ditch.SetShaderParameter("size",new Vector2(2.4f,.9f));
         Mesh(this,"Irrigation channel water",new PlaneMesh{Size=new(2.4f,.9f)},new(23.1f,level,36.8f),ditch);
         Prop(this,"Sluice board","sluice",new(21.95f,Height(21.95f,36.8f),36.8f));
+        var crow=Model(this,"Scarecrow","scarecrow",new(Scarecrow.X,Height(Scarecrow.X,Scarecrow.Y),Scarecrow.Y),90,new(1.3f,1.3f,1.3f));
+        var pole=new StaticBody3D();crow.AddChild(pole);pole.AddChild(new CollisionShape3D{Position=new(0,.85f,0),Shape=new CylinderShape3D{Radius=.06f,Height=1.7f}});
         var rack=new Vector3(30,Height(30,40.7f),40.7f);Prop(this,"Hasa drying rack","hasa",rack);
         var frame=new StaticBody3D{Position=rack+new Vector3(0,.8f,0),CollisionMask=0};AddChild(frame);frame.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(5.6f,1.6f,.5f)}});
     }

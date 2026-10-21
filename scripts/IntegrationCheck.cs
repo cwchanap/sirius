@@ -96,6 +96,24 @@ public static class IntegrationCheck
         }
         Check(aze.All(v=>v.Y>=MeshHeight(v.X,v.Z)-.021f),"the aze stand on the terrain mesh, sinking at most 2 cm where they end");
         using(var crest=PhysicsRayQueryParameters3D.Create(new(31,3,25),new(31,-3,25),1))Check(g.GetWorld3D().DirectSpaceState.IntersectRay(crest) is {Count:>0} hit&&hit["collider"].As<Node>().Name=="Aze collision","the middle aze carries a walker");
+        // The water wheel is Tripo's, turning with the brook: its rim dips under the water but clears the bed, crossed legs on the ground cradle its axle.
+        var wheel=g.World.GetNode<Node3D>("Water wheel");var wheelMesh=ActorVisual.Descendants(wheel).OfType<MeshInstance3D>().Single();int wheelTris=wheelMesh.Mesh.GetFaces().Length/3;
+        var axle=Hoshikawa.World.WheelAxle;var lowest=wheel.ToLocal(axle-new Vector3(0,Hoshikawa.World.WheelRadius,0));await Frames(10);var moved=wheel.ToGlobal(lowest);
+        Check(moved.Z<axle.Z-.01f&&Math.Abs(moved.X-axle.X)<.01f&&Math.Abs(moved.DistanceTo(axle)-Hoshikawa.World.WheelRadius)<.01f,$"the water wheel turns on its axle, its bottom moving downstream with the brook ({axle.Z-moved.Z:F3} m in 10 frames)");
+        var wheelFaces=wheelMesh.Mesh.GetFaces().Select(v=>wheelMesh.GlobalTransform*v).ToArray();float rimLow=wheelFaces.Min(v=>v.Y);
+        Check(wheelTris<10000&&wheelMesh.MaterialOverride is BaseMaterial3D{AlbedoTexture:not null,NormalEnabled:true,AlbedoColor.R:>1}&&rimLow<Hoshikawa.World.WaterLevel-.2f&&wheelFaces.All(v=>v.Y>MeshHeight(v.X,v.Z)+.05f),
+            $"the water wheel is Tripo's textured model, brightened, its rim {Hoshikawa.World.WaterLevel-rimLow:F2} m under the water and clear of the bed, {wheelTris} triangles");
+        var legs=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().StartsWith("Water wheel leg")||n.Name.ToString().StartsWith("Water wheel trough post")).ToArray();
+        Check(legs.Length==6&&legs.All(l=>{var foot=l.GlobalTransform*new Vector3(0,0,-1);return foot.Y-Hoshikawa.World.Height(foot.X,foot.Z) is >-.15f and <0;}),"the water wheel's four legs and two trough posts stand on the brook bed and its bank");
+        using(var block=PhysicsRayQueryParameters3D.Create(axle-new Vector3(0,0,3),axle,1))Check(g.GetWorld3D().DirectSpaceState.IntersectRay(block) is {Count:>0} hit&&hit["collider"].As<Node>().Name=="Water wheel collision"
+            &&Math.Abs(((Vector3)hit["position"]).Z-(axle.Z-Hoshikawa.World.WheelRadius))<.05f,"the water wheel is solid to its rim");
+        var nearWheel=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().Contains("River pebbles")||n.Name.ToString().Contains("Bank stone")).Select(n=>n.GlobalPosition)
+            .Concat(ActorVisual.Descendants(g.World.GetNode("River reeds")).OfType<MeshInstance3D>().SelectMany(m=>m.Mesh.GetFaces().Select(v=>m.GlobalTransform*v)))
+            .Where(v=>Math.Abs(v.X-axle.X)<.8f&&Math.Abs(v.Z-axle.Z)<1.4f).ToArray();
+        Check(nearWheel.Length==0,$"reeds, pebbles and bank stones keep clear of the water wheel ({nearWheel.Length} inside it)");
+        // The scarecrow stands in a paddy, the rice left unplanted round its pole.
+        var rice=new[]{"Rice","Rice, paler hills"}.SelectMany(n=>ActorVisual.Descendants(g.World.GetNode(n)).OfType<MeshInstance3D>()).SelectMany(m=>m.Mesh.GetFaces().Select(v=>m.GlobalTransform*v)).ToArray();
+        Check(Hoshikawa.World.Paddies.Any(p=>p.HasPoint(Hoshikawa.World.Scarecrow))&&rice.Length>0&&rice.All(v=>new Vector2(v.X,v.Z).DistanceTo(Hoshikawa.World.Scarecrow)>.35f),"the scarecrow stands in a paddy, the rice cleared round its pole");
         float step=0;Vector2 stepAt=default;
         for(float x=-20;x<20;x+=.05f)for(float z=-8.9f;z<50;z+=.05f)
         {
@@ -115,8 +133,8 @@ public static class IntegrationCheck
         Check(merged.Length>0&&mergedCorners.Length==bakedCorners.Length&&mergedExtent.Position.DistanceTo(bakedExtent.Position)<.01f&&mergedExtent.End.DistanceTo(bakedExtent.End)<.01f,
             $"{baked.Length} static primitives bake into {merged.Length} merged meshes, keeping all {bakedCorners.Length/3} triangles where they stood");
         var props=baked.Where(n=>n.Mesh.ResourceName.StartsWith("prop ")).GroupBy(n=>n.Mesh.ResourceName.ToString()[5..]).ToDictionary(x=>x.Key,x=>x.Count());
-        Check("lamp bench barrel fence_post fence_panel pebbles river_rock sluice hasa field_post field_rail cabbage daikon".Split(' ').All(props.ContainsKey),
-            "lamps, benches, barrels, the bamboo and field fences, brook stones, paddy sluice and rack and the Komorebi crops are baked Blender props: "+string.Join(", ",props.Select(x=>$"{x.Key} {x.Value}")));
+        Check("lamp bench barrel fence_post fence_panel pebbles river_rock sluice trough hasa field_post field_rail cabbage daikon".Split(' ').All(props.ContainsKey),
+            "lamps, benches, barrels, the bamboo and field fences, brook stones, paddy sluice, wheel trough and rack and the Komorebi crops are baked Blender props: "+string.Join(", ",props.Select(x=>$"{x.Key} {x.Value}")));
         foreach(var model in g.World.Residents.Select(r=>r.Body))
         {
             var skeleton=ActorVisual.Descendants(model).OfType<Skeleton3D>().Single();
@@ -366,7 +384,7 @@ public static class IntegrationCheck
         var post=space.IntersectRay(PhysicsRayQueryParameters3D.Create(well.GlobalPosition+new Vector3(2,1.5f,0),well.GlobalPosition+new Vector3(0,1.5f,0),1));
         var wellRoof=space.IntersectRay(PhysicsRayQueryParameters3D.Create(well.GlobalPosition+Vector3.Up*6,well.GlobalPosition+Vector3.Up*1.2f,Hoshikawa.World.CameraLayer));
         Check(post.Count>0&&Math.Abs(((Vector3)post["position"]).X-well.GlobalPosition.X-.9f)<.05f&&wellRoof.Count>0,"the well's posts block the player and its roof stops the camera");
-        foreach(var (model,x,z,height) in new[]{("lantern",-2.6f,57.5f,1.75f),("lantern",.6f,57.5f,1.75f),("lantern",-6.5f,17.5f,1.75f),("lantern",-6.5f,29f,1.75f),("cart",12.9f,1.6f,1f),("notice",6.4f,17.2f,2.3f)})
+        foreach(var (model,x,z,height) in new[]{("lantern",-2.6f,57.5f,1.75f),("lantern",.6f,57.5f,1.75f),("lantern",-6.5f,17.5f,1.75f),("lantern",-6.5f,29f,1.75f),("cart",12.9f,1.6f,1f),("notice",6.4f,17.2f,2.3f),("scarecrow",33.6f,25.8f,1.7f)})
         {
             var prop=g.World.GetChildren().OfType<Node3D>().Single(n=>Math.Abs(n.Position.X-x)<.01f&&Math.Abs(n.Position.Z-z)<.01f&&n.GetChildren().OfType<StaticBody3D>().Any());
             var mesh=ActorVisual.Descendants(prop).OfType<MeshInstance3D>().Single();var box=mesh.GlobalTransform*mesh.GetAabb();int tris=mesh.Mesh.GetFaces().Length/3;

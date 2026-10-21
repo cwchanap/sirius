@@ -1,7 +1,7 @@
 extends SceneTree
 
 # Fixed before/after viewpoints for the environment revamp: close-ups of the vegetation and light review_hamlet.gd misses,
-# the gameplay spring camera at the tea house eaves, a dialogue background, and each phase 3 house from the front, at 45° and under its eaves. Phase 4a adds the river, brook, paddies, sluice, hasa rack, Komorebi beds and Cedar River.
+# the gameplay spring camera at the tea house eaves, a dialogue background, and each phase 3 house from the front, at 45° and under its eaves. Phase 4a adds the river, brook, paddies, sluice, hasa rack, Komorebi beds and Cedar River; phase 4b the water wheel and scarecrow.
 # Usage: $GODOT_MONO --path . --script res://tools/review_revamp.gd [-- --out=subdir] [--only=name,name]
 var out="res://artifacts/revamp"
 var only=[]
@@ -107,7 +107,11 @@ func review():
 		["komorebi-beds",Vector3(-21,7,-140),Vector3(-32.5,4.3,-151.5),Vector3(-12,6,-151.5)],
 		["cedar-river",Vector3(26,5.5,-102),Vector3(6,.7,-111),Vector3(9.5,6,-100)],
 		["paddy-sluice",Vector3(20.2,1.5,34.2),Vector3(22.8,0,36.8),Vector3(14,.1,22)],
-		["hasa-rack",Vector3(31.5,1.7,45.2),Vector3(29.5,.9,40.7),Vector3(14,.1,22)]]
+		["hasa-rack",Vector3(31.5,1.7,45.2),Vector3(29.5,.9,40.7),Vector3(14,.1,22)],
+		# Phase 4b Tripo models: the water wheel from the bank below it, the scarecrow in paddy 1.
+		["water-wheel",Vector3(22.6,1.4,32.4),Vector3(19.8,.5,36.8),Vector3(14,.1,22)],
+		["scarecrow",Vector3(31.2,1.5,22.4),Vector3(33.6,1,25.8),Vector3(14,.1,22)],
+		["water-wheel-far",Vector3(16.4,1.6,33.2),Vector3(19.5,.4,36.8),Vector3(14,.1,22)]]
 	for view in views:
 		if not wanted(view[0]): continue
 		mio.position=view[3]
