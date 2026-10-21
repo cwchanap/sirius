@@ -5,6 +5,7 @@ extends SceneTree
 # Usage: $GODOT_MONO --path . --script res://tools/review_revamp.gd [-- --out=subdir] [--only=name,name]
 var out="res://artifacts/revamp"
 var only=[]
+var failed=false
 # The five phase 3 Tripo houses from World.Hamlet: [name, table centre, yaw, the front wall's local Z, Mio's local X along it, oblique side].
 const HOUSES=[["workshop",Vector2(-10.37,6.63),75.0,3.5,-1.66,-45.0],["kura",Vector2(12.5,6),-95.0,1.835,-1.66,-45.0],["hall",Vector2(-12.8,21.78),82.0,3.05,-3.0,-45.0],
 	["clinic",Vector2(-11.05,37.54),98.0,2.1,-1.66,45.0],["farmhouse",Vector2(11.81,42.27),-70.0,3.55,-1.66,-45.0]]
@@ -18,7 +19,9 @@ func wanted(name):
 func shot(name):
 	for i in range(5): await process_frame
 	RenderingServer.force_draw()
-	assert(root.get_texture().get_image().save_png(out+"/"+name+".png")==OK)
+	var err=root.get_texture().get_image().save_png(out+"/"+name+".png")
+	if err!=OK:
+		push_error("REVAMP_CAPTURE_FAIL "+name+" "+str(err));failed=true;quit(1);return
 	print("REVAMP_CAPTURE ",name)
 
 func review():
@@ -174,5 +177,6 @@ func review():
 		camera.position=target+view[2]
 		camera.look_at(target)
 		await shot(view[0])
+	if failed: return
 	print("REVAMP_REVIEW_OK")
 	quit()
