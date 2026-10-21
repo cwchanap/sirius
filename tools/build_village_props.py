@@ -1,5 +1,5 @@
 """Deterministic village prop GLBs for Hoshikawa: street lamp, bench, barrel, the bamboo fence post and panel, and the
-water and field props: brook pebbles and rocks, the paddy sluice and hasa rack, field fence post and rail, cabbage and daikon.
+water and field props: brook pebbles and rocks, the paddy sluice, water-wheel trough and hasa rack, field fence post and rail, cabbage and daikon.
 
 Run: /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python tools/build_village_props.py
 
@@ -223,6 +223,15 @@ def sluice():
     return b
 
 
+def trough():
+    """A board water trough (toi) 2 m along Y (the game's Z), open at both ends: World stretches it from the water wheel to the channel."""
+    b = Builder()
+    b.box((0, 0, .015), (.32, 2, .03), "cedar", grain=1)
+    for x in (-.145, .145):
+        b.box((x, 0, .1), (.03, 2, .17), "cedar", grain=1, shift=(x, .4))
+    return b
+
+
 def hasa():
     """A hasa-gake drying rack 5.4 m along X: crossed bamboo legs holding two rails, straw sheaves split over the top one."""
     b = Builder()
@@ -317,7 +326,8 @@ def main():
         bpy.data.objects.remove(o)
     for name, build, limit in (("lamp", lamp, 600), ("bench", bench, 600), ("barrel", barrel, 900), ("fence_post", fence_post, 200), ("fence_panel", fence_panel, 600),
                               ("pebbles", pebbles, 600), ("river_rock", river_rock, 300), ("sluice", sluice, 300), ("hasa", hasa, 1200),
-                              ("field_post", field_post, 100), ("field_rail", field_rail, 60), ("cabbage", cabbage, 400), ("daikon", daikon, 400)):
+                              ("field_post", field_post, 100), ("field_rail", field_rail, 60), ("cabbage", cabbage, 400), ("daikon", daikon, 400),
+                              ("trough", trough, 60)):
         export(build(), name, limit)
     print("VILLAGE_PROPS_OK")
 
