@@ -5,9 +5,9 @@
 
 Needs fontTools and the Noto CJK collections (Debian/Ubuntu: apt install fonts-noto-cjk; others: the .ttc files from
 https://github.com/notofonts/noto-cjk). Each output keeps the kana, symbols and punctuation plus every character that
-appears in assets/dialogue/*.json, so adding a line with a new kanji means re-running this. Han glyphs differ by locale
+appears in assets/dialogue/*.json or in a language's own name in Localization.cs, so adding a line with a new kanji means re-running this. Han glyphs differ by locale
 (JP and TC forms), which is why there is one file per language rather than one pan-CJK font."""
-import argparse, json, pathlib, sys
+import argparse, json, pathlib, re, sys
 from fontTools import subset
 from fontTools.ttLib import TTCollection
 
@@ -28,6 +28,8 @@ def characters():
         elif isinstance(node, list):
             for v in node: walk(v)
     for path in sorted((ROOT / "assets/dialogue").glob("*.json")): walk(json.loads(path.read_text(encoding="utf-8")))
+    languages = re.search(r"Languages=\{(.*?)\};", (ROOT / "scripts/Localization.cs").read_text(encoding="utf-8"), re.S)[1]
+    for name in re.findall(r'\("[^"]+","([^"]+)"\)', languages): chars.update(name)
     return chars
 
 
