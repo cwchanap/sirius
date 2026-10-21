@@ -70,6 +70,13 @@ jobs:
       - name: Run in-engine self-test
         run: '"$GODOT_BIN" --headless --path . --fixed-fps 60 -- --self-test'
 
+      # The same flow with each translation on screen; fails on any string drawn without one.
+      - name: Run in-engine self-test in Japanese
+        run: '"$GODOT_BIN" --headless --path . --fixed-fps 60 -- --self-test --lang=ja'
+
+      - name: Run in-engine self-test in Traditional Chinese
+        run: '"$GODOT_BIN" --headless --path . --fixed-fps 60 -- --self-test --lang=zh_TW'
+
       - name: Run E2E tests
         if: ${{ !cancelled() && steps.import.outcome == 'success' }}
         run: >-

@@ -147,3 +147,14 @@ Bring the non-character environment up to the Tripo characters' detail: semi-rea
 - [x] Phase 4b, Tripo: a water wheel turning with the brook beside the sluice, on crossed timber legs with a trough to the channel, and a scarecrow in paddy 1 (80 credits), each under 8,500 triangles with 2048² PBR maps and fitted colliders. 375 checks pass headless and in native Metal.
 - [x] Phase 4c, bridges and banks (no Tripo credits): both river bridges rebuilt as weathered timber, a new `plank` prop deck on log stringers and pier caps over stone piers, `field_post` posts and top and knee rails, the colliders unchanged. The stone bridge's earth causeway is opened between stone abutments, so the river runs under it. Reeds, pebbles and half-sunk rocks line the Cedar River's wet reach, and pebbles and rocks the river's banks. 379 checks pass headless and in native Metal.
 - [x] Phase 4d, Tripo: a flat-bottomed river boat bobbing at its mooring off the village bank, tied by rope to a post, and stone washing steps cut into the bank down to a slab at the water, walkable both ways (80 credits), each under 9,000 triangles with 2048² PBR maps and fitted colliders. 385 checks pass headless and in native Metal.
+
+## Languages: Japanese and Traditional Chinese
+
+- [x] Phase 0: `assets/dialogue/glossary.md`, with the names, places, terms and tone for all three languages; kanji names for Chinese settled as proposals for the owner to confirm.
+- [x] Phase 1: `scripts/Localization.cs` and the language setting (`--lang=`, `user://settings.cfg`, operating system, English in the self-test); every HUD string, toast, sign, name label, role and dialogue line goes through a translation table; the Hud wraps with `TextParagraph`; language buttons on the title screen and pause menu; Noto CJK subsets from `tools/build_fonts.py`.
+- [x] Phase 2: the Japanese text (39 new lines plus the 31 voiced ones, 121 interface strings).
+- [x] Phase 3: the Traditional Chinese text (70 lines, 121 interface strings).
+- [x] Self-test in all three languages, and unit tests that each translation covers every line and string, keeps its placeholders and has no dead entries.
+- [ ] A native reader checks the Japanese and Traditional Chinese; the owner confirms the Chinese names and 天狼 / シリウス in the glossary.
+- [ ] Voice Zero's six new relay reminders in Japanese.
+- [ ] Export presets, once they exist, need `*.json` in the resource filter so `assets/dialogue/` ships.

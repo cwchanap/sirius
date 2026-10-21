@@ -1,4 +1,5 @@
 using Godot;
+using static Hoshikawa.Localization;
 namespace Hoshikawa;
 
 public enum GameMode { Title, Playing, Dialogue, Paused, Defeated }
@@ -35,7 +36,7 @@ public partial class Game : Node3D
     public string Region=>Hoshikawa.World.RegionAt(Player.GlobalPosition);
     public override void _Ready()
     {
-        InputBindings();
+        Localization.Initialize(OS.GetCmdlineUserArgs());InputBindings();
         World=new World();AddChild(World);
         Player=new Player {Game=this,Position=new(0,.12f,31)};AddChild(Player);
         Vector3[] homes={new(-1,0,-27),new(6,0,-40),new(-2,0,-51)};
@@ -102,7 +103,7 @@ public partial class Game : Node3D
     public override void _Process(double delta)
     {
         float dt=(float)delta;elapsed+=delta;
-        if(Mode==GameMode.Dialogue)Reveal=Math.Min(Dialogue.Length,Reveal+dt*52);
+        if(Mode==GameMode.Dialogue)Reveal=Math.Min(Dialogue.Length,Reveal+dt*RevealSpeed);
         if(Mode==GameMode.Playing)
         {
             ToastTime=Math.Max(0,ToastTime-dt);FeedbackTime=Math.Max(0,FeedbackTime-dt);
@@ -151,14 +152,17 @@ public partial class Game : Node3D
     {
         QuestStage=0;Heard.Clear();foreach(var e in Enemies)e.Reset();Retry();Play(Prologue.Intro);
     }
-    public string Objective=>QuestStage switch
+    private (string Template,int Count) ObjectiveStep=>QuestStage switch
     {
-        0=>"Speak to Ren at the workshop",
-        1=>$"Clear the old relay road   {Enemies.Count(e=>e.Dead)} / 3",
-        2=>"Restart the manual relay",
-        3=>"Return to Ren in Hoshikawa",
-        _=>"Evacuation route secured"
+        0=>("Speak to Ren at the workshop",0),
+        1=>("Clear the old relay road   {0} / 3",Enemies.Count(e=>e.Dead)),
+        2=>("Restart the manual relay",0),
+        3=>("Return to Ren in Hoshikawa",0),
+        _=>("Evacuation route secured",0)
     };
+    // English is what quest logic and the route tests read; the HUD shows the translated one.
+    public string Objective=>string.Format(ObjectiveStep.Template,ObjectiveStep.Count);
+    public string ObjectiveText=>F(ObjectiveStep.Template,ObjectiveStep.Count);
     public Vector3 ObjectivePosition=>QuestStage switch
     {
         0 or 3=>World.Residents[0].Body.GlobalPosition,
@@ -167,8 +171,8 @@ public partial class Game : Node3D
     };
     public string InteractionPrompt()
     {
-        foreach(var r in World.Residents)if(r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition)<3.1f)return "E   Talk to "+r.Name;
-        if(World.RelayPosition.DistanceTo(Player.GlobalPosition)<3.3f)return "E   Inspect manual relay";
+        foreach(var r in World.Residents)if(r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition)<3.1f)return F("E   Talk to {0}",T(r.Name));
+        if(World.RelayPosition.DistanceTo(Player.GlobalPosition)<3.3f)return T("E   Inspect manual relay");
         return "";
     }
     public void Interact()
@@ -180,18 +184,18 @@ public partial class Game : Node3D
             {
                 if(QuestStage==0){QuestStage=Enemies.All(e=>e.Dead)?2:1;Toast("THE TRAIN WITH NO PASSENGERS","Clear the patrols. Reopen the road.",4);Play(Prologue.Briefing);}
                 else if(QuestStage==3){QuestStage=4;Toast("ROUTE SECURED","Chapter prologue complete · Hoshikawa is ready.",8);Sound("heal");Play(Prologue.Homecoming);NightFrom=Prologue.NightFalls;}
-                else Play(("Ren",QuestStage==4?Prologue.RenRest:QuestStage==2?Prologue.RenRoadClear:Prologue.RenReminder));
+                else Play(QuestStage==4?Prologue.RenRest:QuestStage==2?Prologue.RenRoadClear:Prologue.RenReminder);
                 return;
             }
             if(r.Name is "Aki" or "Emi"){Player.Health=100;Player.Posture=0;Player.Remedies=3;Sound("heal");}
-            Play(Heard.Add(r.Name)&&Prologue.FirstMeeting.TryGetValue(r.Name,out var scene)?scene:new[]{(r.Name,r.Line)});return;
+            Play(Heard.Add(r.Name)&&Prologue.FirstMeeting.TryGetValue(r.Name,out var scene)?scene:Prologue.Usual(r.Name));return;
         }
         if(World.RelayPosition.DistanceTo(Player.GlobalPosition)<3.3f)
         {
-            if(QuestStage==0)Play(("Zero",Prologue.RelayAsleep));
-            else if(QuestStage==1)Play(("Zero",Prologue.RelayGuarded(Enemies.Count(e=>!e.Dead))));
+            if(QuestStage==0)Play(Prologue.RelayAsleep);
+            else if(QuestStage==1)Play(Prologue.RelayGuardedFor(Enemies.Count(e=>!e.Dead)));
             else if(QuestStage==2){QuestStage=3;Burst(World.RelayPosition+Vector3.Up*2,Hoshikawa.World.Jade,4);Sound("skill");Play(Prologue.RelayOnline);}
-            else Play(("Zero",Prologue.RelaySteady));
+            else Play(Prologue.RelaySteady);
         }
     }
     public void Play(params (string Speaker,string Text)[] beats)
@@ -201,7 +205,7 @@ public partial class Game : Node3D
     {
         if(Beat>=0&&Reveal<Dialogue.Length){Reveal=Dialogue.Length;return;}
         if(++Beat>=Script.Count){EndDialogue();return;}
-        (Speaker,Dialogue)=Script[Beat];Reveal=0;
+        Speaker=Script[Beat].Speaker;Dialogue=Line(scene,Beat,Script[Beat].Text);Reveal=0;
         var line=$"res://assets/audio/voice/ja/{Speaker}/{scene}.{Beat}.mp3";
         Voice.Stop();Voice.Stream=scene!=null&&ResourceLoader.Exists(line)?GD.Load<AudioStream>(line):null;if(Voice.Stream!=null)Voice.Play();
         SpeakerRole=Speaker switch {"Mio"=>"OFFLINE RUNNER","Zero"=>"SENSORY LINK · CITY SIDE",_=>World.Residents.FirstOrDefault(r=>r.Name==Speaker).Role??""};
@@ -222,6 +226,7 @@ public partial class Game : Node3D
         var query=PhysicsRayQueryParameters3D.Create(a,b,1);
         return GetWorld3D().DirectSpaceState.IntersectRay(query).Count==0;
     }
+    public void SetLanguage(string code){Localization.Set(code);if(!SelfTest)Localization.Save();Hud.ApplyLanguage();}
     public void Toast(string title,string body,float seconds=3){ToastTitle=title;ToastBody=body;ToastTime=seconds;}
     public void Feedback(string text,Color color){FeedbackText=text;FeedbackColor=color;FeedbackTime=1.2f;}
     public void Burst(Vector3 p,Color color,float radius)

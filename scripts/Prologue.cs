@@ -28,9 +28,18 @@ public static class Prologue
         ("Mio","Cross the bridge, follow the lanterns uphill. I know the way."),
         ("Ren","Don't let them surround you. And Mio, come back in one piece. That terminal on your wrist is the only line we have into the city."),
     };
-    public const string RenReminder="Cross the bridge and follow the lanterns uphill. Three patrol units are blocking the manual relay. Do not let them surround you.";
-    public const string RenRoadClear="The road is clear? Then the relay is yours. Follow the lanterns up to the viaduct and wake it up.";
-    public const string RenRest="The valley is ready. Zero is still in the city, preparing the other half of our rescue. Rest for a while. You have earned it.";
+    public static readonly (string Speaker,string Text)[] RenReminder=
+    {
+        ("Ren","Cross the bridge and follow the lanterns uphill. Three patrol units are blocking the manual relay. Do not let them surround you."),
+    };
+    public static readonly (string Speaker,string Text)[] RenRoadClear=
+    {
+        ("Ren","The road is clear? Then the relay is yours. Follow the lanterns up to the viaduct and wake it up."),
+    };
+    public static readonly (string Speaker,string Text)[] RenRest=
+    {
+        ("Ren","The valley is ready. Zero is still in the city, preparing the other half of our rescue. Rest for a while. You have earned it."),
+    };
     public static readonly (string Speaker,string Text)[] Homecoming=
     {
         ("Ren","I can see the relay's lamp from the workshop roof. Green, for the first time since the line closed."),
@@ -48,9 +57,32 @@ public static class Prologue
         ("","The link goes quiet. Far beyond the viaduct, the city keeps shining."),
     };
     public const int NightFalls=4;
-    public const string RelayAsleep="This is the manual relay! It's asleep. Ren has a plan for it. Go and find Ren first, okay?";
-    public static string RelayGuarded(int left)=>$"The patrols keep polling this relay. I count {new[]{"none","one","two","three"}[Math.Clamp(left,0,3)]} still out there. Chase them away first, okay?";
-    public const string RelaySteady="The relay is steady. Head back to Ren. ...Mio, one day I want to see this valley with my own eyes.";
+    public static readonly (string Speaker,string Text)[] RelayAsleep=
+    {
+        ("Zero","This is the manual relay! It's asleep. Ren has a plan for it. Go and find Ren first, okay?"),
+    };
+    public static readonly (string Speaker,string Text)[] RelayGuardedNone=
+    {
+        ("Zero","The patrols keep polling this relay. I count none still out there. Chase them away first, okay?"),
+    };
+    public static readonly (string Speaker,string Text)[] RelayGuardedOne=
+    {
+        ("Zero","The patrols keep polling this relay. I count one still out there. Chase them away first, okay?"),
+    };
+    public static readonly (string Speaker,string Text)[] RelayGuardedTwo=
+    {
+        ("Zero","The patrols keep polling this relay. I count two still out there. Chase them away first, okay?"),
+    };
+    public static readonly (string Speaker,string Text)[] RelayGuardedThree=
+    {
+        ("Zero","The patrols keep polling this relay. I count three still out there. Chase them away first, okay?"),
+    };
+    // Zero counts the patrols that are left; a scene each, so every language words the count its own way.
+    public static (string Speaker,string Text)[] RelayGuardedFor(int left)=>Math.Clamp(left,0,3) switch {0=>RelayGuardedNone,1=>RelayGuardedOne,2=>RelayGuardedTwo,_=>RelayGuardedThree};
+    public static readonly (string Speaker,string Text)[] RelaySteady=
+    {
+        ("Zero","The relay is steady. Head back to Ren. ...Mio, one day I want to see this valley with my own eyes."),
+    };
     public static readonly (string Speaker,string Text)[] RelayOnline=
     {
         ("Zero","Got it! The relay lamp just turned green. That's your signal, Mio. It's so clear."),
@@ -100,8 +132,36 @@ public static class Prologue
             ("Sora","...Mio, is your wrist talking again?"),
         },
     };
-    // Beat i of a scene is voiced by assets/audio/voice/ja/<Speaker>/<name>.<i>.mp3, the same key as assets/dialogue/ja.json.
+    // Zero's relay reminders repeat on every visit, so they stay unvoiced and IntegrationCheck does not ask for their mp3s.
+    public static readonly HashSet<string> Unvoiced=new(){"RelayAsleep","RelayGuardedNone","RelayGuardedOne","RelayGuardedTwo","RelayGuardedThree","RelaySteady"};
+    // What the Komorebi residents say every time: they have no first-meeting scene.
+    public static readonly Dictionary<string,(string Speaker,string Text)[]> Komorebi=new()
+    {
+        ["Nao"]=new[]
+        {
+            ("Nao","Welcome to Komorebi, Mio. Travelers from Hoshikawa take the cedar bridge below the orchards. There is always a place by our stove when the mountain mist rolls in."),
+        },
+        ["Emi"]=new[]
+        {
+            ("Emi","That pass is a long walk. Sit for a moment: I can treat your wounds and refill your remedies. The clinic keeps its doors open for both villages."),
+        },
+        ["Toma"]=new[]
+        {
+            ("Toma","These trees fed our grandparents before the city grid reached the valley. Now they feed our neighbors again. Follow the south lanterns to the bridge if you are returning to Hoshikawa."),
+        },
+        ["Yui"]=new[]
+        {
+            ("Yui","I carry letters between our villages. The rain shelter is south of the cedar bridge; the overlook is on its north bank. Ren will be waiting back in Hoshikawa if your relay work is finished."),
+        },
+    };
+    // Afterwards the others repeat the first line of their first meeting, which keeps that beat's key (and voice file).
+    private static readonly Dictionary<string,(string Speaker,string Text)[]> openers=FirstMeeting.ToDictionary(m=>m.Key,m=>m.Value[..1]);
+    public static (string Speaker,string Text)[] Usual(string name)=>Komorebi.TryGetValue(name,out var line)?line:openers[name];
+    // Beat i of a scene is voiced by assets/audio/voice/ja/<Speaker>/<name>.<i>.mp3, the same key as assets/dialogue/<lang>.json.
     // Declared last so the scenes it names are already initialized.
-    public static readonly Dictionary<(string Speaker,string Text)[],string> SceneNames=new[]{("Intro",Intro),("Briefing",Briefing),("Homecoming",Homecoming),("RelayOnline",RelayOnline)}
-        .Concat(FirstMeeting.Select(m=>("FirstMeeting."+m.Key,m.Value))).ToDictionary(s=>s.Item2,s=>s.Item1);
+    public static readonly Dictionary<(string Speaker,string Text)[],string> SceneNames=new[]{("Intro",Intro),("Briefing",Briefing),("Homecoming",Homecoming),("RelayOnline",RelayOnline),
+        ("RenReminder",RenReminder),("RenRoadClear",RenRoadClear),("RenRest",RenRest),("RelayAsleep",RelayAsleep),("RelayGuardedNone",RelayGuardedNone),("RelayGuardedOne",RelayGuardedOne),
+        ("RelayGuardedTwo",RelayGuardedTwo),("RelayGuardedThree",RelayGuardedThree),("RelaySteady",RelaySteady)}
+        .Concat(FirstMeeting.Select(m=>("FirstMeeting."+m.Key,m.Value))).Concat(Komorebi.Select(m=>("Komorebi."+m.Key,m.Value)))
+        .Concat(openers.Select(m=>("FirstMeeting."+m.Key,m.Value))).ToDictionary(s=>s.Item2,s=>s.Item1);
 }

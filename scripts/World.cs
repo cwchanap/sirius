@@ -4,7 +4,7 @@ namespace Hoshikawa;
 public partial class World : Node3D
 {
     public readonly List<Node3D> Buildings = new();
-    public readonly List<(string Name, string Role, string Line, Node3D Body)> Residents = new();
+    public readonly List<(string Name, string Role, Node3D Body)> Residents = new();
     // Residents with their own Tripo GLB: grounded model height (also the capsule) and name label height. The rest share villager.glb.
     public static readonly Dictionary<string, (string Asset, float Height, float Label)> TripoResidents = new()
     {
@@ -335,12 +335,12 @@ public partial class World : Node3D
     {
         foreach(var (name,at,size,yaw,style) in Hamlet) Minka(name,at,size,yaw,style);
         float Face(float x,float z)=>Mathf.Atan2(RoadX(z)-x,0);
-        Resident("Ren", "ENGINEER", "A freight train is coming in three days. Zero says its cargo is people. Clear the three patrols beyond the bridge, then restart the manual relay. We need an escape route.",new(-5.2f,0,11),0,Face(-5.2f,11));
-        Resident("Chiyo", "VILLAGE ELDER", "The cities still shine at night. But their streets belong to machines now. Here, every lantern means someone is waiting for you.",new(-6,0,20),1,Face(-6,20));
-        Resident("Aki", "MEDIC", "Hold your guard against a strike, or tap it just before impact to deflect. A broken posture leaves you exposed. Let me patch you up.",new(-5.5f,0,37.5f),2,Face(-5.5f,37.5f));
-        Resident("Hana", "FARMER", "KOMA keeps our irrigation running without a network. Old machines are our neighbors. The amber-eyed patrols beyond the bridge are not.",new(6,0,37.5f),3,Face(6,37.5f));
-        Resident("Sora", "COURIER", "I saw three sentries on the old relay road. Watch for the red diamond: that sweeping attack cannot be blocked. Dodge through it or jump away.",new(6.8f,0,22),4,Face(6.8f,22));
-        Resident("KOMA-7", "OFFLINE GARDENER", "Morning diagnostic: tomatoes healthy. Humans worried. Zero is still in the city. This unit is KOMA. Different machine; equally excellent company.",new(8.3f,0,11.5f),5,Face(8.3f,11.5f));
+        Resident("Ren", "ENGINEER",new(-5.2f,0,11),0,Face(-5.2f,11));
+        Resident("Chiyo", "VILLAGE ELDER",new(-6,0,20),1,Face(-6,20));
+        Resident("Aki", "MEDIC",new(-5.5f,0,37.5f),2,Face(-5.5f,37.5f));
+        Resident("Hana", "FARMER",new(6,0,37.5f),3,Face(6,37.5f));
+        Resident("Sora", "COURIER",new(6.8f,0,22),4,Face(6.8f,22));
+        Resident("KOMA-7", "OFFLINE GARDENER",new(8.3f,0,11.5f),5,Face(8.3f,11.5f));
         // The Tripo well (assets/models/well.glb) stands its posts on its own Z axis; a quarter turn spans them east-west like the old well.
         var well=Model(this,"Village well","well",new(-3.2f,Height(-3.2f,24),24),90,new(1.45f,1.45f,1.45f));
         var wellBody=new StaticBody3D();well.AddChild(wellBody);
@@ -413,7 +413,7 @@ public partial class World : Node3D
         for(int i=0;i<barrels;i++) Prop(house,"Stored barrels","barrel",new(-w/2-.7f,0,-d/3+i*.9f),i);
         return house;
     }
-    private void Resident(string name,string role,string line,Vector3 p,int variant,float? face=null)
+    private void Resident(string name,string role,Vector3 p,int variant,float? face=null)
     {
         bool custom=TripoResidents.TryGetValue(name,out var model);
         p.Y=Height(p.X,p.Z); var n=new Node3D {Name=name,Position=p,Rotation=new(0,face??(name=="Chiyo"||variant%2==0?1.1f:-1.1f),0)}; AddChild(n);
@@ -429,7 +429,7 @@ public partial class World : Node3D
         var collision=new StaticBody3D {CollisionLayer=1};n.AddChild(collision);
         float height=custom?model.Height:1.8f;
         collision.AddChild(new CollisionShape3D { Position=new(0,height/2,0),Shape=new CapsuleShape3D { Radius=.32f,Height=height } });
-        Residents.Add((name,role,line,n));
+        Residents.Add((name,role,n));
     }
     // A timber bridge along its node's Z from -half to half: a plank every half metre with its top at deck, on three log stringers and a log cap
     // across each bent's pair of stone piers, with a post every 2 m and a top and knee rail each side. One slab carries walkers at the deck and
@@ -556,8 +556,8 @@ public partial class World : Node3D
         Footpath(new(RoadX(-126),-126),new(26,-126),1.2f);
         foreach(int z in new[]{-79,-92,-101,-122,-132,-138})
         {float x=RoadX(z)+4.3f;Lamp(new(x,Height(x,z),z));}
-        Signpost(new(RoadX(-80)+4,-80),"N · KOMOREBI","S · HOSHIKAWA");
-        Signpost(new(RoadX(-123)-4,-123),"N · KOMOREBI","E · OVERLOOK");
+        Signpost(new(RoadX(-80)+4,-80),"N · KOMOREBI\nS · HOSHIKAWA");
+        Signpost(new(RoadX(-123)-4,-123),"N · KOMOREBI\nE · OVERLOOK");
         for(int i=0;i<180;i++)
         {
             float x=rng.RandfRange(-59,59),z=rng.RandfRange(-193,-80);
@@ -610,14 +610,14 @@ public partial class World : Node3D
         }
         Mesh(this,name,st.Commit(),Vector3.Zero,material);
     }
-    private void Signpost(Vector2 p,string north,string south)
+    private void Signpost(Vector2 p,string text)
     {
         var sign=new Node3D {Name="Valley wayfinder",Position=new(p.X,Height(p.X,p.Y),p.Y)};AddChild(sign);
         Box(sign,"Sign post",new(0,1.3f,0),new(.17f,2.6f,.17f),wood);
         Box(sign,"Direction boards",new(0,2.15f,0),new(3.5f,.9f,.18f),wood);
         foreach(float side in new[]{-1f,1f})
         {
-            var lettering=Label(sign,north+"\n"+south,new(0,2.17f,side*.12f),Gold,29);
+            var lettering=Label(sign,text,new(0,2.17f,side*.12f),Gold,29);
             lettering.Billboard=BaseMaterial3D.BillboardModeEnum.Disabled;
             lettering.Rotation=new(0,side<0?Mathf.Pi:0,0);
         }
@@ -646,10 +646,10 @@ public partial class World : Node3D
             Box(packing,"Produce tray",new(-.65f+i*.65f,.98f,0),new(.55f,.14f,.7f),wood);
             for(int j=0;j<3;j++)Sphere(packing,"Harvested persimmon",new(-.65f+i*.65f,1.12f,-.22f+j*.22f),Vector3.One*.12f,Mat(new("d49950")));
         }
-        Resident("Nao","LODGE KEEPER","Welcome to Komorebi, Mio. Travelers from Hoshikawa take the cedar bridge below the orchards. There is always a place by our stove when the mountain mist rolls in.",new(-8,0,-138),0);
-        Resident("Emi","MOUNTAIN MEDIC","That pass is a long walk. Sit for a moment: I can treat your wounds and refill your remedies. The clinic keeps its doors open for both villages.",new(6,0,-145),2);
-        Resident("Toma","ORCHARD KEEPER","These trees fed our grandparents before the city grid reached the valley. Now they feed our neighbors again. Follow the south lanterns to the bridge if you are returning to Hoshikawa.",new(16.2f,0,-156.7f),3);
-        Resident("Yui","PASS COURIER","I carry letters between our villages. The rain shelter is south of the cedar bridge; the overlook is on its north bank. Ren will be waiting back in Hoshikawa if your relay work is finished.",new(-8.5f,0,-157),4);
+        Resident("Nao", "LODGE KEEPER",new(-8,0,-138),0);
+        Resident("Emi", "MOUNTAIN MEDIC",new(6,0,-145),2);
+        Resident("Toma", "ORCHARD KEEPER",new(16.2f,0,-156.7f),3);
+        Resident("Yui", "PASS COURIER",new(-8.5f,0,-157),4);
         Footpath(new(0,-138),new(-7,-138),1.3f);Footpath(new(-7,-138),new(-8.6f,-140),1.3f);
         Footpath(new(0,-146),new(7,-146),1.3f);
         Footpath(new(0,-155),new(-10,-155),1.3f);Footpath(new(-10,-155),new(-11,-158),1.3f);
@@ -684,7 +684,7 @@ public partial class World : Node3D
             for(int i=0;i<9;i++)
                 Box(this,"Cloth pennant",new(-3.8f+i*.95f,Height(0,z)+4.15f,z),new(.55f,.65f,.025f),Mat(new(i%2==0?"ba795d":"7ba89c")));
         }
-        Signpost(new(5,-135),"KOMOREBI","LODGE · CLINIC · ORCHARDS");
+        Signpost(new(5,-135),"KOMOREBI\nLODGE · CLINIC · ORCHARDS");
         for(int row=0;row<3;row++)for(int col=0;col<3;col++)
         {
             float x=25+col*6,z=-146-row*9;float y=Height(x,z);

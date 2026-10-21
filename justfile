@@ -22,11 +22,13 @@ run *args:
 unit *args:
     dotnet test tests/unit/Hoshikawa.UnitTests.csproj --nologo "$@"
 
-# The in-engine self-test (scripts/IntegrationCheck.cs), headless
+# The in-engine self-test (scripts/IntegrationCheck.cs), headless, once in each language
 self-test:
     dotnet build Hoshikawa.csproj --nologo
     "{{godot}}" --headless --editor --path . --import
     "{{godot}}" --headless --path . --fixed-fps 60 -- --self-test
+    "{{godot}}" --headless --path . --fixed-fps 60 -- --self-test --lang=ja
+    "{{godot}}" --headless --path . --fixed-fps 60 -- --self-test --lang=zh_TW
 
 # Fetch the pinned godot-e2e release zip into addons/gdunit_e2e (not versioned)
 fetch-e2e:

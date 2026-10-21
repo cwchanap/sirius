@@ -465,7 +465,7 @@ public static class IntegrationCheck
         g.Begin();
         Check(g.Mode==GameMode.Dialogue&&g.Speaker=="Zero"&&g.Script.Count==Prologue.Intro.Length,"the journey opens on Zero's voice over the link");
         Check(g.Hud.Portrait("Mio")!=null&&g.World.Residents.All(r=>g.Hud.Portrait(r.Name)!=null)&&g.Hud.Portrait("Zero")==null,"Mio and every resident have a dialogue portrait; unseen Zero has none");
-        var voiced=Prologue.SceneNames.SelectMany(s=>s.Key.Select((b,i)=>(b.Speaker,Path:$"res://assets/audio/voice/ja/{b.Speaker}/{s.Value}.{i}.mp3"))).Where(b=>b.Speaker is "Mio" or "Zero").ToArray();
+        var voiced=Prologue.SceneNames.Where(s=>!Prologue.Unvoiced.Contains(s.Value)).SelectMany(s=>s.Key.Select((b,i)=>(b.Speaker,Path:$"res://assets/audio/voice/ja/{b.Speaker}/{s.Value}.{i}.mp3"))).Where(b=>b.Speaker is "Mio" or "Zero").ToArray();
         Check(voiced.Length>0&&voiced.All(b=>ResourceLoader.Load(b.Path) is AudioStreamMP3 mp3&&mp3.GetLength()>.5),$"each of Mio's and Zero's {voiced.Length} prologue lines has its Japanese voice at its beat");
         await Frames(10);Check(g.Reveal>0&&g.Reveal<g.Dialogue.Length,"dialogue text types out");
         await Tap(Key.E);Check(g.Beat==0&&g.Reveal==g.Dialogue.Length,"the first press completes the typing line instead of skipping it");
@@ -538,6 +538,51 @@ public static class IntegrationCheck
         if(DisplayServer.GetName()!="headless"){g.SaveScreenshot("res://artifacts/mission-complete.png");await Frames(5);}
         g.Restart();Check(g.QuestStage==0&&g.Enemies.All(e=>!e.Dead)&&g.Player.Health==100,"restart restores a fresh playable mission");
         Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Intro),"restarting the prologue replays its opening scene");g.EndDialogue();
-        GD.Print("Integration check completed: movement, terrain, dialogue, combat, patrols, pause, quest and restart.");
+        // The whole flow above also runs under --lang=ja and --lang=zh_TW. Here each language is also checked on its own: glyphs, fixed-width boxes,
+        // line breaking, and the real language buttons.
+        string startLanguage=Localization.Current;var sans=ThemeDB.FallbackFont;
+        string Read(string path){using var file=Godot.FileAccess.Open(path,Godot.FileAccess.ModeFlags.Read);return file.GetAsText();}
+        g.Mode=GameMode.Title;g.Hud.RefreshMenu();await Frames(3);
+        foreach(var (code,name) in Localization.Languages.Skip(1))
+        {
+            Localization.Set(code);g.Hud.ApplyLanguage();await Frames(2);
+            var ui=Localization.ParseStrings(Read($"res://assets/dialogue/ui.{code}.json"));var lines=Localization.ParseLines(Read($"res://assets/dialogue/{code}.json"),code);
+            var serif=Localization.SerifFallbacks()[0];
+            var glyphs=ui.Values.Concat(lines.Values).SelectMany(t=>t).Where(c=>c>' ').Distinct().ToArray();var lacking=glyphs.Where(c=>!sans.HasChar(c)||!serif.HasChar(c)).ToArray();
+            Check(lacking.Length==0,$"{name}: the bundled sans and serif faces draw all {glyphs.Length} characters of its text {new string(lacking)}");
+            float Width(string english,int size,Font? face=null)=>(face??sans).GetStringSize(Localization.T(english),fontSize:size).X;
+            var tight=new (string Text,int Size,float Room)[]{("BEGIN JOURNEY     →",17,288),("R   Return to Hoshikawa",17,288),("Resume journey",17,278),("Recover at the village",17,278),("Restart prologue",17,278),
+                ("Quit game",17,278),("Quit",17,78),("WASD  Move      SHIFT  Run      SPACE  Jump",13,334),("LMB / J  Attack     RMB / K  Guard & deflect",13,334),
+                ("CTRL / ALT  Dodge     TAB  Lock     Q  Skill",13,334),("E  Interact    H  Remedy    ESC  Pause",12,334),("01   THE TRAIN WITH NO PASSENGERS",12,340),
+                ("Speak to Ren at the workshop",17,340),("Restart the manual relay",17,340),("Return to Ren in Hoshikawa",17,340),("Evacuation route secured",17,340),
+                ("NORTHERN SETTLEMENT  /  LODGE & CLINIC",11,340),("CEDAR RIVER  /  ORCHARDS & HIGHLANDS",11,340),("MANUAL RELAY  /  PATROL ROAD",11,340),("THE OFFLINE VALLEY  /  HUMAN SETTLEMENT",11,340),
+                ("OLD RELAY ROAD",25,340),("CEDAR PASS",25,340),("KOMOREBI",25,340),("HOSHIKAWA",25,340)};
+            var overflow=tight.Where(t=>Width(t.Text,t.Size)>t.Room).Select(t=>t.Text).ToArray();
+            Check(overflow.Length==0,$"{name}: every menu, control and panel string fits its fixed box {string.Join(" | ",overflow)}");
+            var wide=ui.Keys.Where(k=>Width(k,14)>540).ToArray();Check(wide.Length==0,$"{name}: no string is wider than the toast panel {string.Join(" | ",wide)}");
+            int Wrapped(string text,out bool badStart)
+            {
+                var paragraph=new TextParagraph {Width=1030};paragraph.AddString(text,sans,20,code);badStart=false;
+                for(int i=1;i<paragraph.GetLineCount();i++)badStart|="、。，．）」』】！？…ー,.!?)".Contains(text[paragraph.GetLineRange(i).X]);
+                return paragraph.GetLineCount();
+            }
+            var spill=lines.Where(l=>Wrapped(l.Value,out _)>4).Select(l=>l.Key).ToArray();Check(spill.Length==0,$"{name}: every dialogue line fits the text box in four lines or fewer {string.Join(" ",spill)}");
+            var kinsoku=lines.Where(l=>{Wrapped(l.Value,out var bad);return bad;}).Select(l=>l.Key).ToArray();Check(kinsoku.Length==0,$"{name}: no line wraps onto a closing mark {string.Join(" ",kinsoku)}");
+            var labels=ActorVisual.Descendants(g).OfType<Label3D>().Select(l=>l.Text).Where(t=>t.Any(char.IsAsciiLetter)).Distinct().ToArray();
+            var untranslated=labels.Where(t=>!Localization.IsTranslated(t,code)).ToArray();
+            Check(labels.Length>=25&&untranslated.Length==0,$"{name}: all {labels.Length} signs and name labels in the valley have a translation {string.Join(" | ",untranslated)}");
+            Check(g.Hud.FindChildren("*","Button",true,false).OfType<Button>().Where(b=>Localization.Languages.All(l=>l.Name!=b.Text)).All(b=>b.Atr(b.Text)==Localization.T(b.Text)),$"{name}: the menu's buttons translate themselves");
+        }
+        foreach(var (code,name) in Localization.Languages)
+        {
+            g.Mode=GameMode.Title;g.Hud.RefreshMenu();await Frames(2);
+            g.Hud.FindChildren("*","Button",true,false).OfType<Button>().Single(b=>b.Text==name).EmitSignal(BaseButton.SignalName.Pressed);await Frames(2);
+            Check(Localization.Current==code&&TranslationServer.GetLocale()==code,$"the title screen's {name} button switches the game to it");
+            foreach(var mode in new[]{GameMode.Title,GameMode.Paused,GameMode.Defeated,GameMode.Playing})
+            {int drawn=g.Hud.Redraws;g.Mode=mode;g.Hud.RefreshMenu();await Frames(3);Check(g.Hud.Redraws>drawn,$"{name}: the HUD draws its {mode} screen");}
+        }
+        g.SetLanguage(startLanguage);g.Mode=GameMode.Playing;g.Hud.RefreshMenu();
+        Check(Localization.Missing.Count==0,"every string the HUD drew had a translation: "+string.Join(" | ",Localization.Missing));
+        GD.Print("Integration check completed: movement, terrain, dialogue, combat, patrols, pause, quest, restart and language.");
     }
 }
