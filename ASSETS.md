@@ -143,7 +143,7 @@ Generated with `codex exec` gpt-image; exact prompts and raw-output hashes are i
 
 ## Water and field props — 2026-10-20
 
-- `assets/models/props/{pebbles,river_rock,sluice,hasa,field_post,field_rail,cabbage,daikon}.glb`: 294 / 100 / 108 / 760 / 26 / 20 / 274 / 238 triangles (phase 4b adds `trough.glb`, 36, for the water wheel), from the same `tools/build_village_props.py` (no source .blend; the five earlier props rebuilt byte-identical). A pebble spill is 0.72 m across, the half-sunk rock 0.96 × 0.75 × 0.59 m, the sluice spans a 0.9 m channel, the hasa rack is 5.5 m long and 1.63 m tall, a field post stands 1.31 m (another 0.2 m in the ground), a field rail is 2 m and `Fence()` stretches it to each span, a cabbage is 0.5 m across and a daikon rosette 0.45 m tall.
+- `assets/models/props/{pebbles,river_rock,sluice,hasa,field_post,field_rail,cabbage,daikon}.glb`: 294 / 100 / 108 / 760 / 26 / 20 / 274 / 238 triangles (phase 4b adds `trough.glb`, 36, for the water wheel; phase 4c `plank.glb`, 12, a 6 × 0.44 × 0.09 m deck board for both bridges), from the same `tools/build_village_props.py` (no source .blend; the five earlier props rebuilt byte-identical). A pebble spill is 0.72 m across, the half-sunk rock 0.96 × 0.75 × 0.59 m, the sluice spans a 0.9 m channel, the hasa rack is 5.5 m long and 1.63 m tall, a field post stands 1.31 m (another 0.2 m in the ground), a field rail is 2 m and `Fence()` stretches it to each span, a cabbage is 0.5 m across and a daikon rosette 0.45 m tall.
 - Five more material names: `stone` (the masonry atlas cell the bank stones use), `straw` (`d6bd78`, the straw rolls' colour), `leaf` and `leaf_dark` (`8eaa63` / `728f60`, the colours of the sphere crops they replace) and `root` (`ebe5d3`). Stone and straw join draws already in their cells; the crop colours stand only in Komorebi's garden beds. No new textures, and no Tripo credits.
 - `assets/shaders/water.gdshader` (rewritten) and `paddy.gdshader` (new) are procedural, with no texture inputs.
 
@@ -238,7 +238,7 @@ The other five Hoshikawa buildings, through the teahouse's pipeline: a Codex ref
 - **Dressing kept:** the shop signs, stepping stones (now from the doorway), shrubs, the hall's two pots (flanking the porch steps), the clinic's two pots (on its engawa), its medic banner (under the engawa eave beam) and its herb rack (by the gable at the other end). The teahouse keeps its chochin, bench and umbrella.
 - **Dropped, now in the models:** the timber frame, plaster, wainscots, roofs, rafters and noren of all five; the workshop's lean-to, worktable, cells, stovepipe and solar collector; the kura's namako band, iron door and shutters; the hall's kohai porch and wide stone step (the model has its own steps); the clinic's and farmhouse's engawa decks; the thatch.
 
-## Water wheel and scarecrow: Tripo props, phase 4b — 2026-10-21
+## Water wheel and scarecrow: Tripo props, phase 4b — 2026-10-20
 
 Two field props through the houses' pipeline: a Codex reference (`codex exec`, gpt-image, 1024×1024, no Tripo cost) and one image-to-model call each. Credits spent: 80 (balance 555 → 475; 525 of the original 1,000 used in total). No retries.
 

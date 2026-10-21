@@ -31,17 +31,17 @@ public partial class World
         {
             if(Math.Abs(z-WheelAxle.Z)<1.5f)continue;
             float x=BrookX(z)+(((int)(z/4.5f))%2==0?1.95f:-1.95f),s=.3f+.15f*Mathf.Abs(Mathf.Sin(z));
-            Sphere(this,"Bank stone",new(x,Height(x,z)+s*.15f,z),new(s,s*.55f,s*.8f),stone).Rotation=new(0,z,0);
+            Sphere(this,$"Bank stone {GetChildCount()}",new(x,Height(x,z)+s*.15f,z),new(s,s*.55f,s*.8f),stone).Rotation=new(0,z,0);
         }
         // Pebbles along the waterline and a few half-sunk rocks midstream, clear of the footbridge, the climb-out bank at z 33 and the water wheel; their own stream.
         var pebbles=new RandomNumberGenerator{Seed=4410};
         for(float z=-1;z<54;z+=2.4f)
         {
             float side=pebbles.Randf()<.5f?-1:1,x=BrookX(z)+side*pebbles.RandfRange(1.3f,1.7f),at=z+pebbles.RandfRange(-.6f,.6f);
-            if(Math.Abs(at-15)>2&&Math.Abs(at-WheelAxle.Z)>1.6f)Prop(this,"River pebbles","pebbles",new(x,Height(x,at),at),pebbles.Randf()*Mathf.Tau);
+            if(Math.Abs(at-15)>2&&Math.Abs(at-WheelAxle.Z)>1.6f)Prop(this,$"River pebbles {GetChildCount()}","pebbles",new(x,Height(x,at),at),pebbles.Randf()*Mathf.Tau);
         }
         foreach(float z in new[]{4.5f,9,21,26.5f,40,46})
-        {float x=BrookX(z)+(z%3<1.5f?-.9f:.9f);Prop(this,"Half-sunk rock","river_rock",new(x,WaterLevel-.08f,z),z,Vector3.One*(.8f+.03f*(z%4)));}
+        {float x=BrookX(z)+(z%3<1.5f?-.9f:.9f);Prop(this,$"Half-sunk rock {GetChildCount()}","river_rock",new(x,WaterLevel-.08f,z),z,Vector3.One*(.8f+.03f*(z%4)));}
         // Planks are tilted to the arch tangent: stepped flat boxes would leave ledges the capsule cannot climb.
         float xa=BrookX(15)-2.1f,xb=BrookX(15)+2.1f;const int planks=9;
         float Deck(float t)=>Mathf.Lerp(Height(xa,15),Height(xb,15),t)+.28f*Mathf.Sin(Mathf.Pi*t);
@@ -91,14 +91,42 @@ public partial class World
         void Clump(Vector2 at){if(r.Randf()<.4f)return;for(int i=3+r.RandiRange(0,2);i>0;i--){var q=at+Vector2.FromAngle(r.Randf()*Mathf.Tau)*r.RandfRange(0,.3f);reeds.Add((new(q.X,Height(q.X,q.Y),q.Y),r.RandfRange(.8f,1.35f)));}}
         for(float z=-1.5f;z<53;z+=.9f)foreach(int side in new[]{-1,1})
             if(Math.Abs(z-15)>2&&(side<0||Math.Abs(z-36.8f)>1.4f))Clump(new(BrookX(z)+side*r.RandfRange(1.4f,1.9f),z));
-        // The river's waterline, found outward from mid-stream; the village bank skips the brook's mouth.
+        // The river's waterline; the village bank skips the brook's mouth.
         for(float x=-60;x<60;x+=1.1f)foreach(int side in new[]{-1,1})
         {
             if(Math.Abs(x)<4.5f||(side>0&&Math.Abs(x-BrookX(-4))<2.8f))continue;
-            float z=-8;while(Math.Abs(z+8)<6&&Height(x,z)<WaterLevel+.03f)z+=side*.1f;
-            if(Math.Abs(z+8)<6)Clump(new(x,z-side*.15f));
+            float z=Waterline(x,-8,WaterLevel,side);
+            if(!float.IsNaN(z))Clump(new(x,z-side*.15f));
         }
         Grass("River reeds",reeds,1,_=>true,9,.12f,new("3d5226"),new("9aa45a"),.25f,4425);
+        // The Cedar River's, from their own seed, clear of the Cedar Bridge's embankments.
+        r=new RandomNumberGenerator{Seed=4451};reeds=new();
+        for(float x=-60;x<60;x+=1.1f)foreach(int side in new[]{-1,1})
+        {
+            float z=Waterline(x,-111,.7f,side);
+            if(!float.IsNaN(z)&&Math.Abs(x-RoadX(-111))>6)Clump(new(x,z-side*.15f));
+        }
+        Grass("Cedar River reeds",reeds,1,_=>true,9,.12f,new("3d5226"),new("9aa45a"),.25f,4455);
+    }
+    // Where the bank rises 3 cm above a river's level, searched outward from mid-stream; NaN where the bed is dry (the Cedar River's, x -56 to -2,
+    // runs over the hill there) or it stays under for 6 m.
+    private static float Waterline(float x,float mid,float level,int side)
+    {
+        float z=mid;while(Math.Abs(z-mid)<6&&Height(x,z)<level+.03f)z+=side*.1f;
+        return z!=mid&&Math.Abs(z-mid)<6?z:float.NaN;
+    }
+    // Pebbles just above both rivers' waterlines and the odd half-sunk rock just below, clear of the bridges and the brook's mouth.
+    private void RiverStones()
+    {
+        var r=new RandomNumberGenerator{Seed=4461};
+        foreach(var (mid,level,bridge) in new[]{(-8f,WaterLevel,0f),(-111f,.7f,RoadX(-111))})
+            for(float x=-58;x<58;x+=2.9f)foreach(int side in new[]{-1,1})
+            {
+                float at=x+r.RandfRange(-.8f,.8f),z=Waterline(at,mid,level,side),pick=r.Randf();
+                if(float.IsNaN(z)||Math.Abs(at-bridge)<5.5f||(mid>-9&&side>0&&Math.Abs(at-BrookX(-4))<3))continue;
+                if(pick<.35f)Prop(this,$"River pebbles {GetChildCount()}","pebbles",new(at,Height(at,z+side*.35f),z+side*.35f),r.Randf()*Mathf.Tau);
+                else if(pick>.88f)Prop(this,$"Half-sunk rock {GetChildCount()}","river_rock",new(at,level-.08f,z-side*.5f),at,Vector3.One*(.8f+.4f*(pick-.88f)/.12f));
+            }
     }
     // Hoshikawa's paddies, levelled by Height(): aze around and between them, still water over the wet mud floors, rice in jittered hills
     // of two or three tufts, an irrigation channel from the brook behind a sluice board, and a hasa rack of drying straw.

@@ -1,7 +1,7 @@
 extends SceneTree
 
 # Fixed before/after viewpoints for the environment revamp: close-ups of the vegetation and light review_hamlet.gd misses,
-# the gameplay spring camera at the tea house eaves, a dialogue background, and each phase 3 house from the front, at 45° and under its eaves. Phase 4a adds the river, brook, paddies, sluice, hasa rack, Komorebi beds and Cedar River; phase 4b the water wheel and scarecrow.
+# the gameplay spring camera at the tea house eaves, a dialogue background, and each phase 3 house from the front, at 45° and under its eaves. Phase 4a adds the river, brook, paddies, sluice, hasa rack, Komorebi beds and Cedar River; phase 4b the water wheel and scarecrow; phase 4c both bridges and the Cedar River banks.
 # Usage: $GODOT_MONO --path . --script res://tools/review_revamp.gd [-- --out=subdir] [--only=name,name]
 var out="res://artifacts/revamp"
 var only=[]
@@ -111,7 +111,14 @@ func review():
 		# Phase 4b Tripo models: the water wheel from the bank below it, the scarecrow in paddy 1.
 		["water-wheel",Vector3(22.6,1.4,32.4),Vector3(19.8,.5,36.8),Vector3(14,.1,22)],
 		["scarecrow",Vector3(31.2,1.5,22.4),Vector3(33.6,1,25.8),Vector3(14,.1,22)],
-		["water-wheel-far",Vector3(16.4,1.6,33.2),Vector3(19.5,.4,36.8),Vector3(14,.1,22)]]
+		["water-wheel-far",Vector3(16.4,1.6,33.2),Vector3(19.5,.4,36.8),Vector3(14,.1,22)],
+		# Phase 4c bridges and banks: the stone bridge from both banks and down its deck from the road, the Cedar Bridge from x -6 and down its deck, and the Cedar River's wet reach past it, x 13 to 40.
+		["bridge-village-bank",Vector3(8.5,1.6,-2.2),Vector3(0,.2,-8.5),Vector3(.6,1.2,-7)],
+		["bridge-far-bank",Vector3(-8,2.4,-15.5),Vector3(0,.2,-7.5),Vector3(.6,1.2,-7)],
+		["bridge-deck",Vector3(1,1.9,2.2),Vector3(0,1,-14),Vector3(-.6,1.2,-9)],
+		["cedar-bridge-west",Vector3(-6,5.5,-117.5),Vector3(9.8,2.2,-111),Vector3(9.5,6,-100)],
+		["cedar-banks",Vector3(13.2,5.7,-111.4),Vector3(40,.3,-111),Vector3(9.5,6,-100)],
+		["cedar-deck",Vector3(10.6,6,-98.5),Vector3(9.8,4.6,-120),Vector3(9.2,6,-108)]]
 	for view in views:
 		if not wanted(view[0]): continue
 		mio.position=view[3]

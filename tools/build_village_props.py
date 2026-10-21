@@ -1,5 +1,5 @@
 """Deterministic village prop GLBs for Hoshikawa: street lamp, bench, barrel, the bamboo fence post and panel, and the
-water and field props: brook pebbles and rocks, the paddy sluice, water-wheel trough and hasa rack, field fence post and rail, cabbage and daikon.
+water and field props: brook pebbles and rocks, the paddy sluice, water-wheel trough and hasa rack, the bridge deck plank, field fence post and rail, cabbage and daikon.
 
 Run: /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python tools/build_village_props.py
 
@@ -42,8 +42,8 @@ class Builder:
         self.mats.append(MATERIALS.index(mat))
         self.smooth.append(smooth)
 
-    def box(self, centre, size, mat, grain=2, shift=(0, 0), rot=Matrix.Identity(3)):
-        """Axis-aligned in its own frame; each face maps the grain axis to V when the face contains it."""
+    def box(self, centre, size, mat, grain=2, shift=(0, 0), rot=Matrix.Identity(3), u_scale=1.0, v_scale=1.0):
+        """Axis-aligned in its own frame; each face maps the grain axis to V when the face contains it, both at TILE times their scale."""
         c, h = Vector(centre), Vector(size) / 2
         for axis in range(3):
             j, k = [a for a in range(3) if a != axis]
@@ -59,7 +59,7 @@ class Builder:
                 normal[axis] = sign
                 if (corners[1] - corners[0]).cross(corners[2] - corners[0]).dot(normal) < 0:
                     corners.reverse()
-                uvs = [(p[u_axis] / TILE + shift[0], p[v_axis] / TILE + shift[1]) for p in corners]
+                uvs = [(p[u_axis] / TILE * u_scale + shift[0], p[v_axis] / TILE * v_scale + shift[1]) for p in corners]
                 self.face([c + rot @ p for p in corners], uvs, mat)
 
     def ring(self, centre, axis, radius, sides, phase=0.0):
@@ -271,6 +271,14 @@ def field_rail():
     return b
 
 
+def plank():
+    """A bridge deck board 6 m along X, its top at the origin; World lays them a half metre apart. Its 0.44 m width spans one of the atlas
+    cell's seven boards (1/7 of a tile) and its length one tile, grain drawn out: at TILE a seam crossed every plank each 1.2 m, a brick pattern."""
+    b = Builder()
+    b.box((0, 0, -.045), (6, .44, .09), "cedar", grain=0, shift=(1.5 / 7, 0), u_scale=TILE / 7 / .44, v_scale=TILE / 6)
+    return b
+
+
 def cabbage():
     """A cabbage head cupped by five outer leaves, half a metre across."""
     b = Builder()
@@ -327,7 +335,7 @@ def main():
     for name, build, limit in (("lamp", lamp, 600), ("bench", bench, 600), ("barrel", barrel, 900), ("fence_post", fence_post, 200), ("fence_panel", fence_panel, 600),
                               ("pebbles", pebbles, 600), ("river_rock", river_rock, 300), ("sluice", sluice, 300), ("hasa", hasa, 1200),
                               ("field_post", field_post, 100), ("field_rail", field_rail, 60), ("cabbage", cabbage, 400), ("daikon", daikon, 400),
-                              ("trough", trough, 60)):
+                              ("trough", trough, 60), ("plank", plank, 12)):
         export(build(), name, limit)
     print("VILLAGE_PROPS_OK")
 
