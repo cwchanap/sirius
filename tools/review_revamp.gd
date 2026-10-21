@@ -1,7 +1,7 @@
 extends SceneTree
 
 # Fixed before/after viewpoints for the environment revamp: close-ups of the vegetation and light review_hamlet.gd misses,
-# the gameplay spring camera at the tea house eaves, a dialogue background, and each phase 3 house from the front, at 45° and under its eaves. Phase 4a adds the river, brook, paddies, sluice, hasa rack, Komorebi beds and Cedar River; phase 4b the water wheel and scarecrow; phase 4c both bridges and the Cedar River banks.
+# the gameplay spring camera at the tea house eaves, a dialogue background, and each phase 3 house from the front, at 45° and under its eaves. Phase 4a adds the river, brook, paddies, sluice, hasa rack, Komorebi beds and Cedar River; phase 4b the water wheel and scarecrow; phase 4c both bridges and the Cedar River banks; phase 4d the boat and washing steps.
 # Usage: $GODOT_MONO --path . --script res://tools/review_revamp.gd [-- --out=subdir] [--only=name,name]
 var out="res://artifacts/revamp"
 var only=[]
@@ -118,7 +118,14 @@ func review():
 		["bridge-deck",Vector3(1,1.9,2.2),Vector3(0,1,-14),Vector3(-.6,1.2,-9)],
 		["cedar-bridge-west",Vector3(-6,5.5,-117.5),Vector3(9.8,2.2,-111),Vector3(9.5,6,-100)],
 		["cedar-banks",Vector3(13.2,5.7,-111.4),Vector3(40,.3,-111),Vector3(9.5,6,-100)],
-		["cedar-deck",Vector3(10.6,6,-98.5),Vector3(9.8,4.6,-120),Vector3(9.2,6,-108)]]
+		["cedar-deck",Vector3(10.6,6,-98.5),Vector3(9.8,4.6,-120),Vector3(9.2,6,-108)],
+		# Phase 4d Tripo props on the river's village bank: the boat moored at x -13 and the washing steps at x 10, each from its own bank and the far one, then close up, Mio standing on the steps' slab.
+		["boat-bank",Vector3(-8.5,1.4,-2.2),Vector3(-13,-.3,-5.6),Vector3(-3,.1,3)],
+		["boat-far",Vector3(-10.5,2.2,-13.5),Vector3(-13,-.2,-5.2),Vector3(-3,.1,3)],
+		["kawabata-bank",Vector3(13.6,1.7,-2),Vector3(10,-.2,-4.8),Vector3(-3,.1,3)],
+		["kawabata-far",Vector3(8.5,2.4,-13.5),Vector3(10,0,-4.2),Vector3(-3,.1,3)],
+		["boat-close",Vector3(-11.2,.6,-7.6),Vector3(-14.2,-.1,-5.2),Vector3(-3,.1,3)],
+		["kawabata-close",Vector3(12.4,.7,-6.6),Vector3(10,-.1,-4.4),Vector3(10,0,-5.3)]]
 	for view in views:
 		if not wanted(view[0]): continue
 		mio.position=view[3]

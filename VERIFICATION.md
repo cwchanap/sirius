@@ -1,5 +1,41 @@
 # MVP verification
 
+## Environment revamp, phase 4d boat and washing steps — 2026-10-20
+
+Two Tripo props on the river's village bank: 80 credits, balance 475 → 395 (task ids and prompts in ASSETS.md). The river's course is unchanged. No building or character changed, and the seeded streams draw as before; only where they place is filtered.
+
+- **Boat:** Tripo's flat-bottomed boat (7,854 triangles) floats at `World.BoatRest`, x −13, bow upstream. Its keel is 0.14 m under the water and 0.25 m over the bed, and every vertex is inside the river sheet, more than 5.5 m from the bridge. `World._Process` bobs it in place (2.5 cm heave, about 1.5° roll and 0.5° pitch on unrelated periods), and a box collider rides with it. A `field_post` stands at the water's edge 2.6 m upstream, with a box collider; two stretched `field_rail` lengths make the rope sagging to the bow.
+- **Washing steps:** Tripo's steps (8,826 triangles) descend the higher bank at `World.Kawabata`, x 10. Four treads land at 0.50, 0.30, 0.11 and −0.09 m, and the slab at −0.30 m, 8 cm over the water. `HamletGround()` cuts the bank under the treads, blending in 0.35 m inside the walls. The river's edge at z −4 there is now 0.03 m, still 0.41 m over the water, and the highest edge anywhere is still −0.106 m. The colliders are a top-tread box, a ramp under the treads' nosings, a slab box and a sloped box for each wall.
+- **Clearing:** `World.Landing()` keeps reeds and river stones off both spots. The river's reeds drop from 5,976 to 5,814 blades and its stones from 25 to 23; every draw still runs, so the rest keep their places. The Cedar River is unchanged.
+- **Self-test:** **385 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro; phase 4c had 379). The new checks, beside the river ones:
+  - the boat is Tripo's textured, brightened model under 10k triangles, its keel under the water and over the bed, its gunwale 0.4 m above the water, all inside the river sheet and clear of the bridge;
+  - it bobs in place within its 2.5 cm heave;
+  - a ray meets its collider;
+  - the mooring post stands on `Height()`, and its rope runs from the post to within 0.25 m of the hull;
+  - the steps are Tripo's textured, brightened model under 10k triangles, their base under the bank or the water;
+  - Mio walks from the bank down to the slab (−0.30 m) and back up to the bank (above 0.45 m), on the floor.
+
+  The reeds check now also keeps the landings clear.
+
+  The rig check for each Tripo resident's idle now seeks the clip to 0 before stepping it 1 s. `ActorVisual.Play(..., restart: true)` does not restart a clip that is already playing. The comparison therefore depended on how long earlier checks had run, and the boat's 20-frame bob check moved Chiyo's idle onto a matching pose.
+
+  `just unit` passes 16 cases and `just e2e` passes 4.
+- **Render cost** (`render_cost.gd`, `--disable-vsync --fixed-fps 60`):
+  - draws 1082/1030/1155 → 1086/1034/1159 (the two models and their shadows);
+  - primitives 3.097M/2.827M/3.013M → 3.124M/2.872M/3.023M;
+  - CPU median 0.69–0.75 ms;
+  - fps capped at 120.
+- **Captures:** before (45646c1) and after pairs, in native Metal, of six `review_revamp.gd` views, in `captures/hoshikawa-phase4d-boat-steps/`:
+  - new: boat-bank, boat-far, kawabata-bank and kawabata-far;
+  - river-bridge and bridge-village-bank.
+
+  Two after-only close-ups: boat-close, and kawabata-close with Mio on the slab. `pipeline.jpg` puts the Codex references beside Tripo's previews.
+- **Limits:**
+  - The boat only bobs. It does not drift on the current, its rope does not move with it, and it cannot be boarded.
+  - The washing steps' collision is a ramp, so walkers glide down rather than step.
+  - No water ripples round the boat or the slab.
+  - No physical keyboard/mouse session is claimed.
+
 ## Environment revamp, phase 4c bridges and banks — 2026-10-20
 
 Both river bridges rebuilt and the river banks dressed, with no Tripo credits spent and the river's course unchanged. No building, character or existing seeded scatter stream changed.
