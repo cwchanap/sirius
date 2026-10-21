@@ -60,10 +60,11 @@ def export_model(args):
     paths = {'model': args.output_root / f'assets/models/{args.name}.glb',
              'blend': args.output_root / f'assets/source/{args.name}-game.blend',
              'report': args.output_root / f'artifacts/model-imports/{args.name}/build.json'}
-    texture_dir = args.output_root / f'assets/art/{args.name}-import'
-    if args.source in [p.resolve() for p in paths.values()] or args.source.is_relative_to(texture_dir.resolve()):
+    # A rig's texture copies are committed; a static model's stay beside its game .blend, since Godot reads the GLB's own.
+    texture_dirs = [args.output_root / f'assets/art/{args.name}-import', args.output_root / f'assets/source/{args.name}-textures']
+    if args.source in [p.resolve() for p in paths.values()] or any(args.source.is_relative_to(d.resolve()) for d in texture_dirs):
         raise ValueError('Source overlaps an output path; choose a different name/output root.')
-    existing = [p for p in [*paths.values(), texture_dir] if p.exists()]
+    existing = [p for p in [*paths.values(), *texture_dirs] if p.exists()]
     if existing and not args.force:
         raise ValueError('Outputs already exist; use --force to rebuild: ' + ', '.join(map(str, existing)))
     source_hash = digest(args.source)
@@ -85,6 +86,7 @@ def export_model(args):
         raise ValueError('Choose --armature: ' + ', '.join(o.name for o in rigs))
     else:
         rig = rigs[0] if rigs else None
+    texture_dir = texture_dirs[0 if rig else 1]
 
     def ancestors(obj):
         while obj.parent:

@@ -84,7 +84,7 @@ python3 tools/import_character.py /path/to/hana.glb --name hana --height 1.65
 
 The shared importer launches a separate background Blender, keeps the input unchanged, preserves textures and supplied active/NLA-bound animation clips, and centers/grounds the model at the requested height in metres. It handles a single deform rig with multiple meshes, or an unrigged static model. Blender uses the installed macOS application by default; override it with `--blender /path/to/blender` or `BLENDER_BIN`.
 
-Outputs are `assets/models/hana.glb`, the packed editable copy `assets/source/hana-game.blend`, original texture copies under `assets/art/hana-import/`, and an audit report at `artifacts/model-imports/hana/build.json`. The report records source/output hashes, bone/triangle counts, clips and texture hashes. Existing outputs require `--force`; use `--output-root artifacts/hana-trial` to review a separate trial first. Keep the input and any external texture/buffer files together and outside these output paths.
+Outputs are `assets/models/hana.glb`, the packed editable copy `assets/source/hana-game.blend`, original texture copies under `assets/art/hana-import/` (a static model's go to the uncommitted `assets/source/NAME-textures/` instead, since Godot extracts its textures from the GLB), and an audit report at `artifacts/model-imports/hana/build.json`. The report records source/output hashes, bone/triangle counts, clips and texture hashes. Existing outputs require `--force`; use `--output-root artifacts/hana-trial` to review a separate trial first. Keep the input and any external texture/buffer files together and outside these output paths.
 
 Useful options:
 
