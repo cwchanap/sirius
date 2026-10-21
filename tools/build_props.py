@@ -5,7 +5,8 @@ Run: /Applications/Blender.app/Contents/MacOS/Blender --background --factory-sta
 Each GLB carries geometry, UVs, custom normals and a COLOR_0 attribute (R = wind sway weight,
 G = ambient occlusion tint) plus two material *names*: bark_<species> and foliage. No images
 are exported; World.Tree() assigns the shared bark textures and foliage shader by material name.
-Foliage UVs index assets/art/foliage-atlas.png: keyaki (0,0), sakura (1,0), sugi (0,1), bamboo (1,1).
+Foliage UVs index assets/art/foliage-atlas.png: keyaki (0,0), sakura (1,0), sugi (0,1), bamboo (1,1). Shrubs and the kaki
+(persimmon) borrow keyaki's bark and leaves, so they add no material names.
 Foliage normals follow each crown's bounding ellipsoid (Builder.volume), so a tree shades as one volume, not as separate cards.
 """
 import math
@@ -206,6 +207,23 @@ def bamboo(seed):
     return b
 
 
+def kaki(seed):
+    """A persimmon: a short trunk and gnarled limbs spreading wide and low, the crown thin enough for World.cs to hang fruit on it."""
+    rng = random.Random(seed)
+    b = Builder(4.6, 3.2, .66)
+    top = Vector((rng.uniform(-.2, .2), rng.uniform(-.2, .2), 1.2))
+    b.tube(polyline(rng, Vector((0, 0, -SINK)), top - Vector((0, 0, -SINK)), top.length + SINK, 2, .1), [.3, .25, .2])
+    tips, limbs = [], rng.randint(4, 5)
+    for i in range(limbs):
+        ang, tilt = 2 * math.pi * i / limbs + rng.uniform(-.3, .3), math.radians(rng.uniform(42, 58))
+        d = Vector((math.sin(tilt) * math.cos(ang), math.sin(tilt) * math.sin(ang), math.cos(tilt)))
+        branch(b, rng, top, d, rng.uniform(2.0, 2.5), .13, 1, tips, lift=.0, spread=.7)
+    rng.shuffle(tips)
+    for tip in tips[:12]:
+        b.clump(rng, tip + Vector((0, 0, .15)), rng.uniform(.8, 1.05), 80, "keyaki", .55, .7)
+    return b
+
+
 def shrub(seed):
     rng = random.Random(seed)
     b = Builder(1.4, 1.5)
@@ -251,10 +269,10 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     for o in list(bpy.data.objects):
         bpy.data.objects.remove(o)
-    plan = [("keyaki", keyaki, "abc"), ("sugi", sugi, "abc"), ("sakura", sakura, "ab"), ("bamboo", bamboo, "a"), ("shrub", shrub, "ab")]
+    plan = [("keyaki", keyaki, "abc"), ("sugi", sugi, "abc"), ("sakura", sakura, "ab"), ("bamboo", bamboo, "a"), ("shrub", shrub, "ab"), ("kaki", kaki, "ab")]
     for species, build, variants in plan:
         for i, v in enumerate(variants):
-            export(build(1000 * (len(species) + i) + ord(v)), f"{species}_{v}", "keyaki" if species == "shrub" else species)
+            export(build(1000 * (len(species) + i) + ord(v)), f"{species}_{v}", "keyaki" if species in ("shrub", "kaki") else species)
     print("PROPS_OK")
 
 

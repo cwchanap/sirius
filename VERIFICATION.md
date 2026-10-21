@@ -1,5 +1,57 @@
 # MVP verification
 
+## Komorebi revamp — 2026-10-21
+
+Komorebi redone to Hoshikawa's standard with existing assets and one new Blender tree: no Tripo or Codex credits. Hoshikawa is unchanged. Its well, notice board, handcart, scarecrow and hasa rack moved into shared helpers that add the same nodes in the same order, and its seeded streams draw as before.
+
+- **Houses:** `World.KomorebiHouses` places the five buildings through `Minka()` with Hoshikawa's styles and sizes:
+  - the lodge is the thatched farmhouse;
+  - the Mountain Clinic is the clinic;
+  - the Weavers House is the workshop;
+  - the Orchard Store is the kura;
+  - the meeting hall is the hall.
+
+  The lodge, clinic, weavers and store face the road. The hall faces down the road from its north end, its back at z −181.78, inside the level ground (z > −182). Komorebi's ground is level, so the houses have no pads. The old `House()` and its awnings, banner, chest and worktable are gone. Door paths run from the road to the lodge and the clinic, and one crosses the road from the weavers' door to the store's.
+- **Residents:** Nao, Emi and Yui stand beside their door paths facing the road, and Toma faces the east lane. Their lines are unchanged.
+- **Square:**
+  - the basin and box benches became a Tripo well (the same colliders and camera-only roof as Hoshikawa's), a notice board and two bench props;
+  - two stone lanterns flank the hall;
+  - six lamps replace seven;
+  - the north festival masts moved to z −166.
+- **Courtyards:** each of the three courtyard keyaki has three shrubs in place of nine sphere plantings, drawn from Komorebi's own generator (seed 5101).
+- **Orchard:** a new `kaki` persimmon tree from `tools/build_props.py` (2,368 / 2,576 triangles, keyaki bark and leaves, no new material). Rebuilding left every other tree GLB byte-identical. Each tree consumes three `rng` draws, as `OrchardTree()` did. Fourteen persimmons per tree hang on the crown's lower outside as merged spheres; the sphere canopies and stems are gone.
+- **Packing station:** the box table became a Tripo handcart, three barrels and a hasa rack along the fence. Six strings of hoshigaki hang under the store's front eave.
+- **Gardens:** a Tripo scarecrow stands in the nearer cabbage bed.
+- **Self-test:** **462 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro; phase 4d had 385). The house checks now run over both tables, replacing "Komorebi keeps its buildings":
+  - each house sits on level ground;
+  - it is Tripo's textured, brightened style with its footprint on the ground;
+  - its sign hangs under its eaves;
+  - its eaves stop the camera but not the player;
+  - its front wall stops the player.
+
+  New checks:
+  - the Komorebi well is checked like the village well;
+  - both stone lanterns, the handcart, the notice board and the scarecrow are textured, brightened, grounded and solid;
+  - there are nine persimmon trees and nine courtyard shrubs;
+  - 126 persimmons hang inside the orchard's crowns, the lowest 1.37 m up;
+  - Komorebi's trees are grounded and meet the ground round their trunks.
+
+  The walk to each resident takes the new approaches. `just unit` passes 17 cases (new: Komorebi houses stand on level ground, off the road except the hall, and in the Komorebi region). `just e2e` passes 4.
+- **Render cost** (`render_cost.gd`, `--disable-vsync --fixed-fps 60`):
+  - at the three Hoshikawa viewpoints, draws 1086/1034/1159 → 1044/986/1134 and primitives 3.124M/2.872M/3.023M → 3.204M/2.965M/3.083M (Komorebi is in view far up the valley);
+  - an ad-hoc run at Komorebi (0, 4.6, −138) and (0, 4.6, −158): draws 350/193 → 303/173, primitives 1.39M/1.06M → 1.87M/1.35M;
+  - CPU median 0.24–0.75 ms.
+- **Captures:** before (b573c77) and after pairs, in native Metal, of 20 `review_revamp.gd` views, in `captures/komorebi-revamp/`:
+  - the overview from the Cedar Bridge side, the road, the square, the well, the hall, the orchard, the persimmons, the packing station, the scarecrow and the beds;
+  - each house from the front and through the gameplay camera under its eaves.
+- **Limits:**
+  - The signpost and the south festival masts are still boxes.
+  - The persimmons are spheres, not part of the tree model.
+  - The handcart carries Hoshikawa's rice bales.
+  - The hall stands on the road's painted end.
+  - The kura's eaves view looks down over its roof, as Hoshikawa's does.
+  - No physical keyboard/mouse session is claimed.
+
 ## Languages: Japanese and Traditional Chinese — 2026-10-21
 
 The game now runs in English, Japanese and Traditional Chinese (Taiwan wording, `zh_TW`). Every drawn string goes through `Localization`: UI text is keyed by its English wording and registered with the `TranslationServer`, dialogue by scene position (`Intro.1`). Game state (speaker, script, objective, region, resident names) stays English, so quests and the self-test do not depend on the language. The Japanese voice plays under all three.
