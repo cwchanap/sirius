@@ -136,6 +136,7 @@ Generated with `codex exec` gpt-image; exact prompts and raw-output hashes are i
 ## Tree models — 2026-09-29
 
 - `assets/models/props/{keyaki_a,b,c, sugi_a,b,c, sakura_a,b, bamboo_a, shrub_a,b}.glb`, 560–3,840 triangles each (rebuilt 2026-10-19 with smaller, outward-facing leaf cards and crown-ellipsoid normals), built procedurally and deterministically by `tools/build_props.py` in background Blender 5.2 (no source .blend). They carry geometry, custom normals, UVs into the foliage atlas, and vertex colour (R wind sway, G ambient); materials are names only (`bark_<species>`, `foliage`) and `World.Tree()` binds the textures above.
+- `assets/models/props/kaki_a,b.glb` (added 2026-10-21), 2,368 / 2,576 triangles: a persimmon for Komorebi's orchard. It has a short trunk and gnarled limbs spreading wide and low under a thinner crown. It borrows keyaki's bark and foliage cell, as the shrub does, so it adds no material names. Rebuilding with it left every other tree GLB byte-identical. The fruit is not in the model: `World.Komorebi()` hangs merged spheres on the crown's lower outside.
 
 ## Village props — 2026-10-19
 

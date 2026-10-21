@@ -23,6 +23,12 @@ public partial class World : Node3D
         ("Kisaragi Workshop",new(-10.37f,6.63f),new(9.2f,3.61f,7),75,"workshop"),("Seed & Grain",new(12.5f,6),new(6.2f,3.24f,3.67f),-95,"kura"),
         ("Village Assembly",new(-12.8f,21.78f),new(10.82f,3.6f,7.4f),82,"hall"),("The Copper Kettle",new(12,24),new(8,4.03f,7),-80,"teahouse"),
         ("Hoshikawa Clinic",new(-11.05f,37.54f),new(10,3.62f,5.68f),98,"clinic"),("Mori Farmhouse",new(11.81f,42.27f),new(10.9f,2.9f,7.1f),-70,"farmhouse")};
+    // Komorebi reuses the Hoshikawa styles and their sizes. Its ground is level within |x| < 29 and z -182…-132, so it needs no pads;
+    // the hall faces down the road from its north end.
+    public static readonly (string Name,Vector2 At,Vector3 Size,float Yaw,string Style)[] KomorebiHouses={
+        ("Komorebi Lodge",new(-12,-141),new(10.9f,2.9f,7.1f),90,"farmhouse"),("Mountain Clinic",new(12,-146),new(10,3.62f,5.68f),-90,"clinic"),
+        ("Weavers House",new(-12.5f,-162),new(9.2f,3.61f,7),90,"workshop"),("Orchard Store",new(13,-161.2f),new(6.2f,3.24f,3.67f),-90,"kura"),
+        ("Komorebi Meeting Hall",new(0,-177),new(10.82f,3.6f,7.4f),0,"hall")};
     public static readonly Vector2 ShrineCenter=new(-1,63);
     public static readonly (Vector2 From,Vector2 To)[] Footpaths={(new(0,15),new(17.2f,15)),(new(21.4f,15),new(34,15)),(new(34,15),new(34,20))};
     public static bool OnFootpath(Vector2 p,float margin)=>Footpaths.Any(f=>Geometry2D.GetClosestPointToSegment(p,f.From,f.To).DistanceTo(p)<1.2f+margin);
@@ -341,77 +347,13 @@ public partial class World : Node3D
         Resident("Hana", "FARMER", "KOMA keeps our irrigation running without a network. Old machines are our neighbors. The amber-eyed patrols beyond the bridge are not.",new(6,0,37.5f),3,Face(6,37.5f));
         Resident("Sora", "COURIER", "I saw three sentries on the old relay road. Watch for the red diamond: that sweeping attack cannot be blocked. Dodge through it or jump away.",new(6.8f,0,22),4,Face(6.8f,22));
         Resident("KOMA-7", "OFFLINE GARDENER", "Morning diagnostic: tomatoes healthy. Humans worried. Zero is still in the city. This unit is KOMA. Different machine; equally excellent company.",new(8.3f,0,11.5f),5,Face(8.3f,11.5f));
-        // The Tripo well (assets/models/well.glb) stands its posts on its own Z axis; a quarter turn spans them east-west like the old well.
-        var well=Model(this,"Village well","well",new(-3.2f,Height(-3.2f,24),24),90,new(1.45f,1.45f,1.45f));
-        var wellBody=new StaticBody3D();well.AddChild(wellBody);
-        wellBody.AddChild(new CollisionShape3D {Position=new(0,.46f,0),Shape=new CylinderShape3D {Radius=.84f,Height=.92f}});
-        foreach(float z in new[]{-.79f,.79f})wellBody.AddChild(new CollisionShape3D {Position=new(0,1,z),Shape=new BoxShape3D {Size=new(.22f,2,.22f)}});
-        var wellRoof=new Node3D {Position=new(0,2.35f,0)};well.AddChild(wellRoof);CameraStop(wellRoof,new BoxShape3D {Size=new(1.22f,.7f,2.08f)});
+        Well("Village well",new(-3.2f,24));
         RiceFields();
         Fence(new(-24,0,0),new(-24,0,42));
         Fence(new(23,0,1),new(23,0,13));Fence(new(23,0,17),new(23,0,42));
         foreach(var (from,to) in Footpaths)Footpath(from,to,1.2f);
         Brook();WaterWheel();Reeds();RiverStones();Landings();Terrace();Shrine();Dressing();
         Label(this,"OLD RELAY ROAD  ↑",new(4,2.6f,-.3f),Gold,27);
-    }
-    private Node3D House(string name,Vector3 pos,Vector3 size,Color wall,bool workshop,float yaw=0,int barrels=3,float signProjection=.25f)
-    {
-        pos.Y=Height(pos.X,pos.Z); var house=new Node3D {Name=name,Position=pos,RotationDegrees=new(0,yaw,0)}; AddChild(house); Buildings.Add(house);
-        float w=size.X,h=size.Y,d=size.Z;
-        Box(house,"Mossy stone foundation",new(0,.25f,0),new(w+.3f,.5f,d+.3f),stone,true);
-        Box(house,"Plaster walls",new(0,h/2+.3f,0),new(w,h,d),Mat(wall),true);
-        float rise=2.2f; float slope=Mathf.Atan2(rise,w/2+.65f);
-        for(int s=-1;s<=1;s+=2)
-        {
-            var r=Box(house,"Ceramic tile roof",new(s*(w/4+.32f),h+1.35f,0),new(Mathf.Sqrt(Mathf.Pow(w/2+.65f,2)+rise*rise),.24f,d+1.4f),roof);
-            r.Rotation=new(0,0,-s*slope);CameraStop(r,new BoxShape3D{Size=((BoxMesh)r.Mesh).Size});
-            Box(house,"Roof fascia",new(s*(w/2+.65f),h+.27f,0),new(.18f,.28f,d+1.5f),wood);
-            for(int k=0;k<3;k++) Box(house,"Timber stud",new(s*(w/2+.035f),h/2+.3f,-d/2+k*d/2),new(.15f,h,.16f),wood);
-        }
-        Box(house,"Ridge cap",new(0,h+2.5f,0),new(.24f,.22f,d+1.6f),wood);
-        // Triangular gables underneath the sloping roof.
-        var st=new SurfaceTool();st.Begin(Godot.Mesh.PrimitiveType.Triangles);
-        foreach(float s in new[]{-1f,1f})
-        { st.SetNormal(new(0,0,s)); st.AddVertex(new(-w/2,h+.3f,s*d/2));st.AddVertex(new(0,h+2.5f,s*d/2));st.AddVertex(new(w/2,h+.3f,s*d/2)); }
-        var gmat=Mat(wall,twoSided:true);Mesh(house,"Gable plaster",st.Commit(),Vector3.Zero,gmat);
-        for(int k=0;k<3;k++)
-        {
-            float x=-w/2+k*w/2;
-            Box(house,"Front timber",new(x,h/2+.3f,d/2+.045f),new(.18f,h,.14f),wood);
-        }
-        foreach(float y in new[]{.6f,h+.25f}) Box(house,"Horizontal beam",new(0,y,d/2+.08f),new(w,.18f,.16f),wood);
-        Box(house,"Recessed door",new(0,1.45f,d/2+.09f),new(1.2f,2.3f,.12f),wood);
-        Box(house,"Door window",new(0,1.8f,d/2+.16f),new(.75f,.75f,.06f),Mat(new("bcceb1")));
-        Sphere(house,"Brass door handle",new(.37f,1.2f,d/2+.19f),Vector3.One*.045f,Mat(Gold));
-        for(int s=-1;s<=1;s+=2)
-        {
-            float x=s*w*.31f;
-            Box(house,"Window frame",new(x,2.35f,d/2+.11f),new(1.6f,1.5f,.17f),wood);
-            Box(house,"Window glass",new(x,2.35f,d/2+.21f),new(1.35f,1.24f,.04f),Mat(new("b7d9c0"),.12f));
-            Box(house,"Window mullion",new(x,2.35f,d/2+.25f),new(.08f,1.3f,.06f),wood);
-            Box(house,"Window crossbar",new(x,2.35f,d/2+.25f),new(1.4f,.08f,.06f),wood);
-            Box(house,"Flower box",new(x,1.55f,d/2+.4f),new(1.7f,.3f,.55f),wood);
-            for(int i=0;i<6;i++) Sphere(house,"Window flowers",new(x-.65f+i*.25f,1.84f,d/2+.4f),new(.13f,.15f,.13f),Mat(new(i%2==0?"d59c81":"dcd8a0")));
-        }
-        Box(house,"Entry step",new(0,.17f,d/2+.65f),new(2,.3f,1.2f),stone,true);
-        Box(house,"Hanging shop sign",new(0,3.05f,d/2+signProjection),new(3.3f,.6f,.12f),wood);
-        var sign=Label(house,name.ToUpperInvariant(),new(0,3.07f,d/2+signProjection+.1f),Gold,25); sign.Billboard=BaseMaterial3D.BillboardModeEnum.Disabled; sign.PixelSize=.0043f;
-        Box(house,"Chimney",new(-w*.3f,h+1.9f,-d*.22f),new(.75f,2.8f,.8f),stone);
-        Box(house,"Chimney cap",new(-w*.3f,h+3.3f,-d*.22f),new(1,.18f,1),wood);
-        if(workshop)
-        {
-            Box(house,"Worktable",new(w/2+1.3f,1,d/4),new(2.2f,.25f,1.2f),wood,true);
-            foreach(float x in new[]{w/2+.5f,w/2+2.1f})
-            {
-                var ground=house.ToGlobal(new(x,0,d/4));
-                float bottom=Height(ground.X,ground.Z)-pos.Y-.02f;
-                Box(house,"Worktable trestle",new(x,(bottom+.89f)/2,d/4),new(.15f,.89f-bottom,.8f),wood);
-            }
-            for(int i=0;i<3;i++) Cylinder(house,"Salvaged cell",new(w/2+1+i*.5f,1.4f,d/4),.17f,.6f,Mat(i==1?Jade:new("79918d")));
-            Box(house,"Offline solar collector",new(w/3,h+1.6f,0),new(1.8f,.15f,2.3f),Mat(new("3b6974"))).Rotation=new(0,0,-slope);
-        }
-        for(int i=0;i<barrels;i++) Prop(house,"Stored barrels","barrel",new(-w/2-.7f,0,-d/3+i*.9f),i);
-        return house;
     }
     private void Resident(string name,string role,string line,Vector3 p,int variant,float? face=null)
     {
@@ -624,60 +566,32 @@ public partial class World : Node3D
     }
     private void Komorebi()
     {
-        var lodge=House("Komorebi Lodge",new(-13,0,-143),new(8,4.1f,7),new("e6c89e"),false,yaw:55,barrels:1,signProjection:1.7f);
-        var clinic=House("Mountain Clinic",new(12,0,-148),new(7,3.7f,7),new("d7ded0"),false,yaw:-65,barrels:0);
-        House("Weavers House",new(-14,0,-163),new(8,4.3f,7),new("c8b6aa"),true,yaw:35,barrels:2);
-        var store=House("Orchard Store",new(14,0,-164),new(8,3.7f,7),new("ddc591"),false,yaw:-25,barrels:2,signProjection:1.7f);
-        House("Komorebi Meeting Hall",new(-3,0,-178),new(11,5,8),new("d8cfad"),false,barrels:0);
-        // Give the services a recognizable frontage without duplicating the house kit.
-        Box(lodge,"Lodge awning",new(0,2.9f,4.3f),new(4,.12f,1.7f),Mat(new("a8654f")));
-        foreach(float x in new[]{-1.9f,1.9f})Box(lodge,"Awning support",new(x,1.5f,5),new(.12f,3,.12f),wood,true);
-        Box(lodge,"Travel chest",new(3,.4f,4.3f),new(1.4f,.8f,.8f),wood,true);
-        Box(clinic,"Medic marker post",new(-4.15f,1.55f,3.84f),new(.13f,3.1f,.13f),wood);
-        Box(clinic,"Medic banner",new(-4.15f,2.2f,3.9f),new(.7f,1.6f,.05f),Mat(new("edf0d8")));
-        Box(clinic,"Medic cross vertical",new(-4.15f,2.3f,3.94f),new(.14f,.65f,.04f),Mat(new("638d75")));
-        Box(clinic,"Medic cross horizontal",new(-4.15f,2.3f,3.95f),new(.47f,.14f,.04f),Mat(new("638d75")));
-        Box(store,"Produce awning",new(0,2.8f,4.3f),new(4.8f,.12f,1.7f),Mat(new("7c9874")));
-        var packing=new Node3D {Name="Orchard packing station",Position=new(18,Height(18,-157),-157)};AddChild(packing);
-        Box(packing,"Packing table",new(0,.85f,0),new(2,.16f,1),wood,true);
-        foreach(float x in new[]{-.8f,.8f})Box(packing,"Table trestle",new(x,.4f,0),new(.15f,.8f,.8f),wood);
-        for(int i=0;i<3;i++)
-        {
-            Box(packing,"Produce tray",new(-.65f+i*.65f,.98f,0),new(.55f,.14f,.7f),wood);
-            for(int j=0;j<3;j++)Sphere(packing,"Harvested persimmon",new(-.65f+i*.65f,1.12f,-.22f+j*.22f),Vector3.One*.12f,Mat(new("d49950")));
-        }
-        Resident("Nao","LODGE KEEPER","Welcome to Komorebi, Mio. Travelers from Hoshikawa take the cedar bridge below the orchards. There is always a place by our stove when the mountain mist rolls in.",new(-8,0,-138),0);
-        Resident("Emi","MOUNTAIN MEDIC","That pass is a long walk. Sit for a moment: I can treat your wounds and refill your remedies. The clinic keeps its doors open for both villages.",new(6,0,-145),2);
-        Resident("Toma","ORCHARD KEEPER","These trees fed our grandparents before the city grid reached the valley. Now they feed our neighbors again. Follow the south lanterns to the bridge if you are returning to Hoshikawa.",new(16.2f,0,-156.7f),3);
-        Resident("Yui","PASS COURIER","I carry letters between our villages. The rain shelter is south of the cedar bridge; the overlook is on its north bank. Ren will be waiting back in Hoshikawa if your relay work is finished.",new(-8.5f,0,-157),4);
-        Footpath(new(0,-138),new(-7,-138),1.3f);Footpath(new(-7,-138),new(-8.6f,-140),1.3f);
-        Footpath(new(0,-146),new(7,-146),1.3f);
-        Footpath(new(0,-155),new(-10,-155),1.3f);Footpath(new(-10,-155),new(-11,-158),1.3f);
-        Footpath(new(0,-154),new(22,-154),1.3f);Footpath(new(12,-154),new(11.7f,-159),1.3f);
-        Footpath(new(0,-170),new(-3,-172.5f),1.5f);
-        var square=new Node3D {Name="Komorebi Square",Position=KomorebiCenter};AddChild(square);
-        Cylinder(square,"Village water basin",new(-4,.45f,3),1,.9f,stone);
-        Cylinder(square,"Basin water",new(-4,.92f,3),.8f,.04f,Mat(new("527d81")));
-        var wellBody=new StaticBody3D {Position=new(-4,.45f,3)};square.AddChild(wellBody);
-        wellBody.AddChild(new CollisionShape3D {Shape=new CylinderShape3D {Radius=1,Height=.9f}});
-        foreach(var p in new[]{new Vector3(-7,0,4.5f),new Vector3(-7,0,-5)})
-        {
-            Box(square,"Square bench",p+new Vector3(0,.5f,0),new(.7f,.22f,2.6f),wood,true);
-            Box(square,"Bench back",p+new Vector3(-.3f,.9f,0),new(.12f,.6f,2.6f),wood);
-            foreach(float z in new[]{-.9f,.9f})Box(square,"Bench leg",p+new Vector3(0,.24f,z),new(.5f,.48f,.16f),wood);
-        }
-        foreach(var p in new[]{new Vector2(-4.5f,-136),new Vector2(5,-143),new Vector2(-6,-148),new Vector2(6,-157),new Vector2(-6,-167),new Vector2(5,-171),new Vector2(20,-152)})
+        foreach(var (name,at,size,yaw,style) in KomorebiHouses) Minka(name,at,size,yaw,style);
+        float Face(float x,float z)=>Mathf.Atan2(RoadX(z)-x,0);
+        Resident("Nao","LODGE KEEPER","Welcome to Komorebi, Mio. Travelers from Hoshikawa take the cedar bridge below the orchards. There is always a place by our stove when the mountain mist rolls in.",new(-5.6f,0,-137.8f),0,Face(-5.6f,-137.8f));
+        Resident("Emi","MOUNTAIN MEDIC","That pass is a long walk. Sit for a moment: I can treat your wounds and refill your remedies. The clinic keeps its doors open for both villages.",new(6,0,-145),2,Face(6,-145));
+        Resident("Toma","ORCHARD KEEPER","These trees fed our grandparents before the city grid reached the valley. Now they feed our neighbors again. Follow the south lanterns to the bridge if you are returning to Hoshikawa.",new(16.2f,0,-156.7f),3,0);
+        Resident("Yui","PASS COURIER","I carry letters between our villages. The rain shelter is south of the cedar bridge; the overlook is on its north bank. Ren will be waiting back in Hoshikawa if your relay work is finished.",new(-6,0,-160.2f),4,Face(-6,-160.2f));
+        // Door paths: the lodge's and the clinic's from the road, and one across it from the weavers' door to the store's.
+        Footpath(new(0,-139.8f),new(-7.3f,-139.8f),1.3f);Footpath(new(0,-146),new(7.7f,-146),1.3f);
+        Footpath(new(-7.7f,-161.2f),new(10.4f,-161.2f),1.3f);Footpath(new(0,-154),new(22,-154),1.3f);
+        Well("Komorebi well",new(-4.8f,-149.6f));NoticeBoard("Komorebi notice board",new(5.6f,-151.6f),180);
+        Bench(new(-6.2f,-156.5f),90);Bench(new(5.8f,-157.5f),-90);
+        StoneLantern(this,new(-3.9f,Height(-3.9f,-170.5f),-170.5f));StoneLantern(this,new(3.9f,Height(3.9f,-170.5f),-170.5f));
+        foreach(var p in new[]{new Vector2(-4.5f,-136),new Vector2(5,-143),new Vector2(4.4f,-149.4f),new Vector2(5.4f,-164.2f),new Vector2(-6,-167),new Vector2(20,-152)})
             Lamp(new(p.X,Height(p.X,p.Y),p.Y));
-        foreach(var p in new[]{new Vector2(-20,-149),new Vector2(8,-171),new Vector2(-18,-176)})
+        // Komorebi's own scatter (courtyard shrubs, persimmons) draws from its own generator, so rng's stream through the orchard is unchanged.
+        var r=new RandomNumberGenerator{Seed=5101};
+        foreach(var p in new[]{new Vector2(-20,-149),new Vector2(10.5f,-170.5f),new Vector2(-18,-176)})
         {
             Tree(new(p.X,Height(p.X,p.Y),p.Y),.72f);
-            for(int i=0;i<9;i++)
+            for(int i=0;i<3;i++)
             {
-                float x=p.X+Mathf.Sin(i*2.4f)*1.6f,z=p.Y+Mathf.Cos(i*2.4f)*1.6f;
-                Sphere(this,"Courtyard planting",new(x,Height(x,z)+.25f,z),new(.35f,.3f,.35f),Mat(new("879c68")));
+                float a=i*2.1f+r.Randf(),x=p.X+Mathf.Sin(a)*1.9f,z=p.Y+Mathf.Cos(a)*1.9f;
+                Tree(new(x,Height(x,z),z),r.RandfRange(.75f,.95f),"shrub",r);
             }
         }
-        foreach(float z in new[]{-134f,-170f})
+        foreach(float z in new[]{-134f,-166f})
         {
             foreach(float x in new[]{-4.5f,4.5f}) Box(this,"Festival mast",new(x,Height(x,z)+2.4f,z),new(.15f,4.8f,.15f),wood);
             Box(this,"Bunting rope",new(0,Height(0,z)+4.5f,z),new(9,.035f,.035f),wood);
@@ -685,16 +599,29 @@ public partial class World : Node3D
                 Box(this,"Cloth pennant",new(-3.8f+i*.95f,Height(0,z)+4.15f,z),new(.55f,.65f,.025f),Mat(new(i%2==0?"ba795d":"7ba89c")));
         }
         Signpost(new(5,-135),"KOMOREBI","LODGE · CLINIC · ORCHARDS");
+        // Persimmons hang on the crown's lower outside, on the foliage cards' outer corners.
+        var fruit=Mat(new("e07a2c"));
         for(int row=0;row<3;row++)for(int col=0;col<3;col++)
         {
-            float x=25+col*6,z=-146-row*9;float y=Height(x,z);
-            OrchardTree(new(x,y,z),.72f);
-            for(int fruit=0;fruit<7;fruit++)
-            {
-                var fruitPos=new Vector3(x+Mathf.Sin(fruit*2.4f)*1.25f,y+1.72f+(fruit%3)*.04f,z+.5f+Mathf.Cos(fruit*2.4f)*1.2f);
-                Cylinder(this,"Persimmon stem",fruitPos+new Vector3(0,.31f,0),.02f,.4f,wood);
-                Sphere(this,"Orchard persimmon",fruitPos,Vector3.One*.17f,Mat(new("d49950")));
-            }
+            float x=25+col*6,z=-146-row*9;
+            var tree=Tree(new(x,Height(x,z),z),.75f,"kaki");
+            var leaves=ActorVisual.Descendants(tree).OfType<MeshInstance3D>().SelectMany(m=>Enumerable.Range(0,m.Mesh.GetSurfaceCount())
+                .Where(i=>m.Mesh.SurfaceGetMaterial(i)?.ResourceName=="foliage").SelectMany(i=>m.Mesh.SurfaceGetArrays(i)[(int)Godot.Mesh.ArrayType.Vertex].AsVector3Array().Select(v=>m.GlobalTransform*v))).ToArray();
+            float reach=leaves.Max(v=>new Vector2(v.X-x,v.Z-z).Length()),low=leaves.Min(v=>v.Y),high=leaves.Max(v=>v.Y);
+            var outer=leaves.Where(v=>new Vector2(v.X-x,v.Z-z).Length()>reach*.6f&&v.Y<low+(high-low)*.55f).ToArray();
+            for(int i=0;i<14;i++)Sphere(this,$"Orchard persimmon {GetChildCount()}",outer[r.RandiRange(0,outer.Length-1)]+Vector3.Down*.1f,Vector3.One*.11f,fruit);
+        }
+        // The packing station between the store and the orchard fence: Toma's handcart, barrels and a hasa rack along the fence.
+        Handcart("Orchard handcart",new(19,-161),90);
+        foreach(var p in new Vector2[]{new(17.4f,-164),new(17.6f,-164.9f),new(18.3f,-164.4f)})Prop(this,"Orchard barrel","barrel",new(p.X,Height(p.X,p.Y),p.Y),p.X*3);
+        Hasa(new(20.3f,-167),90);
+        // Hoshigaki: strings of persimmons drying under the store's front eave, either side of its sign.
+        var store=Buildings.Single(n=>n.Name=="Orchard Store");float front=TripoHouses["kura"].Walls.End.Y+.35f,eave=KomorebiHouses.Single(h=>h.Name=="Orchard Store").Size.Y;
+        var dried=Mat(new("b8582a"));var cord=Mat(new("3f3026"));
+        foreach(float x in new[]{-2.5f,-2.1f,-1.7f,1.7f,2.1f,2.5f})
+        {
+            Box(store,"Hoshigaki cord",new(x,(1.9f+eave)/2,front),new(.015f,eave-1.9f,.015f),cord);
+            for(int i=0;i<6;i++)Sphere(store,"Hoshigaki",new(x,2+i*.17f,front),new(.07f,.08f,.07f),dried);
         }
         Footpath(new(0,-153),new(-12,-151.5f),1.2f);Footpath(new(-12,-151.5f),new(-38.5f,-151.5f),1.2f);
         Footpath(new(-32.5f,-142),new(-32.5f,-161),.8f);
@@ -711,6 +638,8 @@ public partial class World : Node3D
                 Prop(this,field==0?"Cabbage":"Daikon",field==0?"cabbage":"daikon",new(px,Height(px,pz)+.045f,pz),row*2.3f+col*1.1f);
             }
         }
+        // The scarecrow stands in the middle of the nearer cabbage bed, between its four central cabbages, facing the lane.
+        Kakashi("Komorebi scarecrow",new(-29,-157),0);
         Fence(new(-24,0,-139),new(-24,0,-149.5f));Fence(new(-24,0,-153.5f),new(-24,0,-171));
         Fence(new(22,0,-139),new(22,0,-152));Fence(new(22,0,-156),new(22,0,-173));
         Fence(new(-24,0,-171),new(-20,0,-171));Fence(new(10,0,-173),new(22,0,-173));
@@ -759,17 +688,8 @@ public partial class World : Node3D
             V(m-side*.6f,mid,.3f);V(m+side*.6f,mid,.3f);V(t,tip,1);
         }
     }
-    // Legacy sphere-canopy tree, kept for the Komorebi persimmon orchard whose fruit hangs at its canopy height.
-    private void OrchardTree(Vector3 p,float scale)
-    {
-        var t=new Node3D {Position=p,Scale=Vector3.One*scale};AddChild(t);
-        Cylinder(t,"Tree trunk",new(0,2,0),.25f,4,wood,.15f);
-        var foliage=Mat(new Color(rng.RandfRange(.22f,.36f),rng.RandfRange(.38f,.52f),rng.RandfRange(.19f,.27f)));
-        for(int j=0;j<4;j++) Sphere(t,"Layered canopy",new(Mathf.Sin(j*2)*.9f,3.6f+j*.65f,Mathf.Cos(j*2)*.7f),new(2.1f-j*.18f,1.5f,1.9f-j*.15f),foliage);
-        var b=new StaticBody3D();t.AddChild(b);b.AddChild(new CollisionShape3D {Position=new(0,1.6f,0),Shape=new CylinderShape3D {Radius=.28f,Height=3.2f}});
-    }
     private static readonly Dictionary<string,(int Variants,float Radius,float Height)> TreeTrunks=new()
-        {["keyaki"]=(3,.32f,3.2f),["sugi"]=(3,.34f,3.5f),["sakura"]=(2,.28f,2.2f),["bamboo"]=(1,.75f,3),["shrub"]=(2,.45f,1)};
+        {["keyaki"]=(3,.32f,3.2f),["sugi"]=(3,.34f,3.5f),["sakura"]=(2,.28f,2.2f),["bamboo"]=(1,.75f,3),["shrub"]=(2,.45f,1),["kaki"]=(2,.26f,1.6f)};
     private readonly Dictionary<string,PackedScene> treeScenes=new();
     private readonly Dictionary<string,Material> treeMaterials=new();
     // Exactly three draws from `r` (variant, tint, yaw) keep the seeded scatter streams stable whatever species is chosen.

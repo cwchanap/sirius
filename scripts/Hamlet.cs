@@ -223,10 +223,7 @@ public partial class World
         var ditch=new ShaderMaterial{Shader=still.Shader};ditch.SetShaderParameter("size",new Vector2(2.4f,.9f));
         Mesh(this,"Irrigation channel water",new PlaneMesh{Size=new(2.4f,.9f)},new(23.1f,level,36.8f),ditch);
         Prop(this,"Sluice board","sluice",new(21.95f,Height(21.95f,36.8f),36.8f));
-        var crow=Model(this,"Scarecrow","scarecrow",new(Scarecrow.X,Height(Scarecrow.X,Scarecrow.Y),Scarecrow.Y),90,new(1.3f,1.3f,1.3f));
-        var pole=new StaticBody3D();crow.AddChild(pole);pole.AddChild(new CollisionShape3D{Position=new(0,.85f,0),Shape=new CylinderShape3D{Radius=.06f,Height=1.7f}});
-        var rack=new Vector3(30,Height(30,40.7f),40.7f);Prop(this,"Hasa drying rack","hasa",rack);
-        var frame=new StaticBody3D{Position=rack+new Vector3(0,.8f,0),CollisionMask=0};AddChild(frame);frame.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(5.6f,1.6f,.5f)}});
+        Kakashi("Scarecrow",Scarecrow,90);Hasa(new(30,40.7f),0);
     }
     private void Terrace()
     {
@@ -300,9 +297,7 @@ public partial class World
         Vector3 Ground(Vector2 p,float lift=0)=>new(p.X,Height(p.X,p.Y)+lift,p.Y);
         StoneLantern(this,Ground(new(-6.5f,17.5f)));StoneLantern(this,Ground(new(-6.5f,29)));
         Bench(new(-5.4f,27.3f),90);Bench(new(5.2f,26.5f),-90);
-        var board=Model(this,"Notice board","notice",Ground(new(6.4f,17.2f)),180,new(1.3f,1.3f,1.3f));
-        var boardBody=new StaticBody3D();board.AddChild(boardBody);
-        foreach(float z in new[]{-.98f,.98f})boardBody.AddChild(new CollisionShape3D{Position=new(0,1.1f,z),Shape=new BoxShape3D{Size=new(.24f,2.2f,.18f)}});
+        NoticeBoard("Notice board",new(6.4f,17.2f),180);
         // The notices are painted into the model now; their fifteen draws stay so every later village placement keeps its seed.
         for(int i=0;i<15;i++)r.Randf();
         int side=-1;
@@ -351,9 +346,7 @@ public partial class World
         for(int row=0;row<3;row++)for(int i=0;i<5-row;i++)Cylinder(this,"Firewood",Ground(new(13.95f+i*.24f+row*.12f,49.37f),.12f+row*.21f),.11f,1,wood2).Rotation=new(Mathf.Pi/2,0,0);
         Box(this,"Woodpile roof",Ground(new(14.45f,49.37f),.95f),new(1.7f,.06f,1.3f),boards).Rotation=new(.2f,0,0);
         foreach(var p in new Vector2[]{new(16.05f,49.97f),new(16.65f,48.97f)})Cylinder(this,"Straw roll",Ground(p,.45f),.45f,.9f,Mat(new("d6bd78"))).Rotation=new(0,0,Mathf.Pi/2);
-        var cart=Model(this,"Handcart","cart",Ground(new(12.9f,1.6f)),160,new(1.3f,1.3f,1.3f));
-        var cartBody=new StaticBody3D();cart.AddChild(cartBody);
-        cartBody.AddChild(new CollisionShape3D{Position=new(-.72f,.5f,0),Shape=new BoxShape3D{Size=new(1.24f,1,1.42f)}});cartBody.AddChild(new CollisionShape3D{Position=new(.61f,.5f,0),Shape=new BoxShape3D{Size=new(1.42f,.4f,1)}});
+        Handcart("Handcart",new(12.9f,1.6f),160);
         foreach(var p in new Vector2[]{new(-12.4f,13.6f),new(-13.2f,13.9f),new(-12.8f,14.6f)})Prop(this,"Stored barrel","barrel",Ground(p),p.X*3);
         // Grass tufts on the village lawns, clear of the road, square, pads, footpaths, brook and shrine mound; blades reach .35 m from their root.
         var tufts=new List<(Vector3 P,float H)>();
@@ -364,6 +357,38 @@ public partial class World
             if(Lawn(x,z))tufts.Add((Ground(new(x,z)),h));
         }
         Grass("Village grass",tufts,3,p=>Lawn(p.X,p.Y),7,.45f,new("3b5121"),new("8ea851"),.05f,3307);
+    }
+    // Tripo models both villages share, each with its fitted colliders.
+    private Node3D Grounded(string name,string model,Vector2 p,float yaw,float tint=1.3f)=>Model(this,name,model,new(p.X,Height(p.X,p.Y),p.Y),yaw,new(tint,tint,tint));
+    private void Well(string name,Vector2 p)
+    {
+        // The Tripo well (assets/models/well.glb) stands its posts on its own Z axis; a quarter turn spans them east-west like the old well.
+        var well=Grounded(name,"well",p,90,1.45f);
+        var body=new StaticBody3D();well.AddChild(body);
+        body.AddChild(new CollisionShape3D {Position=new(0,.46f,0),Shape=new CylinderShape3D {Radius=.84f,Height=.92f}});
+        foreach(float z in new[]{-.79f,.79f})body.AddChild(new CollisionShape3D {Position=new(0,1,z),Shape=new BoxShape3D {Size=new(.22f,2,.22f)}});
+        var roof=new Node3D {Position=new(0,2.35f,0)};well.AddChild(roof);CameraStop(roof,new BoxShape3D {Size=new(1.22f,.7f,2.08f)});
+    }
+    private void NoticeBoard(string name,Vector2 p,float yaw)
+    {
+        var board=Grounded(name,"notice",p,yaw);var body=new StaticBody3D();board.AddChild(body);
+        foreach(float z in new[]{-.98f,.98f})body.AddChild(new CollisionShape3D{Position=new(0,1.1f,z),Shape=new BoxShape3D{Size=new(.24f,2.2f,.18f)}});
+    }
+    private void Handcart(string name,Vector2 p,float yaw)
+    {
+        var cart=Grounded(name,"cart",p,yaw);var body=new StaticBody3D();cart.AddChild(body);
+        body.AddChild(new CollisionShape3D{Position=new(-.72f,.5f,0),Shape=new BoxShape3D{Size=new(1.24f,1,1.42f)}});body.AddChild(new CollisionShape3D{Position=new(.61f,.5f,0),Shape=new BoxShape3D{Size=new(1.42f,.4f,1)}});
+    }
+    private void Kakashi(string name,Vector2 p,float yaw)
+    {
+        var crow=Grounded(name,"scarecrow",p,yaw);
+        var pole=new StaticBody3D();crow.AddChild(pole);pole.AddChild(new CollisionShape3D{Position=new(0,.85f,0),Shape=new CylinderShape3D{Radius=.06f,Height=1.7f}});
+    }
+    // The Blender hasa rack is baked with the props; a box over its frame, on no mask, keeps the player out of it.
+    private void Hasa(Vector2 p,float yaw)
+    {
+        var rack=new Vector3(p.X,Height(p.X,p.Y),p.Y);Prop(this,"Hasa drying rack","hasa",rack,Mathf.DegToRad(yaw));
+        var frame=new StaticBody3D{Position=rack+new Vector3(0,.8f,0),RotationDegrees=new(0,yaw,0),CollisionMask=0};AddChild(frame);frame.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(5.6f,1.6f,.5f)}});
     }
     private void Bench(Vector2 p,float yaw)
     {

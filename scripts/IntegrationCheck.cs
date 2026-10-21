@@ -25,13 +25,14 @@ public static class IntegrationCheck
         void Place(Player p,Vector3 pos){p.GlobalPosition=pos;p.Velocity=Vector3.Zero;}
         Check(g.World.Buildings.Count(b=>b.Position.Z>-78)==6&&g.World.Buildings.Count(b=>b.Position.Z<-136)==5,
             "six Hoshikawa buildings and five Komorebi buildings");
-        foreach(var (name,at,size,yaw,_) in Hoshikawa.World.Hamlet)
+        var houses=Hoshikawa.World.Hamlet.Concat(Hoshikawa.World.KomorebiHouses).ToArray();
+        foreach(var (name,at,size,yaw,_) in houses)
         {
             var b=g.World.Buildings.Single(n=>n.Name==name);
             Check(new[]{-1f,1f}.SelectMany(sx=>new[]{-1f,1f}.Select(sz=>b.ToGlobal(new Vector3(sx*size.X/2,0,sz*size.Z/2))))
                 .All(c=>Math.Abs(Hoshikawa.World.Height(c.X,c.Z)-b.GlobalPosition.Y)<.05f),name+" sits on a level pad");
         }
-        foreach(var (name,_,_,_,style) in Hoshikawa.World.Hamlet)
+        foreach(var (name,_,_,_,style) in houses)
         {
             var b=g.World.Buildings.Single(n=>n.Name==name);
             var mesh=ActorVisual.Descendants(b).OfType<MeshInstance3D>().Single(m=>m.Mesh is ArrayMesh);var box=b.GlobalTransform.AffineInverse()*mesh.GlobalTransform*mesh.GetAabb();int tris=mesh.Mesh.GetFaces().Length/3;
@@ -39,8 +40,7 @@ public static class IntegrationCheck
             Check(tris<20000&&mesh.MaterialOverride is BaseMaterial3D{AlbedoTexture:not null,NormalEnabled:true,AlbedoColor.R:>1}&&Math.Abs(box.Position.Y)<.05f&&box.Size.Y>6
                 &&foot.Length>0&&foot.All(v=>Math.Abs(Hoshikawa.World.Height(v.X,v.Z)-b.GlobalPosition.Y)<.05f),$"{name} is Tripo's textured {style}, brightened, and its footprint stands on its level pad, {tris} triangles");
         }
-        Check(g.World.Buildings.Where(b=>b.Position.Z<-136).All(b=>b.FindChild("Ceramic tile roof",false,false)!=null),"Komorebi keeps its buildings");
-        foreach(var (name,_,_,_,_) in Hoshikawa.World.Hamlet)
+        foreach(var (name,_,_,_,_) in houses)
         {
             // Casting up from the sign's top edge, the first roof face met must be an underside (normal down), not the slab's top.
             // No roof overhead fails too: these signs hang from the eaves, and a corner poked right through the roof also meets nothing.
@@ -321,8 +321,8 @@ public static class IntegrationCheck
             await WalkTo(new(Hoshikawa.World.RoadX(z),z));
         await Frames(5);
         Check(g.Region=="Komorebi"&&g.Player.IsOnFloor(),"walk from relay through the viaduct and over Cedar Bridge into Komorebi");
-        foreach(var (name,road,approach) in new[]{("Nao",new Vector2(0,-138),new Vector2(-6,-138)),
-            ("Emi",new Vector2(0,-146),new Vector2(4.5f,-145)),("Yui",new Vector2(0,-155),new Vector2(-8.5f,-155.3f)),
+        foreach(var (name,road,approach) in new[]{("Nao",new Vector2(0,-138),new Vector2(-3.8f,-138)),
+            ("Emi",new Vector2(0,-146),new Vector2(4.5f,-145)),("Yui",new Vector2(0,-160.2f),new Vector2(-4,-160.2f)),
             ("Toma",new Vector2(0,-154),new Vector2(16.2f,-154.5f))})
         {
             await WalkTo(road);await WalkTo(approach);await Frames(5);
@@ -402,7 +402,7 @@ public static class IntegrationCheck
                 return space.IntersectRay(PhysicsRayQueryParameters3D.Create(new(p.X-side.X,y,p.Y-side.Y),new(p.X+side.X,y,p.Y+side.Y),1)).Count>0;}).ToArray();
             Check(blocked.Length==0,$"village corridor {from}->{to} is clear {string.Join(" ",blocked)}");
         }
-        foreach(var (name,_,size,_,style) in Hoshikawa.World.Hamlet)
+        foreach(var (name,_,size,_,style) in houses)
         {
             // Up from beside the sign, the first thing met is the model's camera-only shell at the eave; along the ground, its front wall.
             var b=g.World.Buildings.Single(n=>n.Name==name);var (_,walls,sign)=Hoshikawa.World.TripoHouses[style];var under=b.ToGlobal(new(sign.X,1.2f,walls.End.Y+.4f));
@@ -419,13 +419,17 @@ public static class IntegrationCheck
             var bottom=pot.GlobalPosition-new Vector3(0,.16f,0);var hit=space.IntersectRay(PhysicsRayQueryParameters3D.Create(bottom+Vector3.Up*.3f,bottom-Vector3.Up*.3f,1));
             Check(hit.Count>0&&Math.Abs(((Vector3)hit["position"]).Y-bottom.Y)<.03f,"plant pot stands on the deck or ground under it: "+pot.Name);
         }
-        var well=g.World.GetNode<Node3D>("Village well");var wellMesh=ActorVisual.Descendants(well).OfType<MeshInstance3D>().Single();var wellBox=wellMesh.GlobalTransform*wellMesh.GetAabb();
-        Check(wellMesh.Mesh.GetFaces().Length/3<10000&&wellMesh.MaterialOverride is BaseMaterial3D{AlbedoTexture:not null,NormalEnabled:true,AlbedoColor.R:>1}&&Math.Abs(wellBox.Position.Y-Hoshikawa.World.Height(-3.2f,24))<.05f&&wellBox.Size.Y>2.6f,
-            $"the village well is Tripo's textured model, brightened, grounded, {wellMesh.Mesh.GetFaces().Length/3} triangles");
-        var post=space.IntersectRay(PhysicsRayQueryParameters3D.Create(well.GlobalPosition+new Vector3(2,1.5f,0),well.GlobalPosition+new Vector3(0,1.5f,0),1));
-        var wellRoof=space.IntersectRay(PhysicsRayQueryParameters3D.Create(well.GlobalPosition+Vector3.Up*6,well.GlobalPosition+Vector3.Up*1.2f,Hoshikawa.World.CameraLayer));
-        Check(post.Count>0&&Math.Abs(((Vector3)post["position"]).X-well.GlobalPosition.X-.9f)<.05f&&wellRoof.Count>0,"the well's posts block the player and its roof stops the camera");
-        foreach(var (model,x,z,height) in new[]{("lantern",-2.6f,57.5f,1.75f),("lantern",.6f,57.5f,1.75f),("lantern",-6.5f,17.5f,1.75f),("lantern",-6.5f,29f,1.75f),("cart",12.9f,1.6f,1f),("notice",6.4f,17.2f,2.3f),("scarecrow",33.6f,25.8f,1.7f)})
+        foreach(var wellName in new[]{"Village well","Komorebi well"})
+        {
+            var well=g.World.GetNode<Node3D>(wellName);var wellMesh=ActorVisual.Descendants(well).OfType<MeshInstance3D>().Single();var wellBox=wellMesh.GlobalTransform*wellMesh.GetAabb();
+            Check(wellMesh.Mesh.GetFaces().Length/3<10000&&wellMesh.MaterialOverride is BaseMaterial3D{AlbedoTexture:not null,NormalEnabled:true,AlbedoColor.R:>1}&&Math.Abs(wellBox.Position.Y-Hoshikawa.World.Height(well.Position.X,well.Position.Z))<.05f&&wellBox.Size.Y>2.6f,
+                $"the {wellName} is Tripo's textured model, brightened, grounded, {wellMesh.Mesh.GetFaces().Length/3} triangles");
+            var post=space.IntersectRay(PhysicsRayQueryParameters3D.Create(well.GlobalPosition+new Vector3(2,1.5f,0),well.GlobalPosition+new Vector3(0,1.5f,0),1));
+            var wellRoof=space.IntersectRay(PhysicsRayQueryParameters3D.Create(well.GlobalPosition+Vector3.Up*6,well.GlobalPosition+Vector3.Up*1.2f,Hoshikawa.World.CameraLayer));
+            Check(post.Count>0&&Math.Abs(((Vector3)post["position"]).X-well.GlobalPosition.X-.9f)<.05f&&wellRoof.Count>0,$"the {wellName}'s posts block the player and its roof stops the camera");
+        }
+        foreach(var (model,x,z,height) in new[]{("lantern",-2.6f,57.5f,1.75f),("lantern",.6f,57.5f,1.75f),("lantern",-6.5f,17.5f,1.75f),("lantern",-6.5f,29f,1.75f),("cart",12.9f,1.6f,1f),("notice",6.4f,17.2f,2.3f),("scarecrow",33.6f,25.8f,1.7f),
+            ("lantern",-3.9f,-170.5f,1.75f),("lantern",3.9f,-170.5f,1.75f),("cart",19f,-161f,1f),("notice",5.6f,-151.6f,2.3f),("scarecrow",-29f,-157f,1.7f)})
         {
             var prop=g.World.GetChildren().OfType<Node3D>().Single(n=>Math.Abs(n.Position.X-x)<.01f&&Math.Abs(n.Position.Z-z)<.01f&&n.GetChildren().OfType<StaticBody3D>().Any());
             var mesh=ActorVisual.Descendants(prop).OfType<MeshInstance3D>().Single();var box=mesh.GlobalTransform*mesh.GetAabb();int tris=mesh.Mesh.GetFaces().Length/3;
@@ -436,7 +440,17 @@ public static class IntegrationCheck
         var villageTrees=g.World.GetChildren().OfType<Node3D>().Where(n=>n.Position.Z>0&&n.Position.Z<76&&Math.Abs(n.Position.X)<40&&n.GetChildren().OfType<StaticBody3D>().Any()
             &&"keyaki sugi sakura bamboo shrub".Split(' ').Any(s=>n.Name.ToString().Contains(s))).ToArray();
         Check(villageTrees.Length>=30,$"Hoshikawa is planted with {villageTrees.Length} trees and shrubs");
-        foreach(var tree in villageTrees)
+        var komorebiTrees=g.World.GetChildren().OfType<Node3D>().Where(n=>n.Position.Z<-132&&Math.Abs(n.Position.X)<40&&n.GetChildren().OfType<StaticBody3D>().Any()
+            &&"keyaki shrub kaki".Split(' ').Any(s=>n.Name.ToString().StartsWith(s))).ToArray();
+        var kaki=komorebiTrees.Where(n=>n.Name.ToString().StartsWith("kaki")).ToArray();
+        Check(kaki.Length==9&&komorebiTrees.Count(n=>n.Name.ToString().StartsWith("shrub"))==9,$"Komorebi's orchard has nine persimmon trees and its courtyards nine shrubs, of {komorebiTrees.Length} trees");
+        // Every persimmon hangs in a tree's crown: inside its bounds and over a metre up.
+        var persimmons=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().StartsWith("Orchard persimmon")).ToArray();
+        var crowns=kaki.Select(t=>(Tree:t,Box:ActorVisual.Descendants(t).OfType<MeshInstance3D>().Select(m=>m.GlobalTransform*m.GetAabb()).Aggregate((a,b)=>a.Merge(b)))).ToArray();
+        var hung=persimmons.Select(p=>crowns.Where(c=>c.Box.HasPoint(p.Position))
+            .Select(c=>p.Position.Y-c.Tree.Position.Y).DefaultIfEmpty(-1).Max()).ToArray();
+        Check(persimmons.Length==9*14&&hung.All(h=>h>1),$"{persimmons.Length} persimmons hang in the orchard's crowns, the lowest {hung.Min():F2} m up");
+        foreach(var tree in villageTrees.Concat(komorebiTrees))
         {
             Check(Math.Abs(tree.Position.Y-Hoshikawa.World.Height(tree.Position.X,tree.Position.Z))<.01f,"village tree grounded: "+tree.Name);
             float bottom=ActorVisual.Descendants(tree).OfType<MeshInstance3D>().Min(m=>(m.GlobalTransform*m.GetAabb()).Position.Y);

@@ -1,7 +1,7 @@
 extends SceneTree
 
 # Fixed before/after viewpoints for the environment revamp: close-ups of the vegetation and light review_hamlet.gd misses,
-# the gameplay spring camera at the tea house eaves, a dialogue background, and each phase 3 house from the front, at 45° and under its eaves. Phase 4a adds the river, brook, paddies, sluice, hasa rack, Komorebi beds and Cedar River; phase 4b the water wheel and scarecrow; phase 4c both bridges and the Cedar River banks; phase 4d the boat and washing steps.
+# the gameplay spring camera at the tea house eaves, a dialogue background, and each phase 3 house from the front, at 45° and under its eaves. Phase 4a adds the river, brook, paddies, sluice, hasa rack, Komorebi beds and Cedar River; phase 4b the water wheel and scarecrow; phase 4c both bridges and the Cedar River banks; phase 4d the boat and washing steps; the Komorebi revamp its square, houses, orchard, packing station and gardens.
 # Usage: $GODOT_MONO --path . --script res://tools/review_revamp.gd [-- --out=subdir] [--only=name,name]
 var out="res://artifacts/revamp"
 var only=[]
@@ -9,6 +9,9 @@ var failed=false
 # The five phase 3 Tripo houses from World.Hamlet: [name, table centre, yaw, the front wall's local Z, Mio's local X along it, oblique side].
 const HOUSES=[["workshop",Vector2(-10.37,6.63),75.0,3.5,-1.66,-45.0],["kura",Vector2(12.5,6),-95.0,1.835,-1.66,-45.0],["hall",Vector2(-12.8,21.78),82.0,3.05,-3.0,-45.0],
 	["clinic",Vector2(-11.05,37.54),98.0,2.1,-1.66,45.0],["farmhouse",Vector2(11.81,42.27),-70.0,3.55,-1.66,-45.0]]
+# The Komorebi revamp's houses from World.KomorebiHouses, in the same shape, named for their village rather than their style.
+const KOMOREBI=[["komorebi-lodge",Vector2(-12,-141),90.0,3.55,-1.66,-45.0],["komorebi-clinic",Vector2(12,-146),-90.0,2.1,-1.66,45.0],["komorebi-weavers",Vector2(-12.5,-162),90.0,3.5,-1.66,-45.0],
+	["komorebi-store",Vector2(13,-161.2),-90.0,1.835,-1.66,-45.0],["komorebi-hall",Vector2(0,-177),0.0,3.05,-3.0,-45.0]]
 
 func _initialize():
 	call_deferred("review")
@@ -55,7 +58,7 @@ func review():
 		await shot(view[0])
 	# The same spring camera half a metre out from each other house's front wall, in the relation eaves-front has to the tea house.
 	var space=root.get_world_3d().direct_space_state
-	for house in HOUSES:
+	for house in HOUSES+KOMOREBI:
 		if not wanted("eaves-"+house[0]): continue
 		var turn=deg_to_rad(house[2])
 		var at=house[1]+Vector2(house[4],house[3]+.5).rotated(-turn)
@@ -128,7 +131,17 @@ func review():
 		["kawabata-bank",Vector3(13.6,1.7,-2),Vector3(10,-.2,-4.8),Vector3(-3,.1,3)],
 		["kawabata-far",Vector3(8.5,2.4,-13.5),Vector3(10,0,-4.2),Vector3(-3,.1,3)],
 		["boat-close",Vector3(-11.2,.6,-7.6),Vector3(-14.2,-.1,-5.2),Vector3(-3,.1,3)],
-		["kawabata-close",Vector3(12.4,.7,-6.6),Vector3(10,-.1,-4.4),Vector3(10,0,-5.3)]]
+		["kawabata-close",Vector3(12.4,.7,-6.6),Vector3(10,-.1,-4.4),Vector3(10,0,-5.3)],
+		# The Komorebi revamp: the square from the road, its well, the hall up the road, the orchard and its fruit, the packing station,
+		# the gardens' scarecrow, and the whole village from the Cedar Bridge side.
+		["komorebi-square",Vector3(7,8,-138),Vector3(0,4.8,-155),Vector3(0,4.6,-140)],
+		["komorebi-well",Vector3(-.6,6.4,-145.2),Vector3(-4.8,5.4,-149.6),Vector3(0,4.6,-140)],
+		["komorebi-hall",Vector3(1.5,6.6,-157),Vector3(0,6.6,-176),Vector3(0,4.6,-140)],
+		["komorebi-orchard",Vector3(20.5,8.5,-139),Vector3(31,5,-156),Vector3(0,4.6,-140)],
+		["komorebi-persimmons",Vector3(28,6.1,-150.5),Vector3(25,6.6,-155),Vector3(0,4.6,-140)],
+		["komorebi-packing",Vector3(15.5,6.6,-154.6),Vector3(19.5,5.2,-164),Vector3(0,4.6,-140)],
+		["komorebi-scarecrow",Vector3(-25.5,6.6,-151.5),Vector3(-29,5.5,-157),Vector3(0,4.6,-140)],
+		["komorebi-overview",Vector3(10,17,-121),Vector3(0,4.5,-160),Vector3(0,4.6,-140)]]
 	for view in views:
 		if not wanted(view[0]): continue
 		mio.position=view[3]
@@ -160,7 +173,7 @@ func review():
 		await shot(view[0])
 	# Later props are framed from the ground under them: [name, prop x/z, camera offset, look height].
 	var framed=[]
-	for house in HOUSES:
+	for house in HOUSES+KOMOREBI:
 		var front=Vector2(sin(deg_to_rad(house[2])),cos(deg_to_rad(house[2])))
 		var oblique=front.rotated(deg_to_rad(house[5]))*12.5
 		framed+=[["house-%s-front"%house[0],house[1],Vector3(front.x*13.5,-1,front.y*13.5),2.6],["house-%s-oblique"%house[0],house[1],Vector3(oblique.x,2,oblique.y),2.2]]
