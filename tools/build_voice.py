@@ -27,6 +27,10 @@ def english():
         elif m:=re.match(r'\["([^"]+)"\]=new',line):scene,index=f'{table}.{m[1]}',0
         elif m:=re.match(r'\("([^"]*)","(.*)"\),?$',line):lines[f'{scene}.{index}']=(m[1],m[2]);index+=1
     return lines
+def unvoiced():
+    """Scenes Prologue.Unvoiced keeps silent: translated, but with no mp3 on purpose."""
+    m=re.search(r'Unvoiced=new\(\)\{([^}]*)\}',(ROOT/'scripts/Prologue.cs').read_text())
+    return set(re.findall(r'"(\w+)"',m[1])) if m else set()
 def api_key():
     if os.environ.get('ELEVENLABS_API_KEY'):return os.environ['ELEVENLABS_API_KEY']
     env=ROOT/'.env'
@@ -71,6 +75,7 @@ def main():
             folder=ROOT/'artifacts/voice-audition'/speaker
             for name,voice in voices.items():render(key,lines,voice,AUDITION_KEYS[speaker],folder/name,args.force)
             audition_page(speaker,lines,voices,AUDITION_KEYS[speaker],folder);print('open',(folder/'index.html').relative_to(ROOT))
+    silent=unvoiced()
     for speaker,voice in ({} if args.audition else CAST).items():
-        render(key,lines,voice,[k for k,line in lines.items() if line['speaker']==speaker],ROOT/'assets/audio/voice/ja'/speaker,args.force)
+        render(key,lines,voice,[k for k,line in lines.items() if line['speaker']==speaker and k.rsplit('.',1)[0] not in silent],ROOT/'assets/audio/voice/ja'/speaker,args.force)
 if __name__=='__main__':main()
