@@ -1,5 +1,23 @@
 # MVP verification
 
+## Languages: Japanese and Traditional Chinese — 2026-10-21
+
+The game now runs in English, Japanese and Traditional Chinese (Taiwan wording, `zh_TW`). Every drawn string goes through `Localization`: UI text is keyed by its English wording and registered with the `TranslationServer`, dialogue by scene position (`Intro.1`). Game state (speaker, script, objective, region, resident names) stays English, so quests and the self-test do not depend on the language. The Japanese voice plays under all three.
+
+- **Translations:** 70 dialogue lines and 121 UI strings per language, written by Claude, not by a native speaker. The Chinese kanji names (蓮 千代 秋 花 空 直 繪美 冬馬 結衣, 零, 天狼, 千代奶奶) are proposals marked **?** in `assets/dialogue/glossary.md`.
+- **Language choice:** `--lang=` beats `user://settings.cfg`, which beats the OS locale. The self-test forces English unless `--lang=` is given. The menu buttons on the title and pause screens switch at runtime and save the choice.
+- **Fonts:** Noto Sans/Serif JP and TC subsets (1.3 MB, OFL) built by `tools/build_fonts.py`. Each language uses its own face, so Han characters take the right regional shapes; the language buttons draw each name in its own face.
+- **Unit tests:** `just unit` passes 27 cases (16 before). The new ones check that every string the code shows has a translation, that every beat matches the English script, that ja and zh_TW translate the same keys, that format placeholders survive, that no translation is left over from removed code, and the language choice order.
+- **Self-test:** **415 checks pass headless in `en`, `ja` and `zh_TW`** (385 before; the 30 new ones cover glyph coverage, fixed-width boxes, wrapping, labels, buttons, restart and language switching). `just self-test` and CI run all three.
+- **Mutation check:** with a placeholder broken in `ui.zh_TW.json` and `Homecoming.7` deleted from `zh_TW.json`, three unit cases fail (beat coverage, placeholder match, ja/zh key parity); restoring both files passes all 27.
+- **Captures:** `tools/review_languages.gd --lang=<code>` writes 14 views per language into `artifacts/i18n/<code>/`: title, both intro scenes, the Ren and Zero briefing, Hana and KOMA-7, Chiyo's narration, Nao's lodge, the patrol and village HUD, the pause menu, the defeat screen and the two homecoming scenes. They were taken with software GL in the cloud (Xvfb, `gl_compatibility`, Mesa llvmpipe), not Metal. I looked at the HUD, pause, defeat and dialogue views in Japanese and Chinese and found the panels, toast, menu buttons and text box holding their text with no overflow; English matches what it was.
+- **Limits:**
+  - No native-speaker review of either language.
+  - No Metal or physical keyboard/mouse run of this change. A graphical run on the Mac is still to do.
+  - Zero's six relay reminders have Japanese and Chinese text but no voice (`Prologue.Unvoiced`).
+  - There is no `--lang=pseudo` mode.
+  - `just e2e` was not run here; CI runs it.
+
 ## Mio polish, second pass — 2026-10-20
 
 From the first pass's summary image the user asked for more polish. This pass took the flaws visible there.
@@ -10,6 +28,7 @@ From the first pass's summary image the user asked for more polish. This pass to
 - **Dodge:** the roll spends less time lying on her back. Game frame 10 now samples source frame 34 (sitting up) instead of 32.4, and frames 11-15 give the rise the time. A first version jumped from source frame 26 to 34 in one game frame, turning her hips 107° in 40 ms (review on PR #10); the even speed-up keeps the largest per-frame hip turn at 64°, against 55° for even sampling.
 - **Checks:** `check_mio_export.py` passes (65 bones, 12 clips, 47,980 triangles). After rebasing on main's environment revamp, **385 checks pass headless and in native Metal**, both `SELF_TEST_PASS`; `just e2e` passes 4 and `just unit` 16.
 - **Evidence:** `artifacts/mio-polish/mio-polish2-summary.jpg`, `ingame2.jpg`, `selftest2-*.log`, `build2.log`; scripts in `artifacts/mio-polish/second-pass/`.
+
 
 ## Environment revamp, phase 4d boat and washing steps — 2026-10-20
 
