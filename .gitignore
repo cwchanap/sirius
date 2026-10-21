@@ -10,3 +10,5 @@ __pycache__/
 test_output/
 TestResults/
 addons/gdunit_e2e/
+assets/source/*
+!assets/source/.gdignore
