@@ -18,12 +18,13 @@ CAST={'Mio':'JTlYtJrcTzPC71hMLOxo','Zero':'nvAEN8lxUT4UJcAyxcCQ'}
 AUDITION={}
 AUDITION_KEYS={}
 def english():
-    """Prologue.cs as {'Intro.1': ('Mio', text), 'FirstMeeting.Chiyo.2': ...}: the keys ja.json uses."""
-    lines,scene,index={},None,0
+    """Prologue.cs as {'Intro.1': ('Mio', text), 'FirstMeeting.Chiyo.2': ...}: the keys the dialogue files use."""
+    lines,scene,index,table={},None,0,None
     for line in (ROOT/'scripts/Prologue.cs').read_text().splitlines():
         line=line.strip()
         if m:=re.search(r'\)\[\] (\w+)=$',line):scene,index=m[1],0
-        elif m:=re.match(r'\["([^"]+)"\]=new',line):scene,index=f'FirstMeeting.{m[1]}',0
+        elif m:=re.search(r'Dictionary<string,\(string Speaker,string Text\)\[\]> (\w+)=new\(\)$',line):table=m[1]
+        elif m:=re.match(r'\["([^"]+)"\]=new',line):scene,index=f'{table}.{m[1]}',0
         elif m:=re.match(r'\("([^"]*)","(.*)"\),?$',line):lines[f'{scene}.{index}']=(m[1],m[2]);index+=1
     return lines
 def api_key():
