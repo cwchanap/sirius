@@ -46,8 +46,9 @@ GRIP_THUMB = 'slash'
 READY = 'A swordswoman steps forward and swings a one-handed sword in he'
 ATTACK_IN, ATTACK_OUT = 3, 4
 # Tripo's roll lands on her back and sits up (source frames 27-35). Knots of (game frame from 0,
-# source frame) hurry through that and give the rise the time instead.
-DODGE_KNOTS = ((0, 8), (7, 26), (8, 34), (9, 37), (14, 46))
+# source frame) speed the whole roll evenly so that stretch passes sooner and the rise gets the
+# time; the hips then turn at most 64 degrees a frame (55 when sampled evenly).
+DODGE_KNOTS = ((0, 8), (4, 18), (9, 34), (14, 46))
 # Tripo's jump is a straight-legged hop. Per game frame: crouch on the ground (1-2, 10-13) and
 # tuck in the air (3-9). Degrees about the armature's +X axis; she faces -Y.
 JUMP_CROUCH = (.5, .25, 0, 0, 0, 0, 0, 0, 0, .2, .7, .45, .15)
