@@ -550,6 +550,8 @@ public static class IntegrationCheck
             var serif=Localization.SerifFallbacks()[0];
             var glyphs=ui.Values.Concat(lines.Values).SelectMany(t=>t).Where(c=>c>' ').Distinct().ToArray();var lacking=glyphs.Where(c=>!sans.HasChar(c)||!serif.HasChar(c)).ToArray();
             Check(lacking.Length==0,$"{name}: the bundled sans and serif faces draw all {glyphs.Length} characters of its text {new string(lacking)}");
+            var nameFace=Localization.NameFont(code)!;var lackingName=name.Where(c=>!nameFace.HasChar(c)).ToArray();
+            Check(lackingName.Length==0,$"{name}: the face its language button is drawn in has every character of the button's own name {new string(lackingName)}");
             float Width(string english,int size,Font? face=null)=>(face??sans).GetStringSize(Localization.T(english),fontSize:size).X;
             var tight=new (string Text,int Size,float Room)[]{("BEGIN JOURNEY     →",17,288),("R   Return to Hoshikawa",17,288),("Resume journey",17,278),("Recover at the village",17,278),("Restart prologue",17,278),
                 ("Quit game",17,278),("Quit",17,78),("WASD  Move      SHIFT  Run      SPACE  Jump",13,334),("LMB / J  Attack     RMB / K  Guard & deflect",13,334),
