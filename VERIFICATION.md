@@ -20,7 +20,7 @@ Every authored (pre-Tripo) model leftover is removed except `villager.glb` and `
   - It saves `assets/source/villager.blend`. Previously it overwrote `characters.blend`, whose `HumanV2_mio` scene `import_tripo_mio.py` still takes Mio's sword from.
   - Built in a scratch copy with factory-startup Blender, the old and trimmed scripts give the same `villager.glb`: identical glTF JSON (apart from Blender's `.NNN` name suffixes), vertex, UV, weight, skin and animation data, and the same triangles with the same winding. Only the triangle order in three index buffers differs, and it differs between the old script and the committed GLB too.
   - The committed `villager.glb` is unchanged.
-- **Checks:** `dotnet build` and a headless `--import` are clean. The self-test passes 462 checks both headless and in native Metal (`SELF_TEST_PASS` both times). `just unit` passes 17 and `just e2e` passes 4.
+- **Checks:** `dotnet build` and a headless `--import` are clean. The self-test passes 500 checks headless in `en`, `ja` and `zh_TW` (`SELF_TEST_PASS` each). The last native Metal run passed 462 checks before the rebase onto the language PR and was not repeated. `just unit` passes 28 and `just e2e` passes 4.
 
 ## Komorebi revamp — 2026-10-21
 
@@ -44,7 +44,7 @@ Komorebi redone to Hoshikawa's standard with existing assets and one new Blender
 - **Orchard:** a new `kaki` persimmon tree from `tools/build_props.py` (2,368 / 2,576 triangles, keyaki bark and leaves, no new material). Rebuilding left every other tree GLB byte-identical. Each tree consumes three `rng` draws, as `OrchardTree()` did. Fourteen persimmons per tree hang on the crown's lower outside as merged spheres; the sphere canopies and stems are gone.
 - **Packing station:** the box table became a Tripo handcart, three barrels and a hasa rack along the fence. Six strings of hoshigaki hang under the store's front eave.
 - **Gardens:** a Tripo scarecrow stands in the nearer cabbage bed.
-- **Self-test:** **462 checks pass headless and in native Metal** (Forward Mobile, Apple M1 Pro; phase 4d had 385). The house checks now run over both tables, replacing "Komorebi keeps its buildings":
+- **Self-test:** **500 checks pass headless** in `en`, `ja` and `zh_TW` (phase 4d had 385). The last native Metal run passed 462 checks before the rebase onto the language PR and was not repeated (Forward Mobile, Apple M1 Pro). The house checks now run over both tables, replacing "Komorebi keeps its buildings":
   - each house sits on level ground;
   - it is Tripo's textured, brightened style with its footprint on the ground;
   - its sign hangs under its eaves;
@@ -58,7 +58,7 @@ Komorebi redone to Hoshikawa's standard with existing assets and one new Blender
   - 126 persimmons hang inside the orchard's crowns, the lowest 1.37 m up;
   - Komorebi's trees are grounded and meet the ground round their trunks.
 
-  The walk to each resident takes the new approaches. `just unit` passes 17 cases (new: Komorebi houses stand on level ground, off the road except the hall, and in the Komorebi region). `just e2e` passes 4.
+  The walk to each resident takes the new approaches. `just unit` passes 28 cases (new: Komorebi houses stand on level ground, off the road except the hall, and in the Komorebi region). `just e2e` passes 4.
 - **Render cost** (`render_cost.gd`, `--disable-vsync --fixed-fps 60`):
   - at the three Hoshikawa viewpoints, draws 1086/1034/1159 → 1044/986/1134 and primitives 3.124M/2.872M/3.023M → 3.204M/2.965M/3.083M (Komorebi is in view far up the valley);
   - an ad-hoc run at Komorebi (0, 4.6, −138) and (0, 4.6, −158): draws 350/193 → 303/173, primitives 1.39M/1.06M → 1.87M/1.35M;
