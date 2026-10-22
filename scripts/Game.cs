@@ -11,6 +11,7 @@ public partial class Game : Node3D
     // The three the relay mission counts; the scouts are extra.
     public IEnumerable<Enemy> Patrols=>Enemies.Where(e=>!e.Scout);
     public readonly HashSet<string> Opened=new();
+    private Tween? opening;
     public Enemy? Locked;
     public GameMode Mode=GameMode.Title;
     public int QuestStage;
@@ -153,7 +154,7 @@ public partial class Game : Node3D
     public void Restart()
     {
         QuestStage=0;Heard.Clear();foreach(var e in Enemies)e.Reset();
-        Opened.Clear();foreach(var s in World.Shortcuts)s.Part.Quaternion=s.Closed;
+        opening?.Kill();Opened.Clear();foreach(var s in World.Shortcuts)s.Part.Quaternion=s.Closed;
         foreach(var pouch in World.Pouches)pouch.Visible=true;Player.MaxRemedies=3;
         Retry();Play(Prologue.Intro);
     }
@@ -207,7 +208,7 @@ public partial class Game : Node3D
         }
         if(ShortcutHere() is {} shortcut)
         {
-            Opened.Add(shortcut.Name);CreateTween().TweenProperty(shortcut.Part,"quaternion",shortcut.Open,1.4f).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
+            Opened.Add(shortcut.Name);opening=CreateTween();opening.TweenProperty(shortcut.Part,"quaternion",shortcut.Open,1.4f).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
             Sound("guard");Toast("SHORTCUT OPENED","The ladder now links the teahouse to the junction.",4);return;
         }
         if(PouchHere() is {} pouch)

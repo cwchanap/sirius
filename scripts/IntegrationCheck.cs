@@ -615,6 +615,9 @@ public static class IntegrationCheck
         // The ladder's body takes its new turn on the next physics step.
         await Frames(2);
         Check(g.Opened.Count==0&&ladder.Part.Basis.IsEqualApprox(new Basis(ladder.Closed))&&pouch.Visible&&g.Player.MaxRemedies==3&&g.Player.Remedies==3,"restart draws the ladder up again and puts the pouch back");
+        Place(g.Player,new(top.X,Hoshikawa.World.Height(top.X,top.Y)+.1f,top.Y));await Frames(10);g.Interact();await Frames(20);
+        g.Restart();g.EndDialogue();await Frames(100);
+        Check(g.Opened.Count==0&&ladder.Part.Basis.IsEqualApprox(new Basis(ladder.Closed)),"a restart while the ladder is still swinging down leaves it drawn up");
         // The whole flow above also runs under --lang=ja and --lang=zh_TW. Here each language is also checked on its own: glyphs, fixed-width boxes,
         // line breaking, and the real language buttons.
         string startLanguage=Localization.Current;var sans=ThemeDB.FallbackFont;
