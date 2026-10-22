@@ -1,4 +1,4 @@
-"""Build deformable anime humans in Blender; run through Blender MCP.
+"""Build the shared deformable villager in Blender; run through Blender MCP.
 
 Blender Z is up and -Y is forward. Runtime clip names and Godot scale stay stable.
 The mechanical patrol is deliberately outside this human-only asset revision.
@@ -26,9 +26,7 @@ SKIN=mat('warm skin',(.72,.47,.34),.68)
 LIP=mat('rose lips',(.40,.16,.14),.65)
 EAR=mat('ear warmth',(.57,.28,.22))
 INK=mat('ink trousers',(.022,.034,.055),.85)
-TEAL=mat('petrol coat',(.025,.15,.17),.74)
 LINEN=mat('ivory linen',(.72,.66,.51),.9)
-RED=mat('vermilion woven scarf',(.48,.055,.035),.9)
 LEATHER=mat('oxblood leather',(.105,.04,.025),.65)
 SOLE=mat('boot rubber',(.018,.021,.026),.9)
 GOLD=mat('antique brass',(.56,.32,.10),.35,.68)
@@ -36,8 +34,6 @@ HAIR=mat('midnight hair',(.012,.020,.034),.72)
 HAIRLIGHT=mat('hair ribbon highlights',(.028,.044,.065),.7)
 LASH=mat('eyelashes',(.009,.009,.014),.9)
 WHITE=mat('warm eye white',(.9,.87,.79),.38)
-STEEL=mat('blade steel',(.43,.55,.61),.25,.72)
-SIGNAL=mat('jade terminal',(.02,.62,.43),.3,.15,.65)
 
 def mesh(name,vertices,faces,material):
     data=bpy.data.meshes.new(name);data.from_pydata(vertices,[],faces);data.update()
@@ -182,8 +178,8 @@ def human_rig(name):
     bpy.ops.object.mode_set(mode='OBJECT')
     for bone in RIG.pose.bones:bone.rotation_mode='XYZ'
 
-def garments(hero):
-    material=TEAL if hero else mat('resident work jacket',(.22,.29,.18))
+def garments():
+    material=mat('resident work jacket',(.22,.29,.18))
     torso=tube('Jacket torso',[( (0,0,z),x,y) for z,x,y in [(1.015,.17,.105),(1.07,.155,.093),(1.15,.122,.09),(1.23,.131,.095),(1.31,.147,.115),(1.38,.163,.112),(1.445,.174,.081),(1.48,.116,.068),(1.50,.064,.057)]],material,40)
     pieces=[torso]
     for side,s in [('L',-1),('R',1)]:
@@ -225,27 +221,25 @@ def garments(hero):
     softbox('Satchel flap',(-.208,-.055,1.053),(.134,.018,.087),LEATHER,'Hips',.015)
     softbox('Satchel clasp',(-.208,-.069,1.025),(.024,.007,.027),GOLD,'Hips',.004)
     curve('Satchel stitched edge',[(-.268,-.067,1.08),(-.268,-.072,1.021),(-.208,-.074,1.01),(-.148,-.07,1.02)],.0014,LINEN,'Hips')
-    if not hero:
-        apron=mesh('Linen work apron',[(-.139,-.112,1.046),(.139,-.112,1.046),(.145,-.136,.785),(.071,-.151,.75),(-.071,-.151,.75),(-.145,-.136,.785)],[(0,1,2,3,4,5)],LINEN)
-        mod=apron.modifiers.new('Apron thickness','SOLIDIFY');mod.thickness=.005
-        bpy.context.view_layer.objects.active=apron;bpy.ops.object.modifier_apply(modifier=mod.name);bind(apron,'Hips')
-        curve('Apron pocket seam',[(-.066,-.144,.95),(-.062,-.15,.866),(.062,-.15,.866),(.066,-.144,.95)],.0015,LEATHER,'Hips')
+    apron=mesh('Linen work apron',[(-.139,-.112,1.046),(.139,-.112,1.046),(.145,-.136,.785),(.071,-.151,.75),(-.071,-.151,.75),(-.145,-.136,.785)],[(0,1,2,3,4,5)],LINEN)
+    mod=apron.modifiers.new('Apron thickness','SOLIDIFY');mod.thickness=.005
+    bpy.context.view_layer.objects.active=apron;bpy.ops.object.modifier_apply(modifier=mod.name);bind(apron,'Hips')
+    curve('Apron pocket seam',[(-.066,-.144,.95),(-.062,-.15,.866),(.062,-.15,.866),(.066,-.144,.95)],.0015,LEATHER,'Hips')
 
-def boots_and_hands(hero,make_boots=True):
+def boots_and_hands():
     for side,s in [('L',-1),('R',1)]:
-        if make_boots:
-            shoe=tube('Shaped boot toe', [((s*.104,y,z),rx,rz) for y,z,rx,rz in [(.073,.075,.04,.047),(.041,.092,.049,.064),(-.01,.085,.050,.057),(-.075,.063,.056,.04),(-.14,.057,.054,.034),(-.188,.055,.032,.028),(-.204,.055,.007,.014)]],LEATHER,24)
-            shaft=tube('Fitted boot shaft',[((s*.104,y,z),rx,ry) for y,z,rx,ry in [(.01,.095,.044,.05),(.014,.15,.036,.039),(.016,.24,.039,.043),(.01,.34,.054,.057),(.003,.43,.058,.06)]],LEATHER,24)
-            bind(union('Boot '+side,[shoe,shaft],LEATHER,.0045),lambda v,s=side:foot_weights(v,s))
-            sole=tube('Layered sole '+side,[((s*.104,y,.027),rx,rz) for y,rx,rz in [(.069,.037,.019),(.035,.05,.019),(-.07,.058,.019),(-.16,.051,.018),(-.194,.027,.015),(-.205,.005,.008)]],SOLE,24)
-            bind(sole,lambda v,s=side:foot_weights(v,s))
-            for z in [.40,.29]:
-                rim=tube('Boot strap '+side,[((s*.104,.01,z-.009),.059 if z>.35 else .046,.063 if z>.35 else .049),((s*.104,.01,z+.009),.059 if z>.35 else .046,.063 if z>.35 else .049)],LEATHER)
-                bind(rim,lambda v,s=side:foot_weights(v,s))
-                softbox('Boot brass buckle '+side,(s*.143,-.032,z),(.022,.014,.027),GOLD,side+'Shin',.003)
-            for j in range(5):
-                z=.18+j*.035
-                curve('Boot lace '+side,[(s*.087,-.03,z),(s*.122,-.035,z+.02)],.0018,LINEN,side+'Shin')
+        shoe=tube('Shaped boot toe', [((s*.104,y,z),rx,rz) for y,z,rx,rz in [(.073,.075,.04,.047),(.041,.092,.049,.064),(-.01,.085,.050,.057),(-.075,.063,.056,.04),(-.14,.057,.054,.034),(-.188,.055,.032,.028),(-.204,.055,.007,.014)]],LEATHER,24)
+        shaft=tube('Fitted boot shaft',[((s*.104,y,z),rx,ry) for y,z,rx,ry in [(.01,.095,.044,.05),(.014,.15,.036,.039),(.016,.24,.039,.043),(.01,.34,.054,.057),(.003,.43,.058,.06)]],LEATHER,24)
+        bind(union('Boot '+side,[shoe,shaft],LEATHER,.0045),lambda v,s=side:foot_weights(v,s))
+        sole=tube('Layered sole '+side,[((s*.104,y,.027),rx,rz) for y,rx,rz in [(.069,.037,.019),(.035,.05,.019),(-.07,.058,.019),(-.16,.051,.018),(-.194,.027,.015),(-.205,.005,.008)]],SOLE,24)
+        bind(sole,lambda v,s=side:foot_weights(v,s))
+        for z in [.40,.29]:
+            rim=tube('Boot strap '+side,[((s*.104,.01,z-.009),.059 if z>.35 else .046,.063 if z>.35 else .049),((s*.104,.01,z+.009),.059 if z>.35 else .046,.063 if z>.35 else .049)],LEATHER)
+            bind(rim,lambda v,s=side:foot_weights(v,s))
+            softbox('Boot brass buckle '+side,(s*.143,-.032,z),(.022,.014,.027),GOLD,side+'Shin',.003)
+        for j in range(5):
+            z=.18+j*.035
+            curve('Boot lace '+side,[(s*.087,-.03,z),(s*.122,-.035,z+.02)],.0018,LINEN,side+'Shin')
         palm=tube('Palm',[((s*.338,-.017,1.054),.028,.026),((s*.343,-.02,1.03),.027,.024),((s*.349,-.021,1.017),.027,.021),((s*.352,-.024,.982),.037,.021),((s*.356,-.026,.951),.037,.019),((s*.356,-.026,.938),.031,.015)],SKIN)
         parts=[palm]
         for finger in ['Thumb','Index','Middle','Ring','Pinky']:
@@ -258,13 +252,8 @@ def boots_and_hands(hero,make_boots=True):
             end=RIG.data.bones[side+finger+'3'].tail_local;sections.extend([(tuple(end),.0048,.0043),(tuple(end+Vector((0,0,-.002))),.001,.001)])
             parts.append(tube('Finger '+side+finger,sections,SKIN,12))
         bind(union('Articulated hand '+side,parts,SKIN,.0028),lambda v,s=side:hand_weights(v,s))
-        if make_boots:
-            cuff=tube('Jacket cuff '+side,[((s*.341,-.018,1.033),.035,.035),((s*.345,-.021,1.006),.034,.034)],INK)
-            bind(cuff,side+'Forearm')
-            if hero:
-                guard=tube('Fingerless glove '+side,[((s*.347,-.021,1.008),.031,.024),((s*.351,-.024,.985),.038,.024),((s*.355,-.026,.96),.037,.024)],LEATHER)
-                bind(guard,side+'Hand')
-                curve('Glove seam '+side,[(s*.35,.001,1.002),(s*.355,.001,.975),(s*.368,.002,.966)],.0013,GOLD,side+'Hand')
+        cuff=tube('Jacket cuff '+side,[((s*.341,-.018,1.033),.035,.035),((s*.345,-.021,1.006),.034,.034)],INK)
+        bind(cuff,side+'Forearm')
 
 FACE_LEVELS=[(1.588,.015,.064,.051),(1.603,.047,.087,.064),(1.625,.075,.103,.080),(1.66,.103,.112,.098),(1.698,.119,.109,.109),(1.729,.120,.106,.112),(1.768,.114,.099,.108),(1.80,.096,.085,.095),(1.832,.063,.061,.068),(1.85,.016,.02,.023)]
 def face_profile(z):
@@ -351,7 +340,7 @@ def hair_lock(name,points,width,weights,highlight=True):
             t=j/19;c=bezier(points,t);c.y-=width*.23*(1-t);pts.append(tuple(c))
         curve(name+' glint',pts,.0009,HAIRLIGHT,weights)
 
-def hair(hero):
+def hair():
     vs=[];fs=[];n=64;rows=17
     for j in range(rows):
         for i in range(n):
@@ -369,48 +358,15 @@ def hair(hero):
     for s in [-1,1]:
         for i in range(3):
             hair_lock('Face framing lock',[(s*(.104+i*.009),-.006,1.819),(s*(.146+i*.008),-.05,1.744),(s*(.118+i*.013),-.044,1.627),(s*(.117+i*.014),-.027,1.535+i*.018)],.021-i*.003,'Head')
-    if hero:
-        for i in range(7):
-            offset=(i-3)*.012
-            hair_lock('Layered ponytail',[(offset,.117,1.769),(offset*1.6,.274,1.733),(offset*1.3,.28,1.432),(offset*1.3+.035,.21,1.34+abs(offset))],.028,
-                lambda v:blend('HairTip','HairBase',(v.z-1.40)/.24))
-        softbox('Hair tie',(0,.13,1.765),(.098,.04,.033),RED,'Head',.01)
-        for s in [-1,1]:
-            hair_lock('Loose nape strand',[(s*.085,.08,1.71),(s*.10,.10,1.62),(s*.07,.13,1.54),(s*.067,.10,1.50)],.015,'Head',False)
-    else:
-        for i in range(7):
-            a=math.pi*.5+i*math.pi/6
-            hair_lock('Soft bob ends',[(math.sin(a)*.11,-math.cos(a)*.1,1.79),(math.sin(a)*.137,-math.cos(a)*.12,1.69),(math.sin(a)*.132,-math.cos(a)*.12,1.61),(math.sin(a)*.11,-math.cos(a)*.105,1.58)],.023,'Head',False)
-        # Curved woven brim; the head and ears remain visible underneath.
-        hat=tube('Woven country hat',[((0,.012,1.824),.205,.174),((0,.012,1.839),.203,.173),((0,.012,1.85),.137,.116),((0,.012,1.904),.121,.10),((0,.012,1.928),.048,.044)],LINEN,48);bind(hat,'Head')
-        band=tube('Hat ribbon',[((0,.012,1.857),.139,.118),((0,.012,1.875),.134,.113)],LEATHER,48);bind(band,'Head')
-
-def scarf_and_weapon():
-    collar=tube('Soft scarf collar',[((0,0,z),rx,ry) for z,rx,ry in [(1.482,.08,.072),(1.505,.071,.063),(1.526,.063,.058),(1.543,.058,.053)]],RED,40);bind(collar,'Neck')
-    for j in range(3):
-        curve('Woven scarf fold',[(-.052,-.04,1.493+j*.012),(0,-.072+j*.004,1.495+j*.012),(.052,-.04,1.5+j*.012)],.0015,LEATHER,'Neck')
-    vs=[];fs=[]
-    for j in range(15):
-        t=j/14
-        for i in range(7):
-            u=i/6;vs.append((.055+(u-.5)*.082+t*.022,.072+t*.1+math.sin(t*7+u*2)*.006,1.49-t*.32+math.sin(u*math.pi)*.008))
-    for j in range(14):
-        for i in range(6):a=j*7+i;fs.append((a,a+1,a+8,a+7))
-    o=mesh('Flowing scarf tail',vs,fs,RED);mod=o.modifiers.new('Woven thickness','SOLIDIFY');mod.thickness=.003
-    bpy.context.view_layer.objects.active=o;bpy.ops.object.modifier_apply(modifier=mod.name);bind(o,'Scarf')
-    softbox('Offline wrist terminal',(-.337,-.05,1.075),(.067,.037,.068),GOLD,'LForearm',.012)
-    softbox('Glass terminal screen',(-.337,-.072,1.078),(.049,.008,.043),SIGNAL,'LForearm',.007)
-    grip=tube('Wrapped sword grip',[((.355,-.026,z),.017,.019) for z in [.966,.856]],LEATHER,16);bind(grip,'RHand')
-    for j in range(6):
-        curve('Sword handle binding',[(.34,-.04,.865+j*.016),(.366,-.044,.876+j*.016)],.0025,LINEN,'RHand')
-    softbox('Curved crossguard',(.355,-.026,.841),(.154,.065,.023),GOLD,'RHand',.009)
-    blade=mesh('Forged single edge sword',[(.329,-.029,.823),(.378,-.029,.823),(.382,-.029,.187),(.365,-.029,.12),(.342,-.029,.19),(.352,-.041,.81),(.361,-.041,.20)],[(0,1,5),(1,2,6,5),(2,3,6),(3,4,6),(4,0,5,6)],STEEL)
-    mod=blade.modifiers.new('Steel thickness','SOLIDIFY');mod.thickness=.009
-    bpy.context.view_layer.objects.active=blade;bpy.ops.object.modifier_apply(modifier=mod.name);bind(blade,'RHand')
-    curve('Jade blade edge',[(.379,-.033,.817),(.383,-.033,.20),(.365,-.033,.12)],.0018,SIGNAL,'RHand')
+    for i in range(7):
+        a=math.pi*.5+i*math.pi/6
+        hair_lock('Soft bob ends',[(math.sin(a)*.11,-math.cos(a)*.1,1.79),(math.sin(a)*.137,-math.cos(a)*.12,1.69),(math.sin(a)*.132,-math.cos(a)*.12,1.61),(math.sin(a)*.11,-math.cos(a)*.105,1.58)],.023,'Head',False)
+    # Curved woven brim; the head and ears remain visible underneath.
+    hat=tube('Woven country hat',[((0,.012,1.824),.205,.174),((0,.012,1.839),.203,.173),((0,.012,1.85),.137,.116),((0,.012,1.904),.121,.10),((0,.012,1.928),.048,.044)],LINEN,48);bind(hat,'Head')
+    band=tube('Hat ribbon',[((0,.012,1.857),.139,.118),((0,.012,1.875),.134,.113)],LEATHER,48);bind(band,'Head')
 
 CLIPS={'idle':90,'walk':32,'run':24,'attack1':18,'attack2':20,'attack3':25,'guard':60,'dodge':20,'jump':32,'skill':38,'stagger':22,'death':45}
-def animate(hero):
+def animate():
     actions=[]
     for name,end in CLIPS.items():
         RIG.animation_data_create();action=bpy.data.actions.new(name);RIG.animation_data.action=action;actions.append(action)
@@ -422,7 +378,7 @@ def animate(hero):
                 p[side+'Arm'].rotation_euler.z=s*.08
                 p[side+'Forearm'].rotation_euler.x=-.10
                 for finger in ['Index','Middle','Ring','Pinky']:
-                    for j in range(1,4):p[side+finger+str(j)].rotation_euler.x=-(.85 if side=='R' and hero else .12+j*.05)
+                    for j in range(1,4):p[side+finger+str(j)].rotation_euler.x=-(.12+j*.05)
                 for j in range(1,4):p[side+'Thumb'+str(j)].rotation_euler.x=-.25
             if name=='idle':
                 p['Spine'].rotation_euler.x=wave*.008;p['Chest'].rotation_euler.x=wave*.012
@@ -480,29 +436,6 @@ def animate(hero):
             elif name=='death':
                 down=smooth(t*2);p['Root'].rotation_euler.x=-down*1.48;p['Root'].location.y=down*.29
                 p['Head'].rotation_euler.z=down*.20;p['RThigh'].rotation_euler.x=-down*.18;p['RShin'].rotation_euler.x=down*.3
-            if hero:
-                poses={b.name:tuple(b.rotation_euler) for b in p}
-                for b in p:
-                    if b.name.startswith(('L','R')):
-                        other=('R' if b.name[0]=='L' else 'L')+b.name[1:]
-                        if other in poses:
-                            x,y,z=poses[other];b.rotation_euler=(x,-y,-z)
-            if hero and name=='idle':
-                p['LArm'].rotation_euler.z=-.20
-                p['LForearm'].rotation_euler.x=-.15
-                p['RArm'].rotation_euler.z=.10
-                p['RForearm'].rotation_euler.x=-.40
-            if hero:
-                # Mio's authored rest fingers already enclose the sword handle.
-                for finger in ['Thumb','Index','Middle','Ring','Pinky']:
-                    for j in range(1,4):p['L'+finger+str(j)].rotation_euler=(0,0,0)
-                if name.startswith('attack') or name=='skill':
-                    p['LClavicle'].rotation_euler.x=-.20*peak
-                    # The loose scarf ends move behind the raised sword arm; the knot stays fixed.
-                    p['Scarf'].location=p['Scarf'].bone.matrix_local.to_3x3().inverted()@Vector((0,.16*peak,.02*peak))
-                if name=='guard':
-                    p['LClavicle'].rotation_euler.x=-.10
-                    p['RArm'].rotation_euler.x=-.45;p['RForearm'].rotation_euler.x=-.80
             for bone in p:
                 bone.keyframe_insert(data_path='rotation_euler',frame=frame)
                 if bone.name in ['Root','Hips','Scarf']:bone.keyframe_insert(data_path='location',frame=frame)
@@ -522,18 +455,12 @@ def consolidate(scene):
         bpy.context.view_layer.objects.active=objects[0]
         if len(objects)>1:bpy.ops.object.join()
         o=bpy.context.object
-        o.name='Travel coat' if material==TEAL or 'resident work jacket' in material.name else material.name.replace(PREFIX,'')
+        o.name='Travel coat' if 'resident work jacket' in material.name else material.name.replace(PREFIX,'')
 
 def validate(scene,actions):
     meshes=[o for o in scene.objects if o.type=='MESH'];mixed=0;vertices=0;triangles=0
     for o in meshes:
         o.data.calc_loop_triangles();triangles+=len(o.data.loop_triangles)
-        if any('Mio painted' in m.name for m in o.data.materials):
-            assert len(o.data.uv_layers)==1 and o.data.uv_layers[0].name=='UVMap', (o.name, list(o.data.uv_layers.keys()))
-            # The gathered hair unwrap crosses the repeating texture's U seam.
-            u_max=2 if any('Mio painted hair' in m.name for m in o.data.materials) else 1
-            assert all(math.isfinite(u) and math.isfinite(v) and 0<=u<=u_max and 0<=v<=1
-                       for u,v in (uv.uv for uv in o.data.uv_layers[0].data)), o.name
         for v in o.data.vertices:
             vertices+=1;weights=[g.weight for g in v.groups]
             assert weights and abs(sum(weights)-1)<.001,(o.name,v.index,weights)
@@ -544,7 +471,7 @@ def validate(scene,actions):
     assert triangles<160000,triangles
     return {'bones':len(RIG.data.bones),'meshes':len(meshes),'vertices':vertices,'triangles':triangles,'blended_vertices':mixed,'clips':list(CLIPS)}
 
-def build(name,hero,export=True):
+def build(name):
     scene_name=PREFIX+name
     if scene_name in bpy.data.scenes:
         old=bpy.data.scenes[scene_name]
@@ -552,19 +479,14 @@ def build(name,hero,export=True):
         bpy.data.scenes.remove(old)
     scene=bpy.data.scenes.new(scene_name);bpy.context.window.scene=scene;scene.render.fps=30
     human_rig(name)
-    if hero:
-        import runpy
-        runpy.run_path(ROOT+'/tools/mio_illustrated.py',init_globals={'B':globals()})['build']()
-    else:
-        garments(False);boots_and_hands(False);face();hair(False)
+    garments();boots_and_hands();face();hair()
     consolidate(scene)
-    actions=animate(hero);audit=validate(scene,actions)
+    actions=animate();audit=validate(scene,actions)
     # NLA track export includes exactly this rig's twelve clips.
     bpy.ops.object.select_all(action='SELECT')
     bpy.context.view_layer.objects.active=RIG
-    if export:
-        bpy.ops.export_scene.gltf(filepath=OUT+'/'+name+'.glb',export_format='GLB',use_selection=True,use_active_scene=True,
-            export_animations=True,export_animation_mode='NLA_TRACKS',export_apply=False)
+    bpy.ops.export_scene.gltf(filepath=OUT+'/'+name+'.glb',export_format='GLB',use_selection=True,use_active_scene=True,
+        export_animations=True,export_animation_mode='NLA_TRACKS',export_apply=False)
     RIG.animation_data.action=None
     for bone in RIG.pose.bones:bone.rotation_euler=(0,0,0);bone.location=(0,0,0)
     bpy.context.view_layer.update()
@@ -576,9 +498,10 @@ def main():
     image=bpy.data.images.load(ROOT+'/assets/art/amber-iris.png',check_existing=True)
     node=IRIS.node_tree.nodes.new('ShaderNodeTexImage');node.image=image
     IRIS.node_tree.links.new(node.outputs['Color'],IRIS.node_tree.nodes.get('Principled BSDF').inputs['Base Color'])
-    results={name:build(name,hero) for name,hero in [('mio',True),('villager',False)]}
+    results={'villager':build('villager')}
     bpy.ops.file.pack_all()
-    bpy.ops.wm.save_as_mainfile(filepath=ROOT+'/assets/source/characters.blend')
+    # characters.blend keeps the authored Mio scene that import_tripo_mio.py takes the sword from.
+    bpy.ops.wm.save_as_mainfile(filepath=ROOT+'/assets/source/villager.blend')
     with open(ROOT+'/artifacts/human-model-audit.json','w') as f:json.dump(results,f,indent=2)
     print('HUMAN_REFINEMENT_COMPLETE')
 
