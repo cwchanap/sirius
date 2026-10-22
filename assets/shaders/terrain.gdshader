@@ -39,8 +39,8 @@ void fragment() {
     }
     float mottling=0.9+0.1*sin(p.x*.27)*sin(p.y*.31);
     ALBEDO=mix(mix(grass*vec3(1.05,1.2,.94)*mottling,earth,max(path,plaza)*.93),stone,rocky*.8);
-    // Vertex red is dryness, 1 - World.Shore(): 0 at the river, brook and Cedar River waterlines, back to 1 a little up their banks. Wet earth, then gravel by the water.
-    float wet=1.0-COLOR.r;
+    // UV2.x is World.Shore(), the ground's height above the waterline: wet earth from .35 m down, then gravel by the water.
+    float wet=1.0-smoothstep(.05,.35,UV2.x);
     vec3 gravel=mix(earth*vec3(.42,.4,.36),tile(p*1.1,vec2(0.0,1.0),dx*1.1,dy*1.1)*vec3(.6,.6,.56),.3+.4*smoothstep(.45,.95,wet));
     ALBEDO=mix(ALBEDO,gravel,smoothstep(0.0,.55,wet));
     ROUGHNESS=mix(.95,.45,wet*wet);

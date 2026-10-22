@@ -54,14 +54,14 @@ public partial class World : Node3D
     public static void CameraStop(Node3D n,Shape3D shape){var b=new StaticBody3D{CollisionLayer=CameraLayer,CollisionMask=0};n.AddChild(b);b.AddChild(new CollisionShape3D{Shape=shape});}
     // Height(), the water strip, the footbridge and the minimap all follow this one brook line.
     public static float BrookX(float z)=>19.3f+.6f*Mathf.Sin(z*.16f);
-    // Wetness, 0..1, that terrain.gdshader paints as damp earth and gravel: rising from .35 m above the river, brook, Cedar River, sea and gorge waterlines to them, and half wet across the paddy floors.
-    // Beyond the play area the band reaches `band` up instead, which Ground() raises on steep rock so it is never thinner than a cell.
-    public static float Shore(float x,float z,float band=.35f)
+    // How far the ground stands above the river, brook, Cedar River, sea and gorge waterlines, in metres: 9 away from any water, and .2 across
+    // the paddy floors, which terrain.gdshader paints half wet. It paints damp earth and gravel from .35 m down to the water.
+    public static float Shore(float x,float z)
     {
-        if(!InPlay(x,z))return WaterOutside(x,z) is float level?1-Mathf.SmoothStep(.05f,band,Height(x,z)-level):0;
-        if(Paddies.Any(p=>p.HasPoint(new(x,z))))return .5f;
+        if(!InPlay(x,z))return WaterOutside(x,z) is float level?Height(x,z)-level:9;
+        if(Paddies.Any(p=>p.HasPoint(new(x,z))))return .2f;
         bool cedar=z<-60,near=cedar?Math.Abs(z+111)<7:Math.Abs(z+8)<6||(z>-6&&z<57.5f&&Math.Abs(x-BrookX(z))<3.2f);
-        return near?1-Mathf.SmoothStep(.05f,.35f,Height(x,z)-(cedar?CedarLevel:WaterLevel)):0;
+        return near?Height(x,z)-(cedar?CedarLevel:WaterLevel):9;
     }
     // The rendered terrain between its 1 m vertices: Terrain() splits each cell on the (x+1,z)-(x,z+1) diagonal.
     public static float MeshHeight(float x,float z)
@@ -323,19 +323,20 @@ public partial class World : Node3D
             if(!Fine.HasPoint(p)&&Fine.HasPoint(beyond))return (a,b,fa,fb);
         return null;
     }
-    // A terrain grid over `area` at `step` metres, split on the (x+step,z)-(x,z+step) diagonal like the water grids. Vertex red is
-    // terrain.gdshader's dryness; green 0 outside the play area keeps the road's paint off the mountains and the beach. With `skipFine`,
+    // A terrain grid over `area` at `step` metres, split on the (x+step,z)-(x,z+step) diagonal like the water grids. UV2.x is Shore(), which
+    // varies across each triangle as the ground does, so the wet band painted from it follows the ground's own contour. Vertex green 0
+    // outside the play area keeps the road's paint off the mountains and the beach. With `skipFine`,
     // the 4 m grid leaves out the 1 m ground and fans each cell along its edge to that ground's own vertices, so the two meet without a crack.
     private static ArrayMesh? Ground(Rect2I area,int step,bool skipFine=false)
     {
-        var at=new Dictionary<Vector2I,int>();var v=new List<Vector3>();var n=new List<Vector3>();var c=new List<Color>();var uv=new List<Vector2>();var index=new List<int>();
+        var at=new Dictionary<Vector2I,int>();var v=new List<Vector3>();var n=new List<Vector3>();var c=new List<Color>();var uv=new List<Vector2>();var shore=new List<Vector2>();var index=new List<int>();
         bool Rim(Vector2I p)=>p.X>=Fine.Position.X&&p.X<=Fine.End.X&&p.Y>=Fine.Position.Y&&p.Y<=Fine.End.Y;
         int V(Vector2I p)
         {
             if(at.TryGetValue(p,out int k))return k;
             float x=p.X,z=p.Y,e=step==1||Rim(p)?.1f:1;var normal=new Vector3(Height(x-e,z)-Height(x+e,z),2*e,Height(x,z-e)-Height(x,z+e)).Normalized();
             at[p]=k=v.Count;v.Add(new(x,Height(x,z),z));n.Add(normal);uv.Add(new(x*.15f,z*.15f));
-            c.Add(new(1-Shore(x,z,Math.Max(.35f,1.2f*new Vector2(normal.X,normal.Z).Length()/normal.Y)),InPlay(x,z)?1:0,1));return k;
+            c.Add(new(1,InPlay(x,z)?1:0,1));shore.Add(new(Shore(x,z),0));return k;
         }
         // Wound clockwise seen from above, the terrain's front.
         void T(Vector2I a,Vector2I b,Vector2I d){if((b.X-a.X)*(d.Y-a.Y)-(b.Y-a.Y)*(d.X-a.X)<0)(b,d)=(d,b);index.AddRange(new[]{V(a),V(b),V(d)});}
@@ -354,7 +355,7 @@ public partial class World : Node3D
         if(index.Count==0)return null;
         var arrays=new Godot.Collections.Array();arrays.Resize((int)Godot.Mesh.ArrayType.Max);
         arrays[(int)Godot.Mesh.ArrayType.Vertex]=v.ToArray();arrays[(int)Godot.Mesh.ArrayType.Normal]=n.ToArray();arrays[(int)Godot.Mesh.ArrayType.Color]=c.ToArray();
-        arrays[(int)Godot.Mesh.ArrayType.TexUV]=uv.ToArray();arrays[(int)Godot.Mesh.ArrayType.Index]=index.ToArray();
+        arrays[(int)Godot.Mesh.ArrayType.TexUV]=uv.ToArray();arrays[(int)Godot.Mesh.ArrayType.TexUV2]=shore.ToArray();arrays[(int)Godot.Mesh.ArrayType.Index]=index.ToArray();
         var mesh=new ArrayMesh();mesh.AddSurfaceFromArrays(Godot.Mesh.PrimitiveType.Triangles,arrays);return mesh;
     }
     private void Village()
