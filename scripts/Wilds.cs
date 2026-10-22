@@ -54,13 +54,14 @@ public partial class World
     // or, along a river's course, through its gorge, whose floor eases over 6 m from the edge's own river bed to 80 cm under the course's
     // level, falls included. In the sea a gorge only ever deepens the seabed. Under the mountains the ground eases over the first 12 m
     // from the edge's height to the uplands' 3.5 m, so no river bed, ditch or rise that meets the edge runs on across them as a trench
-    // or a crease.
+    // or a crease; an edge already 5-10 m up a mountainside, as round the relay road, keeps its own level, so its ridges do not dip
+    // into a trench before the cliff.
     private static float Outside(float x,float z)
     {
         float cx=Mathf.Clamp(x,-HalfWidth,HalfWidth),cz=Mathf.Clamp(z,NorthEdge,SouthEdge),d=new Vector2(x-cx,z-cz).Length(),sea=Sea(x,z),edge=Inside(cx,cz);
         // The beach starts down to the sea up to 6 m out from the edge, so the coast wanders instead of following it.
         float shore=3+3*Mathf.Sin(x*.07f+z*.05f)*Mathf.Sin(x*.031f-z*.083f);
-        float y=Mathf.Lerp(edge,Mathf.Lerp(3.5f,edge,sea),Mathf.SmoothStep(0,12,d))+(1-sea)*Mountain(x,z,d)-sea*(3*Mathf.SmoothStep(shore,shore+8,d)+.08f*Math.Max(0,d-shore-8));
+        float y=Mathf.Lerp(edge,Mathf.Lerp(Mathf.Lerp(3.5f,edge,Mathf.SmoothStep(5,10,edge)),edge,sea),Mathf.SmoothStep(0,12,d))+(1-sea)*Mountain(x,z,d)-sea*(3*Mathf.SmoothStep(shore,shore+8,d)+.08f*Math.Max(0,d-shore-8));
         foreach(var (_,course) in Rivers)
         {
             var (gap,level,_,from,smooth,soft)=Along(course,x,z);

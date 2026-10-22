@@ -404,14 +404,14 @@ public static class IntegrationCheck
         Check(g.Player.IsOnFloor()&&g.Region=="Old Relay Road","return route reconnects to the relay plaza");
         // The teahouse ladder is the relay road's shortcut: drawn up, it leaves the terrace out of reach from the junction under its cliff;
         // lowered from the terrace, it is walked both ways and stays down when Mio recovers at the village.
-        var ladder=g.World.Shortcuts.Single();var top=new Vector2(ladder.From.X,ladder.From.Z);var below=top+new Vector2(0,12);
+        var ladder=g.World.Shortcuts.Single();bool Turned(float angle)=>ladder.Part.Quaternion.AngleTo(new Quaternion(Vector3.Right,angle))<.01f;var lever=new Vector2(ladder.From.X,ladder.From.Z);var top=new Vector2(ladder.Part.Position.X,ladder.Part.Position.Z-2);var below=top+new Vector2(0,12);
         Place(g.Player,new(below.X,Hoshikawa.World.Height(below.X,below.Y)+.1f,below.Y));await Frames(10);
         Check(!await Head(top,true,240)&&g.Player.GlobalPosition.Y<4&&g.InteractionPrompt()!=Localization.T("E   Lower the ladder"),
             $"the drawn-up ladder leaves the teahouse terrace out of reach from the junction, and cannot be lowered from below {g.Player.GlobalPosition}");
-        Place(g.Player,new(top.X,Hoshikawa.World.Height(top.X,top.Y)+.1f,top.Y));await Frames(10);
+        Place(g.Player,new(lever.X,Hoshikawa.World.Height(lever.X,lever.Y)+.1f,lever.Y));await Frames(10);
         Check(g.InteractionPrompt()==Localization.T("E   Lower the ladder"),"the ladder is lowered from the terrace");
-        g.Interact();await Frames(100);
-        Check(g.Opened.Contains(ladder.Name)&&ladder.Part.Basis.IsEqualApprox(new Basis(ladder.Open))&&g.InteractionPrompt()!=Localization.T("E   Lower the ladder"),"lowering the ladder opens the shortcut, once");
+        g.Interact();await Frames(130);await WalkTo(top,false);
+        Check(g.Opened.Contains(ladder.Name)&&Turned(ladder.Open)&&g.InteractionPrompt()!=Localization.T("E   Lower the ladder"),"lowering the ladder opens the shortcut, once");
         await WalkTo(below,false);
         Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Y<2.5f,$"the lowered ladder walks down to the junction {g.Player.GlobalPosition}");
         await WalkTo(top);
@@ -423,7 +423,7 @@ public static class IntegrationCheck
         g.Interact();
         Check(!pouch.Visible&&g.Player.MaxRemedies==4&&g.Player.Remedies==4&&g.InteractionPrompt()!=Localization.T("E   Take the remedy pouch"),"taking the remedy pouch raises the remedies Mio carries to four");
         g.Retry();await Frames(5);
-        Check(g.Opened.Contains(ladder.Name)&&ladder.Part.Basis.IsEqualApprox(new Basis(ladder.Open))&&!pouch.Visible&&g.Player.Remedies==4,"the ladder stays down and the pouch taken when Mio recovers at the village");
+        Check(g.Opened.Contains(ladder.Name)&&Turned(ladder.Open)&&!pouch.Visible&&g.Player.Remedies==4,"the ladder stays down and the pouch taken when Mio recovers at the village");
         // The map's edges are its terrain now: a cliff behind Komorebi stops a walker at chest height, and the one wall on land's side is off the beach, here in the cove between two capes.
         float chest=Hoshikawa.World.Height(0,-297)+1.2f;
         using(var cliff=PhysicsRayQueryParameters3D.Create(new(0,chest,-297),new(0,chest,-315),1))
@@ -614,10 +614,10 @@ public static class IntegrationCheck
         Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Intro),"restarting the prologue replays its opening scene");g.EndDialogue();
         // The ladder's body takes its new turn on the next physics step.
         await Frames(2);
-        Check(g.Opened.Count==0&&ladder.Part.Basis.IsEqualApprox(new Basis(ladder.Closed))&&pouch.Visible&&g.Player.MaxRemedies==3&&g.Player.Remedies==3,"restart draws the ladder up again and puts the pouch back");
-        Place(g.Player,new(top.X,Hoshikawa.World.Height(top.X,top.Y)+.1f,top.Y));await Frames(10);g.Interact();await Frames(20);
+        Check(g.Opened.Count==0&&Turned(ladder.Closed)&&pouch.Visible&&g.Player.MaxRemedies==3&&g.Player.Remedies==3,"restart draws the ladder up again and puts the pouch back");
+        Place(g.Player,new(lever.X,Hoshikawa.World.Height(lever.X,lever.Y)+.1f,lever.Y));await Frames(10);g.Interact();await Frames(20);
         g.Restart();g.EndDialogue();await Frames(100);
-        Check(g.Opened.Count==0&&ladder.Part.Basis.IsEqualApprox(new Basis(ladder.Closed)),"a restart while the ladder is still swinging down leaves it drawn up");
+        Check(g.Opened.Count==0&&Turned(ladder.Closed),"a restart while the ladder is still swinging down leaves it drawn up");
         // The whole flow above also runs under --lang=ja and --lang=zh_TW. Here each language is also checked on its own: glyphs, fixed-width boxes,
         // line breaking, and the real language buttons.
         string startLanguage=Localization.Current;var sans=ThemeDB.FallbackFont;

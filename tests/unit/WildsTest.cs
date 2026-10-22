@@ -87,4 +87,18 @@ public class WildsTest
         AssertThat(Reach(new(2,-30),Leg).Seen[14-reach.Area.Position.X,-58-reach.Area.Position.Y]).OverrideFailureMessage("the junction climbs to the teahouse past the switchback").IsFalse();
         AssertThat(Reach(new(-34,-132),Leg).Seen[2-reach.Area.Position.X,-160-reach.Area.Position.Y]).OverrideFailureMessage("the quarry is not a dead end").IsFalse();
     }
+    // The relay road's ground is continuous: no step where one trail reach's nearest point gives way to another's, which the first Metal
+    // review saw across the mountain from the air. It is walked in 5 cm strides along every metre line, and any stride rising over 20 cm,
+    // a cliff or a step, is halved ten times: that leaves a cliff a fraction of a millimetre high and a step its full height.
+    [TestCase]
+    public void TheRelayGroundHasNoSteps()
+    {
+        float H(Vector2 p)=>World.Height(p.X,p.Y);
+        float Jump(Vector2 a,Vector2 b){for(int i=0;i<10;i++){var m=(a+b)/2;if(Math.Abs(H(m)-H(a))>Math.Abs(H(b)-H(m)))b=m;else a=m;}return Math.Abs(H(b)-H(a));}
+        var steps=new List<string>();
+        void Walk(Vector2 from,Vector2 stride,int count){float h=H(from);for(int i=0;i<count;i++){var a=from+stride*i;float next=H(a+stride);if(Math.Abs(next-h)>.2f&&Jump(a,a+stride)>.05f)steps.Add($"({a.X:F2}, {a.Y:F2})");h=next;}}
+        for(int z=(int)World.RelaySouth;z>=World.RelayNorth;z--)Walk(new(-World.HalfWidth,z),new(.05f,0),2560);
+        for(int x=-(int)World.HalfWidth;x<=World.HalfWidth;x++)Walk(new(x,World.RelaySouth),new(0,-.05f),3280);
+        AssertThat(steps).OverrideFailureMessage($"{steps.Count} steps, e.g. {string.Join(", ",steps.Take(5))}").IsEmpty();
+    }
 }
