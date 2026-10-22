@@ -1,5 +1,34 @@
 # MVP verification
 
+## Map redesign, phase 1: the valley's natural edges — 2026-10-22
+
+The valley is now closed by its own terrain, and its water follows the land. Everything inside the play area (|x| ≤ 64, z −200…80) keeps its place. No Tripo, Codex or ElevenLabs credits were spent.
+
+- **Edges:** beyond the play area `Outside()` carries the edge's height outward into an 8–12 m cliff and the mountains behind it. South-west of Hoshikawa it runs down a beach under the sea instead. The `Valley boundary` boxes and the ridge mesh are gone. The machine-city silhouette stands behind the eastern range (x 150–174).
+- **Water:**
+  - Both valley rivers flow west to the sea.
+  - Each falls from a gorge in the eastern range.
+  - The Cedar River leaves through a slot in the western hill and a canyon round the west cliff, reaching the sea beside the Hoshikawa's mouth.
+  - Outside the play area, water is laid on the terrain grid, so no shore can surface.
+  - The only invisible walls are off the beach (0.5 m deep) and behind the canyon's boulder choke.
+- **Unit tests:** `dotnet test tests/unit` passes 32 (new: rivers never run uphill; each course ends in a valley river or the sea at its level; no reach runs dry; and a flood fill from the square cannot reach more than 16 m past the edge). The flood fill counts ground under 50° as standable, allows a 1.24 m jump step, lets anything steeper be slid down only, and treats the walls as blocking.
+- **Self-test:** **502 checks pass headless** in `en`, `ja` and `zh_TW` (`SELF_TEST_PASS` each), in a cloud container with Godot 4.6.2 mono. The old "northern map edge remains physically closed" check is replaced. New checks:
+  - both rivers flow west;
+  - the sea is still and at the river's level, outside the play area;
+  - two falls run the waterfall shader;
+  - every course has gorge reaches;
+  - a chest-height ray north of Komorebi hits `Terrain collision`, and no boundary box exists;
+  - a chest-height ray west off the beach hits `Invisible wall` where the seabed is more than 0.4 m under the water.
+- **E2E:** `dotnet test tests/e2e` passes 4 against the headless game (godot-e2e v0.1.2).
+- **Render cost** (draw and primitive counts at `render_cost.gd`'s three village viewpoints, under Mesa's software Vulkan in the cloud, 1b7fd57 → this change): draws 1047/1002/1118 → 1121/1077/1190, primitives 3.086M/2.981M/2.839M → 3.107M/3.010M/2.891M. Not yet measured on Metal.
+- **Captures:** ten `review_map.gd` views under Mesa's software Vulkan (lavapipe, `xvfb-run`): the sea from the shrine, the west shore, the river mouth, both falls, the Cedar outlet, the north and east walls, and two fog-free aerials. They show shapes and placement only.
+- **Not verified:** a graphical Metal run and Metal captures on the Mac.
+- **Limits:**
+  - The cliffs use the existing stone atlas, which reads like masonry (a cliff texture is the separate art task A1).
+  - The cliff tops are sharp creases.
+  - Distant terrain showed atlas tile seams in the software render.
+  - No physical keyboard/mouse session is claimed.
+
 ## Old-model cleanup — 2026-10-21
 
 Every authored (pre-Tripo) model leftover is removed except `villager.glb` and `patrol.glb`, which stay on purpose. No Tripo or Codex credits were spent, and no game code changed.
