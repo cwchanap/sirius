@@ -120,14 +120,17 @@ public partial class World
     }
     // Each course's water cells, 1 m over the 1 m ground and 4 m beyond: ground under its level within Spill of it, joined to it. The
     // joining is traced on 1 m cells everywhere, since a 4 m cell can straddle a levee and carry the water over it into the hollow behind;
-    // a 4 m cell holds water only where one of its 1 m cells does.
+    // a 4 m cell holds water only where one of its 1 m cells does. The ground under a fall's curtain, which neither reach's water covers,
+    // counts as joined, so the band paints it wet behind the curtain.
     private static readonly Lazy<(List<Vector2I> Near,List<Vector2I> Far,HashSet<Vector2I> Joined)[]> RiverWater=new(()=>Rivers.Select(r=>
     {
         var course=r.Course;var box=new Rect2(course[0].X,course[0].Z,0,0);foreach(var p in course)box=box.Expand(new(p.X,p.Z));box=box.Grow(Spill+4);
         var area=new Rect2I((Vector2I)(box.Position/4).Floor()*4,(Vector2I)(box.Size/4).Ceil()*4+new Vector2I(4,4));
         bool Gorge(Vector2 c)=>!InPlay(c.X,c.Y)&&Sea(c.X,c.Y)<=0&&Along(course,c.X,c.Y).Gap<Spill;
         float Level(float x,float z)=>Along(course,x,z).Level;
-        var joined=Wet(area.Intersection(Far),1,Gorge,Level,c=>Along(course,c.X,c.Y).Gap<2);var all=joined.ToHashSet();
+        var joined=Wet(area.Intersection(Far),1,Gorge,Level,c=>Along(course,c.X,c.Y).Gap<2);var cells=area.Intersection(Far);
+        var all=joined.Concat(Enumerable.Range(0,cells.Size.X*cells.Size.Y).Select(i=>cells.Position+new Vector2I(i%cells.Size.X,i/cells.Size.X))
+            .Where(c=>Along(course,c.X+.5f,c.Y+.5f) is var a&&Fall(course[a.Segment],course[a.Segment+1])&&a.Gap<Half(a.From,Beyond(c.X,c.Y))+1)).ToHashSet();
         return (joined.Where(c=>Fine.HasPoint(c)).ToList(),Wet(area.Intersection(Far),4,c=>Gorge(c)&&!Fine.HasPoint((Vector2I)c.Floor()),Level)
             .Where(c=>Enumerable.Range(0,16).Any(i=>all.Contains(c+new Vector2I(i%4,i/4)))).ToList(),all);
     }).ToArray());
