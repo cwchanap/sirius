@@ -62,13 +62,13 @@ public partial class World
     private Node3D wheel=null!,boat=null!;private float clock;
     // The rotation that lays a model's +Z along d.
     private static Vector3 Along(Vector3 d)=>new(-Mathf.Atan2(d.Y,new Vector2(d.X,d.Z).Length()),Mathf.Atan2(d.X,d.Z),0);
-    // The moored boat floats with its bottom 15 cm under the water, bow upstream (the river flows toward +X).
+    // The moored boat floats with its bottom 15 cm under the water, bow upstream (the river flows toward -X, to the sea).
     public static Vector3 BoatRest=>new(Mooring.X,WaterLevel-.15f,Mooring.Y);
     public override void _Process(double delta)
     {
         wheel.RotateX((float)delta*BrookFlow/WheelRadius);clock+=(float)delta;
         // A slow swell on the boat: 2.5 cm of heave, 1.5 degrees of roll and half a degree of pitch, on unrelated periods.
-        boat.Position=BoatRest+Vector3.Up*.025f*Mathf.Sin(clock*1.3f);boat.Rotation=new(.026f*Mathf.Sin(clock*.83f),Mathf.Pi,.009f*Mathf.Sin(clock*1.1f+1));
+        boat.Position=BoatRest+Vector3.Up*.025f*Mathf.Sin(clock*1.3f);boat.Rotation=new(.026f*Mathf.Sin(clock*.83f),0,.009f*Mathf.Sin(clock*1.1f+1));
     }
     // An undershot wheel in the brook beside the sluice, turned by the current (its bottom moves with the water, toward -Z).
     // Crossed timber legs cradle its axle near both ends, on the brook bed and at the far waterline, and a board trough carries
@@ -112,13 +112,12 @@ public partial class World
         r=new RandomNumberGenerator{Seed=4451};reeds=new();
         for(float x=-60;x<60;x+=1.1f)foreach(int side in new[]{-1,1})
         {
-            float z=Waterline(x,-111,.7f,side);
+            float z=Waterline(x,-111,CedarLevel,side);
             if(!float.IsNaN(z)&&Math.Abs(x-RoadX(-111))>6)Clump(new(x,z-side*.15f));
         }
         Grass("Cedar River reeds",reeds,1,_=>true,9,.12f,new("3d5226"),new("9aa45a"),.25f,4455);
     }
-    // Where the bank rises 3 cm above a river's level, searched outward from mid-stream; NaN where the bed is dry (the Cedar River's, x -56 to -2,
-    // runs over the hill there) or it stays under for 6 m.
+    // Where the bank rises 3 cm above a river's level, searched outward from mid-stream; NaN where it stays under for 6 m.
     private static float Waterline(float x,float mid,float level,int side)
     {
         float z=mid;while(Math.Abs(z-mid)<6&&Height(x,z)<level+.03f)z+=side*.1f;
@@ -129,12 +128,12 @@ public partial class World
     // between boxes for the top step and the slab, with the side walls solid.
     private void Landings()
     {
-        boat=Model(this,"Moored boat","boat",BoatRest,180,new(1.3f,1.3f,1.3f));
+        boat=Model(this,"Moored boat","boat",BoatRest,0,new(1.3f,1.3f,1.3f));
         var hull=new StaticBody3D{Name="Boat collision",CollisionMask=0};boat.AddChild(hull);
         hull.AddChild(new CollisionShape3D{Position=new(0,.3f,0),Shape=new BoxShape3D{Size=new(3.6f,.6f,1.15f)}});
-        var post=new Vector3(Mooring.X-2.6f,0,-4.55f);post.Y=Height(post.X,post.Z);
+        var post=new Vector3(Mooring.X+2.6f,0,-4.55f);post.Y=Height(post.X,post.Z);
         Prop(this,"Mooring post","field_post",post,.7f);Solid(post+Vector3.Up*.55f,Vector3.Zero,new(.15f,1.3f,.15f));
-        var knot=post+Vector3.Up*.7f;var bow=new Vector3(Mooring.X-1.85f,BoatRest.Y+.85f,Mooring.Y);var sag=(knot+bow)/2-Vector3.Up*.12f;
+        var knot=post+Vector3.Up*.7f;var bow=new Vector3(Mooring.X+1.85f,BoatRest.Y+.85f,Mooring.Y);var sag=(knot+bow)/2-Vector3.Up*.12f;
         foreach(var (a,b) in new[]{(knot,sag),(sag,bow)})
         {
             var d=b-a;var turn=Along(d);
@@ -157,7 +156,7 @@ public partial class World
     private void RiverStones()
     {
         var r=new RandomNumberGenerator{Seed=4461};
-        foreach(var (mid,level,bridge) in new[]{(-8f,WaterLevel,0f),(-111f,.7f,RoadX(-111))})
+        foreach(var (mid,level,bridge) in new[]{(-8f,WaterLevel,0f),(-111f,CedarLevel,RoadX(-111))})
             for(float x=-58;x<58;x+=2.9f)foreach(int side in new[]{-1,1})
             {
                 float at=x+r.RandfRange(-.8f,.8f),z=Waterline(at,mid,level,side),pick=r.Randf();

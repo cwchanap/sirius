@@ -82,7 +82,19 @@ public static class IntegrationCheck
         Check(mouth.Min(v=>v.X)<=Hoshikawa.World.BrookX(-4)-2.1f&&mouth.Max(v=>v.X)>=Hoshikawa.World.BrookX(-4)+2.1f&&mouth.All(v=>v.Y==river.Position.Y&&Math.Abs(Mathf.PosMod(v.X+riverSize.X/2+cell/2,cell)-cell/2)<.001f),"brook mouth sits on the river sheet's edge vertices at its level");
         // Every water sheet runs the depth-aware water shader, the brook's ripples drifting down to its mouth.
         var sheets=new[]{"Hoshikawa river","Hoshikawa brook","Cedar River"}.Select(n=>g.World.GetNode<MeshInstance3D>(n).MaterialOverride as ShaderMaterial).ToArray();
-        Check(sheets.All(m=>m?.Shader.ResourcePath=="res://assets/shaders/water.gdshader")&&sheets[1]!.GetShaderParameter("flow").AsVector2().Y<0,"river, brook and Cedar River share the flowing water shader; the brook drifts toward its mouth");
+        Check(sheets.All(m=>m?.Shader.ResourcePath=="res://assets/shaders/water.gdshader")&&sheets[1]!.GetShaderParameter("flow").AsVector2().Y<0
+            &&sheets[0]!.GetShaderParameter("flow").AsVector2().X<0&&sheets[2]!.GetShaderParameter("flow").AsVector2().X<0,
+            "river, brook and Cedar River share the flowing water shader; the brook drifts toward its mouth, both rivers west toward the sea");
+        // Beyond the play area the sea lies still at the river's level, both rivers fall into the valley from gorges in the eastern range,
+        // and the Cedar River leaves it through the western canyon to the sea.
+        var sea=g.World.GetNode<MeshInstance3D>("Sea");var seaFaces=sea.Mesh.GetFaces();
+        var falls=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().EndsWith(" falls")).ToArray();
+        var reaches=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>Hoshikawa.World.Rivers.Any(r=>n.Name.ToString().StartsWith(r.Name+" "))&&!falls.Contains(n)).ToArray();
+        Check(seaFaces.Length>0&&seaFaces.All(v=>v.Y==Hoshikawa.World.WaterLevel&&(!Hoshikawa.World.InPlay(v.X,v.Z)||Math.Abs(v.X)==Hoshikawa.World.HalfWidth||v.Z==Hoshikawa.World.SouthEdge))
+            &&((ShaderMaterial)sea.MaterialOverride).GetShaderParameter("flow").AsVector2()==Vector2.Zero
+            &&falls.Length==2&&falls.All(f=>((ShaderMaterial)f.MaterialOverride).Shader.ResourcePath=="res://assets/shaders/waterfall.gdshader")
+            &&Hoshikawa.World.Rivers.All(r=>reaches.Any(n=>n.Name.ToString().StartsWith(r.Name+" "))),
+            $"the still sea lies beyond the shore at the river's level; {falls.Length} falls and {reaches.Length} gorge reaches carry the rivers in and out of the valley");
         // Height() levels each paddy under its own still water; the aze never dip more than their 2 cm under the terrain mesh, and crest well over the water.
         var aze=g.World.GetNode<MeshInstance3D>("Aze levees").Mesh.GetFaces();
         for(int i=0;i<Hoshikawa.World.Paddies.Length;i++)
@@ -374,8 +386,15 @@ public static class IntegrationCheck
         await WalkTo(new(-12,-87),false);
         await WalkTo(new(Hoshikawa.World.RoadX(-86),-86));await WalkTo(new(0,-68));
         Check(g.Player.IsOnFloor()&&g.Region=="Old Relay Road","return route reconnects to the original relay mission");
-        var boundary=PhysicsRayQueryParameters3D.Create(new(0,8,-190),new(0,8,-202),1);
-        Check(g.GetWorld3D().DirectSpaceState.IntersectRay(boundary).Count>0,"expanded northern map edge remains physically closed");
+        // The map's edges are its terrain now: a cliff behind Komorebi stops a walker at chest height, and the one wall on land's side is off the beach.
+        float chest=Hoshikawa.World.Height(0,-197)+1.2f;
+        using(var cliff=PhysicsRayQueryParameters3D.Create(new(0,chest,-197),new(0,chest,-215),1))
+            Check(g.GetWorld3D().DirectSpaceState.IntersectRay(cliff) is {Count:>0} hit&&hit["collider"].As<Node>().Name=="Terrain collision"
+                &&!g.World.GetChildren().Any(n=>n.Name.ToString().StartsWith("Valley boundary")),"the mountain wall behind Komorebi closes the northern edge, no boundary box in the open");
+        chest=Hoshikawa.World.Height(-64,30)+1.2f;
+        using(var surf=PhysicsRayQueryParameters3D.Create(new(-64,chest,30),new(-100,chest,30),1))
+            Check(g.GetWorld3D().DirectSpaceState.IntersectRay(surf) is {Count:>0} hit&&hit["collider"].As<Node>().Name=="Invisible wall"
+                &&hit["position"].AsVector3() is var at&&Hoshikawa.World.Height(at.X,at.Z)<Hoshikawa.World.WaterLevel-.4f,"the sea wall stands off the west shore, half a metre deep");
         g.CameraYaw=0;
         g.Player.Respawn();await Frames(5);
         await WalkTo(new(0,15));await WalkTo(new(23,15));await WalkTo(new(34,15));await WalkTo(new(34,20));
