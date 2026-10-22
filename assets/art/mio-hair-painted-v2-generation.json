@@ -1,9 +1,0 @@
-{
-  "tool": "built-in image_gen",
-  "prompt": "Use case: style-transfer. Asset type: opaque square base-color texture for UV-mapped 3D anime hair. Image 1 is the current hair texture to replace stylistically; image 2 is the character reference, use ONLY its dark hair palette and painterly cel shading. Produce a square full-bleed hair surface texture: long mostly vertical flowing midnight blue-black locks, quiet near-black shadow fields, broad restrained charcoal-violet painted highlight shapes and a few dark fine strand separations. Match the reference illustration's clean grouped anime hair shading; avoid the first image's wiry photographic noise. The texture must be uniformly covered in hair from edge to edge, no exposed background or transparent margins, no character face, no skin, no eyes, no accessories, no text, no labels. Roots toward top, lengths toward bottom, no isolated cut-out hair clumps. Subtle broad highlights around the upper-middle third, never white or shiny cyan. Intended to wrap across curved modeled locks, not a portrait or hairstyle render.",
-  "output": "assets/art/mio-hair-painted-v2.png",
-  "references": [
-    "assets/art/mio-hair-soft.png",
-    "assets/art/mio-turnaround-head-v1.png"
-  ]
-}

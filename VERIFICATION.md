@@ -1,5 +1,17 @@
 # MVP verification
 
+## Old-model cleanup — 2026-10-21
+
+An audit of every place the game still loads an authored (pre-Tripo) model, plus removal of the files nothing loads any more. No code changed, and no Tripo or Codex credits were spent.
+
+- **Still in use:** `villager.glb` (58 bones) is shared by Ren, Aki, Hana, Emi and Yui, the five residents with no `World.TripoResidents` entry. `patrol.glb` is used by the three hostile robots (`Enemy.cs`, clips walk, run, idle, guard, attack2, stagger and death). They stay until replacements exist, along with their Blender rebuild path: `refine_humans.py`, `mio_illustrated.py`, `mio_turnaround.py`, `build_characters.py`, `amber-iris.png` and the four painted textures the pipeline loads.
+- **Removed:**
+  - 28 textures (about 50 MB) that Godot had extracted from old GLB exports of Mio, Chiyo and KOMA-7. None of them is embedded in a current GLB, and a fresh `--import` recreated none of them.
+  - 16 superseded old-Mio paint revisions and their `.import` files (about 22 MB).
+  - Seven generation records and the two old-Mio material notes.
+  - The old-Mio Blender QA scripts `check_mio_{eye_cheek,eye_rim,hair,lids,orbit_contour}.py`. `render_human_review.py` stays: it also renders the shared villager.
+- **Checks:** `dotnet build` and a headless `--import` are clean. The self-test passes 462 checks both headless and in native Metal (`SELF_TEST_PASS` both times). `just unit` passes 17 and `just e2e` passes 4.
+
 ## Komorebi revamp — 2026-10-21
 
 Komorebi redone to Hoshikawa's standard with existing assets and one new Blender tree: no Tripo or Codex credits. Hoshikawa is unchanged. Its well, notice board, handcart, scarecrow and hasa rack moved into shared helpers that add the same nodes in the same order, and its seeded streams draw as before.
