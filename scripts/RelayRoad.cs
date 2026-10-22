@@ -20,26 +20,30 @@ public partial class World
         ("Forest valley",6,1.1f,new Vector3[]{new(3,1.2f,-24),new(-6,1.4f,-34),new(-14,2,-58),new(-4,2.6f,-80),new(16,3,-96),new(2,3.4f,-112),new(-14,3.8f,-122),new(-28,4.2f,-128)}),
         ("Old quarry",9,0,new Vector3[]{new(-28,4.2f,-128),new(-36,4.4f,-134)}),
     };
+    private static readonly int Reaches=Trails.Sum(t=>t.Points.Length-1);
     // The distance from (x, z) to a trail's points and the ground level at its nearest point.
     public static (float Gap,float Level) Near(Vector3[] points,float x,float z)
     {
-        var p=new Vector2(x,z);float best=float.MaxValue,level=0;
-        for(int i=0;i<points.Length-1;i++)
-        {
-            Vector2 a=new(points[i].X,points[i].Z),b=new(points[i+1].X,points[i+1].Z);float t=Mathf.Clamp((p-a).Dot(b-a)/(b-a).LengthSquared(),0,1),gap=p.DistanceTo(a.Lerp(b,t));
-            if(gap<best){best=gap;level=Mathf.Lerp(points[i].Y,points[i+1].Y,t);}
-        }
-        return (best,level);
+        (float Gap,float Level) best=(float.MaxValue,0);
+        for(int i=0;i<points.Length-1;i++){var near=Near(points[i],points[i+1],x,z);if(near.Gap<best.Gap)best=near;}
+        return best;
     }
-    // Each point takes the level of the trail whose floor it lies nearest outside of, blended over about half a metre where two floors
-    // meet so that they meet at a cliff, and further into the mountain, so its ridges carry no crease. Beyond a floor's edge the rock rises
-    // 5-7 m over 2.5 m, steeper than Mio's 50 degree floor limit over all but its foot and brow, then on into ridges.
+    // The same for one reach, from a to b.
+    public static (float Gap,float Level) Near(Vector3 a,Vector3 b,float x,float z)
+    {
+        Vector2 p=new(x,z),from=new(a.X,a.Z),to=new(b.X,b.Z);float t=Mathf.Clamp((p-from).Dot(to-from)/(to-from).LengthSquared(),0,1);
+        return (p.DistanceTo(from.Lerp(to,t)),Mathf.Lerp(a.Y,b.Y,t));
+    }
+    // Each point takes the level of the trail reach whose floor it lies nearest outside of, blended over about half a metre where two
+    // floors meet so that they meet at a cliff, and further into the mountain, so its ridges carry no crease; reach by reach, not trail
+    // by trail, or the spur inside a bend would step where its nearest point jumps from one reach to the next. Beyond a floor's edge the
+    // rock rises 5-7 m over 2.5 m, steeper than Mio's 50 degree floor limit over all but its foot and brow, then on into ridges.
     // The river's bank south of RelaySouth+2 and Cedar Pass north of RelayNorth+2 count as floors too, at their own ground's level there,
     // so the mountain rises from them in the same cliffs.
     private static float RelayGround(float x,float z)
     {
-        int n=Trails.Length;Span<float> g=stackalloc float[n+2],l=stackalloc float[n+2];
-        for(int i=0;i<n;i++){var (gap,level)=Near(Trails[i].Points,x,z);g[i]=gap-Trails[i].Half;l[i]=level;}
+        int n=0;Span<float> g=stackalloc float[Reaches+2],l=stackalloc float[Reaches+2];
+        foreach(var (_,half,_,points) in Trails)for(int i=0;i<points.Length-1;i++){var (gap,level)=Near(points[i],points[i+1],x,z);g[n]=gap-half;l[n++]=level;}
         g[n]=RelaySouth+2-z;l[n]=BaseHeight(x,Math.Max(z,RelaySouth+2));g[n+1]=z-RelayNorth-2;l[n+1]=BaseHeight(x,Math.Min(z,RelayNorth+2));
         float edge=float.MaxValue;foreach(float e in g)edge=Math.Min(edge,e);
         float soft=.3f+.3f*Math.Max(0,edge),weights=0,sum=0;
@@ -65,9 +69,9 @@ public partial class World
         foreach(var (_,half,_,points) in Trails)edge=Math.Min(edge,Near(points,x,z).Gap-half);
         return edge;
     }
-    // A shortcut opens once, from its far side: Mio works it at From, and Part swings about its own origin from its Closed turn to its
+    // A shortcut opens once, from its far side: Mio works it at From, and Part swings about its own X axis from its Closed angle to its
     // Open one. Game keeps which are open through deaths, until the prologue restarts.
-    public record Shortcut(string Name,AnimatableBody3D Part,Vector3 From,Quaternion Closed,Quaternion Open);
+    public record Shortcut(string Name,AnimatableBody3D Part,Vector3 From,float Closed,float Open){public void Swing(float angle)=>Part.Quaternion=new(Vector3.Right,angle);}
     public readonly List<Shortcut> Shortcuts=new();
     // Remedy pouches lying off the road; Game hides each one Mio takes until the prologue restarts.
     public readonly List<Node3D> Pouches=new();
@@ -86,7 +90,7 @@ public partial class World
         for(int i=0;i<200;i++)
         {
             float x=X(),z=Z(),s=r.RandfRange(.8f,1.4f),edge=RelayEdge(x,z),path=Near(valley.Points,x,z).Gap;
-            bool floor=z<-40&&path>2.4f&&path<valley.Half-.8f&&edge>=path-valley.Half-.01f;
+            bool floor=z<-40&&path>2.4f&&path<valley.Half-2.2f&&edge>=path-valley.Half-.01f;
             if(floor||edge>3.5f&&edge<16)Tree(new(x,Height(x,z),z),s,floor?"valley":"countryside",r);
         }
         for(int i=0;i<420;i++)
@@ -119,8 +123,12 @@ public partial class World
         Minka(OldTeahouse.Name,OldTeahouse.At,OldTeahouse.Size,OldTeahouse.Yaw,OldTeahouse.Style);
         TeahouseLadder();
         // The old quarry: cut blocks along its walls, a timber sled and, on a crate at its far end, a remedy pouch.
-        foreach(var (x,z,w,h,d,yaw) in new[]{(-44f,-128f,2.4f,1.6f,1.8f,.3f),(-42f,-140f,1.8f,1.2f,1.6f,-.4f),(-30f,-139f,2f,1f,1.4f,.9f),(-24f,-121f,1.6f,1.3f,1.2f,.2f),(-45f,-131.5f,1.2f,.9f,1.2f,1.1f)})
-            Box(this,"Quarry block",new(x,Height(x,z)+h/2-.1f,z),new(w,h,d),stone,true).Rotation=new(0,yaw,0);
+        foreach(var (x,z,w,h,d,yaw) in new[]{(-38.5f,-127.5f,2.4f,1.6f,1.8f,.3f),(-42f,-140f,1.8f,1.2f,1.6f,-.4f),(-30f,-139f,2f,1f,1.4f,.9f),(-24f,-121f,1.6f,1.3f,1.2f,.2f),(-45f,-131.5f,1.2f,.9f,1.2f,1.1f)})
+        {
+            // Each rests on the lowest ground under its corners, sunk into the wall's foot where it leans on it rather than standing off it.
+            float y=new[]{-.5f,.5f}.SelectMany(a=>new[]{-.5f,.5f},(a,b)=>Height(x+a*w,z+b*d)).Min();
+            Box(this,"Quarry block",new(x,y+h/2-.1f,z),new(w,h,d),stone,true).Rotation=new(0,yaw,0);
+        }
         foreach(float x in new[]{-.5f,.5f})Box(this,"Quarry sled runner",new(-33+x,Height(-33,-138)+.1f,-138),new(.12f,.2f,2.6f),wood);
         Box(this,"Quarry sled deck",new(-33,Height(-33,-138)+.25f,-138),new(1.3f,.1f,2),wood,true);
         var pouch=new Node3D{Name="Remedy pouch",Position=new(-40,Height(-40,-137),-137)};AddChild(pouch);
@@ -156,8 +164,12 @@ public partial class World
         var boxes=new List<(Vector3,Vector3)>{(new(-.7f,-.05f,length/2),new(.12f,.24f,length)),(new(.7f,-.05f,length/2),new(.12f,.24f,length))};
         for(float t=.3f;t<length;t+=.32f)boxes.Add((new(0,.02f,t),new(1.3f,.05f,.2f)));
         part.AddChild(Combined("Ladder",wood,boxes.ToArray()));
-        var shortcut=new Shortcut("Teahouse ladder",part,top+new Vector3(0,0,-2),new(Vector3.Right,-1.8f),new(Vector3.Right,Mathf.Atan2(-d.Y,d.Z)));
-        part.Quaternion=shortcut.Closed;Shortcuts.Add(shortcut);
+        // Drawn up, it lies back over the terrace on a trestle, so it is lowered from beside its hinge and swings up over it and down.
+        const float back=.3f,rest=4;var on=part.Position+new Vector3(0,rest*Mathf.Sin(back)-.07f,-rest*Mathf.Cos(back));float ground=Height(on.X,on.Z);
+        foreach(float x in new[]{-.95f,.95f})Box(this,"Ladder trestle leg",new(on.X+x,(on.Y+ground)/2,on.Z),new(.12f,on.Y-ground,.12f),wood,true);
+        Box(this,"Ladder trestle bar",new(on.X,on.Y-.06f,on.Z),new(2.1f,.12f,.14f),wood);
+        var shortcut=new Shortcut("Teahouse ladder",part,top+new Vector3(1.8f,0,-1),back-Mathf.Pi,Mathf.Atan2(-d.Y,d.Z));
+        shortcut.Swing(shortcut.Closed);Shortcuts.Add(shortcut);
     }
     // Boxes baked into one mesh that Merge() leaves alone, for parts that move or vanish.
     private static MeshInstance3D Combined(string name,Material material,params (Vector3 At,Vector3 Size)[] boxes)
