@@ -131,10 +131,12 @@ public partial class World
         return (joined.Where(c=>Fine.HasPoint(c)).ToList(),Wet(area.Intersection(Far),4,c=>Gorge(c)&&!Fine.HasPoint((Vector2I)c.Floor()),Level)
             .Where(c=>Enumerable.Range(0,16).Any(i=>all.Contains(c+new Vector2I(i%4,i/4)))).ToList(),all);
     }).ToArray());
-    // The corners of every river water cell. Shore() paints the ground beside a river wet only here, so a hollow under a reach's level
-    // that its water cannot reach stays as dry as it looks.
+    // The corners of every river water cell, and the ground within one 4 m cell of them. Shore() paints a river's wet band only on that
+    // ground, and below the river's level only under its water, so a hollow under a reach's level that its water cannot reach stays as dry
+    // as it looks, while a 4 m bank vertex beside the water still carries its height up the band.
     private static readonly Lazy<HashSet<Vector2I>> Damp=new(()=>RiverWater.Value.SelectMany(w=>w.Joined)
         .SelectMany(c=>new[]{c,c+new Vector2I(1,0),c+new Vector2I(0,1),c+new Vector2I(1,1)}).ToHashSet());
+    private static readonly Lazy<HashSet<Vector2I>> Banks=new(()=>Damp.Value.SelectMany(c=>Enumerable.Range(0,81).Select(i=>c+new Vector2I(i%9-4,i/9-4))).ToHashSet());
     private void Wilds()
     {
         var sea=WaterMaterial(Vector2.Zero);
