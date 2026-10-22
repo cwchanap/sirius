@@ -10,37 +10,63 @@ public partial class World
     public static readonly Rect2I Fine = new(-HalfWidth-Margin,NorthEdge-Margin,2*(HalfWidth+Margin),SouthEdge-NorthEdge+2*Margin), Far = new(-180,NorthEdge-100,360,SouthEdge-NorthEdge+200);
     public static bool InPlay(float x,float z)=>Math.Abs(x)<=HalfWidth&&z>=NorthEdge&&z<=SouthEdge;
     // The rivers beyond the play area, upstream first: (x, water level, z) points whose levels never rise downstream, a fall being two
-    // points a metre apart. Each course meets a play-area river at its edge with that river's level, or the sea at the sea's.
-    // The Hoshikawa and the Cedar River spring from gorges in the eastern mountains and fall into the valley; the Cedar River
-    // leaves it again through a canyon in the western range and reaches the sea north of the Hoshikawa's mouth.
+    // points a metre apart with straight reaches either side. Each course meets a play-area river at its edge with that river's level,
+    // or the sea at the sea's. The Hoshikawa and the Cedar River spring from hollows high on the eastern range, run down its slope and
+    // fall twice into the valley; the Cedar River leaves it again through a canyon in the western range to its own mouth on the bay.
     public static readonly (string Name,Vector3[] Course)[] Rivers={
-        ("Hoshikawa headwater",new Vector3[]{new(97,7.4f,-28),new(89,6.3f,-15),new(80,5.62f,-8),new(79,WaterLevel,-8),new(HalfWidth,WaterLevel,-8)}),
-        ("Cedar headwater",new Vector3[]{new(95,7f,-134),new(88,6.2f,-122),new(80,5.7f,-111),new(79,CedarLevel,-111),new(HalfWidth,CedarLevel,-111)}),
-        ("Cedar outlet",new Vector3[]{new(-HalfWidth,CedarLevel,-111),new(-74,.62f,-111),new(-82,.5f,-100),new(-86,.3f,-76),new(-86,0,-52),new(-83,WaterLevel,-34),new(-80,WaterLevel,-12)}),
+        ("Hoshikawa headwater",new Vector3[]{new(160,33,-57.5f),new(131.9f,23,-40.4f),new(100,13,-32.5f),new(99.08f,7.4f,-32.12f),new(91.7f,7.1f,-29),new(89,5.8f,-8.5f),new(80,5.62f,-8),new(79,WaterLevel,-8),new(HalfWidth,WaterLevel,-8)}),
+        ("Cedar headwater",new Vector3[]{new(146,41,-150),new(125.2f,30,-134.5f),new(100,19,-128),new(99.1f,11,-127.57f),new(91.9f,10.6f,-124.1f),new(89,6,-111.5f),new(80,5.7f,-111),new(79,CedarLevel,-111),new(HalfWidth,CedarLevel,-111)}),
+        ("Cedar outlet",new Vector3[]{new(-HalfWidth,CedarLevel,-111),new(-74,.62f,-111),new(-92,.55f,-104),new(-110,.45f,-90),new(-124,.25f,-70),new(-131,WaterLevel,-48),new(-134,WaterLevel,-30),new(-136,WaterLevel,-14)}),
     };
-    // Where the river's floor runs level, either side of its course; the gorge's walls climb from there to the mountain 4.5 m further out.
+    // A fall is a drop between two points under 1.5 m apart; anything longer is a reach, however steep.
+    public static bool Fall(Vector3 top,Vector3 foot)=>new Vector2(foot.X-top.X,foot.Z-top.Z).Length()<1.5f&&top.Y-foot.Y>1;
+    // Where the river's floor runs level, either side of its course; the gorge's walls climb from there to the mountain over at least
+    // 4.5 m, and over 80% of their height where that is more, so a deep gorge opens into a valley.
     private const float GorgeFloor=3.5f,GorgeWall=4.5f;
+    // How far (x, z) lies beyond the play area.
+    public static float Beyond(float x,float z)=>new Vector2(x-Mathf.Clamp(x,-HalfWidth,HalfWidth),z-Mathf.Clamp(z,NorthEdge,SouthEdge)).Length();
     // 1 over the south-west sea, 0 over the mountains: west of the play area south of the headland at the Hoshikawa's mouth, and south of it
-    // west of the south-east headland; each coast wanders.
-    // The headlands' sea cliffs face it over 6 m.
-    public static float Sea(float x,float z)=>Math.Max(x<-HalfWidth?Mathf.SmoothStep(-26,-20,z+6*Mathf.Sin(x*.05f)):0,z>SouthEdge?1-Mathf.SmoothStep(20,26,x+8*Mathf.Sin(z*.06f)):0);
+    // west of the south-east headland, each coast wandering. The headlands' sea cliffs face it over 6 m beside the play area, easing to
+    // mountainsides further out, and rocky capes run out into it.
+    public static float Sea(float x,float z)
+    {
+        float w=6+.4f*Math.Max(0,Beyond(x,z)-24);
+        float sea=Math.Max(x<-HalfWidth?Mathf.SmoothStep(-20-w,-20,z+6*Mathf.Sin(x*.05f)):0,z>SouthEdge?1-Mathf.SmoothStep(20,20+w,x+8*Mathf.Sin(z*.06f)):0);
+        var p=new Vector2(x,z);
+        foreach(var (a,b,r) in Capes)
+        {
+            float t=Mathf.Clamp((p-a).Dot(b-a)/(b-a).LengthSquared(),0,1),narrow=r*(1-.45f*t)+2.5f*Mathf.Sin(x*.31f+z*.17f)*Mathf.Sin(x*.13f-z*.29f);
+            sea*=1-(1-Mathf.SmoothStep(narrow-5,narrow,p.DistanceTo(a.Lerp(b,t))))*(1-.55f*t);
+        }
+        return sea;
+    }
+    // Rocky capes from the edge out into the sea, each a ridge narrowing and sinking from its root to its tip, so the coast does not
+    // follow the play area's edges and corner.
+    private static readonly (Vector2 Root,Vector2 Tip,float Radius)[] Capes={(new(-66,24),new(-92,36),10),(new(-66,60),new(-82,70),8),(new(-64,80),new(-92,104),11),(new(-20,82),new(-34,102),9)};
     // Outside the play area the ground carries on from its nearest edge point: up a cliff into the mountains, down a beach under the sea,
     // or, along a river's course, through its gorge, whose floor eases over 6 m from the edge's own river bed to 80 cm under the course's
-    // level, falls included. In the sea a gorge only ever deepens the seabed.
+    // level, falls included. In the sea a gorge only ever deepens the seabed. Over the first 12 m the edge's own channels fill in, so a
+    // river bed or ditch that meets the edge does not run on as a trench across the mountains.
     private static float Outside(float x,float z)
     {
         float cx=Mathf.Clamp(x,-HalfWidth,HalfWidth),cz=Mathf.Clamp(z,NorthEdge,SouthEdge),d=new Vector2(x-cx,z-cz).Length(),sea=Sea(x,z),edge=Inside(cx,cz);
         // The beach starts down to the sea up to 6 m out from the edge, so the coast wanders instead of following it.
         float shore=3+3*Mathf.Sin(x*.07f+z*.05f)*Mathf.Sin(x*.031f-z*.083f);
-        float y=edge+(1-sea)*Mountain(x,z,d)-sea*(3*Mathf.SmoothStep(shore,shore+8,d)+.08f*Math.Max(0,d-shore-8));
+        float y=Mathf.Lerp(edge,Filled(cx,cz),Mathf.SmoothStep(0,12,d))+(1-sea)*Mountain(x,z,d)-sea*(3*Mathf.SmoothStep(shore,shore+8,d)+.08f*Math.Max(0,d-shore-8));
         foreach(var (_,course) in Rivers)
         {
             var (gap,level,_)=Along(course,x,z);
-            if(gap>=GorgeFloor+GorgeWall)continue;
-            float gorge=Mathf.Lerp(y,Mathf.Lerp(edge,level-.8f,Mathf.SmoothStep(0,6,d)),1-Mathf.SmoothStep(GorgeFloor,GorgeFloor+GorgeWall,gap));
+            float floor=Mathf.Lerp(edge,level-.8f,Mathf.SmoothStep(0,6,d)),gorge=Mathf.Lerp(y,floor,1-Mathf.SmoothStep(GorgeFloor,GorgeFloor+Math.Max(GorgeWall,(y-floor)*.8f),gap));
             y=sea>0?Math.Min(y,gorge):gorge;
         }
         return y;
+    }
+    // The edge's ground at (cx, cz) with any channel up to 16 m wide filled: the highest of it and the edge 8 m either way along.
+    private static float Filled(float cx,float cz)
+    {
+        var along=Math.Abs(cx)==HalfWidth&&cz>NorthEdge&&cz<SouthEdge?new Vector2(0,8):new Vector2(8,0);var c=new Vector2(cx,cz);
+        float Edge(Vector2 p)=>Inside(Mathf.Clamp(p.X,-HalfWidth,HalfWidth),Mathf.Clamp(p.Y,NorthEdge,SouthEdge));
+        return Math.Max(Edge(c),Math.Max(Edge(c+along),Edge(c-along)));
     }
     // An 8 to 12 m cliff, rising over 5 m from a foot that wanders up to 4 m out from the edge: steeper than Mio's 50 degree floor limit
     // over 70% of its height and taller than her 1.24 m jump. Then ridges rising to 5-40 m.
@@ -74,20 +100,23 @@ public partial class World
         bool Open(Vector2 c)=>!InPlay(c.X,c.Y)&&Sea(c.X,c.Y)>0;
         WaterGrid("Sea",Fine,1,Open,(_,_)=>WaterLevel,sea);
         WaterGrid("Open sea",Far,4,c=>Open(c)&&!Fine.HasPoint((Vector2I)c.Floor()),(_,_)=>WaterLevel,sea);
-        // Past the 4 m mountains the sea runs on under the fog to the horizon.
-        Mesh(this,"Sea to the horizon",new PlaneMesh{Size=new(720,960),SubdivideWidth=89},new(Far.Position.X-360,WaterLevel,-40+480),sea);
+        // Past the 4 m mountains the sea runs on under the fog to the horizon, west of the whole range as well as south of it.
+        Mesh(this,"Sea to the horizon",new PlaneMesh{Size=new(720,920-Far.Position.Y),SubdivideWidth=89},new(Far.Position.X-360,WaterLevel,(920+Far.Position.Y)/2f),sea);
         Mesh(this,"Sea to the south horizon",new PlaneMesh{Size=new(220,720),SubdivideWidth=54},new(Far.Position.X+110,WaterLevel,Far.End.Y+360),sea);
         foreach(var (name,course) in Rivers)
         {
-            var box=new Rect2(course[0].X,course[0].Z,0,0);foreach(var p in course)box=box.Expand(new(p.X,p.Z));box=box.Grow(GorgeFloor+GorgeWall+1);
-            var area=new Rect2I((Vector2I)box.Position.Floor(),(Vector2I)box.Size.Ceil()+Vector2I.One).Intersection(Fine);
-            // One mesh per straight reach, so each drifts its own way; neighbours share their edge vertices.
+            var box=new Rect2(course[0].X,course[0].Z,0,0);foreach(var p in course)box=box.Expand(new(p.X,p.Z));box=box.Grow(GorgeFloor+GorgeWall+4);
+            var area=new Rect2I((Vector2I)(box.Position/4).Floor()*4,(Vector2I)(box.Size/4).Ceil()*4+new Vector2I(4,4));
+            // One mesh per straight reach, so each drifts its own way; neighbours share their edge vertices. Past the 1 m ground the 4 m
+            // ground carries the upper reaches on its own grid, meeting the 1 m water along a line of constant x or z.
             for(int i=0;i<course.Length-1;i++)
             {
-                if(course[i].Y-course[i+1].Y>1){Waterfall(name,course[i],course[i+1]);continue;}
-                int segment=i;var flow=new Vector2(course[i+1].X-course[i].X,course[i+1].Z-course[i].Z).Normalized()*.35f;
-                WaterGrid($"{name} {i}",area,1,c=>!InPlay(c.X,c.Y)&&Sea(c.X,c.Y)<=0&&Along(course,c.X,c.Y) is var a&&a.Gap<GorgeFloor+GorgeWall&&a.Segment==segment,
-                    (x,z)=>Along(course,x,z).Level,WaterMaterial(flow));
+                if(Fall(course[i],course[i+1])){Waterfall($"{name} {i}",course[i],course[i+1]);continue;}
+                int segment=i;var flow=new Vector2(course[i+1].X-course[i].X,course[i+1].Z-course[i].Z).Normalized()*.35f;var material=WaterMaterial(flow);
+                bool Reach(Vector2 c)=>!InPlay(c.X,c.Y)&&Sea(c.X,c.Y)<=0&&Along(course,c.X,c.Y) is var a&&a.Gap<GorgeFloor+GorgeWall&&a.Segment==segment;
+                float Level(float x,float z)=>Along(course,x,z).Level;
+                WaterGrid($"{name} {i}",area.Intersection(Fine),1,Reach,Level,material);
+                WaterGrid($"{name} {i} far",area.Intersection(Far),4,c=>Reach(c)&&!Fine.HasPoint((Vector2I)c.Floor()),Level,material);
             }
         }
         var walls=new StaticBody3D{Name="Invisible wall",CollisionMask=0};AddChild(walls);
@@ -104,7 +133,7 @@ public partial class World
     }
     // Water over the terrain's own grid and diagonals: a cell `owns` admits is wet where a corner's ground lies under the water's level
     // there + 4 cm, so wherever the water meets dry cells its edge runs along the terrain mesh's chords, buried deeper than the shader's wave.
-    // Cells across a fall, whose corners' levels differ, stay dry: the fall's curtain covers them.
+    // Cells across a fall, whose corners' levels differ by more than a steep reach's do, stay dry: the fall's curtain covers them.
     private void WaterGrid(string name,Rect2I area,int step,Func<Vector2,bool> owns,Func<float,float,float> level,Material material)
     {
         var st=new SurfaceTool();st.Begin(Godot.Mesh.PrimitiveType.Triangles);int cells=0;
@@ -113,7 +142,7 @@ public partial class World
         {
             if(!owns(new(x+step/2f,z+step/2f)))continue;
             var corners=new[]{(x,z),(x+step,z),(x,z+step),(x+step,z+step)};var levels=corners.Select(c=>level(c.Item1,c.Item2)).ToArray();
-            if(levels.Max()-levels.Min()>.5f||corners.Select((c,i)=>Height(c.Item1,c.Item2)-levels[i]).Min()>=.04f)continue;
+            if(levels.Max()-levels.Min()>.7f*step||corners.Select((c,i)=>Height(c.Item1,c.Item2)-levels[i]).Min()>=.04f)continue;
             V(x,z);V(x+step,z);V(x,z+step);V(x+step,z);V(x+step,z+step);V(x,z+step);cells++;
         }
         if(cells==0)return;

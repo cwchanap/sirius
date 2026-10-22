@@ -34,7 +34,7 @@ public class WildsTest
         foreach(var (name,course) in World.Rivers)
             for(int i=0;i<course.Length-1;i++)
             {
-                if(course[i].Y-course[i+1].Y>1)continue;
+                if(World.Fall(course[i],course[i+1]))continue;
                 var dry=Enumerable.Range(0,21).Select(k=>course[i].Lerp(course[i+1],k/20f)).Where(p=>!World.InPlay(p.X,p.Z)&&World.Height(p.X,p.Z)>p.Y-.3f).ToArray();
                 AssertThat(dry).OverrideFailureMessage($"{name} reach {i} runs dry at {string.Join(", ",dry)}").IsEmpty();
             }
