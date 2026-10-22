@@ -25,7 +25,7 @@ public class WildsTest
         AssertThat(World.CedarLevel).IsGreater(World.WaterLevel);
     }
     // No stretch of a river runs over a bed above its water: across the play area the bed under each sheet's middle 6 m, beyond it the
-    // gorge floor along each course, falls aside.
+    // gorge floor along each course, falls aside, and so the head of a spring's ravine, above where its water wells up.
     [TestCase]
     public void RiverBedsLieUnderTheirWater()
     {
@@ -35,7 +35,8 @@ public class WildsTest
             for(int i=0;i<course.Length-1;i++)
             {
                 if(World.Fall(course[i],course[i+1]))continue;
-                var dry=Enumerable.Range(0,21).Select(k=>course[i].Lerp(course[i+1],k/20f)).Where(p=>!World.InPlay(p.X,p.Z)&&World.Height(p.X,p.Z)>p.Y-.3f).ToArray();
+                bool Head(Vector3 p)=>!World.InPlay(course[0].X,course[0].Z)&&World.Along(course,p.X,p.Z).From<World.Spring;
+                var dry=Enumerable.Range(0,21).Select(k=>course[i].Lerp(course[i+1],k/20f)).Where(p=>!World.InPlay(p.X,p.Z)&&!Head(p)&&World.Height(p.X,p.Z)>p.Y-.3f).ToArray();
                 AssertThat(dry).OverrideFailureMessage($"{name} reach {i} runs dry at {string.Join(", ",dry)}").IsEmpty();
             }
     }

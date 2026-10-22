@@ -6,22 +6,27 @@ The valley is now closed by its own terrain, and its water follows the land. Eve
 
 - **Edges:**
   - Beyond the play area `Outside()` carries the edge's height outward into an 8–12 m cliff and the mountains behind it.
-  - Within 12 m of the edge, the edge's own channels fill in, so the river beds no longer run on as straight trenches across the range. The first Metal review measured those trenches at 3–4 m deep.
+  - Under the mountains the ground eases within 12 m of the edge to a level 3.5 m upland, so the river beds no longer run on as straight trenches across the range (the first Metal review measured them at 3–4 m deep). Nothing at the edge carries on as a crease either: the second review saw faint lines running out from the play area's corners, where the old channel filling switched direction.
   - South-west of Hoshikawa the ground runs down a beach under the sea instead. Four rocky capes break the shore, each narrowing and sinking towards its tip. Further from the valley, the headlands ease into mountainsides instead of standing as sheer sea cliffs.
   - The `Valley boundary` boxes and the ridge mesh are gone. The machine-city silhouette stands behind the eastern range (x 150–174).
 - **Water:**
   - Both valley rivers flow west.
-  - The Hoshikawa springs from a hollow at 33 m high on the eastern range and runs down its slope as a steep stream. It drops over two falls of about 6 m into its gorge, crosses the valley at sea level and enters the sea.
-  - The Cedar River springs at 41 m further north and falls 8 m and then 5 m into Cedar Pass. It leaves through a slot in the western hill and a canyon closed by a boulder choke, then runs south-west down its own valley to a mouth on the bay, 70 m west of the Hoshikawa's.
+  - The Hoshikawa springs at 35 m in a fold of the eastern range and bends down its slope as a torrent. It drops over two falls of about 6 m into its gorge, crosses the valley at sea level and enters the sea.
+  - The Cedar River springs at 45 m just under the range's 52 m summit further north, runs straight down its fall line and falls 9 m and then 5 m into Cedar Pass. It leaves through a slot in the western hill and a canyon closed by a boulder choke, then runs south-west down its own valley to a mouth on the bay, 70 m west of the Hoshikawa's.
   - Every fall has straight reaches on both sides. In the first Metal review, a bend just above each fall let the upper gorge floor show through the curtain.
-  - Deep gorges open into V-shaped valleys.
+  - Deep gorges open into V-shaped valleys, and above the falls into broader mountain valleys.
+  - The second Metal review found the headwater gorges dead straight with squared-off heads, like cut channels. Each headwater now follows the range's folds: the Hoshikawa its natural valley line, the Cedar its fall line, which it used to cross at an angle. The floors wander in width. A spring's ravine starts as a fold in the hillside and cuts down over its first 24 m, where the water appears. Where a reach would run with the hillside lower than its water, its bank stands as a 2 m levee instead of letting it spill.
+  - The walls follow a level and distance smoothed over the course, so bends leave no creases on them. A fall's step crosses the walls near the river and fades out within about 20 m.
+  - Steep reaches (17–43%) now read as white water. Seen from below they used to read as pale gravel roads: the shader measured depth vertically, and up a steep reach that comes to nothing, so the water was clear. Depth is now measured square to each cell's sloped surface, and reaches steeper than about 1 in 8 break into streaks racing downhill.
+  - A reach's water fills whatever of its ground lies under its level within 16 m of its course. Water near the Cedar's mouth used to stop short of its banks in 4 m steps.
   - Outside the play area, water is laid on the terrain's own 1 m or 4 m grid, so no shore can surface.
   - The only invisible walls are off the beach (0.5 m deep) and behind the boulder choke.
-- **Rendering fixes from the first Metal review:**
-  - The skirt between the 1 m and 4 m terrain now spans both edges. It used to hang only below the 1 m edge, which left sky showing through wherever a gorge crossed the join.
+- **Rendering fixes from the two Metal reviews:**
+  - The 4 m terrain's cells along the 1 m ground's edge fan out to its vertices, so the two meshes share their edge. The first review saw sky through cracks at the join, and the second saw a dark notch at the waterline where the skirt that replaced those cracks showed. The skirt is gone, and a 4 m water cell on the join now counts the 1 m vertices too.
+  - On steep rock the wet band at the waterline reaches at least a cell's height up. A thinner band zigzagged across the 1 m triangles on the canyon wall behind the choke.
   - `terrain.gdshader` samples the atlas with gradients from the unwrapped uv. It stops at mip 3 and fades into each cell's mean colour by mip 5, so the dashed grid along tile edges on distant slopes is gone.
   - Rock is projected from whichever side faces it, so cliffs are no longer streaked.
-  - The far sea plane now reaches west of the whole range.
+  - The far sea planes run 2 km west and 1.3 km south of the range, past any view. From the Cedar mouth the second review saw the old plane's straight end.
 - **Unit tests:** `dotnet test tests/unit` passes 32. The new ones check that:
   - rivers never run uphill;
   - each course ends in a valley river or the sea at its level;
@@ -39,16 +44,19 @@ The valley is now closed by its own terrain, and its water follows the land. Eve
 - **E2E:** `dotnet test tests/e2e` passes 4 against the headless game (godot-e2e v0.1.2).
 - **Render cost** (`render_cost.gd`'s three village viewpoints):
   - First version, on Metal: draws 1118/1062/1208, primitives 3.225M/2.995M/3.154M, CPU median 0.73–0.82 ms, 175–215 fps.
-  - Under Mesa's software Vulkan in the cloud, 1b7fd57 → this change: draws 1047/1002/1118 → 1126/1085/1194, primitives 3.086M/2.981M/2.839M → 3.104M/3.009M/2.881M.
+  - Second version (92696dd), on Metal: draws 1123/1069/1212, primitives 3.22M/3.00M/3.12M, CPU median 0.77–0.81 ms, 118–120 fps at the display's cap.
+  - Under Mesa's software Vulkan in the cloud, 1b7fd57 → the first version: draws 1047/1002/1118 → 1126/1085/1194, primitives 3.086M/2.981M/2.839M → 3.104M/3.009M/2.881M. This version's first viewpoint reads draws 1123, primitives 3.201M; the run timed out at 1 fps before the other two.
 - **Captures:**
   - The first version's ten `review_map.gd` views were taken natively on Metal. That review found the trenches, the cracks at the join, the tile grid, the notched curtains, the rectangular coast and the Cedar outlet's canal-like route, all fixed above.
-  - The fixes were checked in twelve views (with the new `hoshikawa-headwater` and `cedar-mouth`) under Mesa's software Vulkan (lavapipe, `xvfb-run`), which shows shapes and placement only.
-- **Not verified:** a Metal run of the fixed version.
+  - The second version's twelve views were taken natively on Metal. That review found the pale steep reaches, the straight headwater gorges, the creases on the gorge walls and at the corners, the notch and the zigzag at the join, the sea plane's end and the stepped water near the Cedar's mouth, all fixed above.
+  - Each round of fixes was checked in the same twelve views under Mesa's software Vulkan (lavapipe, `xvfb-run`), which shows shapes and placement only.
+- **Not verified:** a Metal run of this version.
 - **Limits:**
   - The cliffs still use the stone atlas, so they read as coursed masonry. A cliff texture is the separate art task A1.
   - The cliff tops are sharp creases.
   - Distant terrain beyond mip 5 is each material's flat mean colour.
-  - The steep upper reaches are sloped sheets of water rather than cascades.
+  - Steep reaches are sloped sheets of white water, not stepped cascades.
+  - From the air the capes are flat-topped shelves. From the ground they read as rocky headlands.
   - The machine city's boxes look like a bar chart when there is no fog.
   - No physical keyboard/mouse session is claimed.
 
