@@ -55,9 +55,10 @@ public partial class World : Node3D
     // Height(), the water strip, the footbridge and the minimap all follow this one brook line.
     public static float BrookX(float z)=>19.3f+.6f*Mathf.Sin(z*.16f);
     // Wetness, 0..1, that terrain.gdshader paints as damp earth and gravel: rising from .35 m above the river, brook, Cedar River, sea and gorge waterlines to them, and half wet across the paddy floors.
-    public static float Shore(float x,float z)
+    // Beyond the play area the band reaches `band` up instead, which Ground() raises on steep rock so it is never thinner than a cell.
+    public static float Shore(float x,float z,float band=.35f)
     {
-        if(!InPlay(x,z))return WaterOutside(x,z) is float level?1-Mathf.SmoothStep(.05f,.35f,Height(x,z)-level):0;
+        if(!InPlay(x,z))return WaterOutside(x,z) is float level?1-Mathf.SmoothStep(.05f,band,Height(x,z)-level):0;
         if(Paddies.Any(p=>p.HasPoint(new(x,z))))return .5f;
         bool cedar=z<-60,near=cedar?Math.Abs(z+111)<7:Math.Abs(z+8)<6||(z>-6&&z<57.5f&&Math.Abs(x-BrookX(z))<3.2f);
         return near?1-Mathf.SmoothStep(.05f,.35f,Height(x,z)-(cedar?CedarLevel:WaterLevel)):0;
@@ -292,8 +293,7 @@ public partial class World : Node3D
         var material = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shaders/terrain.gdshader") };
         material.SetShaderParameter("atlas",GD.Load<Texture2D>("res://assets/art/material-atlas.png"));
         // The 1 m terrain over the play area and its margin, with its collider, in 64 m chunks that culling can drop; then the 4 m mountains and
-        // seabed round it to Far, and a skirt along the 1 m mesh's rim that closes the cracks where its finer edge meets them: from under
-        // the lower of the two edges, which the 4 m mesh draws straight between its vertices, up to the higher.
+        // seabed round it to Far, stitched to its edge.
         var ground = new StaticBody3D { Name = "Terrain collision" }; AddChild(ground);
         for(int z=Fine.Position.Y;z<Fine.End.Y;z+=64)for(int x=Fine.Position.X;x<Fine.End.X;x+=64)
         {
@@ -303,27 +303,6 @@ public partial class World : Node3D
         }
         for(int z=Far.Position.Y;z<Far.End.Y;z+=64)for(int x=Far.Position.X;x<Far.End.X;x+=64)
             if(Ground(new(x,z,Math.Min(64,Far.End.X-x),Math.Min(64,Far.End.Y-z)),4,true) is ArrayMesh mesh)Mesh(this,$"Mountains {x} {z}",mesh,Vector3.Zero,material);
-        var skirt=new SurfaceTool();skirt.Begin(Godot.Mesh.PrimitiveType.Triangles);
-        var rim=new List<Vector2I>();
-        for(int x=Fine.Position.X;x<Fine.End.X;x++)rim.Add(new(x,Fine.Position.Y));
-        for(int z=Fine.Position.Y;z<Fine.End.Y;z++)rim.Add(new(Fine.End.X,z));
-        for(int x=Fine.End.X;x>Fine.Position.X;x--)rim.Add(new(x,Fine.End.Y));
-        for(int z=Fine.End.Y;z>Fine.Position.Y;z--)rim.Add(new(Fine.Position.X,z));
-        float Coarse(Vector2I p)
-        {
-            if(p.X%4==0&&p.Y%4==0)return Height(p.X,p.Y);
-            var a=p.X%4==0?new Vector2I(p.X,Mathf.FloorToInt(p.Y/4f)*4):new Vector2I(Mathf.FloorToInt(p.X/4f)*4,p.Y);var b=a+(p.X%4==0?new Vector2I(0,4):new Vector2I(4,0));
-            return Mathf.Lerp(Height(a.X,a.Y),Height(b.X,b.Y),(p-a).Length()/4);
-        }
-        for(int i=0;i<rim.Count;i++)
-        {
-            var a=rim[i];var b=rim[(i+1)%rim.Count];
-            Vector3 Top(Vector2I p)=>new(p.X,Math.Max(Height(p.X,p.Y),Coarse(p)),p.Y);Vector3 Foot(Vector2I p)=>new(p.X,Math.Min(Height(p.X,p.Y),Coarse(p))-1,p.Y);
-            skirt.SetColor(new(1,0,1));skirt.SetNormal(Vector3.Up);
-            // Both windings: the cracks show from either side.
-            foreach(var v in new[]{Top(a),Top(b),Foot(a),Top(b),Foot(b),Foot(a),Top(a),Foot(a),Top(b),Top(b),Foot(a),Foot(b)})skirt.AddVertex(v);
-        }
-        Mesh(this,"Terrain skirt",skirt.Commit(),Vector3.Zero,material);
         var water = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shaders/water.gdshader") };water.SetShaderParameter("flow",new Vector2(-.35f,0));
         // 1 m cells, on the terrain's own columns, so the sheet's ends meet the gorge's and the sea's water vertex for vertex.
         Mesh(this,"Hoshikawa river",new PlaneMesh { Size = new(2*HalfWidth,8), SubdivideWidth = 2*HalfWidth-1 },new(0,WaterLevel,-8),water);
@@ -336,27 +315,46 @@ public partial class World : Node3D
         }
         Wilds();
     }
+    // The side a coarse cell at `p` shares with the 1 m ground, if any, as its ends and the corners across the cell from them.
+    public static (Vector2I A,Vector2I B,Vector2I FarA,Vector2I FarB)? FineSide(Vector2I p,int step)
+    {
+        Vector2I r=new(step,0),d=new(0,step);
+        foreach(var (a,b,fa,fb,beyond) in new[]{(p,p+d,p+r,p+r+d,p-r),(p+r,p+r+d,p,p+d,p+r),(p,p+r,p+d,p+r+d,p-d),(p+d,p+r+d,p,p+r,p+d)})
+            if(!Fine.HasPoint(p)&&Fine.HasPoint(beyond))return (a,b,fa,fb);
+        return null;
+    }
     // A terrain grid over `area` at `step` metres, split on the (x+step,z)-(x,z+step) diagonal like the water grids. Vertex red is
-    // terrain.gdshader's dryness; green 0 outside the play area keeps the road's paint off the mountains and the beach.
+    // terrain.gdshader's dryness; green 0 outside the play area keeps the road's paint off the mountains and the beach. With `skipFine`,
+    // the 4 m grid leaves out the 1 m ground and fans each cell along its edge to that ground's own vertices, so the two meet without a crack.
     private static ArrayMesh? Ground(Rect2I area,int step,bool skipFine=false)
     {
-        int w=area.Size.X/step+1,h=area.Size.Y/step+1;float e=step==1?.1f:1;
-        var v=new Vector3[w*h];var n=new Vector3[w*h];var c=new Color[w*h];var uv=new Vector2[w*h];var index=new List<int>();
-        for(int j=0;j<h;j++)for(int i=0;i<w;i++)
+        var at=new Dictionary<Vector2I,int>();var v=new List<Vector3>();var n=new List<Vector3>();var c=new List<Color>();var uv=new List<Vector2>();var index=new List<int>();
+        bool Rim(Vector2I p)=>p.X>=Fine.Position.X&&p.X<=Fine.End.X&&p.Y>=Fine.Position.Y&&p.Y<=Fine.End.Y;
+        int V(Vector2I p)
         {
-            float x=area.Position.X+i*step,z=area.Position.Y+j*step;int k=j*w+i;
-            v[k]=new(x,Height(x,z),z);n[k]=new Vector3(Height(x-e,z)-Height(x+e,z),2*e,Height(x,z-e)-Height(x,z+e)).Normalized();
-            c[k]=new(1-Shore(x,z),InPlay(x,z)?1:0,1);uv[k]=new(x*.15f,z*.15f);
+            if(at.TryGetValue(p,out int k))return k;
+            float x=p.X,z=p.Y,e=step==1||Rim(p)?.1f:1;var normal=new Vector3(Height(x-e,z)-Height(x+e,z),2*e,Height(x,z-e)-Height(x,z+e)).Normalized();
+            at[p]=k=v.Count;v.Add(new(x,Height(x,z),z));n.Add(normal);uv.Add(new(x*.15f,z*.15f));
+            c.Add(new(1-Shore(x,z,Math.Max(.35f,1.2f*new Vector2(normal.X,normal.Z).Length()/normal.Y)),InPlay(x,z)?1:0,1));return k;
         }
-        for(int j=0;j<h-1;j++)for(int i=0;i<w-1;i++)
+        // Wound clockwise seen from above, the terrain's front.
+        void T(Vector2I a,Vector2I b,Vector2I d){if((b.X-a.X)*(d.Y-a.Y)-(b.Y-a.Y)*(d.X-a.X)<0)(b,d)=(d,b);index.AddRange(new[]{V(a),V(b),V(d)});}
+        for(int z=area.Position.Y;z<area.End.Y;z+=step)for(int x=area.Position.X;x<area.End.X;x+=step)
         {
-            if(skipFine&&Fine.HasPoint(new(area.Position.X+i*step,area.Position.Y+j*step)))continue;
-            int k=j*w+i;index.AddRange(new[]{k,k+1,k+w,k+1,k+w+1,k+w});
+            Vector2I p=new(x,z),r=new(step,0),d=new(0,step);
+            if(skipFine&&Fine.HasPoint(p))continue;
+            if(skipFine&&FineSide(p,step) is var (a,b,fa,fb))
+            {
+                var u=(b-a)/step;var mid=a+u*(step/2);T(fa,mid,fb);
+                for(var q=a;q!=mid;q+=u)T(fa,q,q+u);
+                for(var q=mid;q!=b;q+=u)T(fb,q,q+u);
+            }
+            else{T(p,p+r,p+d);T(p+r,p+r+d,p+d);}
         }
         if(index.Count==0)return null;
         var arrays=new Godot.Collections.Array();arrays.Resize((int)Godot.Mesh.ArrayType.Max);
-        arrays[(int)Godot.Mesh.ArrayType.Vertex]=v;arrays[(int)Godot.Mesh.ArrayType.Normal]=n;arrays[(int)Godot.Mesh.ArrayType.Color]=c;
-        arrays[(int)Godot.Mesh.ArrayType.TexUV]=uv;arrays[(int)Godot.Mesh.ArrayType.Index]=index.ToArray();
+        arrays[(int)Godot.Mesh.ArrayType.Vertex]=v.ToArray();arrays[(int)Godot.Mesh.ArrayType.Normal]=n.ToArray();arrays[(int)Godot.Mesh.ArrayType.Color]=c.ToArray();
+        arrays[(int)Godot.Mesh.ArrayType.TexUV]=uv.ToArray();arrays[(int)Godot.Mesh.ArrayType.Index]=index.ToArray();
         var mesh=new ArrayMesh();mesh.AddSurfaceFromArrays(Godot.Mesh.PrimitiveType.Triangles,arrays);return mesh;
     }
     private void Village()
