@@ -135,12 +135,10 @@ The importer regression check exercises all four input formats, transformed mult
 - `assets/models/chiyo.glb`: Chiyo's Tripo model with a 41-bone rig and a gentle authored idle. Her original import is preserved in `assets/source/chiyo-tripo-original.blend`; rebuild the game copy with `tools/import_tripo_chiyo.py` in background Blender.
 - `assets/models/koma7.glb`: KOMA-7's Tripo robot with a 65-bone rig and an authored head-turn idle. Preserved source: `assets/source/koma7-tripo-original.blend`; rebuild with `tools/import_tripo_koma7.py` in background Blender.
 - `assets/source/tripo-bridge-20261016-mio-anim.blend`: the low-poly model with its Tripo rig and clips, as sent over DCC Bridge. `mio-lowpoly-fixed-face2.blend` holds its repaired hair colour, face and normal map; `mio-tripo-game.blend` is the game copy. `mio-tripo-original.blend` is the earlier full-resolution import.
-- `assets/source/characters.blend`: previous authored Mio, villagers and original sword, retained for reference; `tools/import_tripo_mio.py` takes the sword from it.
+- `assets/source/characters.blend`: the authored Mio scene, kept only because `tools/import_tripo_mio.py` takes the sword from it.
 - `tools/import_tripo_mio.py`: rebuilds the current Mio GLB from those Tripo sources in a separate background Blender process, cutting and retiming each clip to the game's timing.
-- `tools/build_characters.py`: legacy full character regeneration. It recreates the previous Mio; run `tools/import_tripo_mio.py` afterward to restore the Tripo character.
-- `tools/refine_humans.py`: shared human helpers, 58-bone rigs, normalized skinning and all 12 action clips.
-- `tools/mio_illustrated.py`: Mio facial geometry, garment UVs, layered hair and key-art costume.
-- `tools/render_human_review.py`: temporary Blender studio renders of faces, idle, running and guard poses.
+- `tools/build_characters.py`: builds the patrol robot (`patrol.glb`), then runs `tools/refine_humans.py`.
+- `tools/refine_humans.py`: the shared villager (`villager.glb`): 58-bone rig, normalized skinning and all 12 action clips. Saves `assets/source/villager.blend`.
 - `assets/art/`: original imagegen art used directly in the game; prompts in `ASSETS.md`.
 - `tools/build_audio.py`: original synthesized ambient loop and combat sounds using Python's standard library.
 - `assets/dialogue/ja.json`, `zh_TW.json`: every prologue line in Japanese and Traditional Chinese, keyed like `Intro.1` by scene and beat in `Prologue.cs`; `ja.json` is also the script for the Japanese voice. `ui.ja.json`, `ui.zh_TW.json`: the interface strings, keyed by their English text. `glossary.md`: names, places, game terms and each character's tone in all three languages.
