@@ -1,7 +1,7 @@
 shader_type spatial;
 // Premultiplied, so the sky's fresnel reflection stays bright where the water is clear enough to show the bed.
 render_mode blend_premul_alpha, cull_disabled, specular_schlick_ggx;
-// World-space drift of the ripples, m/s: each water mesh's material sets its own (the river along X, the brook down -Z to its mouth).
+// World-space drift of the ripples, m/s: each water mesh's material sets its own (the rivers down -X toward the sea, the brook down -Z to its mouth, each gorge reach along its course, the sea still).
 uniform vec2 flow = vec2(.35, 0.0);
 uniform sampler2D depth : hint_depth_texture, filter_nearest;
 varying vec3 world;

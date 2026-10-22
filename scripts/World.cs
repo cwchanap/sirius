@@ -37,7 +37,8 @@ public partial class World : Node3D
     public static readonly Rect2[] Paddies={new(24.4f,21.2f,6.2f,8.4f),new(31.4f,21.2f,6.2f,8.4f),new(24.4f,30.4f,6.2f,8.4f),new(31.4f,30.4f,6.2f,8.4f)};
     private static readonly float[] PaddyLevel=Paddies.Select(p=>Enumerable.Range(0,64).Min(i=>
         {float x=p.Position.X+p.Size.X*(i%8)/7,z=p.Position.Y+p.Size.Y*(i/8)/7;return HamletGround(x,z,BaseHeight(x,z),true);})-.06f).ToArray();
-    public const float ShrineLevel=2.4f,WaterLevel=-.38f;
+    // The Hoshikawa runs at sea level through the valley, an estuary from its falls to the sea; the Cedar River runs higher, in its ravine.
+    public const float ShrineLevel=2.4f,WaterLevel=-.38f,CedarLevel=.7f;
     // The brook's surface drifts toward its mouth at this many m/s; the water wheel's rim turns at the same speed.
     public const float BrookFlow=.45f,WheelRadius=1.3f;
     // The water wheel's axle, in the brook beside the sluice, low enough that its rim dips .3 m under the water.
@@ -53,12 +54,13 @@ public partial class World : Node3D
     public static void CameraStop(Node3D n,Shape3D shape){var b=new StaticBody3D{CollisionLayer=CameraLayer,CollisionMask=0};n.AddChild(b);b.AddChild(new CollisionShape3D{Shape=shape});}
     // Height(), the water strip, the footbridge and the minimap all follow this one brook line.
     public static float BrookX(float z)=>19.3f+.6f*Mathf.Sin(z*.16f);
-    // Wetness, 0..1, that terrain.gdshader paints as damp earth and gravel: rising from .35 m above the river, brook and Cedar River waterlines to them, and half wet across the paddy floors.
+    // Wetness, 0..1, that terrain.gdshader paints as damp earth and gravel: rising from .35 m above the river, brook, Cedar River, sea and gorge waterlines to them, and half wet across the paddy floors.
     public static float Shore(float x,float z)
     {
+        if(!InPlay(x,z))return WaterOutside(x,z) is float level?1-Mathf.SmoothStep(.05f,.35f,Height(x,z)-level):0;
         if(Paddies.Any(p=>p.HasPoint(new(x,z))))return .5f;
         bool cedar=z<-60,near=cedar?Math.Abs(z+111)<7:Math.Abs(z+8)<6||(z>-6&&z<57.5f&&Math.Abs(x-BrookX(z))<3.2f);
-        return near?1-Mathf.SmoothStep(.05f,.35f,Height(x,z)-(cedar?.7f:WaterLevel)):0;
+        return near?1-Mathf.SmoothStep(.05f,.35f,Height(x,z)-(cedar?CedarLevel:WaterLevel)):0;
     }
     // The rendered terrain between its 1 m vertices: Terrain() splits each cell on the (x+1,z)-(x,z+1) diagonal.
     public static float MeshHeight(float x,float z)
@@ -111,7 +113,8 @@ public partial class World : Node3D
             Mesh(this,$"Merged statics {GetChildCount()}",mesh,Vector3.Zero,list[0].MaterialOverride).CastShadow=list[0].CastShadow;
         }
     }
-    public static float Height(float x, float z) => z > -9 ? PaddyGround(x, z, HamletGround(x, z, BaseHeight(x, z), true)) : BaseHeight(x, z);
+    public static float Height(float x, float z) => InPlay(x, z) ? Inside(x, z) : Outside(x, z);
+    private static float Inside(float x, float z) => z > -9 ? PaddyGround(x, z, HamletGround(x, z, BaseHeight(x, z), true)) : BaseHeight(x, z);
     // Each paddy floor is flat to 30 cm inside its edge and back on the ground 5 cm outside it, under the aze.
     private static float PaddyGround(float x,float z,float y)
     {
@@ -143,6 +146,9 @@ public partial class World : Node3D
             y += Mathf.SmoothStep(0,18,-z-78)*(1.5f+1.1f*Mathf.Sin(x*.055f)*Mathf.Sin((z+75)*.06f));
             y += 2.8f*Mathf.Exp(-((x+29)*(x+29)+(z+116)*(z+116))/460);
             y -= 4.1f*Mathf.Exp(-(z+111)*(z+111)/17);
+            // The river has cut its channel through the hill: its bed stays 55 cm under the water all the way across, in a slot that
+            // leaves the water sheet's edges, 3.75 m out, in the banks.
+            y = Math.Min(y, Mathf.Lerp(y, CedarLevel-.55f, 1-Mathf.SmoothStep(2,3.6f,Math.Abs(z+111))));
             float bank = Mathf.SmoothStep(5,8,Math.Abs(z+111))*(1-Mathf.SmoothStep(8,13,Math.Abs(z+111)));
             y = Mathf.Lerp(y,4.1f,bank*(1-Mathf.SmoothStep(2.6f,5,Math.Abs(x-RoadX(-111)))));
             float village = (1-Mathf.SmoothStep(29,42,Math.Abs(x)))*(1-Mathf.SmoothStep(25,36,Math.Abs(z+157)));
@@ -278,50 +284,42 @@ public partial class World : Node3D
         }});
         AddChild(new DirectionalLight3D { RotationDegrees = new(-34, -52, 0), LightColor = new("ffdfb0"),
             LightEnergy = 1.2f, ShadowEnabled = true, DirectionalShadowMaxDistance = 100, ShadowBias = .06f });
-        var ridges=new SurfaceTool();ridges.Begin(Godot.Mesh.PrimitiveType.Triangles);
-        float Ridge(float x,float z)
-        {
-            float outer=Math.Max(0,Math.Max(Math.Abs(x)-HalfWidth,Math.Max(NorthEdge-z,z-SouthEdge)));
-            float edge=Height(Mathf.Clamp(x,-HalfWidth,HalfWidth),Mathf.Clamp(z,NorthEdge,SouthEdge));
-            return edge+Mathf.SmoothStep(0,60,outer)*(23+7*Mathf.Sin(x*.047f)+6*Mathf.Sin(z*.036f)+4*Mathf.Sin((x+z)*.061f));
-        }
-        void RidgeVertex(float x,float z)
-        {
-            float y=Ridge(x,z);
-            ridges.SetNormal(new Vector3(Ridge(x-1,z)-Ridge(x+1,z),2,Ridge(x,z-1)-Ridge(x,z+1)).Normalized());
-            ridges.AddVertex(new(x,y,z));
-        }
-        for(int z=NorthEdge-100;z<SouthEdge+100;z+=4)for(int x=-180;x<180;x+=4)
-        {
-            if(x>=-HalfWidth&&x<HalfWidth&&z>=NorthEdge&&z<SouthEdge)continue;
-            RidgeVertex(x,z);RidgeVertex(x+4,z);RidgeVertex(x,z+4);
-            RidgeVertex(x+4,z);RidgeVertex(x+4,z+4);RidgeVertex(x,z+4);
-        }
-        ridges.Index();Mesh(this,"Layered mountain landscape",ridges.Commit(),Vector3.Zero,Mat(new("567969")));
-        // The occupied city remains a distant story landmark in this rural chapter.
-        for (int i=0;i<9;i++) Box(this,"Machine city silhouette",new(65+i*3,12+i%3*3,-108),new(2,18+i%3*6,3),Mat(new("728e8c")));
+        // The occupied city, a distant story landmark on the far eastern ridge, half lost in the haze from Cedar Pass.
+        for (int i=0;i<9;i++){float x=150+i*3;Box(this,"Machine city silhouette",new(x,Height(x,-120)+6+i%3*3,-120),new(2,18+i%3*6,3),Mat(new("728e8c")));}
     }
     private void Terrain()
     {
-        var st = new SurfaceTool(); st.Begin(Godot.Mesh.PrimitiveType.Triangles);
-        for (int z = NorthEdge; z < SouthEdge; z++) for (int x = -HalfWidth; x < HalfWidth; x++)
-        {
-            Add(x,z); Add(x+1,z); Add(x,z+1);
-            Add(x+1,z); Add(x+1,z+1); Add(x,z+1);
-        }
-        void Add(float x,float z)
-        {
-            var n = new Vector3(Height(x-.1f,z)-Height(x+.1f,z),.2f,Height(x,z-.1f)-Height(x,z+.1f)).Normalized();
-            st.SetNormal(n); st.SetUV(new(x*.15f,z*.15f)); st.SetColor(new(1-Shore(x,z),1,1)); st.AddVertex(new(x,Height(x,z),z));
-        }
-        st.Index(); var mesh = st.Commit();
         var material = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shaders/terrain.gdshader") };
         material.SetShaderParameter("atlas",GD.Load<Texture2D>("res://assets/art/material-atlas.png"));
-        Mesh(this,"Rolling terrain",mesh,Vector3.Zero,material);
+        // The 1 m terrain over the play area and its margin, with its collider, in 64 m chunks that culling can drop; then the 4 m mountains and
+        // seabed round it to Far, and a skirt down from the 1 m mesh's rim that closes the cracks where its finer edge meets them.
         var ground = new StaticBody3D { Name = "Terrain collision" }; AddChild(ground);
-        ground.AddChild(new CollisionShape3D { Shape = mesh.CreateTrimeshShape() });
-        var water = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shaders/water.gdshader") };
-        Mesh(this,"Hoshikawa river",new PlaneMesh { Size = new(127,8), SubdivideWidth = 100 },new(0,WaterLevel,-8),water);
+        for(int z=Fine.Position.Y;z<Fine.End.Y;z+=64)for(int x=Fine.Position.X;x<Fine.End.X;x+=64)
+        {
+            var mesh=Ground(new(x,z,Math.Min(64,Fine.End.X-x),Math.Min(64,Fine.End.Y-z)),1);
+            Mesh(this,$"Rolling terrain {x} {z}",mesh,Vector3.Zero,material);
+            ground.AddChild(new CollisionShape3D { Shape = mesh.CreateTrimeshShape() });
+        }
+        for(int z=Far.Position.Y;z<Far.End.Y;z+=64)for(int x=Far.Position.X;x<Far.End.X;x+=64)
+            if(Ground(new(x,z,Math.Min(64,Far.End.X-x),Math.Min(64,Far.End.Y-z)),4,true) is ArrayMesh mesh)Mesh(this,$"Mountains {x} {z}",mesh,Vector3.Zero,material);
+        var skirt=new SurfaceTool();skirt.Begin(Godot.Mesh.PrimitiveType.Triangles);
+        var rim=new List<Vector2I>();
+        for(int x=Fine.Position.X;x<Fine.End.X;x++)rim.Add(new(x,Fine.Position.Y));
+        for(int z=Fine.Position.Y;z<Fine.End.Y;z++)rim.Add(new(Fine.End.X,z));
+        for(int x=Fine.End.X;x>Fine.Position.X;x--)rim.Add(new(x,Fine.End.Y));
+        for(int z=Fine.End.Y;z>Fine.Position.Y;z--)rim.Add(new(Fine.Position.X,z));
+        for(int i=0;i<rim.Count;i++)
+        {
+            var a=rim[i];var b=rim[(i+1)%rim.Count];Vector3 Top(Vector2I p)=>new(p.X,Height(p.X,p.Y),p.Y);
+            skirt.SetColor(new(1,0,1));skirt.SetNormal(Vector3.Up);
+            // Both windings: the cracks show from either side.
+            foreach(var v in new[]{Top(a),Top(b),Top(a)+Vector3.Down*6,Top(b),Top(b)+Vector3.Down*6,Top(a)+Vector3.Down*6,
+                Top(a),Top(a)+Vector3.Down*6,Top(b),Top(b),Top(a)+Vector3.Down*6,Top(b)+Vector3.Down*6})skirt.AddVertex(v);
+        }
+        Mesh(this,"Terrain skirt",skirt.Commit(),Vector3.Zero,material);
+        var water = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shaders/water.gdshader") };water.SetShaderParameter("flow",new Vector2(-.35f,0));
+        // 1 m cells, on the terrain's own columns, so the sheet's ends meet the gorge's and the sea's water vertex for vertex.
+        Mesh(this,"Hoshikawa river",new PlaneMesh { Size = new(2*HalfWidth,8), SubdivideWidth = 2*HalfWidth-1 },new(0,WaterLevel,-8),water);
         var bridge=new Node3D{Name="Stone Bridge",Position=new(0,0,-8)};AddChild(bridge);
         TimberBridge(bridge,.82f,5,1.8f,new[]{-1.2f,1.2f});
         foreach(float side in new[]{-1f,1f})
@@ -329,13 +327,30 @@ public partial class World : Node3D
             float bottom=Height(0,-8+side*3.4f)-.6f;
             Box(bridge,$"Stone bridge abutment {side}",new(0,(.73f+bottom)/2,side*4.325f),new(6.6f,.73f-bottom,1.85f),stone,true);
         }
-        // Physical map boundary, dressed by forest and ridge silhouettes.
-        float middle=(NorthEdge+SouthEdge)*.5f, depth=SouthEdge-NorthEdge;
-        foreach(var (p,s) in new[]{(new Vector3(-63,10,middle),new Vector3(1,30,depth)),(new Vector3(63,10,middle),new Vector3(1,30,depth)),
-            (new Vector3(0,10,NorthEdge+1),new Vector3(128,30,1)),(new Vector3(0,10,SouthEdge-1),new Vector3(128,30,1))})
+        Wilds();
+    }
+    // A terrain grid over `area` at `step` metres, split on the (x+step,z)-(x,z+step) diagonal like the water grids. Vertex red is
+    // terrain.gdshader's dryness; green 0 outside the play area keeps the road's paint off the mountains and the beach.
+    private static ArrayMesh? Ground(Rect2I area,int step,bool skipFine=false)
+    {
+        int w=area.Size.X/step+1,h=area.Size.Y/step+1;float e=step==1?.1f:1;
+        var v=new Vector3[w*h];var n=new Vector3[w*h];var c=new Color[w*h];var uv=new Vector2[w*h];var index=new List<int>();
+        for(int j=0;j<h;j++)for(int i=0;i<w;i++)
         {
-            var b=new StaticBody3D { Name="Valley boundary", Position=p }; AddChild(b); b.AddChild(new CollisionShape3D { Shape=new BoxShape3D { Size=s } });
+            float x=area.Position.X+i*step,z=area.Position.Y+j*step;int k=j*w+i;
+            v[k]=new(x,Height(x,z),z);n[k]=new Vector3(Height(x-e,z)-Height(x+e,z),2*e,Height(x,z-e)-Height(x,z+e)).Normalized();
+            c[k]=new(1-Shore(x,z),InPlay(x,z)?1:0,1);uv[k]=new(x*.15f,z*.15f);
         }
+        for(int j=0;j<h-1;j++)for(int i=0;i<w-1;i++)
+        {
+            if(skipFine&&Fine.HasPoint(new(area.Position.X+i*step,area.Position.Y+j*step)))continue;
+            int k=j*w+i;index.AddRange(new[]{k,k+1,k+w,k+1,k+w+1,k+w});
+        }
+        if(index.Count==0)return null;
+        var arrays=new Godot.Collections.Array();arrays.Resize((int)Godot.Mesh.ArrayType.Max);
+        arrays[(int)Godot.Mesh.ArrayType.Vertex]=v;arrays[(int)Godot.Mesh.ArrayType.Normal]=n;arrays[(int)Godot.Mesh.ArrayType.Color]=c;
+        arrays[(int)Godot.Mesh.ArrayType.TexUV]=uv;arrays[(int)Godot.Mesh.ArrayType.Index]=index.ToArray();
+        var mesh=new ArrayMesh();mesh.AddSurfaceFromArrays(Godot.Mesh.PrimitiveType.Triangles,arrays);return mesh;
     }
     private void Village()
     {
@@ -464,8 +479,8 @@ public partial class World : Node3D
     }
     private void NorthernValley()
     {
-        var water = new ShaderMaterial { Shader=GD.Load<Shader>("res://assets/shaders/water.gdshader") };
-        Mesh(this,"Cedar River",new PlaneMesh { Size=new(126,7.5f),SubdivideWidth=64 },new(0,.7f,-111),water);
+        var water = new ShaderMaterial { Shader=GD.Load<Shader>("res://assets/shaders/water.gdshader") };water.SetShaderParameter("flow",new Vector2(-.35f,0));
+        Mesh(this,"Cedar River",new PlaneMesh { Size=new(2*HalfWidth,7.5f),SubdivideWidth=2*HalfWidth-1 },new(0,CedarLevel,-111),water);
         var bridge=new Node3D {Name="Cedar Bridge",Position=new(RoadX(-111),0,-111)};AddChild(bridge);
         TimberBridge(bridge,4.1f,8,5.2f,new[]{-6f,0,6f});
         Label(bridge,"CEDAR RIVER",new(0,6.6f,0),Gold,29);
