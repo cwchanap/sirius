@@ -20,12 +20,20 @@ func review():
 	camera.far=400
 	camera.fov=55
 	var views=[
-		["komorebi-overview",Vector3(33,29,-119),Vector3(0,7,-156),Vector3(0,4.6,-136)],
-		["cedar-bridge",Vector3(32,19,-91),Vector3(9,4,-112),Vector3(10,4.2,-104)],
-		["pass-shelter",Vector3(4,12,-76),Vector3(-9,5,-91),Vector3(-12,5,-87)],
-		["valley-overlook",Vector3(42,14,-114),Vector3(26,5,-127),Vector3(29,7,-123)],
-		["komorebi-square",Vector3(10,11,-137),Vector3(0,6,-158),Vector3(0,4.6,-148)],
-		["original-village",Vector3(30,23,53),Vector3(0,2,20),Vector3(0,.1,31)]]
+		["komorebi-overview",Vector3(33,29,-219),Vector3(0,7,-256),Vector3(0,4.6,-236)],
+		["cedar-bridge",Vector3(32,19,-191),Vector3(9,4,-212),Vector3(10,4.2,-204)],
+		["pass-shelter",Vector3(4,12,-176),Vector3(-9,5,-191),Vector3(-12,5,-187)],
+		["valley-overlook",Vector3(42,14,-214),Vector3(26,5,-227),Vector3(29,7,-223)],
+		["komorebi-square",Vector3(10,11,-237),Vector3(0,6,-258),Vector3(0,4.6,-248)],
+		["original-village",Vector3(30,23,53),Vector3(0,2,20),Vector3(0,.1,31)],
+		["relay-junction",Vector3(2,4.5,-9),Vector3(8,5,-46),Vector3(1,1,-22)],
+		["relay-switchback",Vector3(22,18,-18),Vector3(40,4,-42),Vector3(44,3.4,-34)],
+		["relay-teahouse",Vector3(25,10.5,-50),Vector3(10,8,-58),Vector3(21,7.6,-54)],
+		["relay-high-road",Vector3(29,11,-66),Vector3(24,9,-112),Vector3(28,8,-80)],
+		["relay-forest-valley",Vector3(-2,5,-34),Vector3(-12,3,-62),Vector3(-8,1.5,-42)],
+		["relay-quarry",Vector3(-20,9,-120),Vector3(-38,4.5,-135),Vector3(-34,4.4,-132)],
+		["relay-plaza",Vector3(10,9,-146),Vector3(-3,6,-170),Vector3(1,3,-162)],
+		["relay-aerial",Vector3(70,130,-30),Vector3(0,0,-100),Vector3(0,1,-30)]]
 	for view in views:
 		var mio=game.get_node("Mio")
 		mio.position=view[3]

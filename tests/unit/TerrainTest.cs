@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Text.RegularExpressions;
 using GdUnit4;
 using Godot;
 using static GdUnit4.Assertions;
@@ -33,16 +31,14 @@ public class TerrainTest
     public void PaddyFloorsAreLevel()=>
         AssertThat(World.Paddies.Where(p=>Enumerable.Range(0,81).Select(i=>World.Height(p.Position.X+.3f+(p.Size.X-.6f)*(i%9)/8,p.Position.Y+.3f+(p.Size.Y-.6f)*(i/9)/8))
             .Any(h=>Math.Abs(h-World.Height(p.GetCenter().X,p.GetCenter().Y))>.001f))).IsEmpty();
+    // terrain.gdshader paints the road from World.RoadGap() alone, which runs it unbroken from the shrine to Komorebi's hall.
     [TestCase]
-    public void RoadMatchesTheTerrainShader()
+    public void RoadPaintRunsTheWholeRoute()
     {
-        // terrain.gdshader paints the same road World.RoadX() places things along; the two must not drift apart.
-        string shader=File.ReadAllText(Repo.Path("assets/shaders/terrain.gdshader")),n=@"(-?[\d.]+)";
-        var m=Regex.Match(shader,$@"float road=sin\(p\.y\*{n}\)\*{n};\s*road=mix\(road,{n}\*sin\(\(-p\.y-{n}\)\*{n}\),smoothstep\({n},{n},-p\.y-{n}\)\);\s*road\*=1\.0-smoothstep\({n},{n},-p\.y-{n}\);");
-        AssertThat(m.Success).OverrideFailureMessage("terrain.gdshader's road no longer has the shape this test reads; update both together").IsTrue();
-        var k=m.Groups.Values.Skip(1).Select(g=>float.Parse(g.Value,CultureInfo.InvariantCulture)).ToArray();
-        float Painted(float z)=>Mathf.Lerp(Mathf.Sin(z*k[0])*k[1],k[2]*Mathf.Sin((-z-k[3])*k[4]),Mathf.SmoothStep(k[5],k[6],-z-k[7]))*(1-Mathf.SmoothStep(k[8],k[9],-z-k[10]));
-        AssertThat(Span(World.SouthEdge,World.NorthEdge,.5f).Where(z=>Math.Abs(Painted(z)-World.RoadX(z))>.01f)).IsEmpty();
+        AssertThat(File.ReadAllText(Repo.Path("assets/shaders/terrain.gdshader"))).Contains("smoothstep(2.0,3.3,UV2.y)");
+        float hall=World.KomorebiHouses.Single(h=>h.Style=="hall").At.Y;
+        var bare=Span(55,hall+6,1).Where(z=>Enumerable.Range(-64,129).All(x=>World.RoadGap(x,z)>1)).ToArray();
+        AssertThat(bare).OverrideFailureMessage($"no road paint at z {string.Join(", ",bare)}").IsEmpty();
     }
     [TestCase]
     public void RegionsRunSouthToNorthInOrder()

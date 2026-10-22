@@ -8,6 +8,9 @@ public partial class Game : Node3D
     public World World=null!;
     public Player Player=null!;
     public readonly List<Enemy> Enemies=new();
+    // The three the relay mission counts; the scouts are extra.
+    public IEnumerable<Enemy> Patrols=>Enemies.Where(e=>!e.Scout);
+    public readonly HashSet<string> Opened=new();
     public Enemy? Locked;
     public GameMode Mode=GameMode.Title;
     public int QuestStage;
@@ -39,11 +42,10 @@ public partial class Game : Node3D
         Localization.Initialize(OS.GetCmdlineUserArgs());InputBindings();
         World=new World();AddChild(World);
         Player=new Player {Game=this,Position=new(0,.12f,31)};AddChild(Player);
-        Vector3[] homes={new(-1,0,-27),new(6,0,-40),new(-2,0,-51)};
-        for(int i=0;i<homes.Length;i++)
+        foreach(var (homes,scout) in new[]{(Hoshikawa.World.PatrolHomes,false),(Hoshikawa.World.ScoutHomes,true)})for(int i=0;i<homes.Length;i++)
         {
-            var p=homes[i];p.Y=Hoshikawa.World.Height(p.X,p.Z)+.1f;
-            var enemy=new Enemy {Game=this,Home=p,Position=p,Index=i+1};Enemies.Add(enemy);AddChild(enemy);
+            var p=new Vector3(homes[i].X,Hoshikawa.World.Height(homes[i].X,homes[i].Y)+.1f,homes[i].Y);
+            var enemy=new Enemy {Game=this,Home=p,Position=p,Index=i+1,Scout=scout};Enemies.Add(enemy);AddChild(enemy);
         }
         cameraRig=new Node3D {Position=Player.Position+Vector3.Up*1.3f};AddChild(cameraRig);
         spring=new SpringArm3D {SpringLength=7.5f,Margin=.25f,CollisionMask=1|Hoshikawa.World.CameraLayer,Shape=new SphereShape3D {Radius=.2f}};cameraRig.AddChild(spring);
@@ -61,9 +63,9 @@ public partial class Game : Node3D
         if(args.Contains("--overview")){Player.GlobalPosition=new(0,2,49);CameraPitch=-.5f;spring.SpringLength=13;CameraYaw=-.18f;}
         if(args.Contains("--portrait")){Player.GlobalPosition=new(0,.1f,23);CameraYaw=Mathf.Pi;CameraPitch=-.13f;spring.SpringLength=3.2f;}
         if(args.Contains("--portrait-close")){Player.GlobalPosition=new(0,.1f,23);CameraYaw=Mathf.Pi+.45f;CameraPitch=-.09f;spring.SpringLength=2.1f;Camera.Fov=37;}
-        if(args.Contains("--komorebi")){Player.GlobalPosition=new(0,Hoshikawa.World.Height(0,-135)+.1f,-135);CameraPitch=-.3f;spring.SpringLength=11;}
-        if(args.Contains("--pass-view")){Player.GlobalPosition=new(Hoshikawa.World.RoadX(-99),Hoshikawa.World.Height(Hoshikawa.World.RoadX(-99),-99)+.1f,-99);CameraPitch=-.27f;spring.SpringLength=10;}
-        Hud.RefreshMenu();GD.Print($"HOSHIKAWA_READY buildings={World.Buildings.Count} residents={World.Residents.Count} patrols={Enemies.Count}");
+        if(args.Contains("--komorebi")){Player.GlobalPosition=new(0,Hoshikawa.World.Height(0,-235)+.1f,-235);CameraPitch=-.3f;spring.SpringLength=11;}
+        if(args.Contains("--pass-view")){Player.GlobalPosition=new(Hoshikawa.World.RoadX(-199),Hoshikawa.World.Height(Hoshikawa.World.RoadX(-199),-199)+.1f,-199);CameraPitch=-.27f;spring.SpringLength=10;}
+        Hud.RefreshMenu();GD.Print($"HOSHIKAWA_READY buildings={World.Buildings.Count} residents={World.Residents.Count} patrols={Patrols.Count()} scouts={Enemies.Count(e=>e.Scout)}");
     }
     // A stopped playback, and the valley.wav it holds, is only released on the audio thread's next mix step; if the engine
     // shuts the AudioServer down first, both leak at exit. Blocking briefly at quit lets that step run first.
@@ -150,12 +152,15 @@ public partial class Game : Node3D
     }
     public void Restart()
     {
-        QuestStage=0;Heard.Clear();foreach(var e in Enemies)e.Reset();Retry();Play(Prologue.Intro);
+        QuestStage=0;Heard.Clear();foreach(var e in Enemies)e.Reset();
+        Opened.Clear();foreach(var s in World.Shortcuts)s.Part.Quaternion=s.Closed;
+        foreach(var pouch in World.Pouches)pouch.Visible=true;Player.MaxRemedies=3;
+        Retry();Play(Prologue.Intro);
     }
     private (string Template,int Count) ObjectiveStep=>QuestStage switch
     {
         0=>("Speak to Ren at the workshop",0),
-        1=>("Clear the old relay road   {0} / 3",Enemies.Count(e=>e.Dead)),
+        1=>("Clear the old relay road   {0} / 3",Patrols.Count(e=>e.Dead)),
         2=>("Restart the manual relay",0),
         3=>("Return to Ren in Hoshikawa",0),
         _=>("Evacuation route secured",0)
@@ -166,13 +171,15 @@ public partial class Game : Node3D
     public Vector3 ObjectivePosition=>QuestStage switch
     {
         0 or 3=>World.Residents[0].Body.GlobalPosition,
-        1=>Enemies.FirstOrDefault(e=>!e.Dead)?.GlobalPosition??World.RelayPosition,
+        1=>Patrols.FirstOrDefault(e=>!e.Dead)?.GlobalPosition??World.RelayPosition,
         _=>World.RelayPosition
     };
     public string InteractionPrompt()
     {
         foreach(var r in World.Residents)if(r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition)<3.1f)return F("E   Talk to {0}",T(r.Name));
         if(World.RelayPosition.DistanceTo(Player.GlobalPosition)<3.3f)return T("E   Inspect manual relay");
+        if(ShortcutHere()!=null)return T("E   Lower the ladder");
+        if(PouchHere()!=null)return T("E   Take the remedy pouch");
         return "";
     }
     public void Interact()
@@ -182,22 +189,34 @@ public partial class Game : Node3D
             if(r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition)>=3.1f)continue;
             if(r.Name=="Ren")
             {
-                if(QuestStage==0){QuestStage=Enemies.All(e=>e.Dead)?2:1;Toast("THE TRAIN WITH NO PASSENGERS","Clear the patrols. Reopen the road.",4);Play(Prologue.Briefing);}
+                if(QuestStage==0){QuestStage=Patrols.All(e=>e.Dead)?2:1;Toast("THE TRAIN WITH NO PASSENGERS","Clear the patrols. Reopen the road.",4);Play(Prologue.Briefing);}
                 else if(QuestStage==3){QuestStage=4;Toast("ROUTE SECURED","Chapter prologue complete · Hoshikawa is ready.",8);Sound("heal");Play(Prologue.Homecoming);NightFrom=Prologue.NightFalls;}
                 else Play(QuestStage==4?Prologue.RenRest:QuestStage==2?Prologue.RenRoadClear:Prologue.RenReminder);
                 return;
             }
-            if(r.Name is "Aki" or "Emi"){Player.Health=100;Player.Posture=0;Player.Remedies=3;Sound("heal");}
+            if(r.Name is "Aki" or "Emi"){Player.Health=100;Player.Posture=0;Player.Remedies=Player.MaxRemedies;Sound("heal");}
             Play(Heard.Add(r.Name)&&Prologue.FirstMeeting.TryGetValue(r.Name,out var scene)?scene:Prologue.Usual(r.Name));return;
         }
         if(World.RelayPosition.DistanceTo(Player.GlobalPosition)<3.3f)
         {
             if(QuestStage==0)Play(Prologue.RelayAsleep);
-            else if(QuestStage==1)Play(Prologue.RelayGuardedFor(Enemies.Count(e=>!e.Dead)));
+            else if(QuestStage==1)Play(Prologue.RelayGuardedFor(Patrols.Count(e=>!e.Dead)));
             else if(QuestStage==2){QuestStage=3;Burst(World.RelayPosition+Vector3.Up*2,Hoshikawa.World.Jade,4);Sound("skill");Play(Prologue.RelayOnline);}
             else Play(Prologue.RelaySteady);
+            return;
+        }
+        if(ShortcutHere() is {} shortcut)
+        {
+            Opened.Add(shortcut.Name);CreateTween().TweenProperty(shortcut.Part,"quaternion",shortcut.Open,1.4f).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
+            Sound("guard");Toast("SHORTCUT OPENED","The ladder now links the teahouse to the junction.",4);return;
+        }
+        if(PouchHere() is {} pouch)
+        {
+            pouch.Visible=false;Player.MaxRemedies++;Player.Remedies=Player.MaxRemedies;Sound("heal");Toast("REMEDY POUCH","You can carry one more remedy.",4);
         }
     }
+    private World.Shortcut? ShortcutHere()=>World.Shortcuts.FirstOrDefault(s=>!Opened.Contains(s.Name)&&s.From.DistanceTo(Player.GlobalPosition)<2.2f);
+    private Node3D? PouchHere()=>World.Pouches.FirstOrDefault(p=>p.Visible&&p.GlobalPosition.DistanceTo(Player.GlobalPosition)<2.2f);
     public void Play(params (string Speaker,string Text)[] beats)
     {Script.Clear();Script.AddRange(beats);scene=Prologue.SceneNames.GetValueOrDefault(beats);Beat=-1;NightFrom=-1;Mode=GameMode.Dialogue;Input.MouseMode=Input.MouseModeEnum.Visible;Advance();}
     // The first press finishes a line still typing out; the next one moves on.
@@ -213,7 +232,7 @@ public partial class Game : Node3D
     public void EndDialogue(){Voice.Stop();Mode=GameMode.Playing;Input.MouseMode=SelfTest?Input.MouseModeEnum.Visible:Input.MouseModeEnum.Captured;}
     public void OnEnemyDefeated()
     {
-        if(QuestStage==1&&Enemies.All(e=>e.Dead)){QuestStage=2;Toast("ROAD CLEARED","Follow the lanterns to the manual relay.",5);}
+        if(QuestStage==1&&Patrols.All(e=>e.Dead)){QuestStage=2;Toast("ROAD CLEARED","Follow the lanterns to the manual relay.",5);}
     }
     public void ToggleLock()
     {

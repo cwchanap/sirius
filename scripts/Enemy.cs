@@ -6,6 +6,9 @@ public partial class Enemy : CharacterBody3D
     public Game Game=null!;
     public Vector3 Home;
     public int Index;
+    // Scouts are smaller, weaker and keep closer to home; the relay mission does not count them.
+    public bool Scout;
+    public float MaxHealth=>Scout?60:100;
     public float Health=100, Posture;
     public bool Dead=>Health<=0;
     public bool Broken=>broken>0&&!Dead;
@@ -20,9 +23,9 @@ public partial class Enemy : CharacterBody3D
     private Vector3 attackDirection;
     public override void _Ready()
     {
-        Name="Patrol_"+Index;CollisionLayer=4;CollisionMask=1|2|4;FloorSnapLength=.5f;
+        Name=(Scout?"Scout_":"Patrol_")+Index;Health=MaxHealth;CollisionLayer=4;CollisionMask=1|2|4;FloorSnapLength=.5f;
         AddChild(new CollisionShape3D {Position=new(0,1,0),Shape=new CapsuleShape3D {Radius=.38f,Height=2}});
-        Model=GD.Load<PackedScene>("res://assets/models/patrol.glb").Instantiate<Node3D>();AddChild(Model);Model.Scale=Vector3.One*1.12f;
+        Model=GD.Load<PackedScene>("res://assets/models/patrol.glb").Instantiate<Node3D>();AddChild(Model);Model.Scale=Vector3.One*(Scout?.86f:1.12f);
         Visual=new ActorVisual();AddChild(Visual);Visual.Bind(Model);Visual.Play("walk");
         marker=World.Label(this,"",new(0,2.8f,0),World.Gold,38);clock=Index*2;
     }
@@ -52,7 +55,8 @@ public partial class Enemy : CharacterBody3D
             if(attackTimer<=0){attacking=false;recovery=1.05f;marker.Text="";}
         }
         else if(stagger>0){State="STAGGER";}
-        else if(distance<13&&Game.Player.GlobalPosition.Z<-14&&GlobalPosition.DistanceTo(Home)<20
+        // Only on its own level: a patrol on the teahouse terrace never walks off its cliff after Mio in the junction below.
+        else if(distance<13&&Math.Abs(Game.Player.GlobalPosition.Y-GlobalPosition.Y)<2.5f&&Game.Player.GlobalPosition.Z<World.RelaySouth&&GlobalPosition.DistanceTo(Home)<20
                 &&Game.ClearSight(GlobalPosition+Vector3.Up,Game.Player.GlobalPosition+Vector3.Up))
         {
             State="PURSUE";
@@ -64,7 +68,7 @@ public partial class Enemy : CharacterBody3D
         else
         {
             State="PATROL";Posture=Math.Max(0,Posture-dt*12);
-            var destination=Home+new Vector3(Mathf.Sin(clock*.27f+Index)*3.2f,0,Mathf.Cos(clock*.27f+Index)*2.4f);
+            var destination=Home+new Vector3(Mathf.Sin(clock*.27f+Index)*3.2f,0,Mathf.Cos(clock*.27f+Index)*2.4f)*(Scout?.5f:1);
             var d=destination-GlobalPosition;d.Y=0;movement=d.Normalized()*1.25f;
             Model.Rotation=new(0,Mathf.LerpAngle(Model.Rotation.Y,Mathf.Atan2(d.X,d.Z),dt*3),0);Visual.Play("walk",.8f);
         }
@@ -103,7 +107,7 @@ public partial class Enemy : CharacterBody3D
     }
     public void Reset()
     {
-        GlobalPosition=Home+Vector3.Up*.15f;Velocity=Vector3.Zero;Health=100;Posture=0;broken=attackTimer=recovery=stagger=0;
+        GlobalPosition=Home+Vector3.Up*.15f;Velocity=Vector3.Zero;Health=MaxHealth;Posture=0;broken=attackTimer=recovery=stagger=0;
         attacking=struck=false;swings=0;CollisionLayer=4;CollisionMask=1|2|4;State="PATROL";marker.Text="";Visual.Play("idle",1,true);
     }
 }

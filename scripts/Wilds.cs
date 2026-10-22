@@ -13,11 +13,11 @@ public partial class World
     // points a metre apart with straight reaches either side. Each course meets a play-area river at its edge with that river's level,
     // or the sea at the sea's. The Hoshikawa and the Cedar River spring from hollows high on the eastern range and run straight down its
     // slope, bending with its folds, to fall twice into the valley; the Cedar River leaves it again through a canyon in the western range
-    // to its own mouth on the bay.
+    // and runs south down a long valley behind it to its own mouth on the bay.
     public static readonly (string Name,Vector3[] Course)[] Rivers={
         ("Hoshikawa headwater",new Vector3[]{new(164,35,-64),new(148,29,-56),new(133,23.5f,-49),new(119,18.5f,-42.5f),new(107.9f,14.5f,-35.8f),new(100,13,-32.5f),new(99.08f,7.4f,-32.12f),new(91.7f,7.1f,-29),new(89,5.8f,-8.5f),new(80,5.62f,-8),new(79,WaterLevel,-8),new(HalfWidth,WaterLevel,-8)}),
-        ("Cedar headwater",new Vector3[]{new(157.3f,44.6f,-129),new(146.7f,39.8f,-123.4f),new(134.9f,35,-122.1f),new(123.3f,30.2f,-125.2f),new(112,25.4f,-129.2f),new(106.3f,23,-131),new(100,20,-128),new(99.1f,11,-127.57f),new(91.9f,10.6f,-124.1f),new(89,6,-111.5f),new(80,5.7f,-111),new(79,CedarLevel,-111),new(HalfWidth,CedarLevel,-111)}),
-        ("Cedar outlet",new Vector3[]{new(-HalfWidth,CedarLevel,-111),new(-74,.62f,-111),new(-92,.55f,-104),new(-110,.45f,-90),new(-124,.25f,-70),new(-131,WaterLevel,-48),new(-134,WaterLevel,-30),new(-136,WaterLevel,-14)}),
+        ("Cedar headwater",new Vector3[]{new(157.3f,44.6f,-229),new(146.7f,39.8f,-223.4f),new(134.9f,35,-222.1f),new(123.3f,30.2f,-225.2f),new(112,25.4f,-229.2f),new(106.3f,23,-231),new(100,20,-228),new(99.1f,11,-227.57f),new(91.9f,10.6f,-224.1f),new(89,6,CedarZ-.5f),new(80,5.7f,CedarZ),new(79,CedarLevel,CedarZ),new(HalfWidth,CedarLevel,CedarZ)}),
+        ("Cedar outlet",new Vector3[]{new(-HalfWidth,CedarLevel,CedarZ),new(-74,.62f,CedarZ),new(-92,.56f,-204),new(-110,.5f,-190),new(-123,.45f,-170),new(-130,.4f,-142),new(-132,.34f,-112),new(-128,.25f,-80),new(-131,WaterLevel,-48),new(-134,WaterLevel,-30),new(-136,WaterLevel,-14)}),
     };
     // A fall is a drop between two points under 1.5 m apart; anything longer is a reach, however steep.
     public static bool Fall(Vector3 top,Vector3 foot)=>new Vector2(foot.X-top.X,foot.Z-top.Z).Length()<1.5f&&top.Y-foot.Y>1;
@@ -225,7 +225,7 @@ public partial class World
         Mesh(this,$"{name} falls",st.Commit(),Vector3.Zero,material).CastShadow=GeometryInstance3D.ShadowCastingSetting.Off;
     }
     // The Cedar River's canyon is choked with boulders a few metres in: the water slips between them, walkers cannot.
-    public static readonly Vector2 CanyonChoke=new(-70,-111);
+    public static readonly Vector2 CanyonChoke=new(-70,CedarZ);
     // The only invisible walls: one half a metre deep off the beach, from inside the north-west headland round to inside the south-east
     // one, and one across the canyon behind its boulder choke.
     public static List<(Vector2 A,Vector2 B)> Walls()

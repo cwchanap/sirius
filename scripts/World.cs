@@ -10,25 +10,25 @@ public partial class World : Node3D
     {
         ["Chiyo"]=("chiyo",1.58f,1.9f), ["KOMA-7"]=("koma7",1.25f,1.55f), ["Sora"]=("sora",1.78f,2.1f), ["Nao"]=("nao",1.64f,1.96f), ["Toma"]=("toma",1.74f,2.06f),
     };
-    public const int NorthEdge = -200, SouthEdge = 80, HalfWidth = 64;
-    public static Vector3 KomorebiCenter => new(0, Height(0,-154), -154);
+    public const int NorthEdge = -300, SouthEdge = 80, HalfWidth = 64;
+    public static Vector3 KomorebiCenter => new(0, Height(0,-254), -254);
     public static float RoadX(float z)
     {
-        // Keep the terrain shader's road curve in sync with this placement guide.
+        // Hoshikawa's street and the pass road; RoadGap() paints it, and the relay road's own trails between them.
         float original = Mathf.Sin(z*.068f)*2.4f;
-        float pass = 10*Mathf.Sin((-z-72)*.045f);
-        return Mathf.Lerp(original, pass, Mathf.SmoothStep(0,12,-z-72)) * (1-Mathf.SmoothStep(0,12,-z-134));
+        float pass = 10*Mathf.Sin((-z-172)*.045f);
+        return Mathf.Lerp(original, pass, Mathf.SmoothStep(0,12,-z-172)) * (1-Mathf.SmoothStep(0,12,-z-234));
     }
     public static readonly (string Name,Vector2 At,Vector3 Size,float Yaw,string Style)[] Hamlet={
         ("Kisaragi Workshop",new(-10.37f,6.63f),new(9.2f,3.61f,7),75,"workshop"),("Seed & Grain",new(12.5f,6),new(6.2f,3.24f,3.67f),-95,"kura"),
         ("Village Assembly",new(-12.8f,21.78f),new(10.82f,3.6f,7.4f),82,"hall"),("The Copper Kettle",new(12,24),new(8,4.03f,7),-80,"teahouse"),
         ("Hoshikawa Clinic",new(-11.05f,37.54f),new(10,3.62f,5.68f),98,"clinic"),("Mori Farmhouse",new(11.81f,42.27f),new(10.9f,2.9f,7.1f),-70,"farmhouse")};
-    // Komorebi reuses the Hoshikawa styles and their sizes. Its ground is level within |x| < 29 and z -182…-132, so it needs no pads;
+    // Komorebi reuses the Hoshikawa styles and their sizes. Its ground is level within |x| < 29 and z -282…-232, so it needs no pads;
     // the hall faces down the road from its north end.
     public static readonly (string Name,Vector2 At,Vector3 Size,float Yaw,string Style)[] KomorebiHouses={
-        ("Komorebi Lodge",new(-12,-141),new(10.9f,2.9f,7.1f),90,"farmhouse"),("Mountain Clinic",new(12,-146),new(10,3.62f,5.68f),-90,"clinic"),
-        ("Weavers House",new(-12.5f,-162),new(9.2f,3.61f,7),90,"workshop"),("Orchard Store",new(13,-161.2f),new(6.2f,3.24f,3.67f),-90,"kura"),
-        ("Komorebi Meeting Hall",new(0,-177),new(10.82f,3.6f,7.4f),0,"hall")};
+        ("Komorebi Lodge",new(-12,-241),new(10.9f,2.9f,7.1f),90,"farmhouse"),("Mountain Clinic",new(12,-246),new(10,3.62f,5.68f),-90,"clinic"),
+        ("Weavers House",new(-12.5f,-262),new(9.2f,3.61f,7),90,"workshop"),("Orchard Store",new(13,-261.2f),new(6.2f,3.24f,3.67f),-90,"kura"),
+        ("Komorebi Meeting Hall",new(0,-277),new(10.82f,3.6f,7.4f),0,"hall")};
     public static readonly Vector2 ShrineCenter=new(-1,63);
     public static readonly (Vector2 From,Vector2 To)[] Footpaths={(new(0,15),new(17.2f,15)),(new(21.4f,15),new(34,15)),(new(34,15),new(34,20))};
     public static bool OnFootpath(Vector2 p,float margin)=>Footpaths.Any(f=>Geometry2D.GetClosestPointToSegment(p,f.From,f.To).DistanceTo(p)<1.2f+margin);
@@ -37,8 +37,9 @@ public partial class World : Node3D
     public static readonly Rect2[] Paddies={new(24.4f,21.2f,6.2f,8.4f),new(31.4f,21.2f,6.2f,8.4f),new(24.4f,30.4f,6.2f,8.4f),new(31.4f,30.4f,6.2f,8.4f)};
     private static readonly float[] PaddyLevel=Paddies.Select(p=>Enumerable.Range(0,64).Min(i=>
         {float x=p.Position.X+p.Size.X*(i%8)/7,z=p.Position.Y+p.Size.Y*(i/8)/7;return HamletGround(x,z,BaseHeight(x,z),true);})-.06f).ToArray();
-    // The Hoshikawa runs at sea level through the valley, an estuary from its falls to the sea; the Cedar River runs higher, in its ravine.
-    public const float ShrineLevel=2.4f,WaterLevel=-.38f,CedarLevel=.7f;
+    // The Hoshikawa runs at sea level through the valley, an estuary from its falls to the sea; the Cedar River runs higher, in its ravine
+    // across Cedar Pass at CedarZ.
+    public const float ShrineLevel=2.4f,WaterLevel=-.38f,CedarLevel=.7f,CedarZ=-211;
     // The brook's surface drifts toward its mouth at this many m/s; the water wheel's rim turns at the same speed.
     public const float BrookFlow=.45f,WheelRadius=1.3f;
     // The water wheel's axle, in the brook beside the sluice, low enough that its rim dips .3 m under the water.
@@ -63,7 +64,7 @@ public partial class World : Node3D
         var c=new Vector2I(Mathf.RoundToInt(x),Mathf.RoundToInt(z));
         if(!InPlay(x,z))return Sea(x,z)>0?Height(x,z)-WaterLevel:Banks.Value.Contains(c)&&WaterOutside(x,z) is float level&&(Height(x,z)>level||Damp.Value.Contains(c))?Height(x,z)-level:9;
         if(Paddies.Any(p=>p.HasPoint(new(x,z))))return .2f;
-        bool cedar=z<-60,near=cedar?Math.Abs(z+111)<7:Math.Abs(z+8)<6||(z>-6&&z<57.5f&&Math.Abs(x-BrookX(z))<3.2f);
+        bool cedar=z<-60,near=cedar?Math.Abs(z-CedarZ)<7:Math.Abs(z+8)<6||(z>-6&&z<57.5f&&Math.Abs(x-BrookX(z))<3.2f);
         return near?Height(x,z)-(cedar?CedarLevel:WaterLevel):.35f;
     }
     // The rendered terrain between its 1 m vertices: Terrain() splits each cell on the (x+1,z)-(x,z+1) diagonal.
@@ -73,8 +74,7 @@ public partial class World : Node3D
         return fx+fz<=1?Height(x0,z0)+fx*(Height(x0+1,z0)-Height(x0,z0))+fz*(Height(x0,z0+1)-Height(x0,z0))
             :Height(x0+1,z0+1)+(1-fx)*(Height(x0,z0+1)-Height(x0+1,z0+1))+(1-fz)*(Height(x0+1,z0)-Height(x0+1,z0+1));
     }
-    public static string RegionAt(Vector3 p) => p.Z < -136 ? "Komorebi" : p.Z < -78 ? "Cedar Pass" : p.Z < -14 ? "Old Relay Road" : "Hoshikawa";
-    public Vector3 RelayPosition => new(1, Height(1, -61), -61);
+    public static string RegionAt(Vector3 p) => p.Z < -236 ? "Komorebi" : p.Z < RelayNorth ? "Cedar Pass" : p.Z < RelaySouth ? "Old Relay Road" : "Hoshikawa";
     public static readonly Color Jade = new("72e5cc"), Gold = new("eacb89"), Ink = new("152c33");
     private readonly RandomNumberGenerator rng = new() { Seed = 2189 };
     private Material stone = null!, roof = null!, wood = null!;
@@ -82,7 +82,7 @@ public partial class World : Node3D
     {
         stone = Atlas(new(0, 1), new(2, 2)); roof = Atlas(new(1, 1), new(5, 3));
         wood = Mat(new("594735"));
-        Environment(); Terrain(); Village(); Countryside(); NorthernValley(); Komorebi(); Merge();
+        Environment(); Terrain(); Village(); Countryside(); RelayRoad(); NorthernValley(); Komorebi(); Merge();
     }
     // The static cache would otherwise hold its materials past the engine's leak check at quit.
     public override void _ExitTree() => looks.Clear();
@@ -118,7 +118,13 @@ public partial class World : Node3D
         }
     }
     public static float Height(float x, float z) => InPlay(x, z) ? Inside(x, z) : Outside(x, z);
-    private static float Inside(float x, float z) => z > -9 ? PaddyGround(x, z, HamletGround(x, z, BaseHeight(x, z), true)) : BaseHeight(x, z);
+    private static float Inside(float x,float z)
+    {
+        if(z>-9)return PaddyGround(x,z,HamletGround(x,z,BaseHeight(x,z),true));
+        // The relay road's ground takes over from the river's bank and hands over to Cedar Pass's over 4 m, where both lie at the same level.
+        float relay=Mathf.SmoothStep(RelaySouth+4,RelaySouth,z)*(1-Mathf.SmoothStep(RelayNorth+2,RelayNorth-2,z));
+        return relay<=0?BaseHeight(x,z):relay>=1?RelayGround(x,z):Mathf.Lerp(BaseHeight(x,z),RelayGround(x,z),relay);
+    }
     // Each paddy floor is flat to 30 cm inside its edge and back on the ground 5 cm outside it, under the aze.
     private static float PaddyGround(float x,float z,float y)
     {
@@ -145,21 +151,21 @@ public partial class World : Node3D
         if (Math.Abs(x) < 4 && z > -16 && z < 0)
             y = Mathf.Lerp(y, .82f, (1 - Mathf.SmoothStep(3, 4, Math.Abs(x))) * Mathf.SmoothStep(0, 2, Math.Min(z + 16, -z))
                 * Math.Max(1 - Mathf.SmoothStep(-13, -12.6f, z), Mathf.SmoothStep(-3.4f, -3, z)));
-        if (z < -78)
+        if (z < RelayNorth)
         {
-            y += Mathf.SmoothStep(0,18,-z-78)*(1.5f+1.1f*Mathf.Sin(x*.055f)*Mathf.Sin((z+75)*.06f));
-            y += 2.8f*Mathf.Exp(-((x+29)*(x+29)+(z+116)*(z+116))/460);
-            y -= 4.1f*Mathf.Exp(-(z+111)*(z+111)/17);
+            y += Mathf.SmoothStep(0,18,-z-178)*(1.5f+1.1f*Mathf.Sin(x*.055f)*Mathf.Sin((z+175)*.06f));
+            y += 2.8f*Mathf.Exp(-((x+29)*(x+29)+(z+216)*(z+216))/460);
+            y -= 4.1f*Mathf.Exp(-(z-CedarZ)*(z-CedarZ)/17);
             // The river has cut its channel through the hill: its bed stays 55 cm under the water all the way across, in a slot that
             // leaves the water sheet's edges, 3.75 m out, in the banks.
-            y = Math.Min(y, Mathf.Lerp(y, CedarLevel-.55f, 1-Mathf.SmoothStep(2,3.6f,Math.Abs(z+111))));
-            float bank = Mathf.SmoothStep(5,8,Math.Abs(z+111))*(1-Mathf.SmoothStep(8,13,Math.Abs(z+111)));
-            y = Mathf.Lerp(y,4.1f,bank*(1-Mathf.SmoothStep(2.6f,5,Math.Abs(x-RoadX(-111)))));
-            float village = (1-Mathf.SmoothStep(29,42,Math.Abs(x)))*(1-Mathf.SmoothStep(25,36,Math.Abs(z+157)));
+            y = Math.Min(y, Mathf.Lerp(y, CedarLevel-.55f, 1-Mathf.SmoothStep(2,3.6f,Math.Abs(z-CedarZ))));
+            float bank = Mathf.SmoothStep(5,8,Math.Abs(z-CedarZ))*(1-Mathf.SmoothStep(8,13,Math.Abs(z-CedarZ)));
+            y = Mathf.Lerp(y,4.1f,bank*(1-Mathf.SmoothStep(2.6f,5,Math.Abs(x-RoadX(CedarZ)))));
+            float village = (1-Mathf.SmoothStep(29,42,Math.Abs(x)))*(1-Mathf.SmoothStep(25,36,Math.Abs(z+257)));
             y = Mathf.Lerp(y,4.5f,village);
             // Grade the whole footprint and its approaches, so a center-height placement cannot leave a ledge.
-            float shelterEdge=Math.Max(Math.Abs(x+12)-3.5f,Math.Abs(z+91)-3);
-            float lookoutEdge=Math.Max(Math.Abs(x-29)-3.5f,Math.Abs(z+126)-3);
+            float shelterEdge=Math.Max(Math.Abs(x+12)-3.5f,Math.Abs(z+191)-3);
+            float lookoutEdge=Math.Max(Math.Abs(x-29)-3.5f,Math.Abs(z+226)-3);
             y=Mathf.Lerp(y,5.2f,1-Mathf.SmoothStep(0,3,Math.Min(shelterEdge,lookoutEdge)));
         }
         return y;
@@ -327,19 +333,19 @@ public partial class World : Node3D
         return null;
     }
     // A terrain grid over `area` at `step` metres, split on the (x+step,z)-(x,z+step) diagonal like the water grids. UV2.x is Shore(), which
-    // varies across each triangle as the ground does, so the wet band painted from it follows the ground's own contour. Vertex green 0
-    // outside the play area keeps the road's paint off the mountains and the beach. With `skipFine`,
+    // varies across each triangle as the ground does, so the wet band painted from it follows the ground's own contour; UV2.y is RoadGap()
+    // in the play area, 9 beyond it, so the road's paint stays off the mountains and the beach. With `skipFine`,
     // the 4 m grid leaves out the 1 m ground and fans each cell along its edge to that ground's own vertices, so the two meet without a crack.
     private static ArrayMesh? Ground(Rect2I area,int step,bool skipFine=false)
     {
-        var at=new Dictionary<Vector2I,int>();var v=new List<Vector3>();var n=new List<Vector3>();var c=new List<Color>();var uv=new List<Vector2>();var shore=new List<Vector2>();var index=new List<int>();
+        var at=new Dictionary<Vector2I,int>();var v=new List<Vector3>();var n=new List<Vector3>();var uv=new List<Vector2>();var shore=new List<Vector2>();var index=new List<int>();
         bool Rim(Vector2I p)=>p.X>=Fine.Position.X&&p.X<=Fine.End.X&&p.Y>=Fine.Position.Y&&p.Y<=Fine.End.Y;
         int V(Vector2I p)
         {
             if(at.TryGetValue(p,out int k))return k;
             float x=p.X,z=p.Y,e=step==1||Rim(p)?.1f:1;var normal=new Vector3(Height(x-e,z)-Height(x+e,z),2*e,Height(x,z-e)-Height(x,z+e)).Normalized();
             at[p]=k=v.Count;v.Add(new(x,Height(x,z),z));n.Add(normal);uv.Add(new(x*.15f,z*.15f));
-            c.Add(new(1,InPlay(x,z)?1:0,1));shore.Add(new(Shore(x,z),0));return k;
+            shore.Add(new(Shore(x,z),InPlay(x,z)?RoadGap(x,z):9));return k;
         }
         // Wound clockwise seen from above, the terrain's front.
         void T(Vector2I a,Vector2I b,Vector2I d){if((b.X-a.X)*(d.Y-a.Y)-(b.Y-a.Y)*(d.X-a.X)<0)(b,d)=(d,b);index.AddRange(new[]{V(a),V(b),V(d)});}
@@ -357,7 +363,7 @@ public partial class World : Node3D
         }
         if(index.Count==0)return null;
         var arrays=new Godot.Collections.Array();arrays.Resize((int)Godot.Mesh.ArrayType.Max);
-        arrays[(int)Godot.Mesh.ArrayType.Vertex]=v.ToArray();arrays[(int)Godot.Mesh.ArrayType.Normal]=n.ToArray();arrays[(int)Godot.Mesh.ArrayType.Color]=c.ToArray();
+        arrays[(int)Godot.Mesh.ArrayType.Vertex]=v.ToArray();arrays[(int)Godot.Mesh.ArrayType.Normal]=n.ToArray();
         arrays[(int)Godot.Mesh.ArrayType.TexUV]=uv.ToArray();arrays[(int)Godot.Mesh.ArrayType.TexUV2]=shore.ToArray();arrays[(int)Godot.Mesh.ArrayType.Index]=index.ToArray();
         var mesh=new ArrayMesh();mesh.AddSurfaceFromArrays(Godot.Mesh.PrimitiveType.Triangles,arrays);return mesh;
     }
@@ -444,7 +450,10 @@ public partial class World : Node3D
         {
             float x=rng.RandfRange(-59,59),z=rng.RandfRange(-75,71);
             if(Math.Abs(x)<9|| (z>0&&Math.Abs(x)<40)||Math.Abs(z+8)<5||new Vector2(x-1,z+61).Length()<8)continue;
-            Tree(new(x,Height(x,z),z),rng.RandfRange(.8f,1.5f),"countryside");
+            // North of the river the relay road scatters its own; the draws stay, so the valley's scatter after them keeps its place.
+            float scale=rng.RandfRange(.8f,1.5f);
+            if(z<RelaySouth){rng.Randf();rng.Randf();rng.Randf();continue;}
+            Tree(new(x,Height(x,z),z),scale,"countryside");
         }
         for(int i=0;i<150;i++)
         {
@@ -453,7 +462,7 @@ public partial class World : Node3D
             float s=rng.RandfRange(.3f,1.5f);var tilt=new Vector3(rng.Randf(),rng.Randf()*6,0);
             // Skipped only after its draws, so the rest of the seeded scatter keeps its place. The window opens at Height()'s z>-9
             // hamlet split because the channel cuts on through the river bank; the one boulder it removes sits there, at z -4.2.
-            if(z>-9&&Math.Abs(x-BrookX(z))<2.3f+s)continue;
+            if(z>-9&&Math.Abs(x-BrookX(z))<2.3f+s||z<RelaySouth)continue;
             Sphere(this,"Weathered boulder",new(x,Height(x,z)+s*.3f,z),new(s,s*.6f,s*.75f),stone).Rotation=tilt;
         }
         var meadow=new List<(Vector3 P,float H)>();
@@ -462,38 +471,21 @@ public partial class World : Node3D
         {
             float x=rng.RandfRange(-60,60),z=rng.RandfRange(-75,70);
             if(!Meadow(x,z))continue;
-            meadow.Add((new(x,Height(x,z),z),rng.RandfRange(.18f,.6f)));
+            float h=rng.RandfRange(.18f,.6f);
+            if(z>=RelaySouth)meadow.Add((new(x,Height(x,z),z),h));
         }
-        Grass("Meadow grass",meadow,3,p=>Meadow(p.X,p.Y),5,.45f,new("3a5122"),new("8ea54f"),.08f,5003);
-        for(int i=0;i<180;i++)
-        {
-            float x=rng.RandfRange(-24,24),z=rng.RandfRange(-65,-17);if(Math.Abs(x)<4)continue;
-            Sphere(this,"Wildflower",new(x,Height(x,z)+.18f,z),new(.09f,.09f,.09f),Mat(i%3==0?new("b8acd0"):new("e8d89b")));
-        }
-        var relay=new Node3D {Name="Manual relay",Position=RelayPosition};AddChild(relay);
-        Box(relay,"Relay platform",new(0,.15f,0),new(5,.3f,4),stone,true);
-        Box(relay,"Relay cabinet",new(0,1.3f,0),new(1.5f,2.3f,.8f),Mat(new("607e76")),true);
-        Box(relay,"Relay face",new(0,1.55f,.42f),new(1.2f,.8f,.04f),Mat(Ink));
-        Box(relay,"Offline terminal",new(0,1.55f,.45f),new(.8f,.46f,.025f),Mat(Jade,.8f));
-        Cylinder(relay,"Antenna mast",new(0,4.1f,-.4f),.09f,6,Mat(new("829b91")));
-        for(int i=0;i<3;i++)Box(relay,"Antenna crossbar",new(0,5.5f+i*.55f,-.4f),new(3-i*.6f,.06f,.06f),Mat(new("829b91")));
-        Label(relay,"MANUAL RELAY",new(0,3.15f,0),Jade,30);
-        // Broken rail viaduct, a reminder of the route the first chapter will reopen.
-        for(int i=0;i<9;i++)
-        {
-            float x=-38+i*9;Box(this,"Viaduct pillar",new(x,5,-73),new(2,10,2.5f),stone);
-            if(i!=4)Box(this,"Viaduct span",new(x+3.8f,10,-73),new(9,1,3.6f),stone);
-        }
-        for(int i=0;i<5;i++) Lamp(new(4.5f,Height(4.5f,-19-i*8),-19-i*8));
+        Grass("Meadow grass",meadow,3,p=>Meadow(p.X,p.Y)&&p.Y>=RelaySouth,5,.45f,new("3a5122"),new("8ea54f"),.08f,5003);
+        // The old relay road's wildflowers, all north of the river now: drawn and dropped.
+        for(int i=0;i<360;i++)rng.Randf();
     }
     private void NorthernValley()
     {
         var water = new ShaderMaterial { Shader=GD.Load<Shader>("res://assets/shaders/water.gdshader") };water.SetShaderParameter("flow",new Vector2(-.35f,0));
-        Mesh(this,"Cedar River",new PlaneMesh { Size=new(2*HalfWidth,7.5f),SubdivideWidth=2*HalfWidth-1 },new(0,CedarLevel,-111),water);
-        var bridge=new Node3D {Name="Cedar Bridge",Position=new(RoadX(-111),0,-111)};AddChild(bridge);
+        Mesh(this,"Cedar River",new PlaneMesh { Size=new(2*HalfWidth,7.5f),SubdivideWidth=2*HalfWidth-1 },new(0,CedarLevel,CedarZ),water);
+        var bridge=new Node3D {Name="Cedar Bridge",Position=new(RoadX(CedarZ),0,CedarZ)};AddChild(bridge);
         TimberBridge(bridge,4.1f,8,5.2f,new[]{-6f,0,6f});
         Label(bridge,"CEDAR RIVER",new(0,6.6f,0),Gold,29);
-        var shelter=new Node3D {Name="Cedar Pass Shelter",Position=new(-12,Height(-12,-91),-91)};AddChild(shelter);
+        var shelter=new Node3D {Name="Cedar Pass Shelter",Position=new(-12,Height(-12,-191),-191)};AddChild(shelter);
         Box(shelter,"Shelter floor",new(0,-.12f,0),new(6,.3f,4.5f),stone,true);
         foreach(float x in new[]{-2.6f,2.6f})foreach(float z in new[]{-1.8f,1.8f})
             Box(shelter,"Shelter pillar",new(x,1.6f,z),new(.2f,3.2f,.2f),wood,true);
@@ -504,9 +496,9 @@ public partial class World : Node3D
         foreach(float x in new[]{-1.5f,1.5f})Box(shelter,"Bench support",new(x,.25f,-1.4f),new(.18f,.5f,.5f),wood);
         for(int i=0;i<3;i++)Prop(shelter,"Rain barrel","barrel",new(3.4f,0,-1+i*1.1f),i*2,Vector3.One*1.2f);
         Label(shelter,"CEDAR PASS SHELTER",new(0,3.1f,2),Gold,26);
-        Footpath(new(RoadX(-89),-89),new(-12,-87),1.2f);
-        Footpath(new(-12,-87),new(-12,-88.75f),1.2f);
-        var lookout=new Node3D {Name="Valley Overlook",Position=new(29,Height(29,-126),-126)};AddChild(lookout);
+        Footpath(new(RoadX(-189),-189),new(-12,-187),1.2f);
+        Footpath(new(-12,-187),new(-12,-188.75f),1.2f);
+        var lookout=new Node3D {Name="Valley Overlook",Position=new(29,Height(29,-226),-226)};AddChild(lookout);
         Box(lookout,"Overlook deck",new(0,-.12f,0),new(6,.3f,5),wood,true);
         for(int i=0;i<4;i++) Box(lookout,"Lookout post",new(-3+i*2,.6f,2.5f),new(.16f,1.2f,.16f),wood,true);
         Box(lookout,"Lookout rail",new(0,1.1f,2.5f),new(6.2f,.15f,.15f),wood,true);
@@ -519,20 +511,20 @@ public partial class World : Node3D
         Box(lookout,"Vista plaque",new(-2,1.25f,-2),new(1.8f,.5f,.1f),wood);
         var plaque=Label(lookout,"CEDAR RIVER\nTHE OFFLINE VALLEY",new(-2,1.25f,-1.93f),Gold,24);
         plaque.Billboard=BaseMaterial3D.BillboardModeEnum.Disabled;plaque.PixelSize=.0028f;
-        Footpath(new(RoadX(-126),-126),new(26,-126),1.2f);
-        foreach(int z in new[]{-79,-92,-101,-122,-132,-138})
+        Footpath(new(RoadX(-226),-226),new(26,-226),1.2f);
+        foreach(int z in new[]{-179,-192,-201,-222,-232,-238})
         {float x=RoadX(z)+4.3f;Lamp(new(x,Height(x,z),z));}
-        Signpost(new(RoadX(-80)+4,-80),"N · KOMOREBI\nS · HOSHIKAWA");
-        Signpost(new(RoadX(-123)-4,-123),"N · KOMOREBI\nE · OVERLOOK");
+        Signpost(new(RoadX(-180)+4,-180),"N · KOMOREBI\nS · HOSHIKAWA");
+        Signpost(new(RoadX(-223)-4,-223),"N · KOMOREBI\nE · OVERLOOK");
         for(int i=0;i<180;i++)
         {
-            float x=rng.RandfRange(-59,59),z=rng.RandfRange(-193,-80);
-            if(NorthClear(x,z)||new Vector2(x,z).DistanceTo(Geometry2D.GetClosestPointToSegment(new(x,z),new(29,-124),new(2,-106)))<7)continue;
+            float x=rng.RandfRange(-59,59),z=rng.RandfRange(-293,-180);
+            if(NorthClear(x,z)||new Vector2(x,z).DistanceTo(Geometry2D.GetClosestPointToSegment(new(x,z),new(29,-224),new(2,-206)))<7)continue;
             Tree(new(x,Height(x,z),z),rng.RandfRange(.75f,1.35f),"valley");
         }
         for(int i=0;i<70;i++)
         {
-            float x=rng.RandfRange(-59,59),z=rng.RandfRange(-192,-80);
+            float x=rng.RandfRange(-59,59),z=rng.RandfRange(-292,-180);
             if(NorthClear(x,z))continue;
             float s=rng.RandfRange(.35f,1.3f);
             Sphere(this,"Pass boulder",new(x,Height(x,z)+s*.3f,z),new(s,s*.7f,s),stone);
@@ -540,21 +532,21 @@ public partial class World : Node3D
         var grass=new List<(Vector3 P,float H)>();
         for(int i=0;i<6500;i++)
         {
-            float x=rng.RandfRange(-60,60),z=rng.RandfRange(-193,-80);
+            float x=rng.RandfRange(-60,60),z=rng.RandfRange(-293,-180);
             if(NorthClear(x,z))continue;
             grass.Add((new(x,Height(x,z),z),rng.RandfRange(.18f,.55f)));
         }
         Grass("Cedar Pass meadow",grass,3,p=>!NorthClear(p.X,p.Y),5,.45f,new("3d5124"),new("98a75a"),.12f,6511);
         for(int i=0;i<95;i++)
         {
-            float z=rng.RandfRange(-135,-80),x=RoadX(z)+(i%2==0?1:-1)*rng.RandfRange(4,6.5f);
-            if(Math.Abs(z+111)<10)continue;
+            float z=rng.RandfRange(-235,-180),x=RoadX(z)+(i%2==0?1:-1)*rng.RandfRange(4,6.5f);
+            if(Math.Abs(z-CedarZ)<10)continue;
             Sphere(this,"Pass wildflowers",new(x,Height(x,z)+.16f,z),new(.13f,.13f,.13f),Mat(new(i%3==0?"dab298":"dcd6a3")));
         }
     }
     private static bool NorthClear(float x,float z)
-        => Math.Abs(x-RoadX(z))<8 || (z<-134&&Math.Abs(x)<43) || Math.Abs(z+111)<7
-            || (Math.Abs(z+90)<6&&x>-20&&x<17) || (Math.Abs(z+125)<5&&x>0&&x<34);
+        => Math.Abs(x-RoadX(z))<8 || (z<-234&&Math.Abs(x)<43) || Math.Abs(z-CedarZ)<7
+            || (Math.Abs(z+190)<6&&x>-20&&x<17) || (Math.Abs(z+225)<5&&x>0&&x<34);
 
     private void Footpath(Vector2 a,Vector2 b,float halfWidth)
         => GroundStrip("Connecting footpath",a,b,halfWidth,Atlas(new(1,0),Vector2.One));
@@ -592,21 +584,21 @@ public partial class World : Node3D
     {
         foreach(var (name,at,size,yaw,style) in KomorebiHouses) Minka(name,at,size,yaw,style);
         float Face(float x,float z)=>Mathf.Atan2(RoadX(z)-x,0);
-        Resident("Nao","LODGE KEEPER",new(-5.6f,0,-137.8f),0,Face(-5.6f,-137.8f));
-        Resident("Emi","MOUNTAIN MEDIC",new(6,0,-145),2,Face(6,-145));
-        Resident("Toma","ORCHARD KEEPER",new(16.2f,0,-156.7f),3,0);
-        Resident("Yui","PASS COURIER",new(-6,0,-160.2f),4,Face(-6,-160.2f));
+        Resident("Nao","LODGE KEEPER",new(-5.6f,0,-237.8f),0,Face(-5.6f,-237.8f));
+        Resident("Emi","MOUNTAIN MEDIC",new(6,0,-245),2,Face(6,-245));
+        Resident("Toma","ORCHARD KEEPER",new(16.2f,0,-256.7f),3,0);
+        Resident("Yui","PASS COURIER",new(-6,0,-260.2f),4,Face(-6,-260.2f));
         // Door paths: the lodge's and the clinic's from the road, and one across it from the weavers' door to the store's.
-        Footpath(new(0,-139.8f),new(-7.3f,-139.8f),1.3f);Footpath(new(0,-146),new(7.7f,-146),1.3f);
-        Footpath(new(-7.7f,-161.2f),new(10.4f,-161.2f),1.3f);Footpath(new(0,-154),new(22,-154),1.3f);
-        Well("Komorebi well",new(-4.8f,-149.6f));NoticeBoard("Komorebi notice board",new(5.6f,-151.6f),180);
-        Bench(new(-6.2f,-156.5f),90);Bench(new(5.8f,-157.5f),-90);
-        StoneLantern(this,new(-3.9f,Height(-3.9f,-170.5f),-170.5f));StoneLantern(this,new(3.9f,Height(3.9f,-170.5f),-170.5f));
-        foreach(var p in new[]{new Vector2(-4.5f,-136),new Vector2(5,-143),new Vector2(4.4f,-149.4f),new Vector2(5.4f,-164.2f),new Vector2(-6,-167),new Vector2(20,-152)})
+        Footpath(new(0,-239.8f),new(-7.3f,-239.8f),1.3f);Footpath(new(0,-246),new(7.7f,-246),1.3f);
+        Footpath(new(-7.7f,-261.2f),new(10.4f,-261.2f),1.3f);Footpath(new(0,-254),new(22,-254),1.3f);
+        Well("Komorebi well",new(-4.8f,-249.6f));NoticeBoard("Komorebi notice board",new(5.6f,-251.6f),180);
+        Bench(new(-6.2f,-256.5f),90);Bench(new(5.8f,-257.5f),-90);
+        StoneLantern(this,new(-3.9f,Height(-3.9f,-270.5f),-270.5f));StoneLantern(this,new(3.9f,Height(3.9f,-270.5f),-270.5f));
+        foreach(var p in new[]{new Vector2(-4.5f,-236),new Vector2(5,-243),new Vector2(4.4f,-249.4f),new Vector2(5.4f,-264.2f),new Vector2(-6,-267),new Vector2(20,-252)})
             Lamp(new(p.X,Height(p.X,p.Y),p.Y));
         // Komorebi's own scatter (courtyard shrubs, persimmons) draws from its own generator, so rng's stream through the orchard is unchanged.
         var r=new RandomNumberGenerator{Seed=5101};
-        foreach(var p in new[]{new Vector2(-20,-149),new Vector2(10.5f,-170.5f),new Vector2(-18,-176)})
+        foreach(var p in new[]{new Vector2(-20,-249),new Vector2(10.5f,-270.5f),new Vector2(-18,-276)})
         {
             Tree(new(p.X,Height(p.X,p.Y),p.Y),.72f);
             for(int i=0;i<3;i++)
@@ -615,19 +607,19 @@ public partial class World : Node3D
                 Tree(new(x,Height(x,z),z),r.RandfRange(.75f,.95f),"shrub",r);
             }
         }
-        foreach(float z in new[]{-134f,-166f})
+        foreach(float z in new[]{-234f,-266f})
         {
             foreach(float x in new[]{-4.5f,4.5f}) Box(this,"Festival mast",new(x,Height(x,z)+2.4f,z),new(.15f,4.8f,.15f),wood);
             Box(this,"Bunting rope",new(0,Height(0,z)+4.5f,z),new(9,.035f,.035f),wood);
             for(int i=0;i<9;i++)
                 Box(this,"Cloth pennant",new(-3.8f+i*.95f,Height(0,z)+4.15f,z),new(.55f,.65f,.025f),Mat(new(i%2==0?"ba795d":"7ba89c")));
         }
-        Signpost(new(5,-135),"KOMOREBI\nLODGE · CLINIC · ORCHARDS");
+        Signpost(new(5,-235),"KOMOREBI\nLODGE · CLINIC · ORCHARDS");
         // Persimmons hang on the crown's lower outside, on the foliage cards' outer corners.
         var fruit=Mat(new("e07a2c"));
         for(int row=0;row<3;row++)for(int col=0;col<3;col++)
         {
-            float x=25+col*6,z=-146-row*9;
+            float x=25+col*6,z=-246-row*9;
             var tree=Tree(new(x,Height(x,z),z),.75f,"kaki");
             var leaves=ActorVisual.Descendants(tree).OfType<MeshInstance3D>().SelectMany(m=>Enumerable.Range(0,m.Mesh.GetSurfaceCount())
                 .Where(i=>m.Mesh.SurfaceGetMaterial(i)?.ResourceName=="foliage").SelectMany(i=>m.Mesh.SurfaceGetArrays(i)[(int)Godot.Mesh.ArrayType.Vertex].AsVector3Array().Select(v=>m.GlobalTransform*v))).ToArray();
@@ -636,9 +628,9 @@ public partial class World : Node3D
             for(int i=0;i<14;i++)Sphere(this,$"Orchard persimmon {GetChildCount()}",outer[r.RandiRange(0,outer.Length-1)]+Vector3.Down*.1f,Vector3.One*.11f,fruit);
         }
         // The packing station between the store and the orchard fence: Toma's handcart, barrels and a hasa rack along the fence.
-        Handcart("Orchard handcart",new(19,-161),90);
-        foreach(var p in new Vector2[]{new(17.4f,-164),new(17.6f,-164.9f),new(18.3f,-164.4f)})Prop(this,"Orchard barrel","barrel",new(p.X,Height(p.X,p.Y),p.Y),p.X*3);
-        Hasa(new(20.3f,-167),90);
+        Handcart("Orchard handcart",new(19,-261),90);
+        foreach(var p in new Vector2[]{new(17.4f,-264),new(17.6f,-264.9f),new(18.3f,-264.4f)})Prop(this,"Orchard barrel","barrel",new(p.X,Height(p.X,p.Y),p.Y),p.X*3);
+        Hasa(new(20.3f,-267),90);
         // Hoshigaki: strings of persimmons drying under the store's front eave, either side of its sign.
         var store=Buildings.Single(n=>n.Name=="Orchard Store");float front=TripoHouses["kura"].Walls.End.Y+.35f,eave=KomorebiHouses.Single(h=>h.Name=="Orchard Store").Size.Y;
         var dried=Mat(new("b8582a"));var cord=Mat(new("3f3026"));
@@ -647,11 +639,11 @@ public partial class World : Node3D
             Box(store,"Hoshigaki cord",new(x,(1.9f+eave)/2,front),new(.015f,eave-1.9f,.015f),cord);
             for(int i=0;i<6;i++)Sphere(store,"Hoshigaki",new(x,2+i*.17f,front),new(.07f,.08f,.07f),dried);
         }
-        Footpath(new(0,-153),new(-12,-151.5f),1.2f);Footpath(new(-12,-151.5f),new(-38.5f,-151.5f),1.2f);
-        Footpath(new(-32.5f,-142),new(-32.5f,-161),.8f);
-        Footpath(new(22,-154),new(24,-151),1.2f);Footpath(new(24,-151),new(34,-151),1.2f);
-        Footpath(new(28,-141),new(28,-167),.8f);
-        for(int field=0;field<2;field++)foreach(float z in new[]{-146f,-157f})
+        Footpath(new(0,-253),new(-12,-251.5f),1.2f);Footpath(new(-12,-251.5f),new(-38.5f,-251.5f),1.2f);
+        Footpath(new(-32.5f,-242),new(-32.5f,-261),.8f);
+        Footpath(new(22,-254),new(24,-251),1.2f);Footpath(new(24,-251),new(34,-251),1.2f);
+        Footpath(new(28,-241),new(28,-267),.8f);
+        for(int field=0;field<2;field++)foreach(float z in new[]{-246f,-257f})
         {
             float x=-29-field*7;
             GroundStrip($"Komorebi garden bed {field}-{(int)-z}",new(x,z-4),new(x,z+4),2.5f,Mat(new("716348")));
@@ -663,10 +655,10 @@ public partial class World : Node3D
             }
         }
         // The scarecrow stands in the middle of the nearer cabbage bed, between its four central cabbages, facing the lane.
-        Kakashi("Komorebi scarecrow",new(-29,-157),0);
-        Fence(new(-24,0,-139),new(-24,0,-149.5f));Fence(new(-24,0,-153.5f),new(-24,0,-171));
-        Fence(new(22,0,-139),new(22,0,-152));Fence(new(22,0,-156),new(22,0,-173));
-        Fence(new(-24,0,-171),new(-20,0,-171));Fence(new(10,0,-173),new(22,0,-173));
+        Kakashi("Komorebi scarecrow",new(-29,-257),0);
+        Fence(new(-24,0,-239),new(-24,0,-249.5f));Fence(new(-24,0,-253.5f),new(-24,0,-271));
+        Fence(new(22,0,-239),new(22,0,-252));Fence(new(22,0,-256),new(22,0,-273));
+        Fence(new(-24,0,-271),new(-20,0,-271));Fence(new(10,0,-273),new(22,0,-273));
     }
     private ShaderMaterial? grassMaterial;
     // Grass and rice tufts in 32 m chunks, each around its own origin so culling and the visibility range drop what is out of sight.

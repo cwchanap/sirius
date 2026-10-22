@@ -26,13 +26,13 @@ func capture():
 	var views=[
 		["shelter-entry",shelter+Vector3(5,2,5),shelter+Vector3(0,.7,.7),shelter+Vector3(0,.03,.5)],
 		["overlook-entry",overlook+Vector3(5,2.5,5),overlook+Vector3(0,.8,.3),overlook+Vector3(0,.03,0)],
-		["orchard-access",Vector3(19,6.4,-153.8),Vector3(29,5,-151)],
-		["garden-grounding",Vector3(-42,5,-139),Vector3(-32,4.5,-151)],
-		["komorebi-top",Vector3(0,80,-153),Vector3(.1,4.5,-154)],
+		["orchard-access",Vector3(19,6.4,-253.8),Vector3(29,5,-251)],
+		["garden-grounding",Vector3(-42,5,-239),Vector3(-32,4.5,-251)],
+		["komorebi-top",Vector3(0,80,-253),Vector3(.1,4.5,-254)],
 		["hoshikawa-top",Vector3(0,75,23),Vector3(.1,0,22)],
 		["rice-grounding",Vector3(42,2,19),Vector3(30,.5,30)],
-		["komorebi-services",Vector3(0,6.5,-138),Vector3(0,6,-150)],
-		["overlook-view",overlook+Vector3(0,1.7,0),Vector3(6,3,-108)]]
+		["komorebi-services",Vector3(0,6.5,-238),Vector3(0,6,-250)],
+		["overlook-view",overlook+Vector3(0,1.7,0),Vector3(6,3,-208)]]
 	for view in views:
 		mio.visible=view.size()==4
 		if mio.visible: mio.position=view[3]

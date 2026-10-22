@@ -17,13 +17,10 @@ vec3 tile(vec2 uv, vec2 cell, vec2 dx, vec2 dy) {
 }
 void fragment() {
     vec2 p=world.xz;
-    float road=sin(p.y*0.068)*2.4;
-    road=mix(road,10.0*sin((-p.y-72.0)*0.045),smoothstep(0.0,12.0,-p.y-72.0));
-    road*=1.0-smoothstep(0.0,12.0,-p.y-134.0);
-    // Vertex green is 0 beyond the play area, where the road's curve would otherwise carry on over the beach.
-    float path=(1.0-smoothstep(2.0,3.3,abs(p.x-road)))*COLOR.g;
+    // UV2.y is World.RoadGap(): the road's paint runs out from 2 to 3.3 m off its middle.
+    float path=1.0-smoothstep(2.0,3.3,UV2.y);
     float plaza=(1.0-smoothstep(7.0,11.0,length(p-vec2(0.0,21.0))));
-    plaza=max(plaza,1.0-smoothstep(5.0,8.0,length(p-vec2(-2.0,-155.0))));
+    plaza=max(plaza,1.0-smoothstep(5.0,8.0,length(p-vec2(-2.0,-255.0))));
     vec2 dx=dFdx(p),dy=dFdy(p);
     vec3 wx=dFdx(world),wy=dFdy(world);
     vec3 n=normalize(terrain_normal);
