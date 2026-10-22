@@ -86,12 +86,18 @@ public partial class World
         // The relay road's own scatter, so nothing it places moves the countryside's or the valley's.
         var r=new RandomNumberGenerator{Seed=7207};var valley=Trails.Single(t=>t.Name=="Forest valley");
         float X()=>r.RandfRange(-60,60);float Z()=>r.RandfRange(RelayNorth+4,RelaySouth-4);
-        // Cedars down the forest valley either side of its path, and keyaki and cedars along the brows above the trails' cliffs.
+        // Keyaki and cedars along the brows above the trails' cliffs.
         for(int i=0;i<200;i++)
         {
-            float x=X(),z=Z(),s=r.RandfRange(.8f,1.4f),edge=RelayEdge(x,z),path=Near(valley.Points,x,z).Gap;
-            bool floor=z<-40&&path>2.4f&&path<valley.Half-2.2f&&edge>=path-valley.Half-.01f;
-            if(floor||edge>3.5f&&edge<16)Tree(new(x,Height(x,z),z),s,floor?"valley":"countryside",r);
+            float x=X(),z=Z(),s=r.RandfRange(.8f,1.4f),edge=RelayEdge(x,z);
+            if(edge>3.5f&&edge<16)Tree(new(x,Height(x,z),z),s,"countryside",r);
+        }
+        // Cedars down the forest valley either side of its path, on its own floor and narrow enough that their boughs keep off its walls.
+        for(int i=0;i<36;i++)
+        {
+            int k=r.RandiRange(0,valley.Points.Length-2);var a=valley.Points[k];var b=valley.Points[k+1];float t=r.Randf(),side=r.RandfRange(2.5f,3.6f)*(i%2*2-1),s=r.RandfRange(.8f,1.15f);
+            var p=a.Lerp(b,t);var across=new Vector2(a.Z-b.Z,b.X-a.X).Normalized()*side;float x=p.X+across.X,z=p.Z+across.Y,path=Near(valley.Points,x,z).Gap;
+            if(p.Z<-40&&path>2.4f&&RelayEdge(x,z)>=path-valley.Half-.01f)Tree(new(x,Height(x,z),z),s,"sugi",r);
         }
         for(int i=0;i<420;i++)
         {
