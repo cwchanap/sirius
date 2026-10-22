@@ -103,15 +103,9 @@ Generated with the built-in `image_gen` tool, then copied into the project witho
 - `assets/art/amber-iris.png`: generated painted iris artwork, UV-mapped into the shared villager model and embedded in its GLB.
 
 - `assets/art/mio-turnaround.png`: preserved front/back design illustration; the current garment geometry uses a fabric atlas.
-- `assets/art/mio-face-diffuse.png`: preserved original face atlas with painted eyes, cheeks, nose and lips.
-- `assets/art/mio-skin-painted-v3.png`: preserved skin-only atlas, generated from the original face atlas with the head sheet as a complexion reference. Painted eyes and brows were removed for continuous upper-face mapping.
-- `assets/art/mio-skin-painted-v5.png`: preserved previous skin atlas. Built-in imagegen removed the pointed lip outline, retained a faint lip tint, and added restrained nose-plane shading while preserving the UV layout. Exact prompt: `artifacts/face-finish/imagegen.json`. Generated pixels are preserved unchanged.
-- `assets/art/mio-skin-painted-v4.png`: previous skin atlas. Built-in imagegen removed the vertical nose mark and softened lip color; modeled nasal wings, nostril marks and lip cushions now carry those features. Exact prompt and input/output paths: `assets/art/mio-skin-painted-v4-generation.json`. Generated pixels are preserved unchanged.
-- `assets/art/mio-hair-diffuse.png`: preserved earlier hair texture.
-- `assets/art/mio-hair-soft.png`: preserved earlier midnight hair texture.
-- `assets/art/mio-fabric-soft.png`: preserved previous teal, ivory, crimson and leather atlas. Revision references and direction are recorded in `assets/art/mio-shape-materials.md`.
+- The authored Mio's superseded texture revisions (face, hair, skin, fabric and iris atlases, with their generation records and the two material notes) were removed on 2026-10-21, along with the textures Godot had extracted from old GLB exports. They remain in git history before that date.
 
-The three original Mio texture prompts are recorded verbatim in [mio-generation-prompts.md](assets/art/mio-generation-prompts.md). Each generation referenced the original `mio-keyart.png`; the resulting files are 1254×1254 PNGs. Textures are embedded in the GLB and packed into the editable Blender file. UV layout changes do not alter the raster source art.
+The original Mio turnaround prompt is recorded verbatim in [mio-generation-prompts.md](assets/art/mio-generation-prompts.md); it referenced the original `mio-keyart.png`. UV layout changes do not alter the raster source art.
 
 ### Material atlas prompt
 
@@ -309,19 +303,11 @@ The user's “Story Main line” conversation, latest dual-body countryside/city
 
 - `assets/art/mio-turnaround-body-v1.png`: front, left profile, back and three-quarter full-body construction sheet.
 - `assets/art/mio-turnaround-head-v1.png`: matching head views and the reference for Mio's eye design.
-- `assets/art/mio-iris-painted-v1.png`: preserved first dedicated amber iris texture, replacing the former roughly 28×30-pixel head-sheet crop. Exact prompt: `artifacts/lid-jaw/iris-prompt.txt`.
-- `assets/art/mio-iris-painted-v2.png`: preserved previous 1254×1254 amber-brown iris. Exact prompt: `artifacts/mouth-chin/iris-prompt.txt`.
-- `assets/art/mio-iris-painted-v4.png`: preserved previous 1254×1254 iris, generated with imagegen from the original head guide. Smaller, softly rounded pupil, dark upper iris, subdued amber lower half and a small glint. Original generated PNG bytes are preserved. Exact prompt and provenance: `assets/art/mio-iris-painted-v4-generation.json`. The intervening v3 trial is retained but unused.
-- `assets/art/mio-iris-painted-v5.png`: preserved previous 1254×1254 amber iris, generated with imagegen using v4 and the official Elaine screenshot as references. Dark upper band and pupil, pale honey lower crescent, clear primary catchlight. Generated pixels are unchanged; UVs stay inside the painted circle. Exact prompt, inputs and hash: `assets/art/mio-iris-painted-v5-generation.json`.
-- `assets/art/mio-iris-painted-v6.png`: preserved previous amber iris, edited with built-in imagegen using v5 and the official Elaine screenshot. More compact pupil and broader upper-left reflection. Generated PNG bytes are unchanged. Exact prompt: `artifacts/lid-structure/iris-prompt.txt`; inputs and hash: `assets/art/mio-iris-painted-v6-generation.json`.
-- `assets/art/mio-iris-painted-v7.png`: preserved previous amber iris, edited with built-in imagegen from v6. Smaller, rounder pupil and reduced surrounding upper shadow; iris dimensions, UVs and geometry are unchanged. Generated PNG bytes are preserved. Exact prompt: `artifacts/pupil-balance/iris-prompt.txt`; provenance: `assets/art/mio-iris-painted-v7-generation.json`.
 - `assets/art/mio-fabric-turnaround-v1.png`: current coat, blouse, scarf and leather atlas.
 - `assets/art/mio-turnaround-landmarks.json`: approximate manually identified pixel landmarks and calibration notes.
 - `assets/art/mio-turnaround-generation.json`: exact built-in imagegen prompts, input baseline and asset purposes.
 
-The sheets were generated first from the original Mio key art. They have small cross-view inconsistencies; the head sheet governs the face and the body sheet governs costume placement. They are not exact scans or a finished 3D result. The previous skin texture is retained.
-
-`assets/art/mio-hair-painted-v2.png` is a preserved previous hair base-color texture, generated with the built-in imagegen tool from the original hair map and head-sheet reference. It replaces fine photographic strand noise with grouped dark violet/navy painted highlights. Its exact prompt and input paths are recorded in `assets/art/mio-hair-painted-v2-generation.json`; the original `mio-hair-soft.png` is preserved.
+The sheets were generated first from the original Mio key art. They have small cross-view inconsistencies; the head sheet governs the face and the body sheet governs costume placement. They are not exact scans or a finished 3D result.
 
 
 Current texture refinement uses built-in imagegen edits, copied unchanged: `assets/art/mio-hair-painted-v3.png` removes repeated violet bands; `assets/art/mio-iris-painted-v8.png` adds finer amber shading while preserving the small pupil footprint; `assets/art/mio-skin-painted-v6.png` adds restrained nose-plane tint. Exact prompts, inputs, original generated paths and SHA-256 hashes are recorded in [imagegen provenance](artifacts/hair-refinement/imagegen.json). Fabric remains `mio-fabric-turnaround-v1.png`.

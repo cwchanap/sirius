@@ -134,7 +134,6 @@ The importer regression check exercises all four input formats, transformed mult
 - `tools/build_characters.py`: legacy full character regeneration. It recreates the previous Mio; run `tools/import_tripo_mio.py` afterward to restore the Tripo character.
 - `tools/refine_humans.py`: shared human helpers, 58-bone rigs, normalized skinning and all 12 action clips.
 - `tools/mio_illustrated.py`: Mio facial geometry, garment UVs, layered hair and key-art costume.
-- `tools/render_human_review.py`: temporary Blender studio renders of faces, idle, running and guard poses.
 - `assets/art/`: original imagegen art used directly in the game; prompts in `ASSETS.md`.
 - `tools/build_audio.py`: original synthesized ambient loop and combat sounds using Python's standard library.
 - `assets/dialogue/ja.json`: Japanese text for Mio's and Zero's prologue lines, keyed like `Intro.1` by scene and beat in `Prologue.cs`.
