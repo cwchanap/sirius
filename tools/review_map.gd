@@ -1,6 +1,7 @@
 extends SceneTree
 
-# The map's edges and waters: the sea, the river mouth, both rivers' falls and gorges, the Cedar River's outlet and the mountain walls.
+# The map's edges and waters: the sea and its capes, the river mouths, both rivers' falls, gorges and headwaters, the Cedar River's outlet
+# and the mountain walls.
 # Writes artifacts/map/NAME.png; -- --out=<subdir> --only=sea-from-shrine,aerial-south
 func _initialize():
 	call_deferred("review")
@@ -31,8 +32,10 @@ func review():
 		["west-shore",Vector3(-46,5,26),Vector3(-100,-1,44)],
 		["river-mouth",Vector3(-36,7,6),Vector3(-80,-1,-12)],
 		["hoshikawa-falls",Vector3(38,5,-3),Vector3(84,3,-9)],
+		["hoshikawa-headwater",Vector3(30,10,6),Vector3(140,24,-50)],
 		["cedar-falls",Vector3(40,8,-104),Vector3(82,4,-112)],
 		["cedar-outlet",Vector3(-36,9,-104),Vector3(-76,1,-110)],
+		["cedar-mouth",Vector3(-88,34,16),Vector3(-134,0,-30)],
 		["north-wall",Vector3(4,10,-164),Vector3(0,8,-220)],
 		["east-wall",Vector3(26,6,44),Vector3(96,6,30)],
 		["aerial-south",Vector3(10,150,150),Vector3(0,0,-30)],

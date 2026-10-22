@@ -292,7 +292,8 @@ public partial class World : Node3D
         var material = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shaders/terrain.gdshader") };
         material.SetShaderParameter("atlas",GD.Load<Texture2D>("res://assets/art/material-atlas.png"));
         // The 1 m terrain over the play area and its margin, with its collider, in 64 m chunks that culling can drop; then the 4 m mountains and
-        // seabed round it to Far, and a skirt down from the 1 m mesh's rim that closes the cracks where its finer edge meets them.
+        // seabed round it to Far, and a skirt along the 1 m mesh's rim that closes the cracks where its finer edge meets them: from under
+        // the lower of the two edges, which the 4 m mesh draws straight between its vertices, up to the higher.
         var ground = new StaticBody3D { Name = "Terrain collision" }; AddChild(ground);
         for(int z=Fine.Position.Y;z<Fine.End.Y;z+=64)for(int x=Fine.Position.X;x<Fine.End.X;x+=64)
         {
@@ -308,13 +309,19 @@ public partial class World : Node3D
         for(int z=Fine.Position.Y;z<Fine.End.Y;z++)rim.Add(new(Fine.End.X,z));
         for(int x=Fine.End.X;x>Fine.Position.X;x--)rim.Add(new(x,Fine.End.Y));
         for(int z=Fine.End.Y;z>Fine.Position.Y;z--)rim.Add(new(Fine.Position.X,z));
+        float Coarse(Vector2I p)
+        {
+            if(p.X%4==0&&p.Y%4==0)return Height(p.X,p.Y);
+            var a=p.X%4==0?new Vector2I(p.X,Mathf.FloorToInt(p.Y/4f)*4):new Vector2I(Mathf.FloorToInt(p.X/4f)*4,p.Y);var b=a+(p.X%4==0?new Vector2I(0,4):new Vector2I(4,0));
+            return Mathf.Lerp(Height(a.X,a.Y),Height(b.X,b.Y),(p-a).Length()/4);
+        }
         for(int i=0;i<rim.Count;i++)
         {
-            var a=rim[i];var b=rim[(i+1)%rim.Count];Vector3 Top(Vector2I p)=>new(p.X,Height(p.X,p.Y),p.Y);
+            var a=rim[i];var b=rim[(i+1)%rim.Count];
+            Vector3 Top(Vector2I p)=>new(p.X,Math.Max(Height(p.X,p.Y),Coarse(p)),p.Y);Vector3 Foot(Vector2I p)=>new(p.X,Math.Min(Height(p.X,p.Y),Coarse(p))-1,p.Y);
             skirt.SetColor(new(1,0,1));skirt.SetNormal(Vector3.Up);
             // Both windings: the cracks show from either side.
-            foreach(var v in new[]{Top(a),Top(b),Top(a)+Vector3.Down*6,Top(b),Top(b)+Vector3.Down*6,Top(a)+Vector3.Down*6,
-                Top(a),Top(a)+Vector3.Down*6,Top(b),Top(b),Top(a)+Vector3.Down*6,Top(b)+Vector3.Down*6})skirt.AddVertex(v);
+            foreach(var v in new[]{Top(a),Top(b),Foot(a),Top(b),Foot(b),Foot(a),Top(a),Foot(a),Top(b),Top(b),Foot(a),Foot(b)})skirt.AddVertex(v);
         }
         Mesh(this,"Terrain skirt",skirt.Commit(),Vector3.Zero,material);
         var water = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shaders/water.gdshader") };water.SetShaderParameter("flow",new Vector2(-.35f,0));

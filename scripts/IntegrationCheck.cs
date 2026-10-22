@@ -92,7 +92,7 @@ public static class IntegrationCheck
         var reaches=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>Hoshikawa.World.Rivers.Any(r=>n.Name.ToString().StartsWith(r.Name+" "))&&!falls.Contains(n)).ToArray();
         Check(seaFaces.Length>0&&seaFaces.All(v=>v.Y==Hoshikawa.World.WaterLevel&&(!Hoshikawa.World.InPlay(v.X,v.Z)||Math.Abs(v.X)==Hoshikawa.World.HalfWidth||v.Z==Hoshikawa.World.SouthEdge))
             &&((ShaderMaterial)sea.MaterialOverride).GetShaderParameter("flow").AsVector2()==Vector2.Zero
-            &&falls.Length==2&&falls.All(f=>((ShaderMaterial)f.MaterialOverride).Shader.ResourcePath=="res://assets/shaders/waterfall.gdshader")
+            &&falls.Length==4&&falls.All(f=>((ShaderMaterial)f.MaterialOverride).Shader.ResourcePath=="res://assets/shaders/waterfall.gdshader")
             &&Hoshikawa.World.Rivers.All(r=>reaches.Any(n=>n.Name.ToString().StartsWith(r.Name+" "))),
             $"the still sea lies beyond the shore at the river's level; {falls.Length} falls and {reaches.Length} gorge reaches carry the rivers in and out of the valley");
         // Height() levels each paddy under its own still water; the aze never dip more than their 2 cm under the terrain mesh, and crest well over the water.
@@ -386,13 +386,13 @@ public static class IntegrationCheck
         await WalkTo(new(-12,-87),false);
         await WalkTo(new(Hoshikawa.World.RoadX(-86),-86));await WalkTo(new(0,-68));
         Check(g.Player.IsOnFloor()&&g.Region=="Old Relay Road","return route reconnects to the original relay mission");
-        // The map's edges are its terrain now: a cliff behind Komorebi stops a walker at chest height, and the one wall on land's side is off the beach.
+        // The map's edges are its terrain now: a cliff behind Komorebi stops a walker at chest height, and the one wall on land's side is off the beach, here in the cove between two capes.
         float chest=Hoshikawa.World.Height(0,-197)+1.2f;
         using(var cliff=PhysicsRayQueryParameters3D.Create(new(0,chest,-197),new(0,chest,-215),1))
             Check(g.GetWorld3D().DirectSpaceState.IntersectRay(cliff) is {Count:>0} hit&&hit["collider"].As<Node>().Name=="Terrain collision"
                 &&!g.World.GetChildren().Any(n=>n.Name.ToString().StartsWith("Valley boundary")),"the mountain wall behind Komorebi closes the northern edge, no boundary box in the open");
-        chest=Hoshikawa.World.Height(-64,30)+1.2f;
-        using(var surf=PhysicsRayQueryParameters3D.Create(new(-64,chest,30),new(-100,chest,30),1))
+        chest=Hoshikawa.World.Height(-64,42)+1.2f;
+        using(var surf=PhysicsRayQueryParameters3D.Create(new(-64,chest,42),new(-100,chest,42),1))
             Check(g.GetWorld3D().DirectSpaceState.IntersectRay(surf) is {Count:>0} hit&&hit["collider"].As<Node>().Name=="Invisible wall"
                 &&hit["position"].AsVector3() is var at&&Hoshikawa.World.Height(at.X,at.Z)<Hoshikawa.World.WaterLevel-.4f,"the sea wall stands off the west shore, half a metre deep");
         g.CameraYaw=0;

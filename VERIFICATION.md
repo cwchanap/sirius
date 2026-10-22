@@ -4,29 +4,52 @@
 
 The valley is now closed by its own terrain, and its water follows the land. Everything inside the play area (|x| ≤ 64, z −200…80) keeps its place. No Tripo, Codex or ElevenLabs credits were spent.
 
-- **Edges:** beyond the play area `Outside()` carries the edge's height outward into an 8–12 m cliff and the mountains behind it. South-west of Hoshikawa it runs down a beach under the sea instead. The `Valley boundary` boxes and the ridge mesh are gone. The machine-city silhouette stands behind the eastern range (x 150–174).
+- **Edges:**
+  - Beyond the play area `Outside()` carries the edge's height outward into an 8–12 m cliff and the mountains behind it.
+  - Within 12 m of the edge, the edge's own channels fill in, so the river beds no longer run on as straight trenches across the range. The first Metal review measured those trenches at 3–4 m deep.
+  - South-west of Hoshikawa the ground runs down a beach under the sea instead. Four rocky capes break the shore, each narrowing and sinking towards its tip. Further from the valley, the headlands ease into mountainsides instead of standing as sheer sea cliffs.
+  - The `Valley boundary` boxes and the ridge mesh are gone. The machine-city silhouette stands behind the eastern range (x 150–174).
 - **Water:**
-  - Both valley rivers flow west to the sea.
-  - Each falls from a gorge in the eastern range.
-  - The Cedar River leaves through a slot in the western hill and a canyon round the west cliff, reaching the sea beside the Hoshikawa's mouth.
-  - Outside the play area, water is laid on the terrain grid, so no shore can surface.
-  - The only invisible walls are off the beach (0.5 m deep) and behind the canyon's boulder choke.
-- **Unit tests:** `dotnet test tests/unit` passes 32 (new: rivers never run uphill; each course ends in a valley river or the sea at its level; no reach runs dry; and a flood fill from the square cannot reach more than 16 m past the edge). The flood fill counts ground under 50° as standable, allows a 1.24 m jump step, lets anything steeper be slid down only, and treats the walls as blocking.
-- **Self-test:** **502 checks pass headless** in `en`, `ja` and `zh_TW` (`SELF_TEST_PASS` each), in a cloud container with Godot 4.6.2 mono. The old "northern map edge remains physically closed" check is replaced. New checks:
+  - Both valley rivers flow west.
+  - The Hoshikawa springs from a hollow at 33 m high on the eastern range and runs down its slope as a steep stream. It drops over two falls of about 6 m into its gorge, crosses the valley at sea level and enters the sea.
+  - The Cedar River springs at 41 m further north and falls 8 m and then 5 m into Cedar Pass. It leaves through a slot in the western hill and a canyon closed by a boulder choke, then runs south-west down its own valley to a mouth on the bay, 70 m west of the Hoshikawa's.
+  - Every fall has straight reaches on both sides. In the first Metal review, a bend just above each fall let the upper gorge floor show through the curtain.
+  - Deep gorges open into V-shaped valleys.
+  - Outside the play area, water is laid on the terrain's own 1 m or 4 m grid, so no shore can surface.
+  - The only invisible walls are off the beach (0.5 m deep) and behind the boulder choke.
+- **Rendering fixes from the first Metal review:**
+  - The skirt between the 1 m and 4 m terrain now spans both edges. It used to hang only below the 1 m edge, which left sky showing through wherever a gorge crossed the join.
+  - `terrain.gdshader` samples the atlas with gradients from the unwrapped uv. It stops at mip 3 and fades into each cell's mean colour by mip 5, so the dashed grid along tile edges on distant slopes is gone.
+  - Rock is projected from whichever side faces it, so cliffs are no longer streaked.
+  - The far sea plane now reaches west of the whole range.
+- **Unit tests:** `dotnet test tests/unit` passes 32. The new ones check that:
+  - rivers never run uphill;
+  - each course ends in a valley river or the sea at its level;
+  - no reach, steep ones included, runs dry;
+  - a flood fill from the square cannot reach more than 16 m past the edge.
+
+  The flood fill counts ground under 50° as standable, allows a 1.24 m jump step, lets anything steeper be slid down only, and treats the walls as blocking.
+- **Self-test:** **502 checks pass headless** in `en`, `ja` and `zh_TW` (`SELF_TEST_PASS` each), in a cloud container with Godot 4.6.2 mono. The first version also passed natively on Metal (M1 Pro, 502 checks). The old "northern map edge remains physically closed" check is replaced. New checks:
   - both rivers flow west;
   - the sea is still and at the river's level, outside the play area;
-  - two falls run the waterfall shader;
+  - four falls run the waterfall shader;
   - every course has gorge reaches;
   - a chest-height ray north of Komorebi hits `Terrain collision`, and no boundary box exists;
-  - a chest-height ray west off the beach hits `Invisible wall` where the seabed is more than 0.4 m under the water.
+  - a chest-height ray west into a cove hits `Invisible wall` where the seabed is more than 0.4 m under the water.
 - **E2E:** `dotnet test tests/e2e` passes 4 against the headless game (godot-e2e v0.1.2).
-- **Render cost** (draw and primitive counts at `render_cost.gd`'s three village viewpoints, under Mesa's software Vulkan in the cloud, 1b7fd57 → this change): draws 1047/1002/1118 → 1121/1077/1190, primitives 3.086M/2.981M/2.839M → 3.107M/3.010M/2.891M. Not yet measured on Metal.
-- **Captures:** ten `review_map.gd` views under Mesa's software Vulkan (lavapipe, `xvfb-run`): the sea from the shrine, the west shore, the river mouth, both falls, the Cedar outlet, the north and east walls, and two fog-free aerials. They show shapes and placement only.
-- **Not verified:** a graphical Metal run and Metal captures on the Mac.
+- **Render cost** (`render_cost.gd`'s three village viewpoints):
+  - First version, on Metal: draws 1118/1062/1208, primitives 3.225M/2.995M/3.154M, CPU median 0.73–0.82 ms, 175–215 fps.
+  - Under Mesa's software Vulkan in the cloud, 1b7fd57 → this change: draws 1047/1002/1118 → 1126/1085/1194, primitives 3.086M/2.981M/2.839M → 3.104M/3.009M/2.881M.
+- **Captures:**
+  - The first version's ten `review_map.gd` views were taken natively on Metal. That review found the trenches, the cracks at the join, the tile grid, the notched curtains, the rectangular coast and the Cedar outlet's canal-like route, all fixed above.
+  - The fixes were checked in twelve views (with the new `hoshikawa-headwater` and `cedar-mouth`) under Mesa's software Vulkan (lavapipe, `xvfb-run`), which shows shapes and placement only.
+- **Not verified:** a Metal run of the fixed version.
 - **Limits:**
-  - The cliffs use the existing stone atlas, which reads like masonry (a cliff texture is the separate art task A1).
+  - The cliffs still use the stone atlas, so they read as coursed masonry. A cliff texture is the separate art task A1.
   - The cliff tops are sharp creases.
-  - Distant terrain showed atlas tile seams in the software render.
+  - Distant terrain beyond mip 5 is each material's flat mean colour.
+  - The steep upper reaches are sloped sheets of water rather than cascades.
+  - The machine city's boxes look like a bar chart when there is no fog.
   - No physical keyboard/mouse session is claimed.
 
 ## Old-model cleanup — 2026-10-21
