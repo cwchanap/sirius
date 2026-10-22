@@ -57,10 +57,11 @@ public partial class World : Node3D
     // How far the ground stands above the river, brook, Cedar River, sea and gorge waterlines, in metres, which terrain.gdshader paints as
     // damp earth and gravel from .35 m down to the water: .2 across the paddy floors, which it paints half wet, and .35 away from any water,
     // so the paddies' rims and the ends of a bank's band fade out across a cell instead of stopping short. Beyond the play area, away from
-    // water, it is 9: the 4 m ground would spread that fade 4 m wide round every gorge.
+    // a gorge's water, it is 9: the 4 m ground would spread that fade 4 m wide round every reach.
     public static float Shore(float x,float z)
     {
-        if(!InPlay(x,z))return Sea(x,z)>0?Height(x,z)-WaterLevel:Damp.Value.Contains(new(Mathf.RoundToInt(x),Mathf.RoundToInt(z)))&&WaterOutside(x,z) is float level?Height(x,z)-level:9;
+        var c=new Vector2I(Mathf.RoundToInt(x),Mathf.RoundToInt(z));
+        if(!InPlay(x,z))return Sea(x,z)>0?Height(x,z)-WaterLevel:Banks.Value.Contains(c)&&WaterOutside(x,z) is float level&&(Height(x,z)>level||Damp.Value.Contains(c))?Height(x,z)-level:9;
         if(Paddies.Any(p=>p.HasPoint(new(x,z))))return .2f;
         bool cedar=z<-60,near=cedar?Math.Abs(z+111)<7:Math.Abs(z+8)<6||(z>-6&&z<57.5f&&Math.Abs(x-BrookX(z))<3.2f);
         return near?Height(x,z)-(cedar?CedarLevel:WaterLevel):.35f;
