@@ -35,7 +35,7 @@ The valley is now closed by its own terrain, and its water follows the land. Eve
   - a flood fill from the square cannot reach more than 16 m past the edge.
 
   The flood fill counts ground under 50° as standable, allows a 1.24 m jump step, lets anything steeper be slid down only, and treats the walls as blocking.
-- **Self-test:** **502 checks pass headless** in `en`, `ja` and `zh_TW` (`SELF_TEST_PASS` each), in a cloud container with Godot 4.6.2 mono. The first and third to seventh versions also passed natively on Metal (M1 Pro, 502 checks each). The old "northern map edge remains physically closed" check is replaced. New checks:
+- **Self-test:** **502 checks pass headless** in `en`, `ja` and `zh_TW` (`SELF_TEST_PASS` each), in a cloud container with Godot 4.6.2 mono. The first and third to eighth versions also passed natively on Metal (M1 Pro, 502 checks each). The old "northern map edge remains physically closed" check is replaced. New checks:
   - both rivers flow west;
   - the sea is still and at the river's level, outside the play area;
   - four falls run the waterfall shader;
@@ -58,8 +58,9 @@ The valley is now closed by its own terrain, and its water follows the land. Eve
   - The fifth version's views, on Metal, confirmed those three fixed and found the brown halos on the 4 m ground, fixed above.
   - The sixth version's views (b89a4c9), on Metal, confirmed the halos gone and the earlier fixes holding, and found the 4 m banks with no wet edge, fixed above.
   - The seventh version's views (dc8f44c), on Metal, matched the fourth's wet edge with the hollow still dry, and found grass under the Cedar's upper curtain, fixed above.
+  - The eighth version's views (c3c164b), on Metal, with close-ups of both upper falls, confirmed wet ground under every curtain, with the rock beside each reading as spray-wet, and found nothing new.
   - Each round of fixes was checked in the same twelve views under Mesa's software Vulkan (lavapipe, `xvfb-run`), which shows shapes and placement only.
-- **Not verified:** a Metal run of this version.
+- **Not re-measured:** render cost after the fifth version. The sixth to eighth changed only the wet band's input, not the geometry.
 - **Limits:**
   - The cliffs still use the stone atlas, so they read as coursed masonry. A cliff texture is the separate art task A1.
   - The cliff tops are sharp creases.
@@ -67,6 +68,7 @@ The valley is now closed by its own terrain, and its water follows the land. Eve
   - Steep reaches are sloped sheets of white water, not stepped cascades; their outlines step a metre cell at a time, and their streaks turn abruptly where one reach meets the next.
   - Where the 4 m water meets the 1 m water (x = ±104), as above the Cedar's upper fall, its edge steps 4 m at a time.
   - The Cedar's steep stone near bank in the village shows almost no wet edge: the band is 35 cm high, and that bank is nearly vertical.
+  - Up close, the terrain's 1 m cells show as a row of small brown spikes along the foot of each fall's curtain.
   - From the air the capes are flat-topped shelves. From the ground they read as rocky headlands.
   - The machine city's boxes look like a bar chart when there is no fog.
   - No physical keyboard/mouse session is claimed.
