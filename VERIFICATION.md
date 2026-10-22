@@ -2,14 +2,24 @@
 
 ## Old-model cleanup — 2026-10-21
 
-An audit of every place the game still loads an authored (pre-Tripo) model, plus removal of the files nothing loads any more. No code changed, and no Tripo or Codex credits were spent.
+Every authored (pre-Tripo) model leftover is removed except `villager.glb` and `patrol.glb`, which stay on purpose. No Tripo or Codex credits were spent, and no game code changed.
 
-- **Still in use:** `villager.glb` (58 bones) is shared by Ren, Aki, Hana, Emi and Yui, the five residents with no `World.TripoResidents` entry. `patrol.glb` is used by the three hostile robots (`Enemy.cs`, clips walk, run, idle, guard, attack2, stagger and death). They stay until replacements exist, along with their Blender rebuild path: `refine_humans.py`, `mio_illustrated.py`, `mio_turnaround.py`, `build_characters.py`, `amber-iris.png` and the four painted textures the pipeline loads.
+- **Kept:**
+  - `villager.glb` (58 bones): Ren, Aki, Hana, Emi and Yui, the five residents with no `World.TripoResidents` entry.
+  - `patrol.glb`: the three hostile robots.
+  - Their Blender build: `build_characters.py` (patrol), `refine_humans.py` (villager) and `amber-iris.png`.
+  - The 2D Mio key art and turnaround sheets, which are design references rather than models.
 - **Removed:**
-  - 28 textures (about 50 MB) that Godot had extracted from old GLB exports of Mio, Chiyo and KOMA-7. None of them is embedded in a current GLB, and a fresh `--import` recreated none of them.
-  - 16 superseded old-Mio paint revisions and their `.import` files (about 22 MB).
-  - Seven generation records and the two old-Mio material notes.
-  - The old-Mio Blender QA scripts `check_mio_{eye_cheek,eye_rim,hair,lids,orbit_contour}.py` and `render_human_review.py`.
+  - 28 textures (about 50 MB) that Godot had extracted from old GLB exports of Mio, Chiyo and KOMA-7. None is embedded in a current GLB, and a fresh `--import` recreated none.
+  - Every authored-Mio texture (face, hair, skin, fabric and iris paint, with their generation records, material notes and turnaround landmarks).
+  - The earlier dense Tripo Mio's two 4K textures.
+  - The authored Mio's build scripts `mio_illustrated.py` and `mio_turnaround.py`.
+  - The authored Mio's Blender QA scripts `check_mio_{eye_cheek,eye_rim,hair,lids,orbit_contour}.py` and `render_human_review.py`.
+- **`refine_humans.py`:**
+  - It now builds only the villager. Its hero (Mio) branches, scarf and sword are gone.
+  - It saves `assets/source/villager.blend`. Previously it overwrote `characters.blend`, whose `HumanV2_mio` scene `import_tripo_mio.py` still takes Mio's sword from.
+  - Built in a scratch copy with factory-startup Blender, the old and trimmed scripts give the same `villager.glb`: identical glTF JSON (apart from Blender's `.NNN` name suffixes), vertex, UV, weight, skin and animation data, and the same triangles with the same winding. Only the triangle order in three index buffers differs, and it differs between the old script and the committed GLB too.
+  - The committed `villager.glb` is unchanged.
 - **Checks:** `dotnet build` and a headless `--import` are clean. The self-test passes 462 checks both headless and in native Metal (`SELF_TEST_PASS` both times). `just unit` passes 17 and `just e2e` passes 4.
 
 ## Komorebi revamp — 2026-10-21
