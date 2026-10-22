@@ -16,8 +16,11 @@ The relay road between the river and the viaduct now runs 164 m (z −14…−17
   - two straight trenches just outside the play area beside the relay road (3.9 m deep in the east, 1.5 m in the west), where the edge's 15–20 m ridges eased down to the uplands' 3.5 m before the cliff rose: an edge already 5–10 m up keeps its level, and the deepest closed hollow along both sides is now under 0.5 m;
   - a 0.5–0.7 m step across the mountain from (−62, −84) to (−3, −99), where the nearest point on the forest valley's trail jumped from one reach to another: `RelayGround()` now blends reach by reach rather than trail by trail;
   - a quarry block half in the wall and floating 1.2 m: it moved onto the floor, and each block now rests on the lowest ground under its corners;
-  - a cedar pushing into the forest valley's wall: valley trees stand at most 3.8 m from the path, 2.5 m clear of the wall.
-- **Not verified:** these fixes have not run on Metal yet; they were checked headless and in captures under software Vulkan.
+  - a cedar pushing into the forest valley's wall: valley trees were kept within 3.8 m of the path.
+- **Metal, second round (7a783d1):** the self-test passed graphically with 520 checks. `render_cost.gd`: draws 1144/1207/1232, primitives 2.722M/2.480M/2.570M, CPU 0.83–0.85 ms, 120 fps. All five fixes held: the drawn-up ladder lies about 17° back on its trestle, not buried at its hinge, and from the junction only its end shows at the brow; lowered, it rests from the brow onto the junction; every quarry block sits on the floor; along x = ±66 the ground rises outward and no hollow holds more than 0.12 m; the old crease line is a smooth, rounded ridge. It found:
+  - the forest valley sparse, only two cedars left on its floor: its cedars are now placed along its path instead, 36 tries of narrow cedars (sugi only, 0.8–1.15 scale) 2.5–3.6 m either side, so it reads as a forest and their boughs keep off its walls;
+  - cosmetic, left: the stone escarpment at x ≈ ±68, now standing on the relay road's high edges, runs ruler-straight for about 80 m; the broken viaduct reads as two gateposts with timber beams rather than a railway (placeholder geometry, for the art tasks).
+- **Not verified:** the valley's new cedars have not run on Metal; they were checked headless and in captures under software Vulkan.
 
 ## Map redesign, phase 1: the valley's natural edges — 2026-10-22
 
