@@ -28,8 +28,9 @@ void fragment(){
  vec4 bed=INV_PROJECTION_MATRIX*vec4(SCREEN_UV*2.0-1.0,texture(depth,SCREEN_UV).r,1.0); bed.xyz/=bed.w;
  float deep=bed.z<VERTEX.z?max(dot(world-(INV_VIEW_MATRIX*vec4(bed.xyz,1.0)).xyz,up),0.0):2.0;
  float t=smoothstep(0.0,1.3,deep);
- // Down a reach steeper than about 1 in 8 the water breaks white, in streaks racing down the slope.
- vec2 down=normalize(up.xz+vec2(1e-5)); float steep=smoothstep(.12,.3,length(up.xz));
+ // Down a reach steeper than about 1 in 8 the water breaks white, in streaks racing along the reach. They follow the material's flow,
+ // not the sheet's lean: turned by a degree, a frame 150 m from the origin shifts the streaks by several, scrambling them cell to cell.
+ vec2 down=normalize(flow+vec2(1e-5)); float steep=smoothstep(.12,.3,length(up.xz));
  float rapids=steep*smoothstep(.42,.8,noise(vec2(dot(p,vec2(-down.y,down.x))*3.0,dot(p,down)*.35-TIME*1.8))*.7+noise(p*3.0-down*TIME*3.0)*.3);
  float foam=(1.0-smoothstep(0.0,.12,deep))*smoothstep(.5,.85,noise(p*7.0-flow*TIME*1.6));
  float fresnel=pow(1.0-clamp(dot(NORMAL,VIEW),0.0,1.0),4.0);

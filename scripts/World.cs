@@ -54,14 +54,15 @@ public partial class World : Node3D
     public static void CameraStop(Node3D n,Shape3D shape){var b=new StaticBody3D{CollisionLayer=CameraLayer,CollisionMask=0};n.AddChild(b);b.AddChild(new CollisionShape3D{Shape=shape});}
     // Height(), the water strip, the footbridge and the minimap all follow this one brook line.
     public static float BrookX(float z)=>19.3f+.6f*Mathf.Sin(z*.16f);
-    // How far the ground stands above the river, brook, Cedar River, sea and gorge waterlines, in metres: 9 away from any water, and .2 across
-    // the paddy floors, which terrain.gdshader paints half wet. It paints damp earth and gravel from .35 m down to the water.
+    // How far the ground stands above the river, brook, Cedar River, sea and gorge waterlines, in metres, which terrain.gdshader paints as
+    // damp earth and gravel from .35 m down to the water: .2 across the paddy floors, which it paints half wet, and .35 away from any water,
+    // so the paddies' rims and the ends of a bank's band fade out across a cell instead of stopping short.
     public static float Shore(float x,float z)
     {
-        if(!InPlay(x,z))return WaterOutside(x,z) is float level?Height(x,z)-level:9;
+        if(!InPlay(x,z))return Sea(x,z)>0?Height(x,z)-WaterLevel:Damp.Value.Contains(new(Mathf.RoundToInt(x),Mathf.RoundToInt(z)))&&WaterOutside(x,z) is float level?Height(x,z)-level:.35f;
         if(Paddies.Any(p=>p.HasPoint(new(x,z))))return .2f;
         bool cedar=z<-60,near=cedar?Math.Abs(z+111)<7:Math.Abs(z+8)<6||(z>-6&&z<57.5f&&Math.Abs(x-BrookX(z))<3.2f);
-        return near?Height(x,z)-(cedar?CedarLevel:WaterLevel):9;
+        return near?Height(x,z)-(cedar?CedarLevel:WaterLevel):.35f;
     }
     // The rendered terrain between its 1 m vertices: Terrain() splits each cell on the (x+1,z)-(x,z+1) diagonal.
     public static float MeshHeight(float x,float z)
