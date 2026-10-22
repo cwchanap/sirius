@@ -118,6 +118,23 @@ public partial class World
         foreach(var (_,course) in Rivers){var a=Along(course,x,z);if(a.Gap<Spill)return a.Level;}
         return null;
     }
+    // Each course's water cells, 1 m over the 1 m ground and 4 m beyond: ground under its level within Spill of it, joined to it. The
+    // joining is traced on 1 m cells everywhere, since a 4 m cell can straddle a levee and carry the water over it into the hollow behind;
+    // a 4 m cell holds water only where one of its 1 m cells does.
+    private static readonly Lazy<(List<Vector2I> Near,List<Vector2I> Far,HashSet<Vector2I> Joined)[]> RiverWater=new(()=>Rivers.Select(r=>
+    {
+        var course=r.Course;var box=new Rect2(course[0].X,course[0].Z,0,0);foreach(var p in course)box=box.Expand(new(p.X,p.Z));box=box.Grow(Spill+4);
+        var area=new Rect2I((Vector2I)(box.Position/4).Floor()*4,(Vector2I)(box.Size/4).Ceil()*4+new Vector2I(4,4));
+        bool Gorge(Vector2 c)=>!InPlay(c.X,c.Y)&&Sea(c.X,c.Y)<=0&&Along(course,c.X,c.Y).Gap<Spill;
+        float Level(float x,float z)=>Along(course,x,z).Level;
+        var joined=Wet(area.Intersection(Far),1,Gorge,Level,c=>Along(course,c.X,c.Y).Gap<2);var all=joined.ToHashSet();
+        return (joined.Where(c=>Fine.HasPoint(c)).ToList(),Wet(area.Intersection(Far),4,c=>Gorge(c)&&!Fine.HasPoint((Vector2I)c.Floor()),Level)
+            .Where(c=>Enumerable.Range(0,16).Any(i=>all.Contains(c+new Vector2I(i%4,i/4)))).ToList(),all);
+    }).ToArray());
+    // The corners of every river water cell. Shore() paints the ground beside a river wet only here, so a hollow under a reach's level
+    // that its water cannot reach stays as dry as it looks.
+    private static readonly Lazy<HashSet<Vector2I>> Damp=new(()=>RiverWater.Value.SelectMany(w=>w.Joined)
+        .SelectMany(c=>new[]{c,c+new Vector2I(1,0),c+new Vector2I(0,1),c+new Vector2I(1,1)}).ToHashSet());
     private void Wilds()
     {
         var sea=WaterMaterial(Vector2.Zero);
@@ -128,14 +145,9 @@ public partial class World
         // further out than any view reaches.
         Mesh(this,"Sea to the horizon",new PlaneMesh{Size=new(2000,3000),SubdivideWidth=249},new(Far.Position.X-1000,WaterLevel,0),sea);
         Mesh(this,"Sea to the south horizon",new PlaneMesh{Size=new(220,1500-Far.End.Y),SubdivideWidth=54},new(Far.Position.X+110,WaterLevel,(1500+Far.End.Y)/2f),sea);
-        foreach(var (name,course) in Rivers)
+        foreach(var ((name,course),(near,far,_)) in Rivers.Zip(RiverWater.Value))
         {
-            var box=new Rect2(course[0].X,course[0].Z,0,0);foreach(var p in course)box=box.Expand(new(p.X,p.Z));box=box.Grow(Spill+4);
-            var area=new Rect2I((Vector2I)(box.Position/4).Floor()*4,(Vector2I)(box.Size/4).Ceil()*4+new Vector2I(4,4));
-            bool Gorge(Vector2 c)=>!InPlay(c.X,c.Y)&&Sea(c.X,c.Y)<=0&&Along(course,c.X,c.Y).Gap<Spill;
-            bool Course(Vector2 c)=>Along(course,c.X,c.Y).Gap<2;
             float Level(float x,float z)=>Along(course,x,z).Level;
-            var near=Wet(area.Intersection(Fine),1,Gorge,Level,Course);var far=Wet(area.Intersection(Far),4,c=>Gorge(c)&&!Fine.HasPoint((Vector2I)c.Floor()),Level,Course);
             // One mesh per straight reach, so each drifts its own way; neighbours share their edge vertices. Past the 1 m ground the 4 m
             // ground carries the upper reaches on its own grid, meeting the 1 m water along a line of constant x or z.
             for(int i=0;i<course.Length-1;i++)
@@ -180,19 +192,15 @@ public partial class World
         while(queue.TryDequeue(out var c))foreach(var d in new Vector2I[]{new(step,0),new(-step,0),new(0,step),new(0,-step)})if(all.Contains(c+d)&&joined.Add(c+d))queue.Enqueue(c+d);
         return wet.Where(joined.Contains).ToList();
     }
-    // Water over `cells`, each `step` metres on the terrain's own grid and diagonals. Each cell's normal leans with its slope, which
-    // water.gdshader measures depth square to and breaks into white water on a steep reach.
+    // Water over `cells`, each `step` metres on the terrain's own grid and diagonals. Each cell leans with its slope, and each vertex with
+    // the cells around it, which water.gdshader measures depth square to and breaks into white water running on across them on a steep reach.
     private void WaterGrid(string name,IEnumerable<Vector2I> cells,int step,Func<float,float,float> level,Material material)
     {
-        var st=new SurfaceTool();st.Begin(Godot.Mesh.PrimitiveType.Triangles);int count=0;var normal=Vector3.Up;
-        void V(int x,int z){st.SetNormal(normal);st.AddVertex(new(x,level(x,z),z));}
-        foreach(var (x,z) in cells)
-        {
-            var l=new[]{level(x,z),level(x+step,z),level(x,z+step),level(x+step,z+step)};
-            normal=new Vector3(l[0]-l[1]+l[2]-l[3],2*step,l[0]-l[2]+l[1]-l[3]).Normalized();
-            V(x,z);V(x+step,z);V(x,z+step);V(x+step,z);V(x+step,z+step);V(x,z+step);count++;
-        }
-        if(count==0)return;
+        var lean=cells.ToDictionary(c=>c,c=>{float a=level(c.X,c.Y),b=level(c.X+step,c.Y),d=level(c.X,c.Y+step),e=level(c.X+step,c.Y+step);return new Vector3(a-b+d-e,2*step,a-d+b-e).Normalized();});
+        if(lean.Count==0)return;
+        var st=new SurfaceTool();st.Begin(Godot.Mesh.PrimitiveType.Triangles);
+        void V(int x,int z){st.SetNormal(new Vector2I[]{new(x,z),new(x-step,z),new(x,z-step),new(x-step,z-step)}.Select(c=>lean.GetValueOrDefault(c)).Aggregate((m,n)=>m+n).Normalized());st.AddVertex(new(x,level(x,z),z));}
+        foreach(var (x,z) in lean.Keys){V(x,z);V(x+step,z);V(x,z+step);V(x+step,z);V(x+step,z+step);V(x,z+step);}
         st.Index();Mesh(this,name,st.Commit(),Vector3.Zero,material);
     }
     // A fall from `top` down to `foot`, a metre downstream: a curtain over the gorge floor's width, `half` either side, lipping over from

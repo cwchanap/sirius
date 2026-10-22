@@ -191,7 +191,7 @@ public partial class World
         {
             float x=x0+i*s,z=z0+j*s;int k=Array.FindIndex(Paddies,p=>p.HasPoint(new(x,z)));
             st.SetNormal(new Vector3(y[Math.Max(i-1,0),j]-y[Math.Min(i+1,w),j],2*s,y[i,Math.Max(j-1,0)]-y[i,Math.Min(j+1,h)]).Normalized());
-            st.SetColor(new(1,1,1));st.SetUV2(new(k<0?9:2*(y[i,j]-PaddyLevel[k])-.05f,0));st.AddVertex(new(x,y[i,j],z));
+            st.SetColor(new(1,1,1));st.SetUV2(new(k<0?.35f:2*(y[i,j]-PaddyLevel[k])-.05f,0));st.AddVertex(new(x,y[i,j],z));
         }
         bool Raised(int i,int j)=>y[i,j]>MeshHeight(x0+i*s,z0+j*s)-.015f;
         for(int i=0;i<w;i++)for(int j=0;j<h;j++)if(Raised(i,j)||Raised(i+1,j)||Raised(i,j+1)||Raised(i+1,j+1)){V(i,j);V(i+1,j);V(i,j+1);V(i+1,j);V(i+1,j+1);V(i,j+1);}
