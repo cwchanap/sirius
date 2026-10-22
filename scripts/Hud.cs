@@ -68,8 +68,8 @@ public partial class Hud : Control
         var closest=Game.Locked??Game.Enemies.Where(e=>!e.Dead&&e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)<12).OrderBy(e=>e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)).FirstOrDefault();
         if(closest!=null)
         {
-            float x=w/2-170;Text(F("SIRIUS  /  PATROL {0}",closest.Index.ToString("00")),new(x,80),13,cream);
-            Bar(new(x,94),new(340,7),closest.Health/100,new("d48568"));
+            float x=w/2-170;Text(F(closest.Scout?"SIRIUS  /  SCOUT {0}":"SIRIUS  /  PATROL {0}",closest.Index.ToString("00")),new(x,80),13,cream);
+            Bar(new(x,94),new(340,7),closest.Health/closest.MaxHealth,new("d48568"));
             Bar(new(x,106),new(340,4),closest.Posture/100,gold);
             Text(T(closest.Broken?"POSTURE BROKEN · ATTACK TO FINISH":closest.Perilous&&closest.State=="PERILOUS"?"◆ PERILOUS SWEEP · DODGE / JUMP":Game.Locked==closest?"TARGET LOCKED":"TAB   LOCK TARGET"),new(x,131),11,closest.Perilous?new("ff9c83"):gold);
             if(Game.Locked!=null&&!Game.Camera.IsPositionBehind(closest.GlobalPosition))
@@ -153,19 +153,19 @@ public partial class Hud : Control
         DrawCircle(center,r+4,new Color(ink,.93f));DrawArc(center,r,0,Mathf.Tau,64,new Color(gold,.7f),1);
         Text("N",center+new Vector2(-5,-90),11,gold);
         Vector2 Map(Vector3 p)=>new((p.X-Game.Player.GlobalPosition.X)*1.5f,(p.Z-Game.Player.GlobalPosition.Z)*1.5f);
-        foreach(float riverZ in new[]{-8f,-111f})
+        foreach(float riverZ in new[]{-8f,World.CedarZ})
         {
             float y=(riverZ-Game.Player.GlobalPosition.Z)*1.5f;
             if(Math.Abs(y)<r-3){float width=Mathf.Sqrt((r-3)*(r-3)-y*y);DrawLine(center+new Vector2(-width,y),center+new Vector2(width,y),new Color(.24f,.57f,.58f,.7f),5);}
         }
         for(float z=-6;z<56;z+=2)
         {var a=Map(new(World.BrookX(z),0,z));var b=Map(new(World.BrookX(z+2),0,z+2));if(a.Length()<r-3&&b.Length()<r-3)DrawLine(center+a,center+b,new Color(.24f,.57f,.58f,.7f),2);}
+        void Road(Vector3 from,Vector3 to){var a=Map(from);var b=Map(to);if(a.Length()<r-2&&b.Length()<r-2)DrawLine(center+a,center+b,new Color(gold,.6f),2);}
+        // The relay road follows its painted trails; RoadX() guides the road either side of it.
         for(float z=Game.Player.GlobalPosition.Z-52;z<Game.Player.GlobalPosition.Z+52;z+=2)
-        {
-            if(z<World.NorthEdge||z>World.SouthEdge-2)continue;
-            var a=Map(new(World.RoadX(z),0,z));var b=Map(new(World.RoadX(z+2),0,z+2));
-            if(a.Length()<r-2&&b.Length()<r-2)DrawLine(center+a,center+b,new Color(gold,.6f),2);
-        }
+            if(z>=World.NorthEdge&&z<=World.SouthEdge-2&&!(z<-13&&z>World.RelayNorth+4))Road(new(World.RoadX(z),0,z),new(World.RoadX(z+2),0,z+2));
+        foreach(var (_,_,paint,points) in World.Trails)if(paint>0)for(int i=1;i<points.Length;i++)
+        {int n=(int)Math.Ceiling(points[i-1].DistanceTo(points[i])/2);for(int k=0;k<n;k++)Road(points[i-1].Lerp(points[i],(float)k/n),points[i-1].Lerp(points[i],(k+1f)/n));}
         foreach(var b in Game.World.Buildings)
         {var p=Map(b.Position);if(p.Length()<r-6)DrawRect(new Rect2(center+p-new Vector2(4,3),new Vector2(8,6)),new("9a9b77"));}
         foreach(var n in Game.World.Residents)

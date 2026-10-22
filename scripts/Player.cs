@@ -5,7 +5,7 @@ public partial class Player : CharacterBody3D
 {
     public Game Game = null!;
     public float Health = 100, Posture, SkillCooldown, Invulnerable, Stun;
-    public int Remedies = 3;
+    public int Remedies = 3, MaxRemedies = 3;
     public bool Guarding { get; private set; }
     public bool Dodging => dodge > 0;
     public float DeflectWindow { get; private set; }
@@ -158,7 +158,7 @@ public partial class Player : CharacterBody3D
             if(Posture>=100){Posture=100;Stun=1.2f;Guarding=false;Visual.Play("stagger",1,true);Game.Feedback("POSTURE BROKEN",new("f18470"));}
             return "guarded";
         }
-        Health=Math.Max(0,Health-(perilous?32:22));Invulnerable=.65f;Stun=.32f;
+        Health=Math.Max(0,Health-(perilous?32:22)*(enemy.Scout?.6f:1));Invulnerable=.65f;Stun=.32f;
         attack=skillCast=0;comboQueued=false;Game.CameraShake=.2f;Visual.Play("stagger",1.3f,true);
         Game.Burst(GlobalPosition+Vector3.Up,new("ee8b76"),.8f);Game.Sound("hurt");
         if(Health<=0){Visual.Play("death",1,true);Game.Die();}
@@ -172,7 +172,7 @@ public partial class Player : CharacterBody3D
     }
     public void Respawn()
     {
-        GlobalPosition=new(0,World.Height(0,31)+.1f,31);Velocity=Vector3.Zero;Health=100;Posture=0;Remedies=3;
+        GlobalPosition=new(0,World.Height(0,31)+.1f,31);Velocity=Vector3.Zero;Health=100;Posture=0;Remedies=MaxRemedies;
         Stun=attack=dodge=skillCast=Invulnerable=SkillCooldown=DeflectWindow=healTimer=landing=0;comboQueued=false;Guarding=false;
         Model.Rotation=new(0,Mathf.Pi,0);Visual.Play("idle",1,true);
     }

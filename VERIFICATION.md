@@ -1,5 +1,18 @@
 # MVP verification
 
+## Map redesign, phase 2: the relay road — 2026-10-22
+
+The relay road between the river and the viaduct now runs 164 m (z −14…−178) through a block of mountain cut by trails, and Cedar Pass, the Cedar River with its valley and Komorebi moved 100 m north (the play area is now z −300…80). Everything is placeholder geometry or reused models; no Tripo, Codex or ElevenLabs credits were spent.
+
+- **Layout:** `World.Trails` lists seven trails, each a polyline of (x, level, z) with a half width; `RelayGround()` makes each a level floor and raises the mountain between them, meeting at a cliff where floors touch at different levels. The junction just over the bridge; the east switchback up to the teahouse terrace on the cliff above the junction; the high road; the relay plaza under the broken viaduct; and the forest valley west from the junction to the old quarry's dead end.
+- **Things on it:** the scatter (trees, boulders, grass and wildflowers) draws from its own generators (7207, 7211), and the countryside still draws, and drops, everything it once placed there, so the rest of the valley is unchanged. The countryside's first boulder is now its first one outside the relay road; the self-test pins it there. Lanterns every 15 m up the switchback and the high road, a signpost at the junction, the ruined teahouse (the Copper Kettle's Tripo model, `World.OldTeahouse`), quarry blocks and a sled, the remedy pouch on a crate, the relay and the viaduct.
+- **Robots:** the three patrols guard the junction, the teahouse terrace and the plaza. Four scouts on `patrol.glb` (60 health, 0.86 scale, 60% damage, half the wander) watch the switchback's corner, the high road, the forest valley and the quarry; the mission counts only the patrols. A robot no longer pursues Mio on another level (more than 2.5 m above or below it), so the terrace patrol does not walk off its cliff.
+- **Shortcut and pouch:** the teahouse ladder is drawn up on the terrace's brow. Lowered from the terrace (`E` within 2.2 m of a point 2 m behind the brow), it swings down at 37.5° to the junction and is walkable both ways. The pouch raises the remedies carried from 3 to 4. Both survive a recovery at the village; `Restart()` resets them.
+- **Road paint:** `World.RoadGap()` goes into the terrain's UV2.y and the shader fades the paint from 2 to 3.3 m; the shader's copy of `RoadX` is gone. The minimap draws the painted trails across the relay road.
+- **Unit tests:** `dotnet test tests/unit` passes 33. New: the paint runs unbroken from the shrine steps to Komorebi's hall; a flood fill from the square reaches no relay-road ground more than 2.8 m off a floor (the mountain above the cliffs); with the switchback's first leg blocked, the junction cannot reach the terrace and the quarry cannot reach the plaza.
+- **Self-test:** **519 checks pass headless** in `en`, `ja` and `zh_TW` in a cloud container with Godot 4.6.2 mono. New checks: the buildings per region; three patrols and four scouts; the walk up the switchback to the terrace, along the high road into the plaza and on to Komorebi; the drawn-up ladder blocks the junction and cannot be lowered from below; lowered from the terrace it walks down and back up; the pouch makes four remedies; both survive a recovery and reset on restart; scouts are smaller and hit lighter; the quest completes with the scouts standing.
+- **Not verified:** nothing has run natively on Metal yet.
+
 ## Map redesign, phase 1: the valley's natural edges — 2026-10-22
 
 The valley is now closed by its own terrain, and its water follows the land. Everything inside the play area (|x| ≤ 64, z −200…80) keeps its place. No Tripo, Codex or ElevenLabs credits were spent.

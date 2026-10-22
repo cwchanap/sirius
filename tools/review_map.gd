@@ -33,13 +33,13 @@ func review():
 		["river-mouth",Vector3(-36,7,6),Vector3(-80,-1,-12)],
 		["hoshikawa-falls",Vector3(38,5,-3),Vector3(84,3,-9)],
 		["hoshikawa-headwater",Vector3(30,10,6),Vector3(140,24,-50)],
-		["cedar-falls",Vector3(40,8,-104),Vector3(82,4,-112)],
-		["cedar-outlet",Vector3(-36,9,-104),Vector3(-76,1,-110)],
+		["cedar-falls",Vector3(40,8,-204),Vector3(82,4,-212)],
+		["cedar-outlet",Vector3(-36,9,-204),Vector3(-76,1,-210)],
 		["cedar-mouth",Vector3(-88,34,16),Vector3(-134,0,-30)],
-		["north-wall",Vector3(4,10,-164),Vector3(0,8,-220)],
+		["north-wall",Vector3(4,10,-264),Vector3(0,8,-320)],
 		["east-wall",Vector3(26,6,44),Vector3(96,6,30)],
 		["aerial-south",Vector3(10,150,150),Vector3(0,0,-30)],
-		["aerial-north",Vector3(10,170,-10),Vector3(0,0,-150)]]
+		["aerial-north",Vector3(10,230,-20),Vector3(0,0,-200)]]
 	# The aerials look down through 150 m of air, which the valley's depth fog would wash out.
 	var environment=game.find_children("*","WorldEnvironment",true,false)[0].environment
 	for view in views:

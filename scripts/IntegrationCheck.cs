@@ -23,9 +23,10 @@ public static class IntegrationCheck
         async Task Press(string action,int frames=1)
         {Hold(action);await Frames(frames);Release(action);await Frames(2);}
         void Place(Player p,Vector3 pos){p.GlobalPosition=pos;p.Velocity=Vector3.Zero;}
-        Check(g.World.Buildings.Count(b=>b.Position.Z>-78)==6&&g.World.Buildings.Count(b=>b.Position.Z<-136)==5,
-            "six Hoshikawa buildings and five Komorebi buildings");
-        var houses=Hoshikawa.World.Hamlet.Concat(Hoshikawa.World.KomorebiHouses).ToArray();
+        var regions=g.World.Buildings.GroupBy(b=>Hoshikawa.World.RegionAt(b.Position)).ToDictionary(r=>r.Key,r=>r.Count());
+        Check(regions.Count==3&&regions["Hoshikawa"]==6&&regions["Old Relay Road"]==1&&regions["Komorebi"]==5,
+            "six Hoshikawa buildings, the old teahouse on the relay road and five Komorebi buildings");
+        var houses=Hoshikawa.World.Hamlet.Concat(Hoshikawa.World.KomorebiHouses).Append(Hoshikawa.World.OldTeahouse).ToArray();
         foreach(var (name,at,size,yaw,_) in houses)
         {
             var b=g.World.Buildings.Single(n=>n.Name==name);
@@ -141,8 +142,9 @@ public static class IntegrationCheck
         // the stone bridge keeps its span clear too.
         var cedarReeds=ActorVisual.Descendants(g.World.GetNode("Cedar River reeds")).OfType<MeshInstance3D>().SelectMany(m=>m.Mesh.GetFaces().Select(v=>m.GlobalTransform*v)).ToArray();
         var stones=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().Contains("River pebbles")||n.Name.ToString().Contains("Half-sunk rock")).Select(n=>n.GlobalPosition).ToArray();
-        bool Cedar(Vector3 v)=>Math.Abs(v.Z+111)<6;bool River(Vector3 v)=>Math.Abs(v.Z+8)<6;float bridgeX=Hoshikawa.World.RoadX(-111);
-        Check(cedarReeds.Length>0&&cedarReeds.All(v=>Cedar(v)&&Math.Abs(v.X-bridgeX)>5.5f&&Hoshikawa.World.Height(v.X,-111)<1)&&stones.Count(Cedar)>10&&stones.Count(River)>10
+        const float cedarZ=Hoshikawa.World.CedarZ;
+        bool Cedar(Vector3 v)=>Math.Abs(v.Z-cedarZ)<6;bool River(Vector3 v)=>Math.Abs(v.Z+8)<6;float bridgeX=Hoshikawa.World.RoadX(cedarZ);
+        Check(cedarReeds.Length>0&&cedarReeds.All(v=>Cedar(v)&&Math.Abs(v.X-bridgeX)>5.5f&&Hoshikawa.World.Height(v.X,cedarZ)<1)&&stones.Count(Cedar)>10&&stones.Count(River)>10
             &&stones.All(v=>!(Cedar(v)&&Math.Abs(v.X-bridgeX)<5.5f)&&!(River(v)&&Math.Abs(v.X)<5.5f)),
             $"reeds ({cedarReeds.Length/9} blades) and {stones.Count(Cedar)} stones line the Cedar River, {stones.Count(River)} stones the river, clear of both bridges");
         // The moored boat is Tripo's, floating in the river clear of the bridge and its bed, bobbing on the swell and tied by its bow to a post on the bank.
@@ -172,7 +174,7 @@ public static class IntegrationCheck
         }
         Check(step<.1f,$"hamlet terrain is continuous (largest 5 cm step {step:F3} at {stepAt})");
         Check(g.World.Residents.Count==10&&g.World.Residents.Select(r=>r.Name).Distinct().Count()==10,"ten named residents across two villages");
-        Check(g.Enemies.Count==3,"three patrol robots");
+        Check(g.Patrols.Count()==3&&g.Enemies.Count(e=>e.Scout)==4&&g.Enemies.All(e=>Hoshikawa.World.RegionAt(e.Home)=="Old Relay Road"),"three patrol robots and four scouts on the relay road");
         var merged=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().StartsWith("Merged statics")).ToArray();
         var baked=g.World.FindChildren("*","MeshInstance3D",true,false).Cast<MeshInstance3D>().Where(n=>!n.Visible&&(n.Mesh is PrimitiveMesh||n.Mesh.ResourceName.StartsWith("prop "))).ToArray();
         Vector3[] Corners(IEnumerable<MeshInstance3D> meshes)=>meshes.SelectMany(n=>n.Mesh.GetFaces().Select(v=>n.GlobalTransform*v)).ToArray();
@@ -221,7 +223,8 @@ public static class IntegrationCheck
                 visual.Play("idle",1,true);
             }
         }
-        Check(g.World.GetNode<Node3D>("Weathered boulder").Position.IsEqualApprox(new Vector3(32.285194f,2.944041f,-41.920254f)),"countryside scatter is unchanged");
+        var firstBoulder=g.World.GetNode<Node3D>("Weathered boulder").Position;
+        Check(firstBoulder.IsEqualApprox(new Vector3(-54.729736f,1.7227528f,35.275383f)),$"countryside scatter is unchanged, its first boulder at {firstBoulder.X:R}, {firstBoulder.Y:R}, {firstBoulder.Z:R}");
         Check(!g.World.GetChildren().OfType<MeshInstance3D>().Any(n=>n.Mesh is SphereMesh&&n.Position.Z is >-9 and <0&&Math.Abs(n.Position.X-Hoshikawa.World.BrookX(n.Position.Z))<2.3f+n.Scale.X),"no countryside boulder sits in the brook mouth");
         foreach(var species in new[]{"keyaki","sugi","sakura","bamboo","shrub"})
         {
@@ -311,45 +314,58 @@ public static class IntegrationCheck
         // Traverse the entire footpath, including the bridge, using the normal movement input.
         g.Player.Respawn();await Frames(10);Hold("run");await Press("forward",395);Release("run");
         Check(g.Player.GlobalPosition.Z<-16&&g.Player.IsOnFloor(),$"village to countryside crossing is walkable {g.Player.GlobalPosition}, floor={g.Player.IsOnFloor()}");
-        async Task WalkTo(Vector2 target,bool run=true)
+        async Task<bool> Head(Vector2 target,bool run=true,int frames=360)
         {
             if(run)Hold("run");Hold("forward");
             try
             {
-                for(int frame=0;frame<360;frame++)
+                for(int frame=0;frame<frames;frame++)
                 {
                     var p=g.Player.GlobalPosition;var delta=target-new Vector2(p.X,p.Z);
-                    if(delta.Length()<.55f)return;
+                    if(delta.Length()<.55f)return true;
                     g.CameraYaw=Mathf.Atan2(-delta.X,-delta.Y);await Frames(1);
-                    if(p.Z<-103&&p.Z>-119)CheckBridgeFloor(p.Y);
+                    if(Math.Abs(p.Z-cedarZ)<8)CheckBridgeFloor(p.Y);
                 }
-                throw new Exception($"Country path blocked before {target}; player={g.Player.GlobalPosition}");
+                return false;
             }
             finally {Release("forward");Release("run");}
         }
+        async Task WalkTo(Vector2 target,bool run=true){if(!await Head(target,run))throw new Exception($"Country path blocked before {target}; player={g.Player.GlobalPosition}");}
+        // Down a trail's middle, a waypoint every 10 m or less.
+        async Task Follow(string trail,bool reverse=false)
+        {
+            var points=Hoshikawa.World.Trails.Single(t=>t.Name==trail).Points.Select(p=>new Vector2(p.X,p.Z)).ToArray();if(reverse)Array.Reverse(points);
+            for(int i=1;i<points.Length;i++){int n=(int)Math.Ceiling(points[i-1].DistanceTo(points[i])/10);for(int k=1;k<=n;k++)await WalkTo(points[i-1].Lerp(points[i],(float)k/n));}
+        }
         void CheckBridgeFloor(float y){if(y<3.8f)throw new Exception("Player fell through the Cedar Bridge");}
-        Place(g.Player,new(0,Hoshikawa.World.Height(0,-68)+.1f,-68));await Frames(10);
-        foreach(float z in new[]{-76f,-84f,-92f,-100f,-106f,-113f,-121f,-128f,-135f,-143f,-154f})
+        // The relay road: up the switchback from the junction to the teahouse terrace, along the high road and down into the relay plaza
+        // under the viaduct, then on over Cedar Pass and the Cedar Bridge into Komorebi.
+        Place(g.Player,new(0,Hoshikawa.World.Height(0,-16)+.1f,-16));await Frames(10);
+        await Follow("Switchback");
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-7.5f)<.3f,$"the switchback climbs from the junction to the teahouse terrace {g.Player.GlobalPosition}");
+        await Follow("High road");await Follow("Relay plaza");
+        Check(g.Player.IsOnFloor()&&g.Region=="Old Relay Road"&&Math.Abs(g.Player.GlobalPosition.Y-3)<.3f,$"the high road comes down into the relay plaza under the viaduct {g.Player.GlobalPosition}");
+        foreach(float z in new[]{-180f,-186f,-192f,-200f,-206f,-213f,-221f,-228f,-235f,-243f,-254f})
             await WalkTo(new(Hoshikawa.World.RoadX(z),z));
         await Frames(5);
-        Check(g.Region=="Komorebi"&&g.Player.IsOnFloor(),"walk from relay through the viaduct and over Cedar Bridge into Komorebi");
-        foreach(var (name,road,approach) in new[]{("Nao",new Vector2(0,-138),new Vector2(-3.8f,-138)),
-            ("Emi",new Vector2(0,-146),new Vector2(4.5f,-145)),("Yui",new Vector2(0,-160.2f),new Vector2(-4,-160.2f)),
-            ("Toma",new Vector2(0,-154),new Vector2(16.2f,-154.5f))})
+        Check(g.Region=="Komorebi"&&g.Player.IsOnFloor(),"walk from the relay under the viaduct and over Cedar Bridge into Komorebi");
+        foreach(var (name,road,approach) in new[]{("Nao",new Vector2(0,-238),new Vector2(-3.8f,-238)),
+            ("Emi",new Vector2(0,-246),new Vector2(4.5f,-245)),("Yui",new Vector2(0,-260.2f),new Vector2(-4,-260.2f)),
+            ("Toma",new Vector2(0,-254),new Vector2(16.2f,-254.5f))})
         {
             await WalkTo(road);await WalkTo(approach);await Frames(5);
             if(name=="Emi"){g.Player.Health=20;g.Player.Remedies=0;}
             g.Interact();Check(g.Mode==GameMode.Dialogue&&g.Speaker==name,"walk from village street to service: "+name);
-            if(name=="Emi")Check(g.Player.Health==100&&g.Player.Remedies==3,"Komorebi medic restores health and remedies");
+            if(name=="Emi")Check(g.Player.Health==100&&g.Player.Remedies==g.Player.MaxRemedies,"Komorebi medic restores health and remedies");
             g.Mode=GameMode.Playing;await WalkTo(road);
         }
-        await WalkTo(new(22,-154));await WalkTo(new(24,-151));await WalkTo(new(28,-151));await WalkTo(new(28,-145));
+        await WalkTo(new(22,-254));await WalkTo(new(24,-251));await WalkTo(new(28,-251));await WalkTo(new(28,-245));
         Check(g.Player.IsOnFloor(),"orchard entrance and aisle are walkable through the fence opening");
-        await WalkTo(new(28,-151));await WalkTo(new(24,-151));await WalkTo(new(22,-154));await WalkTo(new(0,-154));
-        await WalkTo(new(0,-153));await WalkTo(new(-12,-151.5f));await WalkTo(new(-33,-151.5f));await WalkTo(new(-36,-156));
+        await WalkTo(new(28,-251));await WalkTo(new(24,-251));await WalkTo(new(22,-254));await WalkTo(new(0,-254));
+        await WalkTo(new(0,-253));await WalkTo(new(-12,-251.5f));await WalkTo(new(-33,-251.5f));await WalkTo(new(-36,-256));
         Check(g.Player.IsOnFloor(),"garden entrance, cross path and western bed are reachable");
-        await WalkTo(new(-33,-151.5f));await WalkTo(new(-12,-151.5f));await WalkTo(new(0,-153));await WalkTo(new(0,-154));
-        foreach(var (x,z) in new[]{(22f,-148f),(-24f,-146f)})
+        await WalkTo(new(-33,-251.5f));await WalkTo(new(-12,-251.5f));await WalkTo(new(0,-253));await WalkTo(new(0,-254));
+        foreach(var (x,z) in new[]{(22f,-248f),(-24f,-246f)})
         {
             float h=Hoshikawa.World.Height(x,z)+1;
             Check(g.GetWorld3D().DirectSpaceState.IntersectRay(PhysicsRayQueryParameters3D.Create(new(x-1,h,z),new(x+1,h,z),1)).Count>0,
@@ -375,20 +391,42 @@ public static class IntegrationCheck
         }
         finally {terrain.CollisionLayer=1;}
         await Frames(5);
-        await WalkTo(new(0,-135));
-        await WalkTo(new(Hoshikawa.World.RoadX(-126),-126));await WalkTo(new(25,-126));await WalkTo(new(29,-126),false);await Frames(5);
+        await WalkTo(new(0,-235));
+        await WalkTo(new(Hoshikawa.World.RoadX(-226),-226));await WalkTo(new(25,-226));await WalkTo(new(29,-226),false);await Frames(5);
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.Position.Y-5.23f)<.08f,"normal walking reaches the overlook deck without jumping");
-        await WalkTo(new(25,-126),false);
-        await WalkTo(new(Hoshikawa.World.RoadX(-126),-126));
-        foreach(float z in new[]{-121f,-113f,-106f,-100f,-92f})await WalkTo(new(Hoshikawa.World.RoadX(z),z));
-        await WalkTo(new(-12,-87));await WalkTo(new(-12,-90.6f),false);await Frames(5);
+        await WalkTo(new(25,-226),false);
+        await WalkTo(new(Hoshikawa.World.RoadX(-226),-226));
+        foreach(float z in new[]{-221f,-213f,-206f,-200f,-192f})await WalkTo(new(Hoshikawa.World.RoadX(z),z));
+        await WalkTo(new(-12,-187));await WalkTo(new(-12,-190.6f),false);await Frames(5);
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.Position.Y-5.23f)<.08f,"normal walking reaches the shelter floor without jumping");
-        await WalkTo(new(-12,-87),false);
-        await WalkTo(new(Hoshikawa.World.RoadX(-86),-86));await WalkTo(new(0,-68));
-        Check(g.Player.IsOnFloor()&&g.Region=="Old Relay Road","return route reconnects to the original relay mission");
+        await WalkTo(new(-12,-187),false);
+        await WalkTo(new(Hoshikawa.World.RoadX(-180),-180));await WalkTo(new(1.5f,-170));
+        Check(g.Player.IsOnFloor()&&g.Region=="Old Relay Road","return route reconnects to the relay plaza");
+        // The teahouse ladder is the relay road's shortcut: drawn up, it leaves the terrace out of reach from the junction under its cliff;
+        // lowered from the terrace, it is walked both ways and stays down when Mio recovers at the village.
+        var ladder=g.World.Shortcuts.Single();var top=new Vector2(ladder.From.X,ladder.From.Z);var below=top+new Vector2(0,12);
+        Place(g.Player,new(below.X,Hoshikawa.World.Height(below.X,below.Y)+.1f,below.Y));await Frames(10);
+        Check(!await Head(top,true,240)&&g.Player.GlobalPosition.Y<4&&g.InteractionPrompt()!=Localization.T("E   Lower the ladder"),
+            $"the drawn-up ladder leaves the teahouse terrace out of reach from the junction, and cannot be lowered from below {g.Player.GlobalPosition}");
+        Place(g.Player,new(top.X,Hoshikawa.World.Height(top.X,top.Y)+.1f,top.Y));await Frames(10);
+        Check(g.InteractionPrompt()==Localization.T("E   Lower the ladder"),"the ladder is lowered from the terrace");
+        g.Interact();await Frames(100);
+        Check(g.Opened.Contains(ladder.Name)&&ladder.Part.Basis.IsEqualApprox(new Basis(ladder.Open))&&g.InteractionPrompt()!=Localization.T("E   Lower the ladder"),"lowering the ladder opens the shortcut, once");
+        await WalkTo(below,false);
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Y<2.5f,$"the lowered ladder walks down to the junction {g.Player.GlobalPosition}");
+        await WalkTo(top);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-7.5f)<.3f,$"and back up to the teahouse terrace {g.Player.GlobalPosition}");
+        // The quarry's remedy pouch lets Mio carry one more remedy for the rest of the prologue.
+        var pouch=g.World.Pouches.Single();var crate=pouch.GlobalPosition+Vector3.Back*1.3f;
+        Place(g.Player,new(crate.X,Hoshikawa.World.Height(crate.X,crate.Z)+.1f,crate.Z));await Frames(10);
+        Check(g.InteractionPrompt()==Localization.T("E   Take the remedy pouch"),"the remedy pouch waits on its crate at the quarry's end");
+        g.Interact();
+        Check(!pouch.Visible&&g.Player.MaxRemedies==4&&g.Player.Remedies==4&&g.InteractionPrompt()!=Localization.T("E   Take the remedy pouch"),"taking the remedy pouch raises the remedies Mio carries to four");
+        g.Retry();await Frames(5);
+        Check(g.Opened.Contains(ladder.Name)&&ladder.Part.Basis.IsEqualApprox(new Basis(ladder.Open))&&!pouch.Visible&&g.Player.Remedies==4,"the ladder stays down and the pouch taken when Mio recovers at the village");
         // The map's edges are its terrain now: a cliff behind Komorebi stops a walker at chest height, and the one wall on land's side is off the beach, here in the cove between two capes.
-        float chest=Hoshikawa.World.Height(0,-197)+1.2f;
-        using(var cliff=PhysicsRayQueryParameters3D.Create(new(0,chest,-197),new(0,chest,-215),1))
+        float chest=Hoshikawa.World.Height(0,-297)+1.2f;
+        using(var cliff=PhysicsRayQueryParameters3D.Create(new(0,chest,-297),new(0,chest,-315),1))
             Check(g.GetWorld3D().DirectSpaceState.IntersectRay(cliff) is {Count:>0} hit&&hit["collider"].As<Node>().Name=="Terrain collision"
                 &&!g.World.GetChildren().Any(n=>n.Name.ToString().StartsWith("Valley boundary")),"the mountain wall behind Komorebi closes the northern edge, no boundary box in the open");
         chest=Hoshikawa.World.Height(-64,42)+1.2f;
@@ -448,7 +486,7 @@ public static class IntegrationCheck
             Check(post.Count>0&&Math.Abs(((Vector3)post["position"]).X-well.GlobalPosition.X-.9f)<.05f&&wellRoof.Count>0,$"the {wellName}'s posts block the player and its roof stops the camera");
         }
         foreach(var (model,x,z,height) in new[]{("lantern",-2.6f,57.5f,1.75f),("lantern",.6f,57.5f,1.75f),("lantern",-6.5f,17.5f,1.75f),("lantern",-6.5f,29f,1.75f),("cart",12.9f,1.6f,1f),("notice",6.4f,17.2f,2.3f),("scarecrow",33.6f,25.8f,1.7f),
-            ("lantern",-3.9f,-170.5f,1.75f),("lantern",3.9f,-170.5f,1.75f),("cart",19f,-161f,1f),("notice",5.6f,-151.6f,2.3f),("scarecrow",-29f,-157f,1.7f)})
+            ("lantern",-3.9f,-270.5f,1.75f),("lantern",3.9f,-270.5f,1.75f),("cart",19f,-261f,1f),("notice",5.6f,-251.6f,2.3f),("scarecrow",-29f,-257f,1.7f)})
         {
             var prop=g.World.GetChildren().OfType<Node3D>().Single(n=>Math.Abs(n.Position.X-x)<.01f&&Math.Abs(n.Position.Z-z)<.01f&&n.GetChildren().OfType<StaticBody3D>().Any());
             var mesh=ActorVisual.Descendants(prop).OfType<MeshInstance3D>().Single();var box=mesh.GlobalTransform*mesh.GetAabb();int tris=mesh.Mesh.GetFaces().Length/3;
@@ -459,7 +497,7 @@ public static class IntegrationCheck
         var villageTrees=g.World.GetChildren().OfType<Node3D>().Where(n=>n.Position.Z>0&&n.Position.Z<76&&Math.Abs(n.Position.X)<40&&n.GetChildren().OfType<StaticBody3D>().Any()
             &&"keyaki sugi sakura bamboo shrub".Split(' ').Any(s=>n.Name.ToString().Contains(s))).ToArray();
         Check(villageTrees.Length>=30,$"Hoshikawa is planted with {villageTrees.Length} trees and shrubs");
-        var komorebiTrees=g.World.GetChildren().OfType<Node3D>().Where(n=>n.Position.Z<-132&&Math.Abs(n.Position.X)<40&&n.GetChildren().OfType<StaticBody3D>().Any()
+        var komorebiTrees=g.World.GetChildren().OfType<Node3D>().Where(n=>n.Position.Z<-232&&Math.Abs(n.Position.X)<40&&n.GetChildren().OfType<StaticBody3D>().Any()
             &&"keyaki shrub kaki".Split(' ').Any(s=>n.Name.ToString().StartsWith(s))).ToArray();
         var kaki=komorebiTrees.Where(n=>n.Name.ToString().StartsWith("kaki")).ToArray();
         Check(kaki.Length==9&&komorebiTrees.Count(n=>n.Name.ToString().StartsWith("shrub"))==9,$"Komorebi's orchard has nine persimmon trees and its courtyards nine shrubs, of {komorebiTrees.Length} trees");
@@ -548,8 +586,11 @@ public static class IntegrationCheck
         g.Player.Health=35;int herbs=g.Player.Remedies;g.Player.Heal();
         Check(g.Player.Health==35,"healing is blocked during an attack");await Frames(60);g.Player.Heal();
         Check(g.Player.Health==80&&g.Player.Remedies==herbs-1,"remedy restores health and consumes one charge");
+        var scout=g.Enemies.First(e=>e.Scout);g.Player.Health=100;g.Player.Invulnerable=0;
+        Check(scout.Health==scout.MaxHealth&&scout.MaxHealth<opponent.MaxHealth&&scout.Model.Scale.X<opponent.Model.Scale.X&&g.Player.ReceiveHit(scout,true)=="hit"&&g.Player.Health>100-32+5,
+            $"scouts are smaller, weaker and strike lighter than the patrols ({100-g.Player.Health:F1} damage)");
         // Patrol and aggro also execute their own real physics loop.
-        var live=g.Enemies[1];live.Reset();live.SetPhysicsProcess(true);
+        var live=g.Enemies[0];live.Reset();live.SetPhysicsProcess(true);
         Place(g.Player,new(0,0,30));before=live.GlobalPosition;await Frames(60);
         Check(live.GlobalPosition.DistanceTo(before)>.4f&&live.State=="PATROL","robot follows its patrol route");
         Place(g.Player,live.GlobalPosition+Vector3.Back*6);await Frames(30);Check(live.State=="PURSUE","robot acquires a nearby countryside player");
@@ -557,8 +598,8 @@ public static class IntegrationCheck
         Place(g.Player,live.GlobalPosition+Vector3.Back*2);await Frames(110);
         Check(g.Player.Health<100,"enemy windup resolves a real damaging strike");
         g.SetPaused(true);before=live.GlobalPosition;await Frames(30);Check(live.GlobalPosition==before,"pause freezes patrol simulation");g.SetPaused(false);
-        foreach(var e in g.Enemies){e.SetPhysicsProcess(false);e.Execute();}
-        Check(g.QuestStage==2,"all patrols disabled advances mission");
+        foreach(var e in g.Enemies)e.SetPhysicsProcess(false);foreach(var e in g.Patrols)e.Execute();
+        Check(g.QuestStage==2&&g.Enemies.Where(e=>e.Scout).All(e=>!e.Dead),"all three patrols disabled advances the mission, the scouts left standing");
         Place(g.Player,g.World.RelayPosition+Vector3.Back*2);g.Interact();
         Check(g.QuestStage==3&&g.Speaker=="Zero","relay activation contacts remote Zero");g.Mode=GameMode.Playing;
         Place(g.Player,g.World.Residents[0].Body.GlobalPosition+Vector3.Back*2);await Frames(60);g.Interact();
@@ -571,6 +612,9 @@ public static class IntegrationCheck
         if(DisplayServer.GetName()!="headless"){g.SaveScreenshot("res://artifacts/mission-complete.png");await Frames(5);}
         g.Restart();Check(g.QuestStage==0&&g.Enemies.All(e=>!e.Dead)&&g.Player.Health==100,"restart restores a fresh playable mission");
         Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Intro),"restarting the prologue replays its opening scene");g.EndDialogue();
+        // The ladder's body takes its new turn on the next physics step.
+        await Frames(2);
+        Check(g.Opened.Count==0&&ladder.Part.Basis.IsEqualApprox(new Basis(ladder.Closed))&&pouch.Visible&&g.Player.MaxRemedies==3&&g.Player.Remedies==3,"restart draws the ladder up again and puts the pouch back");
         // The whole flow above also runs under --lang=ja and --lang=zh_TW. Here each language is also checked on its own: glyphs, fixed-width boxes,
         // line breaking, and the real language buttons.
         string startLanguage=Localization.Current;var sans=ThemeDB.FallbackFont;

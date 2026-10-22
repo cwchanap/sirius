@@ -10,8 +10,8 @@ var failed=false
 const HOUSES=[["workshop",Vector2(-10.37,6.63),75.0,3.5,-1.66,-45.0],["kura",Vector2(12.5,6),-95.0,1.835,-1.66,-45.0],["hall",Vector2(-12.8,21.78),82.0,3.05,-3.0,-45.0],
 	["clinic",Vector2(-11.05,37.54),98.0,2.1,-1.66,45.0],["farmhouse",Vector2(11.81,42.27),-70.0,3.55,-1.66,-45.0]]
 # The Komorebi revamp's houses from World.KomorebiHouses, in the same shape, named for their village rather than their style.
-const KOMOREBI=[["komorebi-lodge",Vector2(-12,-141),90.0,3.55,-1.66,-45.0],["komorebi-clinic",Vector2(12,-146),-90.0,2.1,-1.66,45.0],["komorebi-weavers",Vector2(-12.5,-162),90.0,3.5,-1.66,-45.0],
-	["komorebi-store",Vector2(13,-161.2),-90.0,1.835,-1.66,-45.0],["komorebi-hall",Vector2(0,-177),0.0,3.05,-3.0,-45.0]]
+const KOMOREBI=[["komorebi-lodge",Vector2(-12,-241),90.0,3.55,-1.66,-45.0],["komorebi-clinic",Vector2(12,-246),-90.0,2.1,-1.66,45.0],["komorebi-weavers",Vector2(-12.5,-262),90.0,3.5,-1.66,-45.0],
+	["komorebi-store",Vector2(13,-261.2),-90.0,1.835,-1.66,-45.0],["komorebi-hall",Vector2(0,-277),0.0,3.05,-3.0,-45.0]]
 
 func _initialize():
 	call_deferred("review")
@@ -105,13 +105,13 @@ func review():
 		["rice-paddies",Vector3(21.5,2.3,18.5),Vector3(29,0,29),Vector3(1,.1,27)],
 		["village-trees",Vector3(-2,8,-4),Vector3(-21,2,14),Vector3(-3,.1,12)],
 		["road-countryside",Vector3(1.5,2.6,-24),Vector3(-1,1.5,-48),Vector3(0,.1,-20)],
-		["komorebi-road",Vector3(3,6.6,-127),Vector3(-1,4.8,-150),Vector3(0,4.6,-136)],
+		["komorebi-road",Vector3(3,6.6,-227),Vector3(-1,4.8,-250),Vector3(0,4.6,-236)],
 		# Phase 4a water and fields: the river from the stone bridge, the brook bank, the paddies wide, Komorebi's beds and the Cedar River.
 		["river-bridge",Vector3(3.4,2.4,-9),Vector3(24,-.4,-7),Vector3(-3,.1,3)],
 		["brook-close",Vector3(21.9,1.5,26),Vector3(19,-.5,31.5),Vector3(14,.1,22)],
 		["paddies-wide",Vector3(41,8,13),Vector3(30,0,31),Vector3(34,.1,17)],
-		["komorebi-beds",Vector3(-21,7,-140),Vector3(-32.5,4.3,-151.5),Vector3(-12,6,-151.5)],
-		["cedar-river",Vector3(26,5.5,-102),Vector3(6,.7,-111),Vector3(9.5,6,-100)],
+		["komorebi-beds",Vector3(-21,7,-240),Vector3(-32.5,4.3,-251.5),Vector3(-12,6,-251.5)],
+		["cedar-river",Vector3(26,5.5,-202),Vector3(6,.7,-211),Vector3(9.5,6,-200)],
 		["paddy-sluice",Vector3(20.2,1.5,34.2),Vector3(22.8,0,36.8),Vector3(14,.1,22)],
 		["hasa-rack",Vector3(31.5,1.7,45.2),Vector3(29.5,.9,40.7),Vector3(14,.1,22)],
 		# Phase 4b Tripo models: the water wheel from the bank below it, the scarecrow in paddy 1.
@@ -122,9 +122,9 @@ func review():
 		["bridge-village-bank",Vector3(8.5,1.6,-2.2),Vector3(0,.2,-8.5),Vector3(.6,1.2,-7)],
 		["bridge-far-bank",Vector3(-8,2.4,-15.5),Vector3(0,.2,-7.5),Vector3(.6,1.2,-7)],
 		["bridge-deck",Vector3(1,1.9,2.2),Vector3(0,1,-14),Vector3(-.6,1.2,-9)],
-		["cedar-bridge-west",Vector3(-6,5.5,-117.5),Vector3(9.8,2.2,-111),Vector3(9.5,6,-100)],
-		["cedar-banks",Vector3(13.2,5.7,-111.4),Vector3(40,.3,-111),Vector3(9.5,6,-100)],
-		["cedar-deck",Vector3(10.6,6,-98.5),Vector3(9.8,4.6,-120),Vector3(9.2,6,-108)],
+		["cedar-bridge-west",Vector3(-6,5.5,-217.5),Vector3(9.8,2.2,-211),Vector3(9.5,6,-200)],
+		["cedar-banks",Vector3(13.2,5.7,-211.4),Vector3(40,.3,-211),Vector3(9.5,6,-200)],
+		["cedar-deck",Vector3(10.6,6,-198.5),Vector3(9.8,4.6,-220),Vector3(9.2,6,-208)],
 		# Phase 4d Tripo props on the river's village bank: the boat moored at x -13 and the washing steps at x 10, each from its own bank and the far one, then close up, Mio standing on the steps' slab.
 		["boat-bank",Vector3(-8.5,1.4,-2.2),Vector3(-13,-.3,-5.6),Vector3(-3,.1,3)],
 		["boat-far",Vector3(-10.5,2.2,-13.5),Vector3(-13,-.2,-5.2),Vector3(-3,.1,3)],
@@ -134,14 +134,14 @@ func review():
 		["kawabata-close",Vector3(12.4,.7,-6.6),Vector3(10,-.1,-4.4),Vector3(10,0,-5.3)],
 		# The Komorebi revamp: the square from the road, its well, the hall up the road, the orchard and its fruit, the packing station,
 		# the gardens' scarecrow, and the whole village from the Cedar Bridge side.
-		["komorebi-square",Vector3(7,8,-138),Vector3(0,4.8,-155),Vector3(0,4.6,-140)],
-		["komorebi-well",Vector3(-.6,6.4,-145.2),Vector3(-4.8,5.4,-149.6),Vector3(0,4.6,-140)],
-		["komorebi-hall",Vector3(1.5,6.6,-157),Vector3(0,6.6,-176),Vector3(0,4.6,-140)],
-		["komorebi-orchard",Vector3(20.5,8.5,-139),Vector3(31,5,-156),Vector3(0,4.6,-140)],
-		["komorebi-persimmons",Vector3(28,6.1,-150.5),Vector3(25,6.6,-155),Vector3(0,4.6,-140)],
-		["komorebi-packing",Vector3(15.5,6.6,-154.6),Vector3(19.5,5.2,-164),Vector3(0,4.6,-140)],
-		["komorebi-scarecrow",Vector3(-25.5,6.6,-151.5),Vector3(-29,5.5,-157),Vector3(0,4.6,-140)],
-		["komorebi-overview",Vector3(10,17,-121),Vector3(0,4.5,-160),Vector3(0,4.6,-140)]]
+		["komorebi-square",Vector3(7,8,-238),Vector3(0,4.8,-255),Vector3(0,4.6,-240)],
+		["komorebi-well",Vector3(-.6,6.4,-245.2),Vector3(-4.8,5.4,-249.6),Vector3(0,4.6,-240)],
+		["komorebi-hall",Vector3(1.5,6.6,-257),Vector3(0,6.6,-276),Vector3(0,4.6,-240)],
+		["komorebi-orchard",Vector3(20.5,8.5,-239),Vector3(31,5,-256),Vector3(0,4.6,-240)],
+		["komorebi-persimmons",Vector3(28,6.1,-250.5),Vector3(25,6.6,-255),Vector3(0,4.6,-240)],
+		["komorebi-packing",Vector3(15.5,6.6,-254.6),Vector3(19.5,5.2,-264),Vector3(0,4.6,-240)],
+		["komorebi-scarecrow",Vector3(-25.5,6.6,-251.5),Vector3(-29,5.5,-257),Vector3(0,4.6,-240)],
+		["komorebi-overview",Vector3(10,17,-221),Vector3(0,4.5,-260),Vector3(0,4.6,-240)]]
 	for view in views:
 		if not wanted(view[0]): continue
 		mio.position=view[3]

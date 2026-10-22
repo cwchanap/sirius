@@ -112,8 +112,8 @@ public partial class World
         r=new RandomNumberGenerator{Seed=4451};reeds=new();
         for(float x=-60;x<60;x+=1.1f)foreach(int side in new[]{-1,1})
         {
-            float z=Waterline(x,-111,CedarLevel,side);
-            if(!float.IsNaN(z)&&Math.Abs(x-RoadX(-111))>6)Clump(new(x,z-side*.15f));
+            float z=Waterline(x,CedarZ,CedarLevel,side);
+            if(!float.IsNaN(z)&&Math.Abs(x-RoadX(CedarZ))>6)Clump(new(x,z-side*.15f));
         }
         Grass("Cedar River reeds",reeds,1,_=>true,9,.12f,new("3d5226"),new("9aa45a"),.25f,4455);
     }
@@ -156,7 +156,7 @@ public partial class World
     private void RiverStones()
     {
         var r=new RandomNumberGenerator{Seed=4461};
-        foreach(var (mid,level,bridge) in new[]{(-8f,WaterLevel,0f),(-111f,CedarLevel,RoadX(-111))})
+        foreach(var (mid,level,bridge) in new[]{(-8f,WaterLevel,0f),(CedarZ,CedarLevel,RoadX(CedarZ))})
             for(float x=-58;x<58;x+=2.9f)foreach(int side in new[]{-1,1})
             {
                 float at=x+r.RandfRange(-.8f,.8f),z=Waterline(at,mid,level,side),pick=r.Randf();
@@ -186,12 +186,13 @@ public partial class World
         const float s=.25f,x0=21.3f,z0=20;const int w=70,h=80;var y=new float[w+1,h+1];
         for(int i=0;i<=w;i++)for(int j=0;j<=h;j++)y[i,j]=Levee(x0+i*s,z0+j*s);
         var st=new SurfaceTool();st.Begin(Godot.Mesh.PrimitiveType.Triangles);
-        // UV2.x is terrain.gdshader's height above the water, doubled, so each paddy's inner foot reads wet up to 20 cm above its water.
+        // UV2.x is terrain.gdshader's height above the water, doubled, so each paddy's inner foot reads wet up to 20 cm above its water;
+        // UV2.y keeps the road's paint off.
         void V(int i,int j)
         {
             float x=x0+i*s,z=z0+j*s;int k=Array.FindIndex(Paddies,p=>p.HasPoint(new(x,z)));
             st.SetNormal(new Vector3(y[Math.Max(i-1,0),j]-y[Math.Min(i+1,w),j],2*s,y[i,Math.Max(j-1,0)]-y[i,Math.Min(j+1,h)]).Normalized());
-            st.SetColor(new(1,1,1));st.SetUV2(new(k<0?.35f:2*(y[i,j]-PaddyLevel[k])-.05f,0));st.AddVertex(new(x,y[i,j],z));
+            st.SetUV2(new(k<0?.35f:2*(y[i,j]-PaddyLevel[k])-.05f,9));st.AddVertex(new(x,y[i,j],z));
         }
         bool Raised(int i,int j)=>y[i,j]>MeshHeight(x0+i*s,z0+j*s)-.015f;
         for(int i=0;i<w;i++)for(int j=0;j<h;j++)if(Raised(i,j)||Raised(i+1,j)||Raised(i,j+1)||Raised(i+1,j+1)){V(i,j);V(i+1,j);V(i,j+1);V(i+1,j);V(i+1,j+1);V(i,j+1);}

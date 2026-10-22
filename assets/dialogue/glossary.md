@@ -34,6 +34,8 @@ Chinese is Taiwan usage (臺灣用語): 軟體, 網路, 資訊, 號誌, 影片, 
 | Cedar River | 杉川 | 杉川 |
 | Old Relay Road | 旧リレー街道 | 舊繼電器古道 |
 | The viaduct | 高架 | 高架橋 |
+| Old Teahouse (ruined, on the relay road) | 旧茶屋 | 舊茶屋 |
+| Old Quarry | 旧採石場 | 舊採石場 |
 | Shikoku Highlands | 四国高地 | 四國高地 |
 | engawa (veranda) | 縁側 | 緣廊 |
 
@@ -43,11 +45,14 @@ Chinese is Taiwan usage (臺灣用語): 軟體, 網路, 資訊, 號誌, 影片, 
 |---|---|---|---|
 | Manual relay | 手動リレー | 手動繼電器 | A railway signalling relay: the repeated word "relay" stays リレー in Japanese, 繼電器 in Chinese |
 | Patrol (the hostile robots) | パトロール機 | 巡邏機 | |
+| Scout (a smaller robot the relay mission does not count) | 偵察機 | 偵察機 | |
+| Shortcut | 近道 | 捷徑 | |
 | Keeper (a machine's owner) | 持ち主 | 主人 | The patrols have none |
 | Resonance Cut | 共鳴斬 | 共鳴斬 | The existing skill name |
 | Posture | 体幹 | 架勢 | The words Sekiro uses in each language |
 | Vitality | 体力 | 體力 | |
 | Remedy | 薬 | 藥草 | |
+| Remedy pouch (one more remedy carried) | 薬袋 | 藥草袋 | |
 | Deflect | 弾き | 彈反 | |
 | Guard | 防御 | 防禦 | |
 | Dodge | 回避 | 閃避 | |
