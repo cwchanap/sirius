@@ -122,8 +122,8 @@ public partial class World
     {
         var sea=WaterMaterial(Vector2.Zero);
         bool Open(Vector2 c)=>!InPlay(c.X,c.Y)&&Sea(c.X,c.Y)>0;
-        WaterGrid("Sea",Fine,1,Open,(_,_)=>WaterLevel,sea);
-        WaterGrid("Open sea",Far,4,c=>Open(c)&&!Fine.HasPoint((Vector2I)c.Floor()),(_,_)=>WaterLevel,sea);
+        WaterGrid("Sea",Wet(Fine,1,Open,(_,_)=>WaterLevel),1,(_,_)=>WaterLevel,sea);
+        WaterGrid("Open sea",Wet(Far,4,c=>Open(c)&&!Fine.HasPoint((Vector2I)c.Floor()),(_,_)=>WaterLevel),4,(_,_)=>WaterLevel,sea);
         // Past the 4 m mountains the sea runs on under the fog to the horizon, west of the whole range as well as south of it, ending
         // further out than any view reaches.
         Mesh(this,"Sea to the horizon",new PlaneMesh{Size=new(2000,3000),SubdivideWidth=249},new(Far.Position.X-1000,WaterLevel,0),sea);
@@ -132,16 +132,19 @@ public partial class World
         {
             var box=new Rect2(course[0].X,course[0].Z,0,0);foreach(var p in course)box=box.Expand(new(p.X,p.Z));box=box.Grow(Spill+4);
             var area=new Rect2I((Vector2I)(box.Position/4).Floor()*4,(Vector2I)(box.Size/4).Ceil()*4+new Vector2I(4,4));
+            bool Gorge(Vector2 c)=>!InPlay(c.X,c.Y)&&Sea(c.X,c.Y)<=0&&Along(course,c.X,c.Y).Gap<Spill;
+            bool Course(Vector2 c)=>Along(course,c.X,c.Y).Gap<2;
+            float Level(float x,float z)=>Along(course,x,z).Level;
+            var near=Wet(area.Intersection(Fine),1,Gorge,Level,Course);var far=Wet(area.Intersection(Far),4,c=>Gorge(c)&&!Fine.HasPoint((Vector2I)c.Floor()),Level,Course);
             // One mesh per straight reach, so each drifts its own way; neighbours share their edge vertices. Past the 1 m ground the 4 m
             // ground carries the upper reaches on its own grid, meeting the 1 m water along a line of constant x or z.
             for(int i=0;i<course.Length-1;i++)
             {
                 if(Fall(course[i],course[i+1])){var top=course[i];Waterfall($"{name} {i}",top,course[i+1],Half(Along(course,top.X,top.Z).From,Beyond(top.X,top.Z)));continue;}
                 int segment=i;var flow=new Vector2(course[i+1].X-course[i].X,course[i+1].Z-course[i].Z).Normalized()*.35f;var material=WaterMaterial(flow);
-                bool Reach(Vector2 c)=>!InPlay(c.X,c.Y)&&Sea(c.X,c.Y)<=0&&Along(course,c.X,c.Y) is var a&&a.Gap<Spill&&a.Segment==segment;
-                float Level(float x,float z)=>Along(course,x,z).Level;
-                WaterGrid($"{name} {i}",area.Intersection(Fine),1,Reach,Level,material);
-                WaterGrid($"{name} {i} far",area.Intersection(Far),4,c=>Reach(c)&&!Fine.HasPoint((Vector2I)c.Floor()),Level,material);
+                bool Reach(Vector2I c,int step)=>Along(course,c.X+step/2f,c.Y+step/2f).Segment==segment;
+                WaterGrid($"{name} {i}",near.Where(c=>Reach(c,1)),1,Level,material);
+                WaterGrid($"{name} {i} far",far.Where(c=>Reach(c,4)),4,Level,material);
             }
         }
         var walls=new StaticBody3D{Name="Invisible wall",CollisionMask=0};AddChild(walls);
@@ -156,14 +159,13 @@ public partial class World
     {
         var water=new ShaderMaterial{Shader=GD.Load<Shader>("res://assets/shaders/water.gdshader")};water.SetShaderParameter("flow",flow);return water;
     }
-    // Water over the terrain's own grid and diagonals: a cell `owns` admits is wet where a corner's ground lies under the water's level
-    // there + 4 cm, so wherever the water meets dry cells its edge runs along the terrain mesh's chords, buried deeper than the shader's wave.
-    // Cells across a fall, whose corners' levels differ by more than a steep reach's do, stay dry: the fall's curtain covers them. Each
-    // cell's normal leans with its slope, which water.gdshader measures depth square to and breaks into white water on a steep reach.
-    private void WaterGrid(string name,Rect2I area,int step,Func<Vector2,bool> owns,Func<float,float,float> level,Material material)
+    // The cells of `area` that `owns` admits and that hold water: a corner's ground lies under the water's level there + 4 cm, so wherever
+    // the water meets dry cells its edge runs along the terrain mesh's chords, buried deeper than the shader's wave. Cells across a fall,
+    // whose corners' levels differ by more than a steep reach's do, stay dry: the fall's curtain covers them. Given a `source`, only cells
+    // joined side to side to one it admits hold water, so a hollow beyond a reach's levee, under its level but out of its reach, stays dry.
+    private static List<Vector2I> Wet(Rect2I area,int step,Func<Vector2,bool> owns,Func<float,float,float> level,Func<Vector2,bool>? source=null)
     {
-        var st=new SurfaceTool();st.Begin(Godot.Mesh.PrimitiveType.Triangles);int cells=0;var normal=Vector3.Up;
-        void V(int x,int z){st.SetNormal(normal);st.AddVertex(new(x,level(x,z),z));}
+        var wet=new List<Vector2I>();
         for(int z=area.Position.Y;z<area.End.Y;z+=step)for(int x=area.Position.X;x<area.End.X;x+=step)
         {
             if(!owns(new(x+step/2f,z+step/2f)))continue;
@@ -171,10 +173,26 @@ public partial class World
             // Along the 1 m ground's edge the terrain has a vertex every metre, each of which may let the water in.
             var rim=step>1&&FineSide(new(x,z),step) is var (a,b,_,_)?Enumerable.Range(1,step-1).Select(i=>a+(b-a)/step*i).ToArray():Array.Empty<Vector2I>();
             if(l.Max()-l.Min()>.7f*step||corners.Select((c,i)=>Height(c.Item1,c.Item2)-l[i]).Concat(rim.Select(q=>Height(q.X,q.Y)-level(q.X,q.Y))).Min()>=.04f)continue;
-            normal=new Vector3(l[0]-l[1]+l[2]-l[3],2*step,l[0]-l[2]+l[1]-l[3]).Normalized();
-            V(x,z);V(x+step,z);V(x,z+step);V(x+step,z);V(x+step,z+step);V(x,z+step);cells++;
+            wet.Add(new(x,z));
         }
-        if(cells==0)return;
+        if(source==null)return wet;
+        var all=wet.ToHashSet();var queue=new Queue<Vector2I>(wet.Where(c=>source(c+new Vector2(step/2f,step/2f))));var joined=queue.ToHashSet();
+        while(queue.TryDequeue(out var c))foreach(var d in new Vector2I[]{new(step,0),new(-step,0),new(0,step),new(0,-step)})if(all.Contains(c+d)&&joined.Add(c+d))queue.Enqueue(c+d);
+        return wet.Where(joined.Contains).ToList();
+    }
+    // Water over `cells`, each `step` metres on the terrain's own grid and diagonals. Each cell's normal leans with its slope, which
+    // water.gdshader measures depth square to and breaks into white water on a steep reach.
+    private void WaterGrid(string name,IEnumerable<Vector2I> cells,int step,Func<float,float,float> level,Material material)
+    {
+        var st=new SurfaceTool();st.Begin(Godot.Mesh.PrimitiveType.Triangles);int count=0;var normal=Vector3.Up;
+        void V(int x,int z){st.SetNormal(normal);st.AddVertex(new(x,level(x,z),z));}
+        foreach(var (x,z) in cells)
+        {
+            var l=new[]{level(x,z),level(x+step,z),level(x,z+step),level(x+step,z+step)};
+            normal=new Vector3(l[0]-l[1]+l[2]-l[3],2*step,l[0]-l[2]+l[1]-l[3]).Normalized();
+            V(x,z);V(x+step,z);V(x,z+step);V(x+step,z);V(x+step,z+step);V(x,z+step);count++;
+        }
+        if(count==0)return;
         st.Index();Mesh(this,name,st.Commit(),Vector3.Zero,material);
     }
     // A fall from `top` down to `foot`, a metre downstream: a curtain over the gorge floor's width, `half` either side, lipping over from

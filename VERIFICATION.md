@@ -18,12 +18,12 @@ The valley is now closed by its own terrain, and its water follows the land. Eve
   - The second Metal review found the headwater gorges dead straight with squared-off heads, like cut channels. Each headwater now follows the range's folds: the Hoshikawa its natural valley line, the Cedar its fall line, which it used to cross at an angle. The floors wander in width. A spring's ravine starts as a fold in the hillside and cuts down over its first 24 m, where the water appears. Where a reach would run with the hillside lower than its water, its bank stands as a 2 m levee instead of letting it spill.
   - The walls follow a level and distance smoothed over the course, so bends leave no creases on them. A fall's step crosses the walls near the river and fades out within about 20 m.
   - Steep reaches (17–43%) now read as white water. Seen from below they used to read as pale gravel roads: the shader measured depth vertically, and up a steep reach that comes to nothing, so the water was clear. Depth is now measured square to each cell's sloped surface, and reaches steeper than about 1 in 8 break into streaks racing downhill.
-  - A reach's water fills whatever of its ground lies under its level within 16 m of its course. Water near the Cedar's mouth used to stop short of its banks in 4 m steps.
+  - A reach's water fills whatever of its ground lies under its level within 16 m of its course and is joined side to side to it. Water near the Cedar's mouth used to stop short of its banks in 4 m steps. The third Metal review found a pool standing in a hollow beyond the Cedar's levee beside its upper fall, cut off from the channel; such hollows now stay dry.
   - Outside the play area, water is laid on the terrain's own 1 m or 4 m grid, so no shore can surface.
   - The only invisible walls are off the beach (0.5 m deep) and behind the boulder choke.
 - **Rendering fixes from the two Metal reviews:**
   - The 4 m terrain's cells along the 1 m ground's edge fan out to its vertices, so the two meshes share their edge. The first review saw sky through cracks at the join, and the second saw a dark notch at the waterline where the skirt that replaced those cracks showed. The skirt is gone, and a 4 m water cell on the join now counts the 1 m vertices too.
-  - On steep rock the wet band at the waterline reaches at least a cell's height up. A thinner band zigzagged across the 1 m triangles on the canyon wall behind the choke.
+  - The wet band at every waterline is painted per pixel from the ground's height above the water (`World.Shore()`, carried in the terrain's UV2), so its edge follows the ground's own contour. Painted per vertex, it zigzagged across the 1 m triangles on the canyon wall behind the choke; widening it on steep rock only reduced that, and the third review still saw a sawtooth there. Inside the valley the band along the river and brook is a little narrower than before, now exactly the 35 cm it was meant to be.
   - `terrain.gdshader` samples the atlas with gradients from the unwrapped uv. It stops at mip 3 and fades into each cell's mean colour by mip 5, so the dashed grid along tile edges on distant slopes is gone.
   - Rock is projected from whichever side faces it, so cliffs are no longer streaked.
   - The far sea planes run 2 km west and 1.3 km south of the range, past any view. From the Cedar mouth the second review saw the old plane's straight end.
@@ -34,7 +34,7 @@ The valley is now closed by its own terrain, and its water follows the land. Eve
   - a flood fill from the square cannot reach more than 16 m past the edge.
 
   The flood fill counts ground under 50° as standable, allows a 1.24 m jump step, lets anything steeper be slid down only, and treats the walls as blocking.
-- **Self-test:** **502 checks pass headless** in `en`, `ja` and `zh_TW` (`SELF_TEST_PASS` each), in a cloud container with Godot 4.6.2 mono. The first version also passed natively on Metal (M1 Pro, 502 checks). The old "northern map edge remains physically closed" check is replaced. New checks:
+- **Self-test:** **502 checks pass headless** in `en`, `ja` and `zh_TW` (`SELF_TEST_PASS` each), in a cloud container with Godot 4.6.2 mono. The first and third versions also passed natively on Metal (M1 Pro, 502 checks each). The old "northern map edge remains physically closed" check is replaced. New checks:
   - both rivers flow west;
   - the sea is still and at the river's level, outside the play area;
   - four falls run the waterfall shader;
@@ -45,17 +45,19 @@ The valley is now closed by its own terrain, and its water follows the land. Eve
 - **Render cost** (`render_cost.gd`'s three village viewpoints):
   - First version, on Metal: draws 1118/1062/1208, primitives 3.225M/2.995M/3.154M, CPU median 0.73–0.82 ms, 175–215 fps.
   - Second version (92696dd), on Metal: draws 1123/1069/1212, primitives 3.22M/3.00M/3.12M, CPU median 0.77–0.81 ms, 118–120 fps at the display's cap.
+  - Third version (789aec2), on Metal: draws 1123/1066/1210, primitives 3.201M/2.980M/3.122M, CPU median 0.73–0.78 ms, 120 fps at the display's cap.
   - Under Mesa's software Vulkan in the cloud, 1b7fd57 → the first version: draws 1047/1002/1118 → 1126/1085/1194, primitives 3.086M/2.981M/2.839M → 3.104M/3.009M/2.881M. This version's first viewpoint reads draws 1123, primitives 3.201M; the run timed out at 1 fps before the other two.
 - **Captures:**
   - The first version's ten `review_map.gd` views were taken natively on Metal. That review found the trenches, the cracks at the join, the tile grid, the notched curtains, the rectangular coast and the Cedar outlet's canal-like route, all fixed above.
   - The second version's twelve views were taken natively on Metal. That review found the pale steep reaches, the straight headwater gorges, the creases on the gorge walls and at the corners, the notch and the zigzag at the join, the sea plane's end and the stepped water near the Cedar's mouth, all fixed above.
+  - The third version's twelve views, on Metal, confirmed those fixes and found two things left: the cut-off pool beside the Cedar's upper fall and a reduced sawtooth behind the choke, both fixed above. It also noted that the steep reaches' outlines step a metre cell at a time, visible from mid-distance and from the air.
   - Each round of fixes was checked in the same twelve views under Mesa's software Vulkan (lavapipe, `xvfb-run`), which shows shapes and placement only.
 - **Not verified:** a Metal run of this version.
 - **Limits:**
   - The cliffs still use the stone atlas, so they read as coursed masonry. A cliff texture is the separate art task A1.
   - The cliff tops are sharp creases.
   - Distant terrain beyond mip 5 is each material's flat mean colour.
-  - Steep reaches are sloped sheets of white water, not stepped cascades.
+  - Steep reaches are sloped sheets of white water, not stepped cascades, and their outlines step a metre cell at a time.
   - From the air the capes are flat-topped shelves. From the ground they read as rocky headlands.
   - The machine city's boxes look like a bar chart when there is no fog.
   - No physical keyboard/mouse session is claimed.
