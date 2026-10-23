@@ -30,7 +30,7 @@ The relay road between the river and the viaduct now runs 164 m (z −14…−17
   - the heaped boulders set at the ground under their centres, so three hung on the cut's end wall with up to 5 m of air under them and three sat on the plateau above: the cut now ends in a talus ramp (the `Rockfall` trail) and each boulder rests on the lowest ground under it;
   - four pairs of brow trees on top of the relay block 1–1.8 m apart: brow trees and valley cedars now share the 3 m spacing;
   - cosmetic, left: one cedar's long lower bough crosses the view at eye level mid-valley.
-- **Not verified:** the fourth round's fixes have not run on Metal; they were checked headless and in captures under software Vulkan.
+- **Metal, fifth round (0027dc3):** the self-test passed graphically with 521 checks. `render_cost.gd`: draws 1190/1253/1278, primitives 2.823M/2.590M/2.677M, CPU 0.77–0.81 ms, 120 fps (the thinned brow trees). The station road now reads as a road buried under a slide: the talus climbs from 4.3 m to a landing at 8.5 m and the thirteen boulders heap up it to the brow behind the barrier, none with air under it. The cliffs above the ramp leave the cut's end in a rounded grass hump 4–5 m above the block's brow, merging into the slope that rises east. Of the 92 trees on the relay block, none stands within 3 m of another.
 
 ## Map redesign, phase 1: the valley's natural edges — 2026-10-22
 
