@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://hcff16dfkmd0"
-path="res://.godot/imported/nao_female_character_3d_model_basecolor-ad25db58eae3.jpg-8b0a479464ec764f45705cece364ce48.ctex"
+path.s3tc="res://.godot/imported/nao_female_character_3d_model_basecolor-ad25db58eae3.jpg-8b0a479464ec764f45705cece364ce48.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "ab7588bbb1ca0d2edc1412261a1c7bb6"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/nao_female_character_3d_model_basecolor-ad25db58eae3.jpg"
-dest_files=["res://.godot/imported/nao_female_character_3d_model_basecolor-ad25db58eae3.jpg-8b0a479464ec764f45705cece364ce48.ctex"]
+dest_files=["res://.godot/imported/nao_female_character_3d_model_basecolor-ad25db58eae3.jpg-8b0a479464ec764f45705cece364ce48.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://7klkr0vrgjap"
-path="res://.godot/imported/toma_adventurer_character_3d_model_basecolor-1e67cd5d187f.jpg-a5c5376ebfce8c825b35a0c4d122adbd.ctex"
+path.s3tc="res://.godot/imported/toma_adventurer_character_3d_model_basecolor-1e67cd5d187f.jpg-a5c5376ebfce8c825b35a0c4d122adbd.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "47e384ca21ddee205404648621ec6f39"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/toma_adventurer_character_3d_model_basecolor-1e67cd5d187f.jpg"
-dest_files=["res://.godot/imported/toma_adventurer_character_3d_model_basecolor-1e67cd5d187f.jpg-a5c5376ebfce8c825b35a0c4d122adbd.ctex"]
+dest_files=["res://.godot/imported/toma_adventurer_character_3d_model_basecolor-1e67cd5d187f.jpg-a5c5376ebfce8c825b35a0c4d122adbd.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

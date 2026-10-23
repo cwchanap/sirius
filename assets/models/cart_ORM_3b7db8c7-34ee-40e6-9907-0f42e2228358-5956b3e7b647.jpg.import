@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b60ymccfaler4"
-path="res://.godot/imported/cart_ORM_3b7db8c7-34ee-40e6-9907-0f42e2228358-5956b3e7b647.jpg-0cee8e2e98b83859deace4c30a997294.ctex"
+path.s3tc="res://.godot/imported/cart_ORM_3b7db8c7-34ee-40e6-9907-0f42e2228358-5956b3e7b647.jpg-0cee8e2e98b83859deace4c30a997294.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "ab25ed69cab722640f6148e2de3fc8b9"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/cart_ORM_3b7db8c7-34ee-40e6-9907-0f42e2228358-5956b3e7b647.jpg"
-dest_files=["res://.godot/imported/cart_ORM_3b7db8c7-34ee-40e6-9907-0f42e2228358-5956b3e7b647.jpg-0cee8e2e98b83859deace4c30a997294.ctex"]
+dest_files=["res://.godot/imported/cart_ORM_3b7db8c7-34ee-40e6-9907-0f42e2228358-5956b3e7b647.jpg-0cee8e2e98b83859deace4c30a997294.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

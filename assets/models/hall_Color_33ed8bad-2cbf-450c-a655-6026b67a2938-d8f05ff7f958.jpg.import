@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cmo1eg5i642u"
-path="res://.godot/imported/hall_Color_33ed8bad-2cbf-450c-a655-6026b67a2938-d8f05ff7f958.jpg-c52dbe68b14fcd27728f53a889593f53.ctex"
+path.s3tc="res://.godot/imported/hall_Color_33ed8bad-2cbf-450c-a655-6026b67a2938-d8f05ff7f958.jpg-c52dbe68b14fcd27728f53a889593f53.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "1d0e23c9a40bfb4b9e7c14207caf42d7"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/hall_Color_33ed8bad-2cbf-450c-a655-6026b67a2938-d8f05ff7f958.jpg"
-dest_files=["res://.godot/imported/hall_Color_33ed8bad-2cbf-450c-a655-6026b67a2938-d8f05ff7f958.jpg-c52dbe68b14fcd27728f53a889593f53.ctex"]
+dest_files=["res://.godot/imported/hall_Color_33ed8bad-2cbf-450c-a655-6026b67a2938-d8f05ff7f958.jpg-c52dbe68b14fcd27728f53a889593f53.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

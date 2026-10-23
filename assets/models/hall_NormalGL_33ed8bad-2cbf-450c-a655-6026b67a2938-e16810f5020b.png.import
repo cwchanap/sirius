@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bfycuip7017ir"
-path="res://.godot/imported/hall_NormalGL_33ed8bad-2cbf-450c-a655-6026b67a2938-e16810f5020b.png-02a06fa99a3d6e8585b996923224aa5a.ctex"
+path.s3tc="res://.godot/imported/hall_NormalGL_33ed8bad-2cbf-450c-a655-6026b67a2938-e16810f5020b.png-02a06fa99a3d6e8585b996923224aa5a.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "167f35d131cbb1676366a5e01ada9963"
@@ -14,17 +15,17 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/hall_NormalGL_33ed8bad-2cbf-450c-a655-6026b67a2938-e16810f5020b.png"
-dest_files=["res://.godot/imported/hall_NormalGL_33ed8bad-2cbf-450c-a655-6026b67a2938-e16810f5020b.png-02a06fa99a3d6e8585b996923224aa5a.ctex"]
+dest_files=["res://.godot/imported/hall_NormalGL_33ed8bad-2cbf-450c-a655-6026b67a2938-e16810f5020b.png-02a06fa99a3d6e8585b996923224aa5a.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=0
+compress/normal_map=1
 compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1

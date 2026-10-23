@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b4jbmfugemkv3"
-path="res://.godot/imported/boat_NormalGL_d91276b6-b79f-44a6-b9ba-24b2b14aa395-4c1dd6483726.png-c6cc5131a97826665f4d460190336d8c.ctex"
+path.s3tc="res://.godot/imported/boat_NormalGL_d91276b6-b79f-44a6-b9ba-24b2b14aa395-4c1dd6483726.png-c6cc5131a97826665f4d460190336d8c.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "7981fe3d6b1763c0693f30535a51c6b1"
@@ -14,17 +15,17 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/boat_NormalGL_d91276b6-b79f-44a6-b9ba-24b2b14aa395-4c1dd6483726.png"
-dest_files=["res://.godot/imported/boat_NormalGL_d91276b6-b79f-44a6-b9ba-24b2b14aa395-4c1dd6483726.png-c6cc5131a97826665f4d460190336d8c.ctex"]
+dest_files=["res://.godot/imported/boat_NormalGL_d91276b6-b79f-44a6-b9ba-24b2b14aa395-4c1dd6483726.png-c6cc5131a97826665f4d460190336d8c.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=0
+compress/normal_map=1
 compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1

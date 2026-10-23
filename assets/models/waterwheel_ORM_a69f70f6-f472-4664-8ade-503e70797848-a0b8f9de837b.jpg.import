@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ca5dbkj6kx0b5"
-path="res://.godot/imported/waterwheel_ORM_a69f70f6-f472-4664-8ade-503e70797848-a0b8f9de837b.jpg-7b479669b0a1ab5b1d88e5b43d83d499.ctex"
+path.s3tc="res://.godot/imported/waterwheel_ORM_a69f70f6-f472-4664-8ade-503e70797848-a0b8f9de837b.jpg-7b479669b0a1ab5b1d88e5b43d83d499.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "a00e6a150153f713a7bc4f2d043937fd"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/waterwheel_ORM_a69f70f6-f472-4664-8ade-503e70797848-a0b8f9de837b.jpg"
-dest_files=["res://.godot/imported/waterwheel_ORM_a69f70f6-f472-4664-8ade-503e70797848-a0b8f9de837b.jpg-7b479669b0a1ab5b1d88e5b43d83d499.ctex"]
+dest_files=["res://.godot/imported/waterwheel_ORM_a69f70f6-f472-4664-8ade-503e70797848-a0b8f9de837b.jpg-7b479669b0a1ab5b1d88e5b43d83d499.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

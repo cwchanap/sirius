@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://5skevy8u0bqp"
-path="res://.godot/imported/hall_ORM_33ed8bad-2cbf-450c-a655-6026b67a2938-912acddce90b.jpg-2e570b09adbbbf6dacb388b066009799.ctex"
+path.s3tc="res://.godot/imported/hall_ORM_33ed8bad-2cbf-450c-a655-6026b67a2938-912acddce90b.jpg-2e570b09adbbbf6dacb388b066009799.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "f4fc6a7fe166dc10965c38237079b10a"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/hall_ORM_33ed8bad-2cbf-450c-a655-6026b67a2938-912acddce90b.jpg"
-dest_files=["res://.godot/imported/hall_ORM_33ed8bad-2cbf-450c-a655-6026b67a2938-912acddce90b.jpg-2e570b09adbbbf6dacb388b066009799.ctex"]
+dest_files=["res://.godot/imported/hall_ORM_33ed8bad-2cbf-450c-a655-6026b67a2938-912acddce90b.jpg-2e570b09adbbbf6dacb388b066009799.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

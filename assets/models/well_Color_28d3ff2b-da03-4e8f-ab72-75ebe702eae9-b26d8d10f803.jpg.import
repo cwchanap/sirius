@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://chhu2hysokccl"
-path="res://.godot/imported/well_Color_28d3ff2b-da03-4e8f-ab72-75ebe702eae9-b26d8d10f803.jpg-594f0b7c882bf887b9be9f8e39cb5c24.ctex"
+path.s3tc="res://.godot/imported/well_Color_28d3ff2b-da03-4e8f-ab72-75ebe702eae9-b26d8d10f803.jpg-594f0b7c882bf887b9be9f8e39cb5c24.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "774db59f765edeb3cfc54fa37be2b6e6"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/well_Color_28d3ff2b-da03-4e8f-ab72-75ebe702eae9-b26d8d10f803.jpg"
-dest_files=["res://.godot/imported/well_Color_28d3ff2b-da03-4e8f-ab72-75ebe702eae9-b26d8d10f803.jpg-594f0b7c882bf887b9be9f8e39cb5c24.ctex"]
+dest_files=["res://.godot/imported/well_Color_28d3ff2b-da03-4e8f-ab72-75ebe702eae9-b26d8d10f803.jpg-594f0b7c882bf887b9be9f8e39cb5c24.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

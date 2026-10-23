@@ -6,6 +6,37 @@
 - **Unit tests:** `dotnet test tests/unit` passes 35; new: only a robot's back within 60° counts as behind, whatever the height.
 - **Self-test:** **532 checks pass headless** in `en`, `ja` and `zh_TW` in a cloud container with Godot 4.6.2 mono. New or changed checks: Emi refills the charges; a perilous hit takes 75 and a patrol's real windup strike 50; a frontal swing takes exactly the chip damage; Resonance Cut spends one charge, stuns at 4.2 m without harm, casts three times and then refuses; a robot facing Mio cannot be shut down even stunned, one with its back to her can, and the attack kills it; the stun holds and wears off under the robot's own physics; a recovering robot stays put and keeps its facing after Mio leaves its sight; a stunned robot keeps its back turned while Mio is placed behind it, and the attack key shuts it down. Not run graphically: no Metal run, no capture of the new HUD charge counter or robot hints, and no hands-on feel check of the numbers.
 
+## Texture compression — 2026-10-22
+
+Every model texture (the 60 Godot extracts from `assets/models/*.glb` and the 20 copies under `assets/art/*-import/`) now imports VRAM Compressed with mipmaps; the 25 normal maps are flagged as normal maps. Nothing else changed: the UI, portraits, fonts, foliage atlas, bark and village atlases keep their settings. No Tripo or ElevenLabs credits were spent.
+
+- **Format:**
+  - S3TC (`compress/high_quality=false`): DXT1 for colour, DXT5 with alpha, BC5 (RGTC) for the normal maps.
+  - BC7 (`high_quality=true`) was tried first and dropped: its CPU encoder had imported 32% of the maps after ten minutes, about 35 minutes for all of them, which a cold cache in CI's 30-minute e2e job could not afford. S3TC imports all 80 in 4.7 s on the M1 Pro.
+- **Video memory** (Metal, the village square after `Start()`, `Performance.RENDER_*_MEM_USED`):
+
+  | | Before | After |
+  |---|---|---|
+  | Video memory | 2506.8 MB | 779.3 MB (−69%) |
+  | Textures | 2233.5 MB | 506.0 MB (4.4× smaller) |
+  | Buffers | 73.1 MB | 73.1 MB |
+
+  A 4096² colour map went from 67.1 MB to 11.2 MB, a 4096² normal map to 22.4 MB, and a Tripo prop's three 2048² maps to 11.2 MB together. Geometry was never the cost: every mesh in the valley holds 73 MB of buffers.
+- **Still large:** the eleven 4096² character maps (Mio, Chiyo, KOMA-7, Sora, Nao, Toma) now take 156.8 MB: three BC5 normals at 22.4 MB, eight colour and metallic-roughness maps at 11.2 MB. Halved to 2048² they would take 39.2 MB, saving another 118 MB. Not done here.
+- **Render cost:** `render_cost.gd` reports the same draws and primitives before and after at all three viewpoints: 1075 / 1017 / 1165 draws, 3,202,585 / 2,964,494 / 3,081,424 primitives.
+- **Close-ups** (Metal, before/after under `artifacts/tex-compression/{before,after}/`):
+  - `eaves-front`, `eaves-kura` and `house-kura-front`: the Tripo houses under the eaves.
+  - `prop-well`: the well.
+  - `mio-portrait-close`, `mio-portrait` and `dialogue`: Mio's face in the portrait views and the dialogue background.
+  - `koma7/`: KOMA-7's front, side, back, face, idle and dialogue views.
+  - Side-by-sides: `artifacts/tex-compression/{mio-face,prop-well,eaves-kura,koma7-face}-before-after.png`.
+  - Result: no block artifacts at these distances. The mean per-channel difference is 1–11 levels out of 255, mostly the wind on the foliage and grass; KOMA-7's panels, eyes and leaf emblem match. Mio's skin is slightly smoother now that her maps have mipmaps, and her irises read a shade less saturated.
+- **Self-test:** `SELF_TEST_PASS` headless and on Metal, 500 CHECK lines each, before the rebase onto the map redesign (`artifacts/tex-compression/self-test-{headless,metal}-en.log`). After it: headless, 521 CHECK lines (`self-test-headless-en-rebased.log`), and `just unit` passes 34 of 34. The Metal run was not repeated after the rebase.
+- **Tooling:**
+  - `tools/compress_textures.py` writes these settings into the `.import` files: every model texture, or only the images named.
+  - Godot extracts a GLB's maps as Lossless and never re-extracts one whose `.import` already exists, so the settings can only follow a first import. `import_character.py` now imports in Godot (`--godot`, default `GODOT_MONO`), compresses the new model's maps and imports again.
+  - Mio's own importer does not; after it, run `compress_textures.py` and re-import.
+
 ## Tripo batch 2: Cedar Pass and the roadside — 2026-10-23
 
 The Cedar Pass shelter, the valley overlook, the signposts and the teahouse ladder are now Tripo models (140 credits, `ASSETS.md`). The Cedar Pass and canyon-choke boulders, the quarry sled and the pouch's crate reuse earlier models at no cost.

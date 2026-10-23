@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cawp3sr11wo5h"
-path="res://.godot/imported/notice_ORM_2aecf4db-f158-4962-8c69-e7b8cc2b98a9-d9d6ade3afcf.jpg-af3e50aadc48448b4be35b081f5b167b.ctex"
+path.s3tc="res://.godot/imported/notice_ORM_2aecf4db-f158-4962-8c69-e7b8cc2b98a9-d9d6ade3afcf.jpg-af3e50aadc48448b4be35b081f5b167b.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "c793bc7543e5de94f4b259f05faf924c"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/notice_ORM_2aecf4db-f158-4962-8c69-e7b8cc2b98a9-d9d6ade3afcf.jpg"
-dest_files=["res://.godot/imported/notice_ORM_2aecf4db-f158-4962-8c69-e7b8cc2b98a9-d9d6ade3afcf.jpg-af3e50aadc48448b4be35b081f5b167b.ctex"]
+dest_files=["res://.godot/imported/notice_ORM_2aecf4db-f158-4962-8c69-e7b8cc2b98a9-d9d6ade3afcf.jpg-af3e50aadc48448b4be35b081f5b167b.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
