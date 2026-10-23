@@ -105,7 +105,7 @@ public partial class World
         for(int i=0;i<420;i++)
         {
             float x=X(),z=Z(),s=r.RandfRange(.4f,1.3f),turn=r.Randf()*Mathf.Tau,edge=RelayEdge(x,z);
-            if(edge>-1.2f&&edge<.4f&&RoadGap(x,z)>3.6f)Sphere(this,"Relay boulder",new(x,Height(x,z)+s*.3f,z),new(s,s*.65f,s*.8f),stone).Rotation=new(0,turn,0);
+            if(edge>-1.2f&&edge<.4f&&RoadGap(x,z)>3.6f)Boulder("Relay boulder",x,z,s,turn);
         }
         bool Open(float x,float z)=>RelayEdge(x,z)<-.3f&&RoadGap(x,z)>3.4f;
         var grass=new List<(Vector3 P,float H)>();
@@ -132,15 +132,17 @@ public partial class World
         // The road east from the plaza beside the old line is the relay road extension's way in, toward the station: closed for the
         // prologue by a barrier and, behind it, a rockfall slid down from the cutting's end, boulders resting on its talus.
         const float barrier=41;float road=-160;
-        foreach(float z in new[]{road-4,road,road+4})Box(this,"Station road barrier post",new(barrier,Height(barrier,z)+.75f,z),new(.18f,1.5f,.18f),wood,true);
-        foreach(float y in new[]{.6f,1.25f})Box(this,"Station road barrier rail",new(barrier,Height(barrier,road)+y,road),new(.1f,.14f,8.6f),wood,true);
+        // Three Tripo barricades (assets/models/barricade.glb, 3 m long on its Z axis) across the road, each on the lowest ground under it.
+        foreach(float z in new[]{road-3,road,road+3})
+        {
+            float ground=new[]{-1.5f,1.5f}.Min(dz=>Height(barrier,z+dz));
+            var n=Model(this,"Station road barrier","barricade",new(barrier,ground,z),z==road?180:0,new(1.3f,1.3f,1.3f));
+            var body=new StaticBody3D();n.AddChild(body);body.AddChild(new CollisionShape3D{Position=new(0,.65f,0),Shape=new BoxShape3D{Size=new(.4f,1.3f,3)}});
+        }
         Signpost(new(39,-158),"E · STATION\nROCKFALL · ROAD CLOSED",Mathf.Pi/2);
         foreach(var (x,z,size,turn) in new[]{(43.5f,-161.5f,1.3f,.4f),(44.5f,-158.2f,1.1f,1.9f),(46.5f,-160.4f,1.8f,.9f),(47.8f,-157.8f,1.4f,2.6f),(46,-163,1.2f,1.4f),(48.5f,-162,1.5f,.2f),
             (49.5f,-159.8f,2.4f,1.1f),(50.3f,-157.6f,2,2.2f),(50.4f,-162.6f,2.2f,.7f),(51.6f,-160.4f,2.6f,1.7f),(52.6f,-158.4f,1.8f,.3f),(52.8f,-162,2,2.9f),(54,-160.2f,2.2f,1.3f)})
-        {
-            float h=size/2,ground=new[]{-h,h}.SelectMany(dx=>new[]{-h,h},(dx,dz)=>Height(x+dx,z+dz)).Min();
-            Sphere(this,"Rockfall boulder",new(x,ground+size*.35f,z),new(size,size*.75f,size*.9f),stone).Rotation=new(0,turn,0);
-        }
+            Boulder("Rockfall boulder",x,z,size,turn);
         Minka(OldTeahouse.Name,OldTeahouse.At,OldTeahouse.Size,OldTeahouse.Yaw,OldTeahouse.Style);
         TeahouseLadder();
         // The old quarry: cut blocks along its walls, a timber sled and, on a crate at its far end, a remedy pouch.
@@ -155,23 +157,44 @@ public partial class World
         var pouch=new Node3D{Name="Remedy pouch",Position=new(-40,Height(-40,-137),-137)};AddChild(pouch);
         Box(this,"Pouch crate",pouch.Position+new Vector3(0,.3f,0),new(.8f,.6f,.6f),wood,true);
         pouch.AddChild(Combined("Pouch",Mat(new("c9a25a"),.25f),(new(0,.72f,0),new(.34f,.24f,.26f)),(new(0,.88f,0),new(.14f,.1f,.12f))));Pouches.Add(pouch);
+        // The Tripo cabinet on its plinth (assets/models/relay.glb) turned so its door faces the plaza, the dead screen lit behind its
+        // window, and the mast behind it on the plinth.
         var relay=new Node3D {Name="Manual relay",Position=RelayPosition};AddChild(relay);
-        Box(relay,"Relay platform",new(0,.15f,0),new(5,.3f,4),stone,true);
-        Box(relay,"Relay cabinet",new(0,1.3f,0),new(1.5f,2.3f,.8f),Mat(new("607e76")),true);
-        Box(relay,"Relay face",new(0,1.55f,.42f),new(1.2f,.8f,.04f),Mat(Ink));
-        Box(relay,"Offline terminal",new(0,1.55f,.45f),new(.8f,.46f,.025f),Mat(Jade,.8f));
-        Cylinder(relay,"Antenna mast",new(0,4.1f,-.4f),.09f,6,Mat(new("829b91")));
-        for(int i=0;i<3;i++)Box(relay,"Antenna crossbar",new(0,5.5f+i*.55f,-.4f),new(3-i*.6f,.06f,.06f),Mat(new("829b91")));
+        Model(relay,"Relay cabinet","relay",Vector3.Zero,-90,new(1.3f,1.3f,1.3f));
+        var cabinet=new StaticBody3D();relay.AddChild(cabinet);
+        cabinet.AddChild(new CollisionShape3D{Position=new(0,.18f,0),Shape=new BoxShape3D{Size=new(1.87f,.36f,1.89f)}});
+        cabinet.AddChild(new CollisionShape3D{Position=new(0,1.4f,-.02f),Shape=new BoxShape3D{Size=new(1.24f,2.1f,1.1f)}});
+        Box(relay,"Offline terminal",new(0,1.71f,.43f),new(.36f,.32f,.04f),Mat(Jade,.8f));
+        Cylinder(relay,"Antenna mast",new(0,3.73f,-.72f),.09f,6.75f,Mat(new("829b91")));
+        for(int i=0;i<3;i++)Box(relay,"Antenna crossbar",new(0,5.5f+i*.55f,-.72f),new(3-i*.6f,.06f,.06f),Mat(new("829b91")));
         Label(relay,"MANUAL RELAY",new(0,3.15f,0),Jade,30);
         // The broken rail viaduct over the plaza, a reminder of the line the first chapter will reopen: its deck 10 m over the plaza, a
         // pillar wherever the ground lies under it, standing on the lowest ground under its footprint, and its span over the road missing.
         const float Viaduct=-168,deck=13;
         for(int i=0;i<9;i++)
         {
-            float x=-38.5f+i*9,ground=new[]{-1f,1f}.SelectMany(dx=>new[]{-1.25f,1.25f},(dx,dz)=>Height(x+dx,Viaduct+dz)).Min();
-            if(ground<deck-1.5f)Box(this,"Viaduct pillar",new(x,(ground-.5f+deck-.5f)/2,Viaduct),new(2,deck-ground,2.5f),stone);
-            if(i!=4&&i<8)Box(this,"Viaduct span",new(x+4.5f,deck,Viaduct),new(9,1,3.6f),stone);
+            float x=-38.5f+i*9,ground=new[]{-1.6f,1.6f}.SelectMany(dx=>new[]{-1.6f,1.6f},(dx,dz)=>Height(x+dx,Viaduct+dz)).Min();
+            // The Tripo pier (assets/models/viaduct_pier.glb, 11 m, 3.7 m across its footing) slimmed under the deck and shortened to reach
+            // just below the plaza, or sunk into the hillside where the ground stands higher.
+            if(ground<deck-1.5f)
+            {
+                float tall=Mathf.Clamp((deck-.2f-ground)/11,.8f,1)*11;
+                var pier=Model(this,"Viaduct pillar","viaduct_pier",new(x,deck-.5f-tall,Viaduct),0,new(1.3f,1.3f,1.3f));pier.Scale=new(.85f,tall/11,.85f);
+                var body=new StaticBody3D{Position=new(x,deck-.5f-tall/2,Viaduct)};AddChild(body);body.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(2.6f,tall,2.6f)}});
+            }
+            // The Tripo deck span (assets/models/viaduct_span.glb, 11.8 m by 4.6 m, rails on its X axis) fitted to the 9 m bay, its
+            // ballast and parapets 1.4 m deep over the piers.
+            if(i!=4&&i<8)Model(this,"Viaduct span","viaduct_span",new(x+4.5f,deck-.5f,Viaduct),0,new(1.3f,1.3f,1.3f)).Scale=new(9/11.84f,1,3.6f/4.62f);
         }
+    }
+    // The Tripo boulder (assets/models/boulder.glb, 1.58 m across), size metres across. Its flat base rests on the lowest ground under
+    // its footprint, sunk a little, so no air shows under it on a slope.
+    private void Boulder(string name,float x,float z,float size,float turn)
+    {
+        float h=size/2,ground=new[]{-h,h}.SelectMany(dx=>new[]{-h,h},(dx,dz)=>Height(x+dx,z+dz)).Min();
+        var n=Model(this,name,"boulder",new(x,ground-size*.05f,z),Mathf.RadToDeg(turn),new(1.05f,1.05f,1.05f));n.Scale=Vector3.One*size/1.58f;
+        ActorVisual.Descendants(n).OfType<MeshInstance3D>().Single().VisibilityRangeEnd=80;
+        var body=new StaticBody3D{Position=n.Position+Vector3.Up*size*.35f};AddChild(body);body.AddChild(new CollisionShape3D{Shape=new CylinderShape3D{Radius=size*.42f,Height=size*.7f}});
     }
     // The teahouse's ladder, drawn up on its terrace's brow above the junction until Mio lowers it from there: a steep ship's ladder,
     // under 40 degrees so she walks it.
