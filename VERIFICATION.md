@@ -1,5 +1,14 @@
 # MVP verification
 
+## Tripo batch 1: the relay road's props — 2026-10-22
+
+The relay road's last placeholder props are now Tripo models (250 credits, `ASSETS.md`): the boulder, the relay cabinet, the viaduct's pier and deck span, and the station road's barricade.
+
+- **Placement:** the 13 rockfall boulders and the 27 at the cliffs' feet keep their positions and sizes, each resting its flat base on the lowest ground under its footprint, sunk 5% of its size. The relay's door faces the plaza with the Jade "Offline terminal" lit in its window, and the antenna mast stands behind it on the plinth. The nine piers reach from the deck down to 0.3 m under the plaza, or into the hillside, and the seven spans fill their 9 m bays, the bay over the road still missing. Three barricades close the station road at x 41. The piers, boulders, plinth, cabinet and barricades have fitted colliders (the old pillars and boulders had none); the spans, out of reach, still have none.
+- **Self-test:** **521 checks pass**, headless and graphically under Metal, in `en` (`artifacts/tripo-relay/self-test-{headless,metal}-en.log`); the road east from the plaza still stops Mio at its barrier, and the relay check still reaches the relay from the plaza. `just unit` passes 34.
+- **Render cost** (`render_cost.gd`): draws 1231/1307/1310, primitives 2.855M/2.661M/2.697M, CPU 0.88–0.97 ms. Hiding the new models in the village view removes 43 draws and 87k primitives (the viaduct 22 draws, the relay and barricades 7, the boulders 14); boulders are culled beyond 80 m. At the relay plaza (9, −158) the frame is 733 draws and 2.21M primitives.
+- **Metal captures** (`artifacts/tripo-relay/captures/`): the relay from the front, beside its window, obliquely and from behind; the viaduct from the plaza, from either side and from under a span; the barrier from the road and close up; the rockfall from above and close up; and three scattered boulders. No model floats or shows air under it. One scattered boulder lies inside a quarry block, as its sphere did, and stays hidden there.
+
 ## Map redesign, phase 2: the relay road — 2026-10-22
 
 The relay road between the river and the viaduct now runs 164 m (z −14…−178) through a block of mountain cut by trails, and Cedar Pass, the Cedar River with its valley and Komorebi moved 100 m north (the play area is now z −300…80). Everything is placeholder geometry or reused models; no Tripo, Codex or ElevenLabs credits were spent.
