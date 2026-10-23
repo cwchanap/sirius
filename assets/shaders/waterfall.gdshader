@@ -14,6 +14,6 @@ void fragment(){
  float foot=smoothstep(.7,1.0,UV.y),lip=1.0-smoothstep(0.0,.12,UV.y);
  float white=clamp(streak*.85+foot*.7-lip*.4,0.0,1.0);
  ALBEDO=mix(vec3(.16,.27,.27),vec3(.86,.9,.9),white);
- ALPHA=clamp(.5+.45*streak+foot*.3,0.0,1.0)*smoothstep(0.0,.1,UV.x)*smoothstep(1.0,.9,UV.x);
+ ALPHA=clamp(.5+.45*streak+foot*.3,0.0,1.0)*smoothstep(0.0,.1,UV.x)*(1.0-smoothstep(.9,1.0,UV.x));
  ROUGHNESS=.3; SPECULAR=.35;
 }
