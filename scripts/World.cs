@@ -74,7 +74,7 @@ public partial class World : Node3D
         return fx+fz<=1?Height(x0,z0)+fx*(Height(x0+1,z0)-Height(x0,z0))+fz*(Height(x0,z0+1)-Height(x0,z0))
             :Height(x0+1,z0+1)+(1-fx)*(Height(x0,z0+1)-Height(x0+1,z0+1))+(1-fz)*(Height(x0+1,z0)-Height(x0+1,z0+1));
     }
-    public static string RegionAt(Vector3 p) => p.Z < -236 ? "Komorebi" : p.Z < RelayNorth ? "Cedar Pass" : p.Z < RelaySouth ? "Old Relay Road" : "Hoshikawa";
+    public static string RegionAt(Vector3 p) => p.Z < -232 ? "Komorebi" : p.Z < RelayNorth ? "Cedar Pass" : p.Z < RelaySouth ? "Old Relay Road" : "Hoshikawa";
     public static readonly Color Jade = new("72e5cc"), Gold = new("eacb89"), Ink = new("152c33");
     private readonly RandomNumberGenerator rng = new() { Seed = 2189 };
     private Material stone = null!, roof = null!, wood = null!;
@@ -568,9 +568,9 @@ public partial class World : Node3D
         }
         Mesh(this,name,st.Commit(),Vector3.Zero,material);
     }
-    private void Signpost(Vector2 p,string text)
+    private void Signpost(Vector2 p,string text,float yaw=0)
     {
-        var sign=new Node3D {Name="Valley wayfinder",Position=new(p.X,Height(p.X,p.Y),p.Y)};AddChild(sign);
+        var sign=new Node3D {Name="Valley wayfinder",Position=new(p.X,Height(p.X,p.Y),p.Y),Rotation=new(0,yaw,0)};AddChild(sign);
         Box(sign,"Sign post",new(0,1.3f,0),new(.17f,2.6f,.17f),wood);
         Box(sign,"Direction boards",new(0,2.15f,0),new(3.5f,.9f,.18f),wood);
         foreach(float side in new[]{-1f,1f})

@@ -17,6 +17,7 @@ public partial class World
         ("Teahouse terrace",8,0,new Vector3[]{new(6,7.5f,-55),new(22,7.5f,-58)}),
         ("High road",3.5f,2,new Vector3[]{new(28,7.5f,-54),new(27,7.6f,-62),new(28,8.2f,-78),new(28,8.8f,-98),new(22,9.4f,-118),new(16,7.5f,-130),new(8,4.5f,-140),new(5,3,-147),new(2,3,-156)}),
         ("Relay plaza",12,2,new Vector3[]{new(2,3,-156),new(1.5f,3,-174)}),
+        ("Station road",3.5f,2,new Vector3[]{new(12,3,-160.5f),new(30,3.6f,-161),new(46,4.4f,-159.5f)}),
         ("Forest valley",6,1.1f,new Vector3[]{new(3,1.2f,-24),new(-6,1.4f,-34),new(-14,2,-58),new(-4,2.6f,-80),new(16,3,-96),new(2,3.4f,-112),new(-14,3.8f,-122),new(-28,4.2f,-128)}),
         ("Old quarry",9,0,new Vector3[]{new(-28,4.2f,-128),new(-36,4.4f,-134)}),
     };
@@ -126,6 +127,14 @@ public partial class World
             }
         }
         Signpost(new(-4,-21),"E · MANUAL RELAY\nN · OLD QUARRY");
+        // The road east from the plaza beside the old line is the relay road extension's way in, toward the station: closed for the
+        // prologue by a barrier and the rockfall behind it at the end of its cutting.
+        const float barrier=41;float road=-160;
+        foreach(float z in new[]{road-4,road,road+4})Box(this,"Station road barrier post",new(barrier,Height(barrier,z)+.75f,z),new(.18f,1.5f,.18f),wood,true);
+        foreach(float y in new[]{.6f,1.25f})Box(this,"Station road barrier rail",new(barrier,Height(barrier,road)+y,road),new(.1f,.14f,8.6f),wood,true);
+        Signpost(new(39,-158),"E · STATION\nROCKFALL · ROAD CLOSED",Mathf.Pi/2);
+        foreach(var (x,z,size,turn) in new[]{(43.5f,-161.5f,1.3f,.4f),(44.5f,-158.2f,1.1f,1.9f),(46.5f,-160.4f,1.8f,.9f),(47.8f,-157.8f,1.4f,2.6f),(46,-163,1.2f,1.4f),(48.5f,-162,1.5f,.2f)})
+            Sphere(this,"Rockfall boulder",new(x,Height(x,z)+size*.35f,z),new(size,size*.75f,size*.9f),stone).Rotation=new(0,turn,0);
         Minka(OldTeahouse.Name,OldTeahouse.At,OldTeahouse.Size,OldTeahouse.Yaw,OldTeahouse.Style);
         TeahouseLadder();
         // The old quarry: cut blocks along its walls, a timber sled and, on a crate at its far end, a remedy pouch.
