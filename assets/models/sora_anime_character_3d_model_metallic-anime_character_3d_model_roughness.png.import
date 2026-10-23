@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://clqrs5750d418"
-path="res://.godot/imported/sora_anime_character_3d_model_metallic-anime_character_3d_model_roughness.png-4465301d08a55b3fe54b4dfa5c026790.ctex"
+path.s3tc="res://.godot/imported/sora_anime_character_3d_model_metallic-anime_character_3d_model_roughness.png-4465301d08a55b3fe54b4dfa5c026790.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "7318c01ebf34d88e8a0ad744cc1b7e08"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/sora_anime_character_3d_model_metallic-anime_character_3d_model_roughness.png"
-dest_files=["res://.godot/imported/sora_anime_character_3d_model_metallic-anime_character_3d_model_roughness.png-4465301d08a55b3fe54b4dfa5c026790.ctex"]
+dest_files=["res://.godot/imported/sora_anime_character_3d_model_metallic-anime_character_3d_model_roughness.png-4465301d08a55b3fe54b4dfa5c026790.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

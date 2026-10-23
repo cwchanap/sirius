@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bpq26hrpkyp6u"
-path="res://.godot/imported/workshop_NormalGL_612cc5f1-f214-4914-bb77-4427bc440a19-a56bfe4bf3d8.png-e1767b3a644199258f242d4e1d214741.ctex"
+path.s3tc="res://.godot/imported/workshop_NormalGL_612cc5f1-f214-4914-bb77-4427bc440a19-a56bfe4bf3d8.png-e1767b3a644199258f242d4e1d214741.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "7e9115024b90c1e10a01a02d5ce9e23f"
@@ -14,17 +15,17 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/workshop_NormalGL_612cc5f1-f214-4914-bb77-4427bc440a19-a56bfe4bf3d8.png"
-dest_files=["res://.godot/imported/workshop_NormalGL_612cc5f1-f214-4914-bb77-4427bc440a19-a56bfe4bf3d8.png-e1767b3a644199258f242d4e1d214741.ctex"]
+dest_files=["res://.godot/imported/workshop_NormalGL_612cc5f1-f214-4914-bb77-4427bc440a19-a56bfe4bf3d8.png-e1767b3a644199258f242d4e1d214741.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=0
+compress/normal_map=1
 compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1

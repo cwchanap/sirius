@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://nqwkfuh0cat5"
-path="res://.godot/imported/scarecrow_ORM_24f55188-475c-43ae-b00c-3c5073b1cb7d-7ea941ac71a2.jpg-b3fc53c6e266b9b22fcd65ae17265730.ctex"
+path.s3tc="res://.godot/imported/scarecrow_ORM_24f55188-475c-43ae-b00c-3c5073b1cb7d-7ea941ac71a2.jpg-b3fc53c6e266b9b22fcd65ae17265730.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "adc5e83185b8a3a7eb241a1e9797feb5"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/scarecrow_ORM_24f55188-475c-43ae-b00c-3c5073b1cb7d-7ea941ac71a2.jpg"
-dest_files=["res://.godot/imported/scarecrow_ORM_24f55188-475c-43ae-b00c-3c5073b1cb7d-7ea941ac71a2.jpg-b3fc53c6e266b9b22fcd65ae17265730.ctex"]
+dest_files=["res://.godot/imported/scarecrow_ORM_24f55188-475c-43ae-b00c-3c5073b1cb7d-7ea941ac71a2.jpg-b3fc53c6e266b9b22fcd65ae17265730.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

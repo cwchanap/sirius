@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bjkbjpokqwvt1"
-path="res://.godot/imported/teahouse_Color_bc9155e0-77b7-4947-aeb3-2e1f2bcc7451-719d7f77cad4.jpg-84885f6b7cf6d03035df64da590e15fd.ctex"
+path.s3tc="res://.godot/imported/teahouse_Color_bc9155e0-77b7-4947-aeb3-2e1f2bcc7451-719d7f77cad4.jpg-84885f6b7cf6d03035df64da590e15fd.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "0d9f522991917d5152aad32fbb1868b1"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/teahouse_Color_bc9155e0-77b7-4947-aeb3-2e1f2bcc7451-719d7f77cad4.jpg"
-dest_files=["res://.godot/imported/teahouse_Color_bc9155e0-77b7-4947-aeb3-2e1f2bcc7451-719d7f77cad4.jpg-84885f6b7cf6d03035df64da590e15fd.ctex"]
+dest_files=["res://.godot/imported/teahouse_Color_bc9155e0-77b7-4947-aeb3-2e1f2bcc7451-719d7f77cad4.jpg-84885f6b7cf6d03035df64da590e15fd.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://50sq35x7l158"
-path="res://.godot/imported/sora_anime_character_3d_model_normal-78f777470c3d.jpg-eb3ab305425c5b69997ad806d56c13a3.ctex"
+path.s3tc="res://.godot/imported/sora_anime_character_3d_model_normal-78f777470c3d.jpg-eb3ab305425c5b69997ad806d56c13a3.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "5f1cf34cefb00725c1df46c1a39d1cf1"
@@ -14,17 +15,17 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/sora_anime_character_3d_model_normal-78f777470c3d.jpg"
-dest_files=["res://.godot/imported/sora_anime_character_3d_model_normal-78f777470c3d.jpg-eb3ab305425c5b69997ad806d56c13a3.ctex"]
+dest_files=["res://.godot/imported/sora_anime_character_3d_model_normal-78f777470c3d.jpg-eb3ab305425c5b69997ad806d56c13a3.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=0
+compress/normal_map=1
 compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1

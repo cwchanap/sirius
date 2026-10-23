@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cxl5vi1mawwbm"
-path="res://.godot/imported/boat_Color_d91276b6-b79f-44a6-b9ba-24b2b14aa395-7fbe2cbd9d31.jpg-bb83ac9d78484a3e9e8c81b36cec78fa.ctex"
+path.s3tc="res://.godot/imported/boat_Color_d91276b6-b79f-44a6-b9ba-24b2b14aa395-7fbe2cbd9d31.jpg-bb83ac9d78484a3e9e8c81b36cec78fa.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "a3526fd52c3c9205320afdb79cfdb491"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/boat_Color_d91276b6-b79f-44a6-b9ba-24b2b14aa395-7fbe2cbd9d31.jpg"
-dest_files=["res://.godot/imported/boat_Color_d91276b6-b79f-44a6-b9ba-24b2b14aa395-7fbe2cbd9d31.jpg-bb83ac9d78484a3e9e8c81b36cec78fa.ctex"]
+dest_files=["res://.godot/imported/boat_Color_d91276b6-b79f-44a6-b9ba-24b2b14aa395-7fbe2cbd9d31.jpg-bb83ac9d78484a3e9e8c81b36cec78fa.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

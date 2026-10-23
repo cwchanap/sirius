@@ -36,6 +36,7 @@ def arguments(argv):
     parser.add_argument('--output-root', type=Path, default=ROOT, help='Project root; use an artifact directory for a trial import')
     parser.add_argument('--force', action='store_true', help='Replace existing generated outputs, never the input')
     parser.add_argument('--blender', default=os.environ.get('BLENDER_BIN', '/Applications/Blender.app/Contents/MacOS/Blender'), help='Blender executable; also configurable with BLENDER_BIN')
+    parser.add_argument('--godot', default=os.environ.get('GODOT_MONO', '/Applications/Godot_mono.app/Contents/MacOS/Godot'), help='Mono Godot that imports the model and compresses its textures; also configurable with GODOT_MONO')
     args = parser.parse_args(argv)
     args.source = args.source.expanduser().resolve()
     args.output_root = args.output_root.expanduser().resolve()
@@ -294,6 +295,24 @@ def export_model(args):
     return report
 
 
+def compress_model_textures(args):
+    # Godot extracts a GLB's maps uncompressed on its first import and never re-extracts one whose .import exists, so the
+    # model's maps are switched to VRAM compression between two imports.
+    from compress_textures import compress, model_textures
+    godot = shutil.which(args.godot)
+    if not godot or not (args.output_root / 'project.godot').exists():
+        print('Import in Godot, then run tools/compress_textures.py and import again.', flush=True)
+        return 0
+    def run():
+        return subprocess.call([godot, '--headless', '--editor', '--path', str(args.output_root), '--import'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if run():
+        return 1
+    images = [p for p in model_textures(args.output_root) if p.name.startswith(f'{args.name}_') or p.parent.name == f'{args.name}-import']
+    changed = compress(images)
+    print('TEXTURES_COMPRESSED', len(changed), flush=True)
+    return run() if changed else 0
+
+
 def main(argv=None):
     argv = sys.argv[sys.argv.index('--') + 1:] if argv is None and '--' in sys.argv else sys.argv[1:] if argv is None else argv
     args = arguments(argv)
@@ -304,7 +323,7 @@ def main(argv=None):
         if not executable:
             raise SystemExit('Blender not found; use --blender or BLENDER_BIN.')
         return subprocess.call([executable, '--background', '--factory-startup', '--disable-autoexec',
-                                '--python-exit-code', '1', '--python', str(Path(__file__).resolve()), '--', *argv])
+                                '--python-exit-code', '1', '--python', str(Path(__file__).resolve()), '--', *argv]) or compress_model_textures(args)
     export_model(args)
     return 0
 

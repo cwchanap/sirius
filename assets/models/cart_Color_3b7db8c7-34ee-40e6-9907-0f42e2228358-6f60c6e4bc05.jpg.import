@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bixagnynfdx0k"
-path="res://.godot/imported/cart_Color_3b7db8c7-34ee-40e6-9907-0f42e2228358-6f60c6e4bc05.jpg-d8c4420b68ed0f7c8be6b76ef12a9779.ctex"
+path.s3tc="res://.godot/imported/cart_Color_3b7db8c7-34ee-40e6-9907-0f42e2228358-6f60c6e4bc05.jpg-d8c4420b68ed0f7c8be6b76ef12a9779.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "855b22e4a48dae9a030317e7a0e98ba1"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/cart_Color_3b7db8c7-34ee-40e6-9907-0f42e2228358-6f60c6e4bc05.jpg"
-dest_files=["res://.godot/imported/cart_Color_3b7db8c7-34ee-40e6-9907-0f42e2228358-6f60c6e4bc05.jpg-d8c4420b68ed0f7c8be6b76ef12a9779.ctex"]
+dest_files=["res://.godot/imported/cart_Color_3b7db8c7-34ee-40e6-9907-0f42e2228358-6f60c6e4bc05.jpg-d8c4420b68ed0f7c8be6b76ef12a9779.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

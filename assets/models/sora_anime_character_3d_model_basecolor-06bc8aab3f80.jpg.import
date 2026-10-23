@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b7mwodoivnhjg"
-path="res://.godot/imported/sora_anime_character_3d_model_basecolor-06bc8aab3f80.jpg-77fd9233b284d2609f1b9b85923f92ce.ctex"
+path.s3tc="res://.godot/imported/sora_anime_character_3d_model_basecolor-06bc8aab3f80.jpg-77fd9233b284d2609f1b9b85923f92ce.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "1f428589239f4c5cb8fc56bc6ef244a3"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/sora_anime_character_3d_model_basecolor-06bc8aab3f80.jpg"
-dest_files=["res://.godot/imported/sora_anime_character_3d_model_basecolor-06bc8aab3f80.jpg-77fd9233b284d2609f1b9b85923f92ce.ctex"]
+dest_files=["res://.godot/imported/sora_anime_character_3d_model_basecolor-06bc8aab3f80.jpg-77fd9233b284d2609f1b9b85923f92ce.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://di7e57tv7tqk6"
-path="res://.godot/imported/lantern_ORM_c442a5bb-472d-4d3a-adb6-5712dac444f3-eede93ede601.jpg-aaccdc9fb04803acb4b291339d224d86.ctex"
+path.s3tc="res://.godot/imported/lantern_ORM_c442a5bb-472d-4d3a-adb6-5712dac444f3-eede93ede601.jpg-aaccdc9fb04803acb4b291339d224d86.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "b9807827ef2de33ebe2b581188393d5a"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/lantern_ORM_c442a5bb-472d-4d3a-adb6-5712dac444f3-eede93ede601.jpg"
-dest_files=["res://.godot/imported/lantern_ORM_c442a5bb-472d-4d3a-adb6-5712dac444f3-eede93ede601.jpg-aaccdc9fb04803acb4b291339d224d86.ctex"]
+dest_files=["res://.godot/imported/lantern_ORM_c442a5bb-472d-4d3a-adb6-5712dac444f3-eede93ede601.jpg-aaccdc9fb04803acb4b291339d224d86.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

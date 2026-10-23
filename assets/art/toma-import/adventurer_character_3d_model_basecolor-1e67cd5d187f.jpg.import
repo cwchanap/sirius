@@ -3,19 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dnd2gaptwd7vk"
-path="res://.godot/imported/adventurer_character_3d_model_basecolor-1e67cd5d187f.jpg-77ceeeb4d1dbf2344c5d442b1de13ac1.ctex"
+path.s3tc="res://.godot/imported/adventurer_character_3d_model_basecolor-1e67cd5d187f.jpg-77ceeeb4d1dbf2344c5d442b1de13ac1.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/art/toma-import/adventurer_character_3d_model_basecolor-1e67cd5d187f.jpg"
-dest_files=["res://.godot/imported/adventurer_character_3d_model_basecolor-1e67cd5d187f.jpg-77ceeeb4d1dbf2344c5d442b1de13ac1.ctex"]
+dest_files=["res://.godot/imported/adventurer_character_3d_model_basecolor-1e67cd5d187f.jpg-77ceeeb4d1dbf2344c5d442b1de13ac1.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -23,7 +24,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://2tqsf5r8d16a"
-path="res://.godot/imported/clinic_Color_4f0939cf-13f4-42fa-b833-813e9992e031-2bb8b0484b87.jpg-de565a240229da2064a7328f701bbf11.ctex"
+path.s3tc="res://.godot/imported/clinic_Color_4f0939cf-13f4-42fa-b833-813e9992e031-2bb8b0484b87.jpg-de565a240229da2064a7328f701bbf11.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "fa74d16349aa0d472bfd5b388a74f1b0"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/clinic_Color_4f0939cf-13f4-42fa-b833-813e9992e031-2bb8b0484b87.jpg"
-dest_files=["res://.godot/imported/clinic_Color_4f0939cf-13f4-42fa-b833-813e9992e031-2bb8b0484b87.jpg-de565a240229da2064a7328f701bbf11.ctex"]
+dest_files=["res://.godot/imported/clinic_Color_4f0939cf-13f4-42fa-b833-813e9992e031-2bb8b0484b87.jpg-de565a240229da2064a7328f701bbf11.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

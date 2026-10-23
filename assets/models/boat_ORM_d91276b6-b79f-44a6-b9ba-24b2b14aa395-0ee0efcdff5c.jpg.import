@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ppsymf2eyuem"
-path="res://.godot/imported/boat_ORM_d91276b6-b79f-44a6-b9ba-24b2b14aa395-0ee0efcdff5c.jpg-f72221080a76f8f3f85959b56254f406.ctex"
+path.s3tc="res://.godot/imported/boat_ORM_d91276b6-b79f-44a6-b9ba-24b2b14aa395-0ee0efcdff5c.jpg-f72221080a76f8f3f85959b56254f406.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "d6fa6ebee8c4171eab6e64b16f287661"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/boat_ORM_d91276b6-b79f-44a6-b9ba-24b2b14aa395-0ee0efcdff5c.jpg"
-dest_files=["res://.godot/imported/boat_ORM_d91276b6-b79f-44a6-b9ba-24b2b14aa395-0ee0efcdff5c.jpg-f72221080a76f8f3f85959b56254f406.ctex"]
+dest_files=["res://.godot/imported/boat_ORM_d91276b6-b79f-44a6-b9ba-24b2b14aa395-0ee0efcdff5c.jpg-f72221080a76f8f3f85959b56254f406.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

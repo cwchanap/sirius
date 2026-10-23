@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ccpia67l663xh"
-path="res://.godot/imported/farmhouse_Color_efb7e77e-4f15-42bd-873a-ddf1da5babb9-932745244e21.jpg-72af7adde7e4635e3916d4b61d990a80.ctex"
+path.s3tc="res://.godot/imported/farmhouse_Color_efb7e77e-4f15-42bd-873a-ddf1da5babb9-932745244e21.jpg-72af7adde7e4635e3916d4b61d990a80.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "8b6c3c5954b2eb6ebda4a61d6a97e267"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/farmhouse_Color_efb7e77e-4f15-42bd-873a-ddf1da5babb9-932745244e21.jpg"
-dest_files=["res://.godot/imported/farmhouse_Color_efb7e77e-4f15-42bd-873a-ddf1da5babb9-932745244e21.jpg-72af7adde7e4635e3916d4b61d990a80.ctex"]
+dest_files=["res://.godot/imported/farmhouse_Color_efb7e77e-4f15-42bd-873a-ddf1da5babb9-932745244e21.jpg-72af7adde7e4635e3916d4b61d990a80.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bvdkd80ak0rrh"
-path="res://.godot/imported/nao_female_character_3d_model_metallic-female_character_3d_model_roughness.png-14f708d87e2f5115c247743e4ae03dbc.ctex"
+path.s3tc="res://.godot/imported/nao_female_character_3d_model_metallic-female_character_3d_model_roughness.png-14f708d87e2f5115c247743e4ae03dbc.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "dbc2974b8cec5b393c26be7fe5a0131c"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/nao_female_character_3d_model_metallic-female_character_3d_model_roughness.png"
-dest_files=["res://.godot/imported/nao_female_character_3d_model_metallic-female_character_3d_model_roughness.png-14f708d87e2f5115c247743e4ae03dbc.ctex"]
+dest_files=["res://.godot/imported/nao_female_character_3d_model_metallic-female_character_3d_model_roughness.png-14f708d87e2f5115c247743e4ae03dbc.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
