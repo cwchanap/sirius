@@ -94,11 +94,12 @@ public partial class World
             if(edge>3.5f&&edge<16)Tree(new(x,Height(x,z),z),s,"countryside",r);
         }
         // Cedars down the forest valley either side of its path, on its own floor and narrow enough that their boughs keep off its walls.
-        for(int i=0;i<36;i++)
+        var cedars=new List<Vector2>();
+        for(int i=0;i<48;i++)
         {
             int k=r.RandiRange(0,valley.Points.Length-2);var a=valley.Points[k];var b=valley.Points[k+1];float t=r.Randf(),side=r.RandfRange(2.5f,3.6f)*(i%2*2-1),s=r.RandfRange(.8f,1.15f);
             var p=a.Lerp(b,t);var across=new Vector2(a.Z-b.Z,b.X-a.X).Normalized()*side;float x=p.X+across.X,z=p.Z+across.Y,path=Near(valley.Points,x,z).Gap;
-            if(p.Z<-40&&path>2.4f&&RelayEdge(x,z)>=path-valley.Half-.01f)Tree(new(x,Height(x,z),z),s,"sugi",r);
+            if(p.Z<-40&&path>2.4f&&RelayEdge(x,z)>=path-valley.Half-.01f&&cedars.All(c=>c.DistanceTo(new(x,z))>3)){cedars.Add(new(x,z));Tree(new(x,Height(x,z),z),s,"sugi",r);}
         }
         for(int i=0;i<420;i++)
         {
@@ -133,7 +134,8 @@ public partial class World
         foreach(float z in new[]{road-4,road,road+4})Box(this,"Station road barrier post",new(barrier,Height(barrier,z)+.75f,z),new(.18f,1.5f,.18f),wood,true);
         foreach(float y in new[]{.6f,1.25f})Box(this,"Station road barrier rail",new(barrier,Height(barrier,road)+y,road),new(.1f,.14f,8.6f),wood,true);
         Signpost(new(39,-158),"E · STATION\nROCKFALL · ROAD CLOSED",Mathf.Pi/2);
-        foreach(var (x,z,size,turn) in new[]{(43.5f,-161.5f,1.3f,.4f),(44.5f,-158.2f,1.1f,1.9f),(46.5f,-160.4f,1.8f,.9f),(47.8f,-157.8f,1.4f,2.6f),(46,-163,1.2f,1.4f),(48.5f,-162,1.5f,.2f)})
+        foreach(var (x,z,size,turn) in new[]{(43.5f,-161.5f,1.3f,.4f),(44.5f,-158.2f,1.1f,1.9f),(46.5f,-160.4f,1.8f,.9f),(47.8f,-157.8f,1.4f,2.6f),(46,-163,1.2f,1.4f),(48.5f,-162,1.5f,.2f),
+            (49.5f,-159.8f,2.4f,1.1f),(50.3f,-157.6f,2,2.2f),(50.4f,-162.6f,2.2f,.7f),(51.6f,-160.4f,2.6f,1.7f),(52.6f,-158.4f,1.8f,.3f),(52.8f,-162,2,2.9f),(54,-160.2f,2.2f,1.3f)})
             Sphere(this,"Rockfall boulder",new(x,Height(x,z)+size*.35f,z),new(size,size*.75f,size*.9f),stone).Rotation=new(0,turn,0);
         Minka(OldTeahouse.Name,OldTeahouse.At,OldTeahouse.Size,OldTeahouse.Yaw,OldTeahouse.Style);
         TeahouseLadder();
@@ -158,11 +160,11 @@ public partial class World
         for(int i=0;i<3;i++)Box(relay,"Antenna crossbar",new(0,5.5f+i*.55f,-.4f),new(3-i*.6f,.06f,.06f),Mat(new("829b91")));
         Label(relay,"MANUAL RELAY",new(0,3.15f,0),Jade,30);
         // The broken rail viaduct over the plaza, a reminder of the line the first chapter will reopen: its deck 10 m over the plaza, a
-        // pillar wherever the ground lies under it and its span over the road missing.
+        // pillar wherever the ground lies under it, standing on the lowest ground under its footprint, and its span over the road missing.
         const float Viaduct=-168,deck=13;
         for(int i=0;i<9;i++)
         {
-            float x=-38.5f+i*9,ground=Height(x,Viaduct);
+            float x=-38.5f+i*9,ground=new[]{-1f,1f}.SelectMany(dx=>new[]{-1.25f,1.25f},(dx,dz)=>Height(x+dx,Viaduct+dz)).Min();
             if(ground<deck-1.5f)Box(this,"Viaduct pillar",new(x,(ground-.5f+deck-.5f)/2,Viaduct),new(2,deck-ground,2.5f),stone);
             if(i!=4&&i<8)Box(this,"Viaduct span",new(x+4.5f,deck,Viaduct),new(9,1,3.6f),stone);
         }

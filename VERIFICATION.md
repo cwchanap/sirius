@@ -21,7 +21,12 @@ The relay road between the river and the viaduct now runs 164 m (z −14…−17
   - the forest valley sparse, only two cedars left on its floor: its cedars are now placed along its path instead, 36 tries of narrow cedars (sugi only, 0.8–1.15 scale) 2.5–3.6 m either side, so it reads as a forest and their boughs keep off its walls;
   - cosmetic, left: the stone escarpment at x ≈ ±68, now standing on the relay road's high edges, runs ruler-straight for about 80 m; the broken viaduct reads as two gateposts with timber beams rather than a railway (placeholder geometry, for the art tasks).
 - **Komorebi's region** now starts at z −232, where its level ground and its sign begin; gameplay screenshots on Metal showed the sign under the Cedar Pass banner.
-- **Not verified:** the valley's new cedars and the station road have not run on Metal; they were checked headless and in captures under software Vulkan.
+- **Metal, third round (022393e):** the self-test passed with 521 checks (graphically in `en`, headless in `ja` and `zh_TW`). `render_cost.gd`: draws 1201/1264/1289, primitives 2.878M/2.646M/2.727M, CPU 0.77–0.80 ms, 120 fps; about 57 draws and 160k primitives more than the second round, most likely the valley's cedars. The station road's barrier, sign and boulders stand on the ground, the sign draws 封 in Traditional Chinese, the valley reads as a cedar-lined path with no bough in its walls, and at Komorebi's sign the banner reads Komorebi. It found:
+  - the viaduct pillar at x 15.5 standing on the brow of the plaza's east cliff, its plaza side hanging up to 3 m over the slope (its mirror at x −11.5 by 1.3 m): each pillar now stands on the lowest ground under its footprint;
+  - seven pairs of valley cedars 0.7–2.4 m apart, their trunks doubled: a cedar now keeps 3 m from the others, over 48 tries (26 stand, none closer than 2.4 m);
+  - the rockfall, six boulders at the foot of the cut's end wall, reading as a cul-de-sac: seven larger boulders now heap up the end wall behind them;
+  - cosmetic, left: the boulders are the stone atlas on spheres, like every boulder in the valley, until the rock outcrops art task.
+- **Not verified:** the third round's fixes have not run on Metal; they were checked headless and in captures under software Vulkan.
 
 ## Map redesign, phase 1: the valley's natural edges — 2026-10-22
 
