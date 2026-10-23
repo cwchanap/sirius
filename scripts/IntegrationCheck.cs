@@ -402,6 +402,9 @@ public static class IntegrationCheck
         await WalkTo(new(-12,-187),false);
         await WalkTo(new(Hoshikawa.World.RoadX(-180),-180));await WalkTo(new(1.5f,-170));
         Check(g.Player.IsOnFloor()&&g.Region=="Old Relay Road","return route reconnects to the relay plaza");
+        // East from the plaza runs the relay road extension's way in, toward the station, closed in the prologue at its barrier.
+        await WalkTo(new(12,-160.5f));await WalkTo(new(30,-161));
+        Check(!await Head(new(56,-160),true,240)&&g.Player.IsOnFloor()&&g.Player.GlobalPosition.X is >36 and <41,$"the road east from the plaza toward the station stops at its barrier {g.Player.GlobalPosition}");
         // The teahouse ladder is the relay road's shortcut: drawn up, it leaves the terrace out of reach from the junction under its cliff;
         // lowered from the terrace, it is walked both ways and stays down when Mio recovers at the village.
         var ladder=g.World.Shortcuts.Single();bool Turned(float angle)=>ladder.Part.Quaternion.AngleTo(new Quaternion(Vector3.Right,angle))<.01f;var lever=new Vector2(ladder.From.X,ladder.From.Z);var top=new Vector2(ladder.Part.Position.X,ladder.Part.Position.Z-2);var below=top+new Vector2(0,12);

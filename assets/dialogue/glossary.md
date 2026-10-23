@@ -36,6 +36,7 @@ Chinese is Taiwan usage (臺灣用語): 軟體, 網路, 資訊, 號誌, 影片, 
 | The viaduct | 高架 | 高架橋 |
 | Old Teahouse (ruined, on the relay road) | 旧茶屋 | 舊茶屋 |
 | Old Quarry | 旧採石場 | 舊採石場 |
+| The station (end of the relay road extension, east of the relay plaza) | 駅 | 車站 |
 | Shikoku Highlands | 四国高地 | 四國高地 |
 | engawa (veranda) | 縁側 | 緣廊 |
 
