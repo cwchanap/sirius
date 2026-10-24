@@ -153,6 +153,13 @@ Bring the non-character environment up to the Tripo characters' detail: semi-rea
 - [x] Tripo batch 2, Cedar Pass and the roadside (140 credits, Codex references free): the Cedar Pass shelter and the valley overlook (detailed textures, 2048² maps), the signpost on all five wayfinders and as the overlook's plaque, and the teahouse ladder's mesh (standard textures, 1024² maps), 4,392–7,998 triangles each. The shelter and overlook keep Mio's walk-on surfaces 3 cm proud with fitted box colliders; the ladder keeps its walk box, hinge and swing. Free reuse in the same areas: the batch 1 boulder for the Cedar Pass and canyon-choke boulders, the handcart as the quarry sled, and the remedy pouch on a barrel. 521 checks pass headless in all three languages and in native Metal.
 - [ ] Further Tripo batches (3 and 4 in the plan doc): every remaining built-in prop except the characters and robots, as the owner asked, each waiting for a credit top-up and the owner's go-ahead.
 
+## Combat: robots are shut down from behind
+
+- [x] Mio's sword only scratches a robot from the front (3 health, 5 posture, no stagger); attacking within 60° of its back shuts it down outright. After a swing a robot neither moves nor turns while it recovers, the opening to get round it.
+- [x] Robot strikes are heavy: 45 vitality, 70 for the perilous sweep, scouts 60%.
+- [x] Resonance Cut no longer damages: it stuns robots in reach for 4 s and has 3 charges (`Player.MaxSkillCharges`) instead of a cooldown, refilled only by resting with Aki or Emi or recovering at the village. The HUD shows the charges, and the robot panel says when Mio is behind one or it is stunned.
+- [x] Deflect, posture break and the frontal finisher are unchanged.
+
 ## Map redesign (地圖重新設計)
 
 Plan: the design doc in the project's Claude Docs (GoW / Dark Souls-style layout, one PR per phase, art and sound as separate tasks).

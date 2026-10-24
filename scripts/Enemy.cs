@@ -3,6 +3,9 @@ namespace Hoshikawa;
 
 public partial class Enemy : CharacterBody3D
 {
+    // Robot combat tuning, all in one place. Mio's sword only scratches the plating, a robot's strike nearly fells her,
+    // and from behind (within BehindDot of its back) her attack shuts it down outright. Resonance Cut only stuns.
+    public const float SwordDamage=3,SwordPosture=5,StrikeDamage=45,PerilousDamage=70,ScoutStrike=.6f,ResonanceStun=4,BehindDot=-.5f;
     public Game Game=null!;
     public Vector3 Home;
     public int Index;
@@ -12,12 +15,14 @@ public partial class Enemy : CharacterBody3D
     public float Health=100, Posture;
     public bool Dead=>Health<=0;
     public bool Broken=>broken>0&&!Dead;
+    public bool Stunned=>stunned>0&&!Dead;
+    public Vector3 Forward=>new(Mathf.Sin(Model.Rotation.Y),0,Mathf.Cos(Model.Rotation.Y));
     public bool Perilous {get;private set;}
     public string State {get;private set;}="PATROL";
     public ActorVisual Visual=null!;
     public Node3D Model=null!;
     private Label3D marker=null!;
-    private float clock,attackTimer,recovery,broken,stagger;
+    private float clock,attackTimer,recovery,broken,stagger,stunned;
     private bool attacking,struck;
     private int swings;
     private Vector3 attackDirection;
@@ -40,6 +45,11 @@ public partial class Enemy : CharacterBody3D
             broken-=dt;State="BROKEN";marker.Text="◆  FINISH";marker.Modulate=World.Gold;
             if(broken<=0){Posture=40;recovery=1;marker.Text="";}
         }
+        else if(stunned>0)
+        {
+            stunned-=dt;State="STUNNED";marker.Text="◇  STUNNED";marker.Modulate=World.Jade;
+            if(stunned<=0){recovery=.6f;marker.Text="";}
+        }
         else if(attacking)
         {
             attackTimer-=dt;State=attackTimer>.22f?(Perilous?"PERILOUS":"WINDUP"):"STRIKE";
@@ -60,10 +70,14 @@ public partial class Enemy : CharacterBody3D
                 &&Game.ClearSight(GlobalPosition+Vector3.Up,Game.Player.GlobalPosition+Vector3.Up))
         {
             State="PURSUE";
-            if(distance>2.2f){movement=to.Normalized()*2.8f;Visual.Play("run",.8f);}
-            else if(recovery<=0)BeginAttack(to.Normalized());
-            else Visual.Play("guard");
-            Model.Rotation=new(0,Mathf.LerpAngle(Model.Rotation.Y,Mathf.Atan2(to.X,to.Z),dt*5),0);
+            // While it recovers from a swing, a deflect or a stun it neither moves nor turns: the opening to get round to its back.
+            if(recovery>0)Visual.Play("guard");
+            else
+            {
+                if(distance>2.2f){movement=to.Normalized()*2.8f;Visual.Play("run",.8f);}
+                else BeginAttack(to.Normalized());
+                Model.Rotation=new(0,Mathf.LerpAngle(Model.Rotation.Y,Mathf.Atan2(to.X,to.Z),dt*5),0);
+            }
         }
         else
         {
@@ -80,6 +94,15 @@ public partial class Enemy : CharacterBody3D
         swings++;Perilous=swings%3==0;attackTimer=Perilous?1.15f:.95f;attacking=true;struck=false;attackDirection=direction;
         Visual.Play("guard",.7f,true);Game.Sound("warning");
     }
+    public float Strike(bool perilous)=>(perilous?PerilousDamage:StrikeDamage)*(Scout?ScoutStrike:1);
+    public static bool Behind(Vector3 forward,Vector3 robot,Vector3 mio)
+    {var d=mio-robot;d.Y=0;return d.LengthSquared()>.0001f&&forward.Dot(d.Normalized())<=BehindDot;}
+    public bool ExposedTo(Vector3 mio)=>!Dead&&Behind(Forward,GlobalPosition,mio);
+    public void Stun(float seconds)
+    {
+        if(Dead||Broken)return;
+        stunned=seconds;attacking=false;stagger=0;Visual.Play("stagger",.4f,true);
+    }
     public void TakeHit(float damage,float posture)
     {
         if(Dead)return;
@@ -92,10 +115,10 @@ public partial class Enemy : CharacterBody3D
         if(Health<=0){Execute();return;}
         if(Posture>=100)
         {
-            broken=4.5f;attacking=false;stagger=0;Visual.Play("stagger",.65f,true);Game.Sound("break");
+            broken=4.5f;attacking=false;stagger=stunned=0;Visual.Play("stagger",.65f,true);Game.Sound("break");
             Game.Feedback("POSTURE BREAK  ·  ATTACK TO FINISH",World.Gold);
         }
-        else if(!attacking||damage==0)
+        else if(damage==0)
         {stagger=.22f;attacking=false;recovery=.6f;Visual.Play("stagger",1.6f,true);}
     }
     public void Execute()
@@ -107,7 +130,7 @@ public partial class Enemy : CharacterBody3D
     }
     public void Reset()
     {
-        GlobalPosition=Home+Vector3.Up*.15f;Velocity=Vector3.Zero;Health=MaxHealth;Posture=0;broken=attackTimer=recovery=stagger=0;
+        GlobalPosition=Home+Vector3.Up*.15f;Velocity=Vector3.Zero;Health=MaxHealth;Posture=0;broken=attackTimer=recovery=stagger=stunned=0;
         attacking=struck=false;swings=0;CollisionLayer=4;CollisionMask=1|2|4;State="PATROL";marker.Text="";Visual.Play("idle",1,true);
     }
 }

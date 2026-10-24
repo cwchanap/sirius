@@ -20,7 +20,7 @@ just run
 |---|---|
 | Move / camera | WASD / mouse |
 | Run / jump | Shift / Space |
-| Sword combo / finish broken enemy | Left mouse or J |
+| Sword combo / shut down a robot from behind / finish a broken one | Left mouse or J |
 | Guard / timed deflect | Hold / tap right mouse or K |
 | Dodge | Ctrl or Alt |
 | Lock target | Tab |
@@ -34,7 +34,7 @@ just run
 | Save screenshot | F8 (`artifacts/gameplay.png`) |
 | Language | The English / 日本語 / 繁體中文 buttons on the title screen and pause menu |
 
-Tap guard within **190 ms** of a frontal normal strike to deflect it. Deflection damages enemy posture. Holding guard builds your own posture; reaching its limit staggers you. A **red diamond** warns of an unblockable low sweep: dodge or jump. Fill an enemy's posture bar, then attack nearby during its **4.5-second** opening to finish it. Resonance Cut hits nearby robots for health and posture damage, with a **12-second** cooldown. Three remedies restore 45 health each; Aki replenishes health and remedies.
+Robots shrug off the sword: from the front each hit only scratches their plating (3 health). Get behind one, within 60° of its back, and attack to **shut it down** outright. After each swing a robot holds still and cannot turn for about a second, which is the way round it. Their strikes are heavy: **45** vitality, **70** for the red-diamond sweep (scouts 60% of that), so dodge rather than trade blows. Tap guard within **190 ms** of a frontal normal strike to deflect it. Deflection damages enemy posture. Holding guard builds your own posture; reaching its limit staggers you. A **red diamond** warns of an unblockable low sweep: dodge or jump. Fill an enemy's posture bar, then attack nearby during its **4.5-second** opening to finish it. Resonance Cut does no damage: it locks nearby robots in place for **4 seconds**, long enough to get behind them. It holds **3 charges**, refilled only by resting: talking to Aki or Emi, or recovering at the village. Three remedies restore 45 health each; Aki and Emi replenish health, remedies and charges. The robots' numbers are the constants at the top of `scripts/Enemy.cs`; the charges are `Player.MaxSkillCharges`.
 
 ## Languages
 
@@ -68,7 +68,7 @@ dotnet build Hoshikawa.csproj
 /Applications/Godot_mono.app/Contents/MacOS/Godot --headless --path . --fixed-fps 60 -- --self-test
 ```
 
-Success prints `SELF_TEST_PASS` and exits 0. Append `--lang=ja` or `--lang=zh_TW` to run the same flow with that language on screen, which also fails on any string drawn without a translation; `just self-test` runs all three. Current evidence and environment limitations are recorded in `VERIFICATION.md`. Checks cover imported animations, both villages and all ten residents, walking, running, jumping, evasion, both bridge crossings, the entire northern route in both directions, shelter and overlook access, both medics, dialogue, deflection, guard, perilous attacks, damage timing, skill cooldown, finishers, enemy patrol/aggro, pause, the full mission, and restart.
+Success prints `SELF_TEST_PASS` and exits 0. Append `--lang=ja` or `--lang=zh_TW` to run the same flow with that language on screen, which also fails on any string drawn without a translation; `just self-test` runs all three. Current evidence and environment limitations are recorded in `VERIFICATION.md`. Checks cover imported animations, both villages and all ten residents, walking, running, jumping, evasion, both bridge crossings, the entire northern route in both directions, shelter and overlook access, both medics, dialogue, deflection, guard, perilous attacks, damage timing, Resonance Cut's charges and stun, shutting robots down from behind, finishers, enemy patrol/aggro, pause, the full mission, and restart.
 
 Two more suites run on plain `dotnet test`, and CI runs all three on every pull request (`.github/workflows/`; the unit tests also run on every push):
 

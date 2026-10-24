@@ -4,8 +4,10 @@ namespace Hoshikawa;
 public partial class Player : CharacterBody3D
 {
     public Game Game = null!;
-    public float Health = 100, Posture, SkillCooldown, Invulnerable, Stun;
-    public int Remedies = 3, MaxRemedies = 3;
+    // Resonance Cut charges, spent one per cast and refilled only by resting (Aki, Emi, or recovering at the village).
+    public const int MaxSkillCharges = 3;
+    public float Health = 100, Posture, Invulnerable, Stun;
+    public int Remedies = 3, MaxRemedies = 3, SkillCharges = MaxSkillCharges;
     public bool Guarding { get; private set; }
     public bool Dodging => dodge > 0;
     public float DeflectWindow { get; private set; }
@@ -29,7 +31,7 @@ public partial class Player : CharacterBody3D
     {
         if(Game.Mode!=GameMode.Playing)return;
         float dt=(float)delta;
-        SkillCooldown=Math.Max(0,SkillCooldown-dt);Invulnerable=Math.Max(0,Invulnerable-dt);
+        Invulnerable=Math.Max(0,Invulnerable-dt);
         Stun=Math.Max(0,Stun-dt);DeflectWindow=Math.Max(0,DeflectWindow-dt);
         dodgeCooldown=Math.Max(0,dodgeCooldown-dt);comboGrace=Math.Max(0,comboGrace-dt);
         healTimer=Math.Max(0,healTimer-dt);
@@ -57,7 +59,7 @@ public partial class Player : CharacterBody3D
             {
                 struck=true;Game.Slash(GlobalPosition+Vector3.Up, Facing, false);
                 foreach(var enemy in Game.Enemies.Where(e=>!e.Dead))
-                    if(CanReach(enemy.GlobalPosition,2.9f,.15f)) enemy.TakeHit(combo==2?34:23,combo==2?40:27);
+                    if(CanReach(enemy.GlobalPosition,2.9f,.15f)) enemy.TakeHit(Enemy.SwordDamage,Enemy.SwordPosture);
             }
             if(attack<=0&&comboQueued){comboQueued=false;Attack();}
         }
@@ -68,8 +70,8 @@ public partial class Player : CharacterBody3D
             {
                 Game.Burst(GlobalPosition+Vector3.Up*.8f,World.Jade,5.2f);Game.Sound("skill");
                 foreach(var enemy in Game.Enemies.Where(e=>!e.Dead))
-                    if(CanReach(enemy.GlobalPosition,5.5f,-1))enemy.TakeHit(35,65);
-                Game.Toast("RESONANCE CUT", "Zero: their actuator frequency is exposed.",2.5f);
+                    if(CanReach(enemy.GlobalPosition,5.5f,-1))enemy.Stun(Enemy.ResonanceStun);
+                Game.Toast("RESONANCE CUT", "Zero: their actuators are locked. Get behind them.",2.5f);
             }
         }
         float speed=Guarding?1.7f:Input.IsActionPressed("run")?7.8f:2f;
@@ -120,7 +122,7 @@ public partial class Player : CharacterBody3D
     public void Attack()
     {
         if(Stun>0||dodge>0||skillCast>0||Health<=0)return;
-        var victim=Game.Enemies.FirstOrDefault(e=>!e.Dead&&e.Broken&&CanReach(e.GlobalPosition,3,-.2f));
+        var victim=Game.Enemies.FirstOrDefault(CanShutDown);
         if(victim!=null)
         {
             victim.Execute();Invulnerable=.8f;attack=.75f;attackElapsed=0;struck=true;comboQueued=false;
@@ -129,6 +131,8 @@ public partial class Player : CharacterBody3D
         combo=comboGrace>0?(combo+1)%3:0;comboGrace=1.3f;attack=.48f+combo*.08f;attackElapsed=0;struck=false;
         Guarding=false;Visual.Play("attack"+(combo+1),1.2f,true);Game.Sound("swing");
     }
+    // From behind, or once its posture breaks, a robot within reach is shut down by the next attack.
+    public bool CanShutDown(Enemy e)=>(e.Broken||e.ExposedTo(GlobalPosition))&&CanReach(e.GlobalPosition,3,-.2f);
     public void Dodge(Vector3 direction)
     {
         if(dodgeCooldown>0||Stun>0||Health<=0)return;
@@ -138,8 +142,9 @@ public partial class Player : CharacterBody3D
     }
     public bool Skill()
     {
-        if(SkillCooldown>0||attack>0||dodge>0||skillCast>0||Stun>0||healTimer>0||Health<=0)return false;
-        SkillCooldown=12;skillCast=.95f;Invulnerable=.55f;Guarding=false;Visual.Play("skill",1.2f,true);return true;
+        if(attack>0||dodge>0||skillCast>0||Stun>0||healTimer>0||Health<=0)return false;
+        if(SkillCharges<=0){Game.Feedback("ZERO LINK SPENT  ·  REST TO RECHARGE",World.Jade);return false;}
+        SkillCharges--;skillCast=.95f;Invulnerable=.55f;Guarding=false;Visual.Play("skill",1.2f,true);return true;
     }
     public string ReceiveHit(Enemy enemy,bool perilous)
     {
@@ -158,7 +163,7 @@ public partial class Player : CharacterBody3D
             if(Posture>=100){Posture=100;Stun=1.2f;Guarding=false;Visual.Play("stagger",1,true);Game.Feedback("POSTURE BROKEN",new("f18470"));}
             return "guarded";
         }
-        Health=Math.Max(0,Health-(perilous?32:22)*(enemy.Scout?.6f:1));Invulnerable=.65f;Stun=.32f;
+        Health=Math.Max(0,Health-enemy.Strike(perilous));Invulnerable=.65f;Stun=.32f;
         attack=skillCast=0;comboQueued=false;Game.CameraShake=.2f;Visual.Play("stagger",1.3f,true);
         Game.Burst(GlobalPosition+Vector3.Up,new("ee8b76"),.8f);Game.Sound("hurt");
         if(Health<=0){Visual.Play("death",1,true);Game.Die();}
@@ -170,10 +175,11 @@ public partial class Player : CharacterBody3D
         Remedies--;Health=Math.Min(100,Health+45);healTimer=.65f;
         Game.Burst(GlobalPosition+Vector3.Up*.6f,World.Jade,1.2f);Game.Sound("heal");Game.Feedback("+45 VITALITY",World.Jade);
     }
+    public void Rest(){Health=100;Posture=0;Remedies=MaxRemedies;SkillCharges=MaxSkillCharges;}
     public void Respawn()
     {
-        GlobalPosition=new(0,World.Height(0,31)+.1f,31);Velocity=Vector3.Zero;Health=100;Posture=0;Remedies=MaxRemedies;
-        Stun=attack=dodge=skillCast=Invulnerable=SkillCooldown=DeflectWindow=healTimer=landing=0;comboQueued=false;Guarding=false;
+        GlobalPosition=new(0,World.Height(0,31)+.1f,31);Velocity=Vector3.Zero;Rest();
+        Stun=attack=dodge=skillCast=Invulnerable=DeflectWindow=healTimer=landing=0;comboQueued=false;Guarding=false;
         Model.Rotation=new(0,Mathf.Pi,0);Visual.Play("idle",1,true);
     }
 }
