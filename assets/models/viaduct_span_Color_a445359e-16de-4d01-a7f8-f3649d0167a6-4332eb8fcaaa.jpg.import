@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dl0hhelw5hy8r"
-path="res://.godot/imported/viaduct_span_Color_a445359e-16de-4d01-a7f8-f3649d0167a6-4332eb8fcaaa.jpg-a4cca29b8914e354940f34b1ebb995a5.ctex"
+path.s3tc="res://.godot/imported/viaduct_span_Color_a445359e-16de-4d01-a7f8-f3649d0167a6-4332eb8fcaaa.jpg-a4cca29b8914e354940f34b1ebb995a5.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "7090d0c20d018a8f9c18e96afd0579c3"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/viaduct_span_Color_a445359e-16de-4d01-a7f8-f3649d0167a6-4332eb8fcaaa.jpg"
-dest_files=["res://.godot/imported/viaduct_span_Color_a445359e-16de-4d01-a7f8-f3649d0167a6-4332eb8fcaaa.jpg-a4cca29b8914e354940f34b1ebb995a5.ctex"]
+dest_files=["res://.godot/imported/viaduct_span_Color_a445359e-16de-4d01-a7f8-f3649d0167a6-4332eb8fcaaa.jpg-a4cca29b8914e354940f34b1ebb995a5.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

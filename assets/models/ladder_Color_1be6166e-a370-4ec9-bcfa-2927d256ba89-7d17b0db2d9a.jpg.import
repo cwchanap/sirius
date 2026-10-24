@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ce4074xq2wrd2"
-path="res://.godot/imported/ladder_Color_1be6166e-a370-4ec9-bcfa-2927d256ba89-7d17b0db2d9a.jpg-7c06b94c09911b0d3ff618e2e16c53a1.ctex"
+path.s3tc="res://.godot/imported/ladder_Color_1be6166e-a370-4ec9-bcfa-2927d256ba89-7d17b0db2d9a.jpg-7c06b94c09911b0d3ff618e2e16c53a1.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "1f858331dde46db31a106ecfc63bc2a6"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/ladder_Color_1be6166e-a370-4ec9-bcfa-2927d256ba89-7d17b0db2d9a.jpg"
-dest_files=["res://.godot/imported/ladder_Color_1be6166e-a370-4ec9-bcfa-2927d256ba89-7d17b0db2d9a.jpg-7c06b94c09911b0d3ff618e2e16c53a1.ctex"]
+dest_files=["res://.godot/imported/ladder_Color_1be6166e-a370-4ec9-bcfa-2927d256ba89-7d17b0db2d9a.jpg-7c06b94c09911b0d3ff618e2e16c53a1.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

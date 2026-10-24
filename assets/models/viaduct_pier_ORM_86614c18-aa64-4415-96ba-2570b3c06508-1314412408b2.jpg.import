@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://yk18p6i6d7xe"
-path="res://.godot/imported/viaduct_pier_ORM_86614c18-aa64-4415-96ba-2570b3c06508-1314412408b2.jpg-3e94a6ac42cac0fc2e9962617aae6b5f.ctex"
+path.s3tc="res://.godot/imported/viaduct_pier_ORM_86614c18-aa64-4415-96ba-2570b3c06508-1314412408b2.jpg-3e94a6ac42cac0fc2e9962617aae6b5f.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "0b90f6aaf3cb54024c374ea1ae36c996"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/viaduct_pier_ORM_86614c18-aa64-4415-96ba-2570b3c06508-1314412408b2.jpg"
-dest_files=["res://.godot/imported/viaduct_pier_ORM_86614c18-aa64-4415-96ba-2570b3c06508-1314412408b2.jpg-3e94a6ac42cac0fc2e9962617aae6b5f.ctex"]
+dest_files=["res://.godot/imported/viaduct_pier_ORM_86614c18-aa64-4415-96ba-2570b3c06508-1314412408b2.jpg-3e94a6ac42cac0fc2e9962617aae6b5f.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

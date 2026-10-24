@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://wm6lj351cqbw"
-path="res://.godot/imported/barricade_NormalGL_07beb2fc-60d9-4440-8150-bd702bfe7999-4aeab7941c2c.png-a47f44e9dd99c5cd5385a718fca55ce4.ctex"
+path.s3tc="res://.godot/imported/barricade_NormalGL_07beb2fc-60d9-4440-8150-bd702bfe7999-4aeab7941c2c.png-a47f44e9dd99c5cd5385a718fca55ce4.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "403d1a616ac2642f64e3e7ba6d68d75f"
@@ -14,17 +15,17 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/barricade_NormalGL_07beb2fc-60d9-4440-8150-bd702bfe7999-4aeab7941c2c.png"
-dest_files=["res://.godot/imported/barricade_NormalGL_07beb2fc-60d9-4440-8150-bd702bfe7999-4aeab7941c2c.png-a47f44e9dd99c5cd5385a718fca55ce4.ctex"]
+dest_files=["res://.godot/imported/barricade_NormalGL_07beb2fc-60d9-4440-8150-bd702bfe7999-4aeab7941c2c.png-a47f44e9dd99c5cd5385a718fca55ce4.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=0
+compress/normal_map=1
 compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1

@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://coqwpkul22u13"
-path="res://.godot/imported/relay_Color_55dd764e-acbb-484e-9758-d01d1c59e6e3-333e5b648701.jpg-b076e2f8a0cc12727ad18a0c5f84de59.ctex"
+path.s3tc="res://.godot/imported/relay_Color_55dd764e-acbb-484e-9758-d01d1c59e6e3-333e5b648701.jpg-b076e2f8a0cc12727ad18a0c5f84de59.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "1de5edbc4a81a52320e4b32935271412"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/relay_Color_55dd764e-acbb-484e-9758-d01d1c59e6e3-333e5b648701.jpg"
-dest_files=["res://.godot/imported/relay_Color_55dd764e-acbb-484e-9758-d01d1c59e6e3-333e5b648701.jpg-b076e2f8a0cc12727ad18a0c5f84de59.ctex"]
+dest_files=["res://.godot/imported/relay_Color_55dd764e-acbb-484e-9758-d01d1c59e6e3-333e5b648701.jpg-b076e2f8a0cc12727ad18a0c5f84de59.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

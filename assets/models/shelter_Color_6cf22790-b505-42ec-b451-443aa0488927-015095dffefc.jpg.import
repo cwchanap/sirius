@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://e5svok0jwal5"
-path="res://.godot/imported/shelter_Color_6cf22790-b505-42ec-b451-443aa0488927-015095dffefc.jpg-907f0e0b4599d7fcd11aa2d2a62b803b.ctex"
+path.s3tc="res://.godot/imported/shelter_Color_6cf22790-b505-42ec-b451-443aa0488927-015095dffefc.jpg-907f0e0b4599d7fcd11aa2d2a62b803b.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "80892dc690be7d402af9a04c8d93a4fc"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/shelter_Color_6cf22790-b505-42ec-b451-443aa0488927-015095dffefc.jpg"
-dest_files=["res://.godot/imported/shelter_Color_6cf22790-b505-42ec-b451-443aa0488927-015095dffefc.jpg-907f0e0b4599d7fcd11aa2d2a62b803b.ctex"]
+dest_files=["res://.godot/imported/shelter_Color_6cf22790-b505-42ec-b451-443aa0488927-015095dffefc.jpg-907f0e0b4599d7fcd11aa2d2a62b803b.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
