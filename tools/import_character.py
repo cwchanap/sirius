@@ -299,10 +299,13 @@ def compress_model_textures(args):
     # Godot extracts a GLB's maps uncompressed on its first import and never re-extracts one whose .import exists, so the
     # model's maps are switched to VRAM compression between two imports.
     from compress_textures import compress, model_textures
-    godot = shutil.which(args.godot)
-    if not godot or not (args.output_root / 'project.godot').exists():
+    if not (args.output_root / 'project.godot').exists():
         print('Import in Godot, then run tools/compress_textures.py and import again.', flush=True)
         return 0
+    godot = shutil.which(args.godot)
+    if not godot:
+        print(f'Godot not found at {args.godot}; set --godot or GODOT_MONO, import in Godot, then run tools/compress_textures.py and import again.', file=sys.stderr, flush=True)
+        return 1
     def run():
         return subprocess.call([godot, '--headless', '--editor', '--path', str(args.output_root), '--import'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if run():
