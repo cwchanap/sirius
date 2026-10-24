@@ -10,7 +10,7 @@ import tempfile
 from mathutils import Matrix, Quaternion, Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from import_character import arguments, digest, export_model
+from import_character import arguments, compress_model_textures, digest, export_model
 
 
 def check_glb(path, height, clips, triangles):
@@ -152,13 +152,20 @@ def run():
                     raise AssertionError('invalid arguments were accepted')
                 except SystemExit as error:
                     assert error.code == 2
+        missing = arguments(bad + ['--godot', str(tmp / 'no-godot')])
+        with contextlib.redirect_stdout(io.StringIO()):
+            assert compress_model_textures(missing) == 0
+        (tmp / 'out' / 'project.godot').write_text('')
+        with contextlib.redirect_stderr(io.StringIO()) as error:
+            assert compress_model_textures(missing) == 1
+        assert 'Godot not found' in error.getvalue()
         bpy.ops.wm.read_factory_settings(use_empty=True)
         bpy.ops.mesh.primitive_cube_add(location=(2, 3, 4))
         bpy.ops.wm.save_as_mainfile(filepath=str(tmp / 'static.blend'))
         result = export_model(arguments([str(tmp / 'static.blend'), '--name', 'static', '--height', '2', '--output-root', str(tmp / 'out')]))
         check_glb(Path(result['outputs']['model']), 2, set(), 12)
         assert result['bones'] == 0 and not result['textures']
-        print('CHARACTER_IMPORT_CHECK_PASS: four formats, multi-mesh animated rig, static mesh and invalid-input guards')
+        print('CHARACTER_IMPORT_CHECK_PASS: four formats, multi-mesh animated rig, static mesh, invalid-input guards and a missing Godot')
 
 
 if __name__ == '__main__':
