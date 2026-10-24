@@ -3,36 +3,34 @@
 Blender --background --factory-startup --python tools/import_tripo_mio.py
 The sources stay untouched. The low-poly body keeps Tripo's 65-bone Mixamo rig and the
 clips the user made in Tripo Studio. Each clip is cut to its motion, retimed to the length
-Player.cs was tuned against and kept over the hips; translation belongs to Godot.
+Player.cs was tuned against and kept over the hips; translation belongs to Godot. The three
+attacks and Resonance Cut are keyed by tools/mio_combat.py on the same rig instead.
 """
 import bpy
 import bmesh
 import json
 import math
 import numpy as np
+import sys
 from pathlib import Path
 from mathutils import Matrix, Quaternion, Vector
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'tools'))
+import mio_combat  # noqa: E402
 OUT = ROOT / 'artifacts/mio-tripo-animation'
 SOURCE = 'assets/source/tripo-bridge-20261016-mio-anim.blend'
 FIXED = 'assets/source/mio-lowpoly-fixed-face2.blend'
 # Game clip: Tripo action (after 'Armature|', names are cut at 63 characters), source frames,
 # game frames. Game lengths are the previous clips', except the dodge, which fills Player.cs's
-# 0.6 s roll. Windows put the fastest swing near the hit Player.cs times (frames 6/7/8 of
-# attack1/2/3, 17 of skill); attack2's short backhand spans frames 2-11 around its hit.
-# Jump frames 2/6/9 are takeoff/apex/descent, 10-13 landing.
+# 0.6 s roll. Jump frames 2/6/9 are takeoff/apex/descent, 10-13 landing.
 CLIPS = {
     'idle': ('idle', 1, 369, 369),
     'walk': ('walk', 1, 57, 57),
     'run': ('run', 1, 31, 31),
     'jump': ('jump', 1, 13, 13),
-    'attack1': ('A swordswoman steps forward and swings a one-handed sword in he', 24, 48, 15),
-    'attack2': ('A swordswoman holding a one-handed sword in her right hand does', 1, 10, 16),
-    'attack3': ('A swordswoman holding a one-handed sword in her right hand rais', 16, 48, 20),
     'guard': ('A swordswoman in a defensive guard stance: knees bent, her righ', 17, 25, 48),
     'dodge': ('A swordswoman does a quick forward combat roll over her shoulde', 8, 46, 15),
-    'skill': ('A swordswoman crouches and pulls her sword back with her right ', 1, 50, 31),
     'stagger': ('A swordswoman holding a sword in her right hand is hit hard in ', 1, 48, 18),
     'death': ('A swordswoman is struck by a fatal blow, drops to her knees, th', 1, 60, 36),
 }
@@ -40,11 +38,9 @@ CLIPS = {
 # joint about their curl axis, local X) and take the thumb from the slash preset's tightest fist.
 GRIP_CURL = (70, 85, 45)
 GRIP_THUMB = 'slash'
-# The attacks open from and settle into the attack1 prompt's ready stance, so the combo chains
-# through one pose instead of snapping between three. That frame raises the left hand to her head;
-# the stance takes the held guard's left arm, braced at the waist.
+# mio_combat.py keys its clips from the attack1 prompt's opening stance. That frame raises the left
+# hand to her head; the stance takes the held guard's left arm, braced at the waist.
 READY = 'A swordswoman steps forward and swings a one-handed sword in he'
-ATTACK_IN, ATTACK_OUT = 3, 4
 # Tripo's roll lands on her back and sits up (source frames 27-35). Knots of (game frame from 0,
 # source frame) speed the whole roll evenly so that stretch passes sooner and the rise gets the
 # time; the hips then turn at most 64 degrees a frame (55 when sampled evenly).
@@ -60,14 +56,6 @@ def turn(bone, degrees):
     return (rest.inverted() @ Quaternion((1, 0, 0), math.radians(degrees)).to_matrix() @ rest).to_quaternion()
 
 
-def mix(a, b, w):
-    out = {}
-    for name in a:
-        (la, ra, sa), (lb, rb, sb) = a[name].decompose(), b[name].decompose()
-        out[name] = Matrix.LocRotScale(la.lerp(lb, w), ra.slerp(rb, w), sa.lerp(sb, w))
-    return out
-
-
 def activate(rig, action):
     rig.animation_data_create()
     rig.animation_data.action = action
@@ -81,10 +69,10 @@ def principal(points):
     return c, Vector(axes[0]), Vector(axes[1])
 
 
-def seat_sword(rig, grip, swords):
-    # The old rig carried the hilt along the hand; Tripo's swings expect it across the closed fist.
-    # Each curled finger rings the hilt: fit a circle to its joints, run the grip through the centres,
-    # blade out of the index side and edge along the knuckles.
+def fist(rig, grip):
+    """The closed fist's centre and the hilt's axis through it, in armature space with the hand at rest.
+
+    Each curled finger rings the hilt: fit a circle to its joints and run the grip through the centres."""
     for name, basis in grip.items():
         rig.pose.bones[name].matrix_basis = basis
     bpy.context.view_layer.update()
@@ -98,8 +86,13 @@ def seat_sword(rig, grip, swords):
         centres.append(c + float(a) * u + float(b) * v)
     for pb in rig.pose.bones:
         pb.matrix_basis = Matrix.Identity(4)
-    fist = sum(centres, Vector()) / 4
-    across = (centres[0] - centres[3]).normalized()
+    return sum(centres, Vector()) / 4, (centres[0] - centres[3]).normalized()
+
+
+def seat_sword(rig, grip, swords):
+    # The old rig carried the hilt along the hand; Tripo's swings expect it across the closed fist,
+    # blade out of the index side and edge along the knuckles.
+    centre, across = fist(rig, grip)
     parts = {o.name.removeprefix('Sword '): [o.matrix_basis @ v.co for v in o.data.vertices] for o in swords}
     hilt, along, _ = principal(parts['oxblood leather'])
     blade, _, edge = principal(parts['blade steel'])
@@ -110,7 +103,7 @@ def seat_sword(rig, grip, swords):
     knuckles = rig.data.bones['RightHand'].matrix_local.col[1].to_3d()
     roll = math.atan2(edge.cross(knuckles).dot(across), edge.dot(knuckles))
     turn = Quaternion(across, (roll + math.pi / 2) % math.pi - math.pi / 2) @ turn
-    seat = Matrix.Translation(fist) @ turn.to_matrix().to_4x4() @ Matrix.Translation(-hilt)
+    seat = Matrix.Translation(centre) @ turn.to_matrix().to_4x4() @ Matrix.Translation(-hilt)
     for obj in swords:
         obj.data.transform(seat)
 
@@ -213,7 +206,14 @@ def main():
     scene.frame_set(CLIPS['guard'][2])
     ready.update({pb.name: pb.matrix_basis.copy() for pb in rig.pose.bones
                   if pb.name.startswith(('LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand'))})
-    actions = []
+    rig.animation_data.action = None
+    for pb in rig.pose.bones:
+        pb.matrix_basis = Matrix.Identity(4)
+    # The blade leaves the fist along the hilt's axis with its edge along the knuckles (seat_sword).
+    _, across = fist(rig, grip)
+    blade = (rig.data.bones['RightHand'].matrix_local.to_3x3().inverted() @ across).normalized()
+    edge = (Vector((0, 1, 0)) - blade.y * blade).normalized()
+    clips = {}
     for name, (source, first, last, frames) in CLIPS.items():
         activate(rig, source_actions[source])
         scene.frame_set(first)
@@ -233,9 +233,6 @@ def main():
             lift = max(0, min(f.head.z for f in feet) - foot_floor) if name == 'jump' else 0
             pose = {pb.name: pb.matrix_basis.copy() for pb in rig.pose.bones}
             pose['Hips'].translation -= basis @ Vector((p.x, p.y, lift))
-            if name.startswith('attack'):
-                w = min(1, t / ATTACK_IN, (frames - 1 - t) / ATTACK_OUT)
-                pose = mix(ready, pose, w * w * (3 - 2 * w))
             pose.update({n: m.copy() for n, m in grip.items()})
             poses.append(pose)
         if name == 'jump':
@@ -256,6 +253,10 @@ def main():
                     bpy.context.view_layer.update()
                     hip.location -= basis @ Vector((0, 0, min(f.head.z for f in feet) - foot_floor))
                 pose.update({pb.name: pb.matrix_basis.copy() for pb in rig.pose.bones})
+        clips[name] = poses
+    clips.update(mio_combat.clips(rig, ready, (blade, edge), grip))
+    actions = []
+    for name, poses in clips.items():
         action = bpy.data.actions.new(name)
         activate(rig, action)
         for t, pose in enumerate(poses, 1):
@@ -328,7 +329,8 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     report = {'source': SOURCE, 'textures_from': FIXED, 'bones': len(rig.data.bones),
               'body_faces': len(body.data.polygons), 'height_m': 1.84, 'scale': scale, 'images': images,
-              'clips': {n: {'tripo': CLIPS[n][0], 'source_frames': list(CLIPS[n][1:3]), 'frames': CLIPS[n][3]} for n in CLIPS},
+              'clips': {n: {'tripo': CLIPS[n][0], 'source_frames': list(CLIPS[n][1:3]), 'frames': CLIPS[n][3]} if n in CLIPS
+                        else {'keyed': 'tools/mio_combat.py', 'frames': len(p)} for n, p in clips.items()},
               'weapon_faces': weapon_faces}
     (OUT / 'build.json').write_text(json.dumps(report, indent=2) + '\n')
     print('TRIPO_EXPORT_COMPLETE', json.dumps(report), flush=True)
