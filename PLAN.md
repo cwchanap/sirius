@@ -172,6 +172,13 @@ Plan: the design doc in the project's Claude Docs (GoW / Dark Souls-style layout
 - [ ] Phase 3: Hoshikawa expanded: Mio's house, the old Hoshikawa halt at the east gate, the shrine hill's sea-cliff lookout.
 - [ ] Phase 4: the Cedar gorge and Komorebi's bowl.
 
+## UI redesign: less text, more art
+
+Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remove/icon table, new HUD wireframe); art and code are separate tasks.
+
+- [x] Art: thirteen solid kamon-style HUD icons and the 星川 title logo, drawn by Codex and cut by `tools/cut_ui_art.gd` into white images the HUD tints (`assets/art/ui/`).
+- [ ] Code: the HUD, combat markers, toasts, title, pause, defeated and dialogue screens use the icons and keycaps instead of text; the always-on controls panel moves to the pause screen; about 45 interface strings go from the translation tables.
+
 ## Languages: Japanese and Traditional Chinese
 
 - [x] Phase 0: `assets/dialogue/glossary.md`, with the names, places, terms and tone for all three languages; kanji names for Chinese settled as proposals for the owner to confirm.
