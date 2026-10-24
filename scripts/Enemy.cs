@@ -5,14 +5,14 @@ public partial class Enemy : CharacterBody3D
 {
     // Robot combat tuning, all in one place. Mio's sword only scratches the plating, a robot's strike nearly fells her,
     // and from behind (within BehindDot of its back) her attack shuts it down outright. Resonance Cut only stuns.
-    public const float SwordDamage=3,SwordPosture=5,StrikeDamage=45,PerilousDamage=70,ScoutStrike=.6f,ResonanceStun=4,BehindDot=-.5f;
+    public const float PatrolHealth=500,ScoutHealth=300,SwordDamage=2,SwordPosture=5,StrikeDamage=50,PerilousDamage=75,ScoutStrike=.6f,ResonanceStun=4,BehindDot=-.5f;
     public Game Game=null!;
     public Vector3 Home;
     public int Index;
     // Scouts are smaller, weaker and keep closer to home; the relay mission does not count them.
     public bool Scout;
-    public float MaxHealth=>Scout?60:100;
-    public float Health=100, Posture;
+    public float MaxHealth=>Scout?ScoutHealth:PatrolHealth;
+    public float Health=PatrolHealth, Posture;
     public bool Dead=>Health<=0;
     public bool Broken=>broken>0&&!Dead;
     public bool Stunned=>stunned>0&&!Dead;
