@@ -610,6 +610,8 @@ public static class IntegrationCheck
         Check(g.Player.Health==100-Enemy.StrikeDamage,$"enemy windup resolves a real strike that takes {Enemy.StrikeDamage} vitality");
         g.SetPaused(true);before=live.GlobalPosition;await Frames(30);Check(live.GlobalPosition==before,"pause freezes patrol simulation");g.SetPaused(false);
         live.Stun(.25f);await Frames(5);Check(live.State=="STUNNED","a stun holds a robot");await Frames(20);Check(!live.Stunned&&live.State!="STUNNED","the stun wears off by itself");
+        Place(g.Player,new(0,0,30));before=live.GlobalPosition;var facing=live.Forward;await Frames(10);
+        Check(live.State=="RECOVER"&&live.GlobalPosition.DistanceTo(before)<.02f&&live.Forward.Dot(facing)>.999f,"a recovering robot stays put and keeps its facing even once Mio is out of its sight");
         // Stunned, it neither turns nor strikes while Mio walks round behind it; then her real attack input shuts it down.
         live.Stun(Enemy.ResonanceStun);var back=live.Forward;var behind=live.GlobalPosition-back*2;behind.Y=Hoshikawa.World.Height(behind.X,behind.Z)+.1f;Place(g.Player,behind);g.Player.Model.Rotation=new(0,Mathf.Atan2(back.X,back.Z),0);await Frames(30);
         Check(live.State=="STUNNED"&&live.Forward.Dot(back)>.999f&&g.Player.CanShutDown(live),"a stunned robot keeps its back turned while Mio gets behind it");
