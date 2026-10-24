@@ -10,7 +10,7 @@ import tempfile
 from mathutils import Matrix, Quaternion, Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from import_character import arguments, compress_model_textures, digest, export_model
+from import_character import arguments, compress_model_textures, digest, export_model, main
 
 
 def check_glb(path, height, clips, triangles):
@@ -165,7 +165,10 @@ def run():
         result = export_model(arguments([str(tmp / 'static.blend'), '--name', 'static', '--height', '2', '--output-root', str(tmp / 'out')]))
         check_glb(Path(result['outputs']['model']), 2, set(), 12)
         assert result['bones'] == 0 and not result['textures']
-        print('CHARACTER_IMPORT_CHECK_PASS: four formats, multi-mesh animated rig, static mesh, invalid-input guards and a missing Godot')
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()) as error:
+            assert main([str(tmp / 'static.blend'), '--name', 'hosted', '--height', '2', '--output-root', str(tmp / 'out'), '--godot', str(tmp / 'no-godot')]) == 1
+        assert 'Godot not found' in error.getvalue()
+        print('CHARACTER_IMPORT_CHECK_PASS: four formats, multi-mesh animated rig, static mesh, invalid-input guards and a missing Godot, direct or hosted in Blender')
 
 
 if __name__ == '__main__':

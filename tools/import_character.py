@@ -298,6 +298,7 @@ def export_model(args):
 def compress_model_textures(args):
     # Godot extracts a GLB's maps uncompressed on its first import and never re-extracts one whose .import exists, so the
     # model's maps are switched to VRAM compression between two imports.
+    sys.path.insert(0, str(ROOT / 'tools'))
     from compress_textures import compress, model_textures
     if not (args.output_root / 'project.godot').exists():
         print('Import in Godot, then run tools/compress_textures.py and import again.', flush=True)
@@ -326,9 +327,10 @@ def main(argv=None):
         if not executable:
             raise SystemExit('Blender not found; use --blender or BLENDER_BIN.')
         return subprocess.call([executable, '--background', '--factory-startup', '--disable-autoexec',
-                                '--python-exit-code', '1', '--python', str(Path(__file__).resolve()), '--', *argv]) or compress_model_textures(args)
+                                '--python-exit-code', '1', '--python', str(Path(__file__).resolve()), '--', *argv], env={**os.environ, 'IMPORT_CHARACTER_CHILD': '1'}) or compress_model_textures(args)
     export_model(args)
-    return 0
+    # Hosted in Blender (the presets), compress here; as the child of the route above, the parent compresses once Blender exits.
+    return 0 if os.environ.get('IMPORT_CHARACTER_CHILD') else compress_model_textures(args)
 
 
 if __name__ == '__main__':
