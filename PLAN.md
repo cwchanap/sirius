@@ -162,6 +162,13 @@ Bring the non-character environment up to the Tripo characters' detail: semi-rea
 - [x] Resonance Cut no longer damages: it stuns robots in reach for 4 s and has 3 charges (`Player.MaxSkillCharges`) instead of a cooldown, refilled only by resting with Aki or Emi or recovering at the village. The HUD shows the charges, and the robot panel says when Mio is behind one or it is stunned.
 - [x] Deflect, posture break and the frontal finisher are unchanged.
 
+## Combat: Mio's combo and Resonance Cut animations
+
+- [x] The combo and Resonance Cut keyed in Blender by `tools/mio_combat.py` (IK on the Tripo rig) in place of Tripo's clips: a diagonal cut, a rising backhand and a leaping overhead slam that each start from the last one's link pose, and Resonance Cut as a crouch, a leap spinning twice and a slam.
+- [x] `Player.Swings`: per-swing hit, link, end and lunge; a queued press chains at the link; each swing aims at the locked or nearest robot and lunges no closer than 1.3 m.
+- [x] A sword trail, hit-stop on a landed blow, a ground ring under the third swing, Resonance Cut's shockwave ring from the slam, and a camera punch.
+- [ ] Sound effects for the new swings and the slam (ElevenLabs), a separate task.
+
 ## Map redesign (地圖重新設計)
 
 Plan: the design doc in the project's Claude Docs (GoW / Dark Souls-style layout, one PR per phase, art and sound as separate tasks).
