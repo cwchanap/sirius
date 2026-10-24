@@ -63,6 +63,7 @@ $GODOT_MONO --path . --script res://tools/review_villagers.gd      # Sora/Nao/To
 $GODOT_MONO --path . --script res://tools/review_dialogue.gd      # prologue visual-novel scenes (artifacts/dialogue/)
 $GODOT_MONO --path . --script res://tools/review_languages.gd -- --lang=ja   # title, HUD, menus and scenes in one language (artifacts/i18n/<lang>/)
 $GODOT_MONO --headless --path . --script res://tools/cut_portrait.gd -- --src=<png> --out=<png> [--rect=x,y,w,h] [--flip] [--ground=rows]   # dialogue portrait cut-out
+$GODOT_MONO --headless --path . --script res://tools/cut_ui_art.gd -- --src=<png> --out=<dir> --names=a,b,,d   # white-on-black icon sheet to tintable HUD icons (one image: --out=<png>)
 $GODOT_MONO --path . --disable-vsync --fixed-fps 60 --script res://tools/render_cost.gd   # draw calls/primitives/CPU ms at three village viewpoints
 ```
 
