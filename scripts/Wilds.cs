@@ -171,7 +171,7 @@ public partial class World
             var d=b-a;
             walls.AddChild(new CollisionShape3D{Position=new((a.X+b.X)/2,8,(a.Y+b.Y)/2),Rotation=new(0,Mathf.Atan2(d.X,d.Y),0),Shape=new BoxShape3D{Size=new(.5f,40,d.Length()+.5f)}});
         }
-        for(int i=0;i<6;i++){float s=1.5f+.3f*(i%3),x=CanyonChoke.X+(i%2)*1.2f,z=CanyonChoke.Y-5+i*2;Sphere(this,"Canyon choke boulder",new(x,Height(x,z)+s*.45f,z),new(s,s*.8f,s),stone).Rotation=new(0,i*1.7f,.2f);}
+        for(int i=0;i<6;i++){float s=1.5f+.3f*(i%3),x=CanyonChoke.X+(i%2)*1.2f,z=CanyonChoke.Y-5+i*2;Boulder("Canyon choke boulder",x,z,s,i*1.7f,false);}
     }
     private ShaderMaterial WaterMaterial(Vector2 flow)
     {

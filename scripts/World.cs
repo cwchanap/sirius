@@ -486,29 +486,28 @@ public partial class World : Node3D
         TimberBridge(bridge,4.1f,8,5.2f,new[]{-6f,0,6f});
         Label(bridge,"CEDAR RIVER",new(0,6.6f,0),Gold,29);
         var shelter=new Node3D {Name="Cedar Pass Shelter",Position=new(-12,Height(-12,-191),-191)};AddChild(shelter);
-        Box(shelter,"Shelter floor",new(0,-.12f,0),new(6,.3f,4.5f),stone,true);
-        foreach(float x in new[]{-2.6f,2.6f})foreach(float z in new[]{-1.8f,1.8f})
-            Box(shelter,"Shelter pillar",new(x,1.6f,z),new(.2f,3.2f,.2f),wood,true);
-        foreach(float side in new[]{-1f,1f})
-        {var r=Box(shelter,"Shelter tiled roof",new(side*1.65f,3.5f,0),new(3.7f,.2f,5.5f),roof);r.Rotation=new(0,0,-side*.38f);CameraStop(r,new BoxShape3D{Size=((BoxMesh)r.Mesh).Size});}
-        Box(shelter,"Resting bench",new(0,.6f,-1.4f),new(4,.2f,.6f),wood,true);
-        Box(shelter,"Bench back",new(0,1.1f,-1.65f),new(4,.55f,.12f),wood);
-        foreach(float x in new[]{-1.5f,1.5f})Box(shelter,"Bench support",new(x,.25f,-1.4f),new(.18f,.5f,.5f),wood);
-        for(int i=0;i<3;i++)Prop(shelter,"Rain barrel","barrel",new(3.4f,0,-1+i*1.1f),i*2,Vector3.One*1.2f);
-        Label(shelter,"CEDAR PASS SHELTER",new(0,3.1f,2),Gold,26);
+        // The Tripo shelter, stretched 15% taller for headroom under its tie beams, its slab centred on the levelled pad and sunk to stand 3 cm
+        // proud as the stone floor did. Boxes fit its slab, posts and back bench; its whole mesh keeps the camera under the roof.
+        var shelterModel=Model(shelter,"Tripo shelter","shelter",new(0,-.45f,-.18f),-90,new(1.3f,1.3f,1.3f));shelterModel.Scale=new(1,1.15f,1);
+        var shelterMesh=ActorVisual.Descendants(shelterModel).OfType<MeshInstance3D>().Single();var shelterLocal=shelter.GlobalTransform.AffineInverse()*shelterMesh.GlobalTransform;
+        CameraStop(shelter,new ConcavePolygonShape3D{Data=shelterMesh.Mesh.GetFaces().Select(v=>shelterLocal*v).ToArray(),BackfaceCollision=true});
+        Solid(shelter.Position+new Vector3(0,-.12f,0),Vector3.Zero,new(6,.3f,5.9f));
+        Solid(shelter.Position+new Vector3(.03f,.36f,-1.8f),Vector3.Zero,new(3.97f,.66f,.96f));
+        foreach(float x in new[]{-2.31f,2.31f})foreach(float z in new[]{-2.2f,2.18f})Solid(shelter.Position+new Vector3(x,1.5f,z),Vector3.Zero,new(.3f,3,.3f));
+        for(int i=0;i<3;i++)Prop(shelter,"Rain barrel","barrel",new(3.55f,0,-1+i*1.1f),i*2,Vector3.One*1.2f);
+        Label(shelter,"CEDAR PASS SHELTER",new(0,3.3f,2.72f),Gold,26);
         Footpath(new(RoadX(-189),-189),new(-12,-187),1.2f);
-        Footpath(new(-12,-187),new(-12,-188.75f),1.2f);
+        Footpath(new(-12,-187),new(-12,-188f),1.2f);
         var lookout=new Node3D {Name="Valley Overlook",Position=new(29,Height(29,-226),-226)};AddChild(lookout);
-        Box(lookout,"Overlook deck",new(0,-.12f,0),new(6,.3f,5),wood,true);
-        for(int i=0;i<4;i++) Box(lookout,"Lookout post",new(-3+i*2,.6f,2.5f),new(.16f,1.2f,.16f),wood,true);
-        Box(lookout,"Lookout rail",new(0,1.1f,2.5f),new(6.2f,.15f,.15f),wood,true);
-        Box(lookout,"Lookout east rail",new(3,1.1f,0),new(.15f,.15f,5),wood,true);
-        Box(lookout,"Lookout corner post",new(3,.6f,-2.5f),new(.16f,1.2f,.16f),wood,true);
-        Box(lookout,"Lookout bench",new(1.9f,.5f,-.6f),new(.7f,.22f,2.6f),wood,true);
-        Box(lookout,"Lookout bench back",new(2.2f,.9f,-.6f),new(.12f,.65f,2.6f),wood);
-        foreach(float z in new[]{-1.5f,.3f}) Box(lookout,"Bench leg",new(1.9f,.24f,z),new(.5f,.48f,.16f),wood);
-        Box(lookout,"Vista plaque post",new(-2, .65f,-2),new(.12f,1.3f,.12f),wood,true);
-        Box(lookout,"Vista plaque",new(-2,1.25f,-2),new(1.8f,.5f,.1f),wood);
+        // The Tripo deck, sunk to stand 3 cm proud, railed on its east and north sides with its bench along the east rail; the plaque is
+        // the signpost model at two thirds size.
+        Model(lookout,"Tripo overlook","overlook",new(0,-.7f,0),-90,new(1.3f,1.3f,1.3f));
+        Solid(lookout.Position+new Vector3(0,-.12f,0),Vector3.Zero,new(6,.3f,6));
+        Solid(lookout.Position+new Vector3(2.75f,.57f,0),Vector3.Zero,new(.25f,1.1f,5.8f));
+        Solid(lookout.Position+new Vector3(0,.57f,-2.55f),Vector3.Zero,new(5.8f,1.1f,.25f));
+        Solid(lookout.Position+new Vector3(2.21f,.3f,.46f),Vector3.Zero,new(.56f,.54f,3.67f));
+        Model(lookout,"Vista plaque","signpost",new(-2,0,-2),90,new(1.3f,1.3f,1.3f)).Scale=Vector3.One*.67f;
+        foreach(float x in new[]{-2.96f,-1.04f})Solid(lookout.Position+new Vector3(x,.6f,-2),Vector3.Zero,new(.15f,1.2f,.15f));
         var plaque=Label(lookout,"CEDAR RIVER\nTHE OFFLINE VALLEY",new(-2,1.25f,-1.93f),Gold,24);
         plaque.Billboard=BaseMaterial3D.BillboardModeEnum.Disabled;plaque.PixelSize=.0028f;
         Footpath(new(RoadX(-226),-226),new(26,-226),1.2f);
@@ -527,7 +526,7 @@ public partial class World : Node3D
             float x=rng.RandfRange(-59,59),z=rng.RandfRange(-292,-180);
             if(NorthClear(x,z))continue;
             float s=rng.RandfRange(.35f,1.3f);
-            Sphere(this,"Pass boulder",new(x,Height(x,z)+s*.3f,z),new(s,s*.7f,s),stone);
+            Boulder("Pass boulder",x,z,s,i*1.7f,false);
         }
         var grass=new List<(Vector3 P,float H)>();
         for(int i=0;i<6500;i++)
@@ -571,11 +570,11 @@ public partial class World : Node3D
     private void Signpost(Vector2 p,string text,float yaw=0)
     {
         var sign=new Node3D {Name="Valley wayfinder",Position=new(p.X,Height(p.X,p.Y),p.Y),Rotation=new(0,yaw,0)};AddChild(sign);
-        Box(sign,"Sign post",new(0,1.3f,0),new(.17f,2.6f,.17f),wood);
-        Box(sign,"Direction boards",new(0,2.15f,0),new(3.5f,.9f,.18f),wood);
+        // The Tripo signpost's blank board, widened 30% so the longest lettering (2.8 m) fits between its posts; the lettering stands 3 cm off the planks.
+        Model(sign,"Direction boards","signpost",Vector3.Zero,90,new(1.3f,1.3f,1.3f)).Scale=new(1,1,1.3f);
         foreach(float side in new[]{-1f,1f})
         {
-            var lettering=Label(sign,text,new(0,2.17f,side*.12f),Gold,29);
+            var lettering=Label(sign,text,new(0,1.86f,side*.1f),Gold,29);
             lettering.Billboard=BaseMaterial3D.BillboardModeEnum.Disabled;
             lettering.Rotation=new(0,side<0?Mathf.Pi:0,0);
         }

@@ -1,5 +1,14 @@
 # MVP verification
 
+## Tripo batch 2: Cedar Pass and the roadside — 2026-10-23
+
+The Cedar Pass shelter, the valley overlook, the signposts and the teahouse ladder are now Tripo models (140 credits, `ASSETS.md`). The Cedar Pass and canyon-choke boulders, the quarry sled and the pouch's crate reuse earlier models at no cost.
+
+- **Placement:** the shelter's slab and the overlook's deck stand 3 cm proud of their levelled pads, as the old floor and deck did, with box colliders fitted to the slab, posts and bench, and to the deck, both rails and the bench. The shelter's slab is wider than the old floor, so it is centred on the pad: on its first placement its front edge reached past the pad, where the ground falls away, and the self-test caught Mio stopped by a 13 cm step. The shelter's whole mesh is a camera-only collider. The five signposts' lettering sits on the blank board on both faces. The ladder's walk box, hinge, trestle and swing are unchanged; only its mesh is new.
+- **Self-test:** **521 checks pass** headless in `en`, `ja` and `zh_TW`, and graphically under Metal in `en` (`artifacts/tripo-batch2/logs/self-test-{headless-en,headless-ja,headless-zh_TW,metal-en}.log`). Normal walking still reaches the overlook deck and the shelter floor, and the ladder is still lowered from the terrace, walked down and up, and drawn up again by a restart. `just unit` passes 34.
+- **Render cost** (`render_cost.gd`): draws 1223/1299/1304 at the village viewpoints (batch 1 recorded 1231/1307/1310), primitives 2.89M/2.70M/2.72M, CPU 0.80–0.83 ms. With the scene frozen, hiding batch 2's models (the shelter, overlook, six signpost models, ladder and 41 reused boulders) removes 43 draws and about 290k primitives at Cedar Pass (−8, −184), 18 draws at the overlook and 18 at the relay junction. Draw counts repeat exactly between runs; primitive counts drift by up to 120k at the overlook and the junction, so only Cedar Pass's is given.
+- **Metal captures** (`artifacts/tripo-batch2/captures/` in Japanese, the Mac's own language, and `captures-en/` under `--lang=en`): the shelter from the footpath, under its eaves and from behind; the overlook, its bench and its plaque; each of the five signposts up close; and the ladder drawn up on its trestle and lowered, from the terrace and from the junction. Nothing floats or shows air under it, and the longest lettering, Komorebi's in English, fits inside the signpost's board frame.
+
 ## Tripo batch 1: the relay road's props — 2026-10-22
 
 The relay road's last placeholder props are now Tripo models (250 credits, `ASSETS.md`): the boulder, the relay cabinet, the viaduct's pier and deck span, and the station road's barricade.

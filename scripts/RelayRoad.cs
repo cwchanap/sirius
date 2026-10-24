@@ -145,18 +145,18 @@ public partial class World
             Boulder("Rockfall boulder",x,z,size,turn);
         Minka(OldTeahouse.Name,OldTeahouse.At,OldTeahouse.Size,OldTeahouse.Yaw,OldTeahouse.Style);
         TeahouseLadder();
-        // The old quarry: cut blocks along its walls, a timber sled and, on a crate at its far end, a remedy pouch.
+        // The old quarry: cut blocks along its walls, the Tripo handcart left as its stone sled and, on a barrel at its far end, a remedy pouch.
         foreach(var (x,z,w,h,d,yaw) in new[]{(-38.5f,-127.5f,2.4f,1.6f,1.8f,.3f),(-42f,-140f,1.8f,1.2f,1.6f,-.4f),(-30f,-139f,2f,1f,1.4f,.9f),(-24f,-121f,1.6f,1.3f,1.2f,.2f),(-45f,-131.5f,1.2f,.9f,1.2f,1.1f)})
         {
             // Each rests on the lowest ground under its corners, sunk into the wall's foot where it leans on it rather than standing off it.
             float y=new[]{-.5f,.5f}.SelectMany(a=>new[]{-.5f,.5f},(a,b)=>Height(x+a*w,z+b*d)).Min();
             Box(this,"Quarry block",new(x,y+h/2-.1f,z),new(w,h,d),stone,true).Rotation=new(0,yaw,0);
         }
-        foreach(float x in new[]{-.5f,.5f})Box(this,"Quarry sled runner",new(-33+x,Height(-33,-138)+.1f,-138),new(.12f,.2f,2.6f),wood);
-        Box(this,"Quarry sled deck",new(-33,Height(-33,-138)+.25f,-138),new(1.3f,.1f,2),wood,true);
+        Handcart("Quarry sled",new(-33,-138),90);
         var pouch=new Node3D{Name="Remedy pouch",Position=new(-40,Height(-40,-137),-137)};AddChild(pouch);
-        Box(this,"Pouch crate",pouch.Position+new Vector3(0,.3f,0),new(.8f,.6f,.6f),wood,true);
-        pouch.AddChild(Combined("Pouch",Mat(new("c9a25a"),.25f),(new(0,.72f,0),new(.34f,.24f,.26f)),(new(0,.88f,0),new(.14f,.1f,.12f))));Pouches.Add(pouch);
+        Prop(this,"Pouch barrel","barrel",pouch.Position,.6f);
+        var barrel=new StaticBody3D{Position=pouch.Position+new Vector3(0,.42f,0)};AddChild(barrel);barrel.AddChild(new CollisionShape3D{Shape=new CylinderShape3D{Radius=.32f,Height=.84f}});
+        pouch.AddChild(Combined("Pouch",Mat(new("c9a25a"),.25f),(new(0,.96f,0),new(.34f,.24f,.26f)),(new(0,1.12f,0),new(.14f,.1f,.12f))));Pouches.Add(pouch);
         // The Tripo cabinet on its plinth (assets/models/relay.glb) turned so its door faces the plaza, the dead screen lit behind its
         // window, and the mast behind it on the plinth.
         var relay=new Node3D {Name="Manual relay",Position=RelayPosition};AddChild(relay);
@@ -188,12 +188,13 @@ public partial class World
         }
     }
     // The Tripo boulder (assets/models/boulder.glb, 1.58 m across), size metres across. Its flat base rests on the lowest ground under
-    // its footprint, sunk a little, so no air shows under it on a slope.
-    private void Boulder(string name,float x,float z,float size,float turn)
+    // its footprint, sunk a little, so no air shows under it on a slope. Scatter boulders stay walk-through, as their spheres were.
+    private void Boulder(string name,float x,float z,float size,float turn,bool solid=true)
     {
         float h=size/2,ground=new[]{-h,h}.SelectMany(dx=>new[]{-h,h},(dx,dz)=>Height(x+dx,z+dz)).Min();
         var n=Model(this,name,"boulder",new(x,ground-size*.05f,z),Mathf.RadToDeg(turn),new(1.05f,1.05f,1.05f));n.Scale=Vector3.One*size/1.58f;
         ActorVisual.Descendants(n).OfType<MeshInstance3D>().Single().VisibilityRangeEnd=80;
+        if(!solid)return;
         var body=new StaticBody3D{Position=n.Position+Vector3.Up*size*.35f};AddChild(body);body.AddChild(new CollisionShape3D{Shape=new CylinderShape3D{Radius=size*.42f,Height=size*.7f}});
     }
     // The teahouse's ladder, drawn up on its terrace's brow above the junction until Mio lowers it from there: a steep ship's ladder,
@@ -205,9 +206,8 @@ public partial class World
         // Hinged just under the brow and with no end standing proud of it, so she steps on and off it at either end without a ledge.
         var part=new AnimatableBody3D{Name="Teahouse ladder",Position=top+Vector3.Down*.1f,CollisionMask=0};AddChild(part);
         part.AddChild(new CollisionShape3D{Position=new(0,-.08f,length/2+.1f),Shape=new BoxShape3D{Size=new(1.5f,.16f,length+.2f)}});
-        var boxes=new List<(Vector3,Vector3)>{(new(-.7f,-.05f,length/2),new(.12f,.24f,length)),(new(.7f,-.05f,length/2),new(.12f,.24f,length))};
-        for(float t=.3f;t<length;t+=.32f)boxes.Add((new(0,.02f,t),new(1.3f,.05f,.2f)));
-        part.AddChild(Combined("Ladder",wood,boxes.ToArray()));
+        // The Tripo ladder (7.84 m, hinge brackets at its head) fitted to the walk box: its rung tops 2 cm above it and its rails to the box's sides.
+        Model(part,"Ladder","ladder",new(0,-.15f,length/2),-90,new(1.3f,1.3f,1.3f)).Scale=new(length/7.84f,.8f,1.15f);
         // Drawn up, it lies back over the terrace on a trestle, so it is lowered from beside its hinge and swings up over it and down.
         const float back=.3f,rest=4;var on=part.Position+new Vector3(0,rest*Mathf.Sin(back)-.07f,-rest*Mathf.Cos(back));float ground=Height(on.X,on.Z);
         foreach(float x in new[]{-.95f,.95f})Box(this,"Ladder trestle leg",new(on.X+x,(on.Y+ground)/2,on.Z),new(.12f,on.Y-ground,.12f),wood,true);
