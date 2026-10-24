@@ -585,10 +585,10 @@ public static class IntegrationCheck
         float afterHit=opponent.Health;await Frames(30);Check(opponent.Health==afterHit,"one swing cannot hit again after its active frame");
         // With no robot near, a second press during the first swing waits for its link, well before its end, and each swing lunges.
         opponent.GlobalPosition=spot+Vector3.Forward*14;Place(g.Player,spot);await Frames(30);var lungeFrom=g.Player.GlobalPosition;var trail=g.Player.GetNode<SwordTrail>("Sword trail");
-        await Press("attack");await Frames(4);bool slashing=trail.Emitting;await Press("attack");string first=g.Player.Visual.Animator!.CurrentAnimation.ToString();await Frames((int)(Player.Swings[0].Link*60)-8);
+        await Press("attack");await Frames(4);bool slashing=trail.Emitting&&(trail.GlobalTransform*trail.Mesh.GetAabb()).Grow(.05f).HasPoint(trail.Blade().Tip);await Press("attack");string first=g.Player.Visual.Animator!.CurrentAnimation.ToString();await Frames((int)(Player.Swings[0].Link*60)-8);
         Check(first.Contains("attack1")&&g.Player.Visual.Animator.CurrentAnimation.ToString().Contains("attack2"),$"a queued attack chains at the first swing's link ({first} -> {g.Player.Visual.Animator.CurrentAnimation})");
-        float blade=trail.Base.GlobalPosition.DistanceTo(trail.Tip.GlobalPosition);
-        Check(slashing&&blade>.4f&&blade<1.2f,$"the sword trail runs along the blade while it swings ({blade:F2} m)");
+        float blade=trail.Blade().Base.DistanceTo(trail.Blade().Tip);
+        Check(slashing&&blade>.25f&&blade<.6f,$"the sword trail's ribbon follows the blade while it swings ({blade:F2} m)");
         await Frames(40);var stepped=g.Player.GlobalPosition-lungeFrom;
         Check(stepped.Z<-.7f&&Math.Abs(stepped.X)<.1f,$"the two swings lunge Mio forward ({-stepped.Z:F2} m)");
         opponent.Reset();opponent.GlobalPosition=spot+Vector3.Forward*4.2f;opponent.Model.Rotation=Vector3.Zero;Place(g.Player,spot);await Frames(30);

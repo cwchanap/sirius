@@ -1,7 +1,7 @@
 """Render tools/mio_combat.py's clips on the committed mio.glb as contact sheets, without the Tripo sources.
 
 xvfb-run -a blender --background --factory-startup --python tools/preview_mio_combat.py -- [--out=DIR] [--only=attack1,skill] [--view=front|side|back|top] [--glb]
-Each frame shows the pose and, inside the clip's trail window, the blade's last 0.16 s (0.3 s in Resonance Cut) as Godot's sword trail draws it.
+Each frame shows the pose and, inside the clip's trail window, the outer half of the blade's last 0.12 s (0.3 s in Resonance Cut) as Godot's sword trail draws it.
 Writes DIR/<clip>-<view>.png (default artifacts/mio-combat) with ImageMagick's montage. --glb also writes DIR/mio.glb,
 the committed model with these clips swapped in, to try in Godot; the game's model comes from import_tripo_mio.py.
 mio_ready.json is the ready stance with the grip that import_tripo_mio.py keys the clips from, as the GLB's attack1 opened
@@ -12,7 +12,6 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-import numpy as np
 from mathutils import Matrix, Vector
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -46,20 +45,10 @@ def main():
     rig.animation_data.action = None
     for track in rig.animation_data.nla_tracks:
         track.mute = True
-    # The blade's own axes in the hand's frame, from the skinned steel at rest.
     steel = bpy.data.objects['Sword blade steel']
-    points = [rig.matrix_world.inverted() @ steel.matrix_world @ v.co for v in steel.data.vertices]
+    blade, edge, hilt, tip = mio_combat.sword(rig, [rig.matrix_world.inverted() @ steel.matrix_world @ v.co for v in steel.data.vertices])
     hand = rig.data.bones['RightHand'].matrix_local
-    tip = max(points, key=lambda p: (p - hand.translation).length)
-    hilt = max(points, key=lambda p: (p - tip).length)
-    centred = np.array([p - sum(points, Vector()) / len(points) for p in points])
-    edge = Vector(np.linalg.svd(centred)[2][1])
-    rot = hand.to_3x3().inverted()
-    blade = (rot @ (tip - hilt)).normalized()
-    edge = rot @ edge
-    # The edge faces the knuckles, as the importer seats it.
-    edge = (edge - edge.dot(blade) * blade).normalized() * (1 if edge.y > 0 else -1)
-    ends = [hand.inverted() @ hilt.lerp(tip, .15), hand.inverted() @ tip]
+    ends = [hand.inverted() @ hilt.lerp(tip, .5), hand.inverted() @ tip]
     clips = mio_combat.clips(rig, ready, (blade, edge), grip)
     if 'glb' in opts:
         for name, poses in clips.items():
@@ -115,7 +104,7 @@ def main():
             m = rig.matrix_world @ rig.pose.bones['RightHand'].matrix
             t0, t1 = mio_combat.TRAIL[name]
             t = mio_combat.time(f)
-            path = path[-int(mio_combat.FPS * (.3 if name == 'skill' else .16)):] if t0 <= t <= t1 else []
+            path = path[-int(mio_combat.FPS * (.3 if name == 'skill' else .12)):] if t0 <= t <= t1 else []
             if t0 <= t <= t1:
                 path.append((m @ ends[0], m @ ends[1]))
             mesh = bpy.data.meshes.new('trail')

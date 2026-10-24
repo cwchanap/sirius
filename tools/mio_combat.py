@@ -10,6 +10,7 @@ Feet are keyed where they stand on the ground; Player.cs moves Mio forward by LU
 foot slides back in her frame by as much and stays put in the world.
 """
 import math
+import numpy as np
 from mathutils import Matrix, Quaternion, Vector
 
 FPS = 24
@@ -289,6 +290,20 @@ class Rig:
 def channels(name, t, start):
     keys = tracks(name, start)
     return {k: sample(v, t) for k, v in keys.items()}
+
+
+def sword(rig, steel):
+    """The blade, hilt to tip, and its edge toward the knuckles, both in the hand's frame, then the hilt and tip,
+    from the blade's vertices in armature space with the hand at rest."""
+    hand = rig.data.bones['RightHand'].matrix_local
+    tip = max(steel, key=lambda p: (p - hand.translation).length)
+    hilt = max(steel, key=lambda p: (p - tip).length)
+    centre = sum(steel, Vector()) / len(steel)
+    rot = hand.to_3x3().inverted()
+    blade = (rot @ (tip - hilt)).normalized()
+    edge = rot @ Vector(np.linalg.svd(np.array([p - centre for p in steel]))[2][1])
+    edge = (edge - edge.dot(blade) * blade).normalized()
+    return blade, edge if edge.y > 0 else -edge, hilt, tip
 
 
 def time(f):
