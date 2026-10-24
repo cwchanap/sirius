@@ -65,19 +65,16 @@ public partial class Enemy : CharacterBody3D
             if(attackTimer<=0){attacking=false;recovery=1.05f;marker.Text="";}
         }
         else if(stagger>0){State="STAGGER";}
+        // While it recovers from a swing, a deflect or a stun it neither moves nor turns, in sight of Mio or not: the opening to get round to its back.
+        else if(recovery>0){State="RECOVER";Visual.Play("guard");}
         // Only on its own level: a patrol on the teahouse terrace never walks off its cliff after Mio in the junction below.
         else if(distance<13&&Math.Abs(Game.Player.GlobalPosition.Y-GlobalPosition.Y)<2.5f&&Game.Player.GlobalPosition.Z<World.RelaySouth&&GlobalPosition.DistanceTo(Home)<20
                 &&Game.ClearSight(GlobalPosition+Vector3.Up,Game.Player.GlobalPosition+Vector3.Up))
         {
             State="PURSUE";
-            // While it recovers from a swing, a deflect or a stun it neither moves nor turns: the opening to get round to its back.
-            if(recovery>0)Visual.Play("guard");
-            else
-            {
-                if(distance>2.2f){movement=to.Normalized()*2.8f;Visual.Play("run",.8f);}
-                else BeginAttack(to.Normalized());
-                Model.Rotation=new(0,Mathf.LerpAngle(Model.Rotation.Y,Mathf.Atan2(to.X,to.Z),dt*5),0);
-            }
+            if(distance>2.2f){movement=to.Normalized()*2.8f;Visual.Play("run",.8f);}
+            else BeginAttack(to.Normalized());
+            Model.Rotation=new(0,Mathf.LerpAngle(Model.Rotation.Y,Mathf.Atan2(to.X,to.Z),dt*5),0);
         }
         else
         {
