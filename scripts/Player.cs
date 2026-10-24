@@ -33,15 +33,13 @@ public partial class Player : CharacterBody3D
         AddChild(new CollisionShape3D {Position=new(0,.9f,0),Shape=new CapsuleShape3D {Radius=.3f,Height=1.8f}});
         Model=GD.Load<PackedScene>("res://assets/models/mio.glb").Instantiate<Node3D>();AddChild(Model);Model.Rotation=new(0,Mathf.Pi,0);
         Visual=new ActorVisual();AddChild(Visual);Visual.Bind(Model);Visual.Play("idle");
-        // The trail runs from near the hilt to its tip, read from the skinned blade in the hand bone's frame.
+        // The trail runs from the blade's middle to its tip, read from the skinned blade in the hand bone's frame.
         var skeleton=ActorVisual.Descendants(Model).OfType<Skeleton3D>().Single();
         var blade=ActorVisual.Descendants(Model).OfType<MeshInstance3D>().Single(m=>m.Name.ToString().Contains("blade"));
         int bind=Enumerable.Range(0,blade.Skin.GetBindCount()).First(i=>blade.Skin.GetBindName(i)=="RightHand"||blade.Skin.GetBindBone(i)==skeleton.FindBone("RightHand"));
         var points=blade.Mesh.SurfaceGetArrays(0)[(int)Mesh.ArrayType.Vertex].AsVector3Array().Select(v=>blade.Skin.GetBindPose(bind)*v).ToArray();
         var tip=points.MaxBy(v=>v.LengthSquared());var hilt=points.MaxBy(v=>v.DistanceSquaredTo(tip));
-        var socket=new BoneAttachment3D {Name="Sword socket",BoneName="RightHand"};skeleton.AddChild(socket);
-        trail=new SwordTrail {Base=new Node3D {Name="Blade base",Position=hilt.Lerp(tip,.15f)},Tip=new Node3D {Name="Blade tip",Position=tip}};
-        socket.AddChild(trail.Base);socket.AddChild(trail.Tip);AddChild(trail);
+        trail=new SwordTrail {Skeleton=skeleton,Bone=skeleton.FindBone("RightHand"),Base=hilt.Lerp(tip,.5f),Tip=tip};AddChild(trail);
     }
     public override void _PhysicsProcess(double delta)
     {
@@ -162,7 +160,7 @@ public partial class Player : CharacterBody3D
         if(heading.LengthSquared()>.01f)Model.Rotation=new(0,Mathf.Atan2(heading.X,heading.Z),0);
         lunge=aim!=null?Math.Clamp(heading.Length()-1.3f,0,swing.Lunge):swing.Lunge;
         // A chained swing starts from the pose the last one links at, so it needs only the shortest blend.
-        Guarding=false;trail.Life=.16f;Visual.Play("attack"+(combo+1),1,true,.05f);Game.Sound("swing");
+        Guarding=false;trail.Life=.12f;Visual.Play("attack"+(combo+1),1,true,.05f);Game.Sound("swing");
     }
     // From behind, or once its posture breaks, a robot within reach is shut down by the next attack.
     public bool CanShutDown(Enemy e)=>(e.Broken||e.ExposedTo(GlobalPosition))&&CanReach(e.GlobalPosition,3,-.2f);

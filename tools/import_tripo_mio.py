@@ -69,10 +69,10 @@ def principal(points):
     return c, Vector(axes[0]), Vector(axes[1])
 
 
-def fist(rig, grip):
-    """The closed fist's centre and the hilt's axis through it, in armature space with the hand at rest.
-
-    Each curled finger rings the hilt: fit a circle to its joints and run the grip through the centres."""
+def seat_sword(rig, grip, swords):
+    # The old rig carried the hilt along the hand; Tripo's swings expect it across the closed fist.
+    # Each curled finger rings the hilt: fit a circle to its joints, run the grip through the centres,
+    # blade out of the index side and edge along the knuckles.
     for name, basis in grip.items():
         rig.pose.bones[name].matrix_basis = basis
     bpy.context.view_layer.update()
@@ -86,13 +86,8 @@ def fist(rig, grip):
         centres.append(c + float(a) * u + float(b) * v)
     for pb in rig.pose.bones:
         pb.matrix_basis = Matrix.Identity(4)
-    return sum(centres, Vector()) / 4, (centres[0] - centres[3]).normalized()
-
-
-def seat_sword(rig, grip, swords):
-    # The old rig carried the hilt along the hand; Tripo's swings expect it across the closed fist,
-    # blade out of the index side and edge along the knuckles.
-    centre, across = fist(rig, grip)
+    fist = sum(centres, Vector()) / 4
+    across = (centres[0] - centres[3]).normalized()
     parts = {o.name.removeprefix('Sword '): [o.matrix_basis @ v.co for v in o.data.vertices] for o in swords}
     hilt, along, _ = principal(parts['oxblood leather'])
     blade, _, edge = principal(parts['blade steel'])
@@ -103,7 +98,7 @@ def seat_sword(rig, grip, swords):
     knuckles = rig.data.bones['RightHand'].matrix_local.col[1].to_3d()
     roll = math.atan2(edge.cross(knuckles).dot(across), edge.dot(knuckles))
     turn = Quaternion(across, (roll + math.pi / 2) % math.pi - math.pi / 2) @ turn
-    seat = Matrix.Translation(centre) @ turn.to_matrix().to_4x4() @ Matrix.Translation(-hilt)
+    seat = Matrix.Translation(fist) @ turn.to_matrix().to_4x4() @ Matrix.Translation(-hilt)
     for obj in swords:
         obj.data.transform(seat)
 
@@ -209,10 +204,45 @@ def main():
     rig.animation_data.action = None
     for pb in rig.pose.bones:
         pb.matrix_basis = Matrix.Identity(4)
-    # The blade leaves the fist along the hilt's axis with its edge along the knuckles (seat_sword).
-    _, across = fist(rig, grip)
-    blade = (rig.data.bones['RightHand'].matrix_local.to_3x3().inverted() @ across).normalized()
-    edge = (Vector((0, 1, 0)) - blade.y * blade).normalized()
+    # Keep the original sword, fitted to the new right-hand rest transform.
+    with bpy.data.libraries.load(str(ROOT / 'assets/source/characters.blend')) as (src, dst):
+        dst.scenes = ['HumanV2_mio']
+    old_scene = dst.scenes[0]
+    old = next(o for o in old_scene.objects if o.type == 'ARMATURE')
+    hand = rig.data.bones['RightHand']
+    old_hand = old.data.bones['LHand']
+    fit = hand.matrix_local @ Matrix.Scale(1 / scale, 4) @ old_hand.matrix_local.inverted()
+    weapon_faces = 0
+    for obj in list(old_scene.objects):
+        if obj.type != 'MESH' or obj.name not in ('antique brass', 'oxblood leather', 'jade terminal', 'blade steel'):
+            continue
+        group = obj.vertex_groups.get('LHand')
+        if not group:
+            continue
+        indices = {v.index for v in obj.data.vertices if any(g.group == group.index and g.weight > .99 for g in v.groups)}
+        faces = [list(p.vertices) for p in obj.data.polygons if all(v in indices for v in p.vertices)]
+        if not faces:
+            continue
+        used = sorted({i for f in faces for i in f})
+        remap = {v: i for i, v in enumerate(used)}
+        mesh = bpy.data.meshes.new('Sword ' + obj.name)
+        mesh.from_pydata([fit @ (obj.matrix_world @ obj.data.vertices[i].co) for i in used], [],
+                         [[remap[i] for i in f] for f in faces])
+        mesh.materials.append(obj.data.materials[0])
+        sword = bpy.data.objects.new(mesh.name, mesh)
+        scene.collection.objects.link(sword)
+        sword.parent = rig
+        sword.vertex_groups.new(name='RightHand').add(list(range(len(used))), 1, 'REPLACE')
+        sword.modifiers.new('Sword hand', 'ARMATURE').object = rig
+        weapon_faces += len(faces)
+    assert weapon_faces > 0
+    seat_sword(rig, grip, [o for o in scene.objects if o.name.startswith('Sword ')])
+    for obj in list(old_scene.objects):
+        bpy.data.objects.remove(obj, do_unlink=True)
+    bpy.data.scenes.remove(old_scene)
+    # mio_combat.py points the seated blade, hilt to tip, with its edge leading.
+    steel = scene.objects['Sword blade steel']
+    blade, edge, _, _ = mio_combat.sword(rig, [steel.matrix_basis @ v.co for v in steel.data.vertices])
     clips = {}
     for name, (source, first, last, frames) in CLIPS.items():
         activate(rig, source_actions[source])
@@ -273,43 +303,6 @@ def main():
     rig.animation_data.action = None
     for pb in rig.pose.bones:
         pb.matrix_basis = Matrix.Identity(4)
-
-    # Keep the original sword, fitted to the new right-hand rest transform.
-    with bpy.data.libraries.load(str(ROOT / 'assets/source/characters.blend')) as (src, dst):
-        dst.scenes = ['HumanV2_mio']
-    old_scene = dst.scenes[0]
-    old = next(o for o in old_scene.objects if o.type == 'ARMATURE')
-    hand = rig.data.bones['RightHand']
-    old_hand = old.data.bones['LHand']
-    fit = hand.matrix_local @ Matrix.Scale(1 / scale, 4) @ old_hand.matrix_local.inverted()
-    weapon_faces = 0
-    for obj in list(old_scene.objects):
-        if obj.type != 'MESH' or obj.name not in ('antique brass', 'oxblood leather', 'jade terminal', 'blade steel'):
-            continue
-        group = obj.vertex_groups.get('LHand')
-        if not group:
-            continue
-        indices = {v.index for v in obj.data.vertices if any(g.group == group.index and g.weight > .99 for g in v.groups)}
-        faces = [list(p.vertices) for p in obj.data.polygons if all(v in indices for v in p.vertices)]
-        if not faces:
-            continue
-        used = sorted({i for f in faces for i in f})
-        remap = {v: i for i, v in enumerate(used)}
-        mesh = bpy.data.meshes.new('Sword ' + obj.name)
-        mesh.from_pydata([fit @ (obj.matrix_world @ obj.data.vertices[i].co) for i in used], [],
-                         [[remap[i] for i in f] for f in faces])
-        mesh.materials.append(obj.data.materials[0])
-        sword = bpy.data.objects.new(mesh.name, mesh)
-        scene.collection.objects.link(sword)
-        sword.parent = rig
-        sword.vertex_groups.new(name='RightHand').add(list(range(len(used))), 1, 'REPLACE')
-        sword.modifiers.new('Sword hand', 'ARMATURE').object = rig
-        weapon_faces += len(faces)
-    assert weapon_faces > 0
-    seat_sword(rig, grip, [o for o in scene.objects if o.name.startswith('Sword ')])
-    for obj in list(old_scene.objects):
-        bpy.data.objects.remove(obj, do_unlink=True)
-    bpy.data.scenes.remove(old_scene)
     for action in actions:
         action.use_fake_user = True
         track = rig.animation_data.nla_tracks.new()
