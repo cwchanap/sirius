@@ -579,13 +579,25 @@ public static class IntegrationCheck
         await Frames(65);g.Player.Dodge(Vector3.Right);hp=g.Player.Health;
         Check(g.Player.ReceiveHit(opponent,true)=="evaded"&&g.Player.Health==hp,"dodge evades perilous damage");
         await Frames(50);Place(g.Player,spot);opponent.GlobalPosition=spot+Vector3.Forward*2;g.Player.Model.Rotation=new(0,Mathf.Pi,0);
-        float enemyHp=opponent.Health;await Press("attack",2);await Frames(40);
-        Check(enemyHp-opponent.Health==Enemy.SwordDamage&&!opponent.Dead,"from the front a swing only scratches a robot's plating");
+        float enemyHp=opponent.Health;await Press("attack",2);for(int i=0;i<30&&opponent.Health==enemyHp;i++)await Frames(1);
+        Check(Engine.TimeScale<1,"a landed swing holds the valley in a brief hit-stop");await Frames(40);
+        Check(enemyHp-opponent.Health==Enemy.SwordDamage&&!opponent.Dead&&Engine.TimeScale==1,"from the front a swing only scratches a robot's plating");
         float afterHit=opponent.Health;await Frames(30);Check(opponent.Health==afterHit,"one swing cannot hit again after its active frame");
-        opponent.Reset();opponent.GlobalPosition=spot+Vector3.Forward*4.2f;opponent.Model.Rotation=Vector3.Zero;
+        // With no robot near, a second press during the first swing waits for its link, well before its end, and each swing lunges.
+        opponent.GlobalPosition=spot+Vector3.Forward*14;Place(g.Player,spot);await Frames(30);var lungeFrom=g.Player.GlobalPosition;var trail=g.Player.GetNode<SwordTrail>("Sword trail");
+        await Press("attack");await Frames(4);bool slashing=trail.Emitting;await Press("attack");string first=g.Player.Visual.Animator!.CurrentAnimation.ToString();await Frames((int)(Player.Swings[0].Link*60)-8);
+        Check(first.Contains("attack1")&&g.Player.Visual.Animator.CurrentAnimation.ToString().Contains("attack2"),$"a queued attack chains at the first swing's link ({first} -> {g.Player.Visual.Animator.CurrentAnimation})");
+        float blade=trail.Base.GlobalPosition.DistanceTo(trail.Tip.GlobalPosition);
+        Check(slashing&&blade>.4f&&blade<1.2f,$"the sword trail runs along the blade while it swings ({blade:F2} m)");
+        await Frames(40);var stepped=g.Player.GlobalPosition-lungeFrom;
+        Check(stepped.Z<-.7f&&Math.Abs(stepped.X)<.1f,$"the two swings lunge Mio forward ({-stepped.Z:F2} m)");
+        opponent.Reset();opponent.GlobalPosition=spot+Vector3.Forward*4.2f;opponent.Model.Rotation=Vector3.Zero;Place(g.Player,spot);await Frames(30);
         Check(g.Player.SkillCharges==Player.MaxSkillCharges&&g.Player.Skill()&&g.Player.SkillCharges==Player.MaxSkillCharges-1,"Resonance Cut spends one of its charges");
         Check(!g.Player.Skill()&&g.Player.SkillCharges==Player.MaxSkillCharges-1,"Resonance Cut cannot be recast while it is cast");
-        await Frames(65);Check(opponent.Stunned&&opponent.Health==opponent.MaxHealth&&opponent.Posture==0,"Resonance Cut stuns a robot at extended range and does it no harm");
+        // The slam's hit-stop holds Mio about seven frames longer than the cast itself.
+        int cast=(int)(Player.SkillLength*60)+15;await Frames((int)(Player.SkillSlam*60)+4);
+        Check(opponent.Stunned&&opponent.Health==opponent.MaxHealth&&opponent.Posture==0&&g.GetChildren().Any(n=>n.Name.ToString().Contains("Resonance wave")),"Resonance Cut's slam sends out its wave and stuns a robot at extended range, doing it no harm");
+        await Frames(cast-(int)(Player.SkillSlam*60)-4);
         opponent.GlobalPosition=spot+Vector3.Forward*2;Check(!g.Player.CanShutDown(opponent),"a robot facing Mio cannot be shut down, even stunned");
         opponent.Model.Rotation=new(0,Mathf.Pi,0);Check(g.Player.CanShutDown(opponent),"a robot in reach with its back to Mio can be shut down");
         g.Player.Attack();Check(opponent.Dead,"an attack from behind shuts a robot down outright");
@@ -593,10 +605,10 @@ public static class IntegrationCheck
         opponent.TakeHit(0,100);Check(opponent.Broken,"full posture opens execution window");
         g.Player.Attack();Check(opponent.Dead,"attack executes a broken robot");opponent.Reset();
         g.Player.Health=35;int herbs=g.Player.Remedies;g.Player.Heal();
-        Check(g.Player.Health==35,"healing is blocked during an attack");await Frames(60);g.Player.Heal();
+        Check(g.Player.Health==35,"healing is blocked during an attack");await Frames(70);g.Player.Heal();
         Check(g.Player.Health==80&&g.Player.Remedies==herbs-1,"remedy restores health and consumes one charge");
-        for(int cast=1;cast<Player.MaxSkillCharges;cast++){await Frames(65);Check(g.Player.Skill(),$"Resonance Cut casts again on charge {cast+1}");}
-        await Frames(65);Check(g.Player.SkillCharges==0&&!g.Player.Skill(),$"with its {Player.MaxSkillCharges} charges spent Resonance Cut waits for a rest");
+        for(int charge=1;charge<Player.MaxSkillCharges;charge++){await Frames(cast);Check(g.Player.Skill(),$"Resonance Cut casts again on charge {charge+1}");}
+        await Frames(cast);Check(g.Player.SkillCharges==0&&!g.Player.Skill(),$"with its {Player.MaxSkillCharges} charges spent Resonance Cut waits for a rest");
         var scout=g.Enemies.First(e=>e.Scout);g.Player.Health=100;g.Player.Invulnerable=0;
         Check(scout.Health==scout.MaxHealth&&scout.MaxHealth<opponent.MaxHealth&&scout.Model.Scale.X<opponent.Model.Scale.X&&g.Player.ReceiveHit(scout,true)=="hit"&&g.Player.Health==100-scout.Strike(true)&&scout.Strike(true)<opponent.Strike(true),
             $"scouts are smaller, weaker and strike lighter than the patrols ({100-g.Player.Health:F1} damage)");

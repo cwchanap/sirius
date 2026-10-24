@@ -6,6 +6,11 @@ public partial class Player : CharacterBody3D
     public Game Game = null!;
     // Resonance Cut charges, spent one per cast and refilled only by resting (Aki, Emi, or recovering at the village).
     public const int MaxSkillCharges = 3;
+    // Per swing: seconds to its hit, to its link (the follow-through the next swing starts from, where a queued attack waits)
+    // and to its end, and the lunge forward (metres) between two times. tools/mio_combat.py keys the clips to the same numbers.
+    public static readonly (float Hit,float Link,float End,float Lunge,float From,float To)[] Swings={(.17f,.3f,.55f,.45f,.04f,.2f),(.11f,.26f,.55f,.5f,.02f,.15f),(.3f,.5f,.85f,1.2f,.06f,.3f)};
+    // Resonance Cut: a crouch, a leap spinning twice, and the slam that locks every robot within SkillRadius.
+    public const float SkillLength=1.3f,SkillSlam=.78f,SkillRadius=5.5f;
     public float Health = 100, Posture, Invulnerable, Stun;
     public int Remedies = 3, MaxRemedies = 3, SkillCharges = MaxSkillCharges;
     public bool Guarding { get; private set; }
@@ -14,10 +19,11 @@ public partial class Player : CharacterBody3D
     public ActorVisual Visual = null!;
     public Node3D Model = null!;
     public Vector3 Facing => new(Mathf.Sin(Model.Rotation.Y),0,Mathf.Cos(Model.Rotation.Y));
-    private float attack, attackElapsed, dodge, dodgeCooldown, comboGrace, skillCast, healTimer;
+    private float attack, attackElapsed, dodge, dodgeCooldown, comboGrace, skillCast, healTimer, lunge;
     private bool struck, comboQueued;
     private int combo;
     private Vector3 dodgeDirection;
+    private SwordTrail trail=null!;
     private const float JumpVelocity=7.4f, Gravity=22;
     private float landing;
     public override void _Ready()
@@ -26,6 +32,15 @@ public partial class Player : CharacterBody3D
         AddChild(new CollisionShape3D {Position=new(0,.9f,0),Shape=new CapsuleShape3D {Radius=.3f,Height=1.8f}});
         Model=GD.Load<PackedScene>("res://assets/models/mio.glb").Instantiate<Node3D>();AddChild(Model);Model.Rotation=new(0,Mathf.Pi,0);
         Visual=new ActorVisual();AddChild(Visual);Visual.Bind(Model);Visual.Play("idle");
+        // The trail runs from near the hilt to its tip, read from the skinned blade in the hand bone's frame.
+        var skeleton=ActorVisual.Descendants(Model).OfType<Skeleton3D>().Single();
+        var blade=ActorVisual.Descendants(Model).OfType<MeshInstance3D>().Single(m=>m.Name.ToString().Contains("blade"));
+        int bind=Enumerable.Range(0,blade.Skin.GetBindCount()).First(i=>blade.Skin.GetBindName(i)=="RightHand"||blade.Skin.GetBindBone(i)==skeleton.FindBone("RightHand"));
+        var points=blade.Mesh.SurfaceGetArrays(0)[(int)Mesh.ArrayType.Vertex].AsVector3Array().Select(v=>blade.Skin.GetBindPose(bind)*v).ToArray();
+        var tip=points.MaxBy(v=>v.LengthSquared());var hilt=points.MaxBy(v=>v.DistanceSquaredTo(tip));
+        var socket=new BoneAttachment3D {Name="Sword socket",BoneName="RightHand"};skeleton.AddChild(socket);
+        trail=new SwordTrail {Base=new Node3D {Name="Blade base",Position=hilt.Lerp(tip,.15f)},Tip=new Node3D {Name="Blade tip",Position=tip}};
+        socket.AddChild(trail.Base);socket.AddChild(trail.Tip);AddChild(trail);
     }
     public override void _PhysicsProcess(double delta)
     {
@@ -35,7 +50,7 @@ public partial class Player : CharacterBody3D
         Stun=Math.Max(0,Stun-dt);DeflectWindow=Math.Max(0,DeflectWindow-dt);
         dodgeCooldown=Math.Max(0,dodgeCooldown-dt);comboGrace=Math.Max(0,comboGrace-dt);
         healTimer=Math.Max(0,healTimer-dt);
-        landing=Math.Max(0,landing-dt);
+        landing=Math.Max(0,landing-dt);trail.Emitting=false;
         var input=Input.GetVector("left","right","forward","back");
         var dir=new Vector3(input.X,0,input.Y).Rotated(Vector3.Up,Game.CameraYaw);
         if(Input.IsActionJustPressed("lock"))Game.ToggleLock();
@@ -52,38 +67,48 @@ public partial class Player : CharacterBody3D
             }
             if(Input.IsActionJustPressed("skill"))Skill();
         }
+        var swing=Swings[combo];
         if(attack>0)
         {
-            attack-=dt;attackElapsed+=dt;
-            if(!struck&&attackElapsed>.17f+combo*.035f)
+            attack-=dt;attackElapsed+=dt;trail.Emitting=struck?attackElapsed<swing.Hit+.12f:attackElapsed>swing.Hit-.09f;
+            if(!struck&&attackElapsed>=swing.Hit)
             {
-                struck=true;Game.Slash(GlobalPosition+Vector3.Up, Facing, false);
+                struck=true;bool landed=false;
                 foreach(var enemy in Game.Enemies.Where(e=>!e.Dead))
-                    if(CanReach(enemy.GlobalPosition,2.9f,.15f)) enemy.TakeHit(Enemy.SwordDamage,Enemy.SwordPosture);
+                    if(CanReach(enemy.GlobalPosition,2.9f,.15f)){enemy.TakeHit(Enemy.SwordDamage,Enemy.SwordPosture);landed=true;}
+                if(combo==2){Game.Ring(GlobalPosition+Facing*1.1f,.3f,2.2f,.3f,World.Gold);Game.CameraShake=.14f;}
+                if(landed)Game.HitStop(combo==2?.1f:.055f);
             }
-            if(attack<=0&&comboQueued){comboQueued=false;Attack();}
+            if(comboQueued&&attackElapsed>=swing.Link){comboQueued=false;Attack();swing=Swings[combo];}
         }
         if(skillCast>0)
         {
-            float previous=skillCast;skillCast-=dt;
-            if(previous>.4f&&skillCast<=.4f)
+            float was=SkillLength-skillCast;skillCast-=dt;float now=SkillLength-skillCast;trail.Emitting=now>.38f&&now<SkillSlam+.04f;
+            if(was<SkillSlam&&now>=SkillSlam)
             {
-                Game.Burst(GlobalPosition+Vector3.Up*.8f,World.Jade,5.2f);Game.Sound("skill");
+                Game.Ring(GlobalPosition,.5f,SkillRadius,.45f,World.Jade);Game.Burst(GlobalPosition+Vector3.Up*.4f,World.Jade,2.4f);Game.Sound("skill");
+                Game.CameraShake=.3f;Game.CameraPunch=1;Game.HitStop(.12f);
                 foreach(var enemy in Game.Enemies.Where(e=>!e.Dead))
-                    if(CanReach(enemy.GlobalPosition,5.5f,-1))enemy.Stun(Enemy.ResonanceStun);
+                    if(CanReach(enemy.GlobalPosition,SkillRadius,-1)){enemy.Stun(Enemy.ResonanceStun);Game.Burst(enemy.GlobalPosition+Vector3.Up*1.3f,World.Jade,1.3f);}
                 Game.Toast("RESONANCE CUT", "Zero: their actuators are locked. Get behind them.",2.5f);
             }
         }
         float speed=Guarding?1.7f:Input.IsActionPressed("run")?7.8f:2f;
-        if(attack>0)speed=1.4f;
-        if(Stun>0||skillCast>0||healTimer>0)speed=0;
+        if(Stun>0||skillCast>0||healTimer>0||attack>0)speed=0;
         Vector3 horizontal=dir*speed;
+        if(attack>0)
+        {
+            // The lunge's speed is the slope of a smoothstep over its window, so Mio covers exactly the clip's step.
+            float u=(attackElapsed-swing.From)/(swing.To-swing.From);
+            if(u>0&&u<1)horizontal=Facing*(lunge*6*u*(1-u)/(swing.To-swing.From));
+        }
         if(dodge>0){dodge-=dt;horizontal=dodgeDirection*7;}
-        else if(dir.LengthSquared()>.01f&&Stun<=0&&skillCast<=0)
+        else if(dir.LengthSquared()>.01f&&Stun<=0&&skillCast<=0&&attack<=0)
             Model.Rotation=new(0,Mathf.LerpAngle(Model.Rotation.Y,Mathf.Atan2(dir.X,dir.Z),dt*13),0);
         if(Game.Locked is { Dead:false } target&&dodge<=0)
         {var to=target.GlobalPosition-GlobalPosition;Model.Rotation=new(0,Mathf.LerpAngle(Model.Rotation.Y,Mathf.Atan2(to.X,to.Z),dt*12),0);}
-        Velocity=new(Mathf.MoveToward(Velocity.X,horizontal.X,dt*45),IsOnFloor()&&Velocity.Y<0?-.5f:Velocity.Y-Gravity*dt,Mathf.MoveToward(Velocity.Z,horizontal.Z,dt*45));
+        float grip=attack>0?1000:45;
+        Velocity=new(Mathf.MoveToward(Velocity.X,horizontal.X,dt*grip),IsOnFloor()&&Velocity.Y<0?-.5f:Velocity.Y-Gravity*dt,Mathf.MoveToward(Velocity.Z,horizontal.Z,dt*grip));
         bool wasOnFloor=IsOnFloor();
         MoveAndSlide();
         if(GlobalPosition.Y<-8)Respawn();
@@ -125,11 +150,19 @@ public partial class Player : CharacterBody3D
         var victim=Game.Enemies.FirstOrDefault(CanShutDown);
         if(victim!=null)
         {
-            victim.Execute();Invulnerable=.8f;attack=.75f;attackElapsed=0;struck=true;comboQueued=false;
-            Visual.Play("attack3",1,true);Game.Burst(victim.GlobalPosition+Vector3.Up,World.Gold,2.3f);return;
+            victim.Execute();Invulnerable=.8f;combo=2;attack=Swings[2].End;attackElapsed=0;lunge=0;struck=true;comboQueued=false;comboGrace=0;
+            Visual.Play("attack3",1,true);Game.Burst(victim.GlobalPosition+Vector3.Up,World.Gold,2.3f);Game.HitStop(.12f);Game.CameraShake=.18f;return;
         }
-        combo=comboGrace>0?(combo+1)%3:0;comboGrace=1.3f;attack=.48f+combo*.08f;attackElapsed=0;struck=false;
-        Guarding=false;Visual.Play("attack"+(combo+1),1.2f,true);Game.Sound("swing");
+        combo=comboGrace>0?(combo+1)%3:0;var swing=Swings[combo];comboGrace=swing.End+.15f;attack=swing.End;attackElapsed=0;struck=false;
+        // Each swing turns to the locked robot, or the nearest within reach, else the way she is steering, and lunges no closer than 1.3 m.
+        var aim=Game.Locked is {Dead:false} locked&&locked.GlobalPosition.DistanceTo(GlobalPosition)<5?locked
+            :Game.Enemies.Where(e=>!e.Dead&&e.GlobalPosition.DistanceTo(GlobalPosition)<3.5f).MinBy(e=>e.GlobalPosition.DistanceSquaredTo(GlobalPosition));
+        var input=Input.GetVector("left","right","forward","back");
+        var heading=aim!=null?aim.GlobalPosition-GlobalPosition:new Vector3(input.X,0,input.Y).Rotated(Vector3.Up,Game.CameraYaw);heading.Y=0;
+        if(heading.LengthSquared()>.01f)Model.Rotation=new(0,Mathf.Atan2(heading.X,heading.Z),0);
+        lunge=aim!=null?Math.Clamp(heading.Length()-1.3f,0,swing.Lunge):swing.Lunge;
+        // A chained swing starts from the pose the last one links at, so it needs only the shortest blend.
+        Guarding=false;trail.Life=.16f;Visual.Play("attack"+(combo+1),1,true,.05f);Game.Sound("swing");
     }
     // From behind, or once its posture breaks, a robot within reach is shut down by the next attack.
     public bool CanShutDown(Enemy e)=>(e.Broken||e.ExposedTo(GlobalPosition))&&CanReach(e.GlobalPosition,3,-.2f);
@@ -144,7 +177,8 @@ public partial class Player : CharacterBody3D
     {
         if(attack>0||dodge>0||skillCast>0||Stun>0||healTimer>0||Health<=0)return false;
         if(SkillCharges<=0){Game.Feedback("ZERO LINK SPENT  ·  REST TO RECHARGE",World.Jade);return false;}
-        SkillCharges--;skillCast=.95f;Invulnerable=.55f;Guarding=false;Visual.Play("skill",1.2f,true);return true;
+        SkillCharges--;skillCast=SkillLength;Invulnerable=SkillSlam+.1f;Guarding=false;trail.Life=.3f;Visual.Play("skill",1,true);
+        Game.Ring(GlobalPosition,2.6f,.4f,.36f,World.Jade);return true;
     }
     public string ReceiveHit(Enemy enemy,bool perilous)
     {

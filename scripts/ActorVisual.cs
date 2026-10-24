@@ -21,11 +21,11 @@ public partial class ActorVisual : Node
             anim.LoopMode=key is "idle" or "walk" or "run" or "guard" ? Animation.LoopModeEnum.Linear : Animation.LoopModeEnum.None;
         }
     }
-    public void Play(string clip,float speed=1,bool restart=false)
+    public void Play(string clip,float speed=1,bool restart=false,float blend=.12f)
     {
         if(Animator==null||!clips.TryGetValue(clip,out var name))return;
         if(!restart&&Animator.CurrentAnimation==name&&Animator.IsPlaying())return;
-        Animator.Play(name,.12,speed);
+        Animator.Play(name,blend,speed);
     }
     public bool HasClip(string name)=>clips.ContainsKey(name);
 }
