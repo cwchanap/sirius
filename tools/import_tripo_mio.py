@@ -3,36 +3,34 @@
 Blender --background --factory-startup --python tools/import_tripo_mio.py
 The sources stay untouched. The low-poly body keeps Tripo's 65-bone Mixamo rig and the
 clips the user made in Tripo Studio. Each clip is cut to its motion, retimed to the length
-Player.cs was tuned against and kept over the hips; translation belongs to Godot.
+Player.cs was tuned against and kept over the hips; translation belongs to Godot. The three
+attacks and Resonance Cut are keyed by tools/mio_combat.py on the same rig instead.
 """
 import bpy
 import bmesh
 import json
 import math
 import numpy as np
+import sys
 from pathlib import Path
 from mathutils import Matrix, Quaternion, Vector
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'tools'))
+import mio_combat  # noqa: E402
 OUT = ROOT / 'artifacts/mio-tripo-animation'
 SOURCE = 'assets/source/tripo-bridge-20261016-mio-anim.blend'
 FIXED = 'assets/source/mio-lowpoly-fixed-face2.blend'
 # Game clip: Tripo action (after 'Armature|', names are cut at 63 characters), source frames,
 # game frames. Game lengths are the previous clips', except the dodge, which fills Player.cs's
-# 0.6 s roll. Windows put the fastest swing near the hit Player.cs times (frames 6/7/8 of
-# attack1/2/3, 17 of skill); attack2's short backhand spans frames 2-11 around its hit.
-# Jump frames 2/6/9 are takeoff/apex/descent, 10-13 landing.
+# 0.6 s roll. Jump frames 2/6/9 are takeoff/apex/descent, 10-13 landing.
 CLIPS = {
     'idle': ('idle', 1, 369, 369),
     'walk': ('walk', 1, 57, 57),
     'run': ('run', 1, 31, 31),
     'jump': ('jump', 1, 13, 13),
-    'attack1': ('A swordswoman steps forward and swings a one-handed sword in he', 24, 48, 15),
-    'attack2': ('A swordswoman holding a one-handed sword in her right hand does', 1, 10, 16),
-    'attack3': ('A swordswoman holding a one-handed sword in her right hand rais', 16, 48, 20),
     'guard': ('A swordswoman in a defensive guard stance: knees bent, her righ', 17, 25, 48),
     'dodge': ('A swordswoman does a quick forward combat roll over her shoulde', 8, 46, 15),
-    'skill': ('A swordswoman crouches and pulls her sword back with her right ', 1, 50, 31),
     'stagger': ('A swordswoman holding a sword in her right hand is hit hard in ', 1, 48, 18),
     'death': ('A swordswoman is struck by a fatal blow, drops to her knees, th', 1, 60, 36),
 }
@@ -40,11 +38,9 @@ CLIPS = {
 # joint about their curl axis, local X) and take the thumb from the slash preset's tightest fist.
 GRIP_CURL = (70, 85, 45)
 GRIP_THUMB = 'slash'
-# The attacks open from and settle into the attack1 prompt's ready stance, so the combo chains
-# through one pose instead of snapping between three. That frame raises the left hand to her head;
-# the stance takes the held guard's left arm, braced at the waist.
+# mio_combat.py keys its clips from the attack1 prompt's opening stance. That frame raises the left
+# hand to her head; the stance takes the held guard's left arm, braced at the waist.
 READY = 'A swordswoman steps forward and swings a one-handed sword in he'
-ATTACK_IN, ATTACK_OUT = 3, 4
 # Tripo's roll lands on her back and sits up (source frames 27-35). Knots of (game frame from 0,
 # source frame) speed the whole roll evenly so that stretch passes sooner and the rise gets the
 # time; the hips then turn at most 64 degrees a frame (55 when sampled evenly).
@@ -58,14 +54,6 @@ JUMP_TUCK = (0, 0, .35, .7, .9, 1, .9, .6, .25, 0, 0, 0, 0)
 def turn(bone, degrees):
     rest = bone.bone.matrix_local.to_3x3()
     return (rest.inverted() @ Quaternion((1, 0, 0), math.radians(degrees)).to_matrix() @ rest).to_quaternion()
-
-
-def mix(a, b, w):
-    out = {}
-    for name in a:
-        (la, ra, sa), (lb, rb, sb) = a[name].decompose(), b[name].decompose()
-        out[name] = Matrix.LocRotScale(la.lerp(lb, w), ra.slerp(rb, w), sa.lerp(sb, w))
-    return out
 
 
 def activate(rig, action):
@@ -213,66 +201,9 @@ def main():
     scene.frame_set(CLIPS['guard'][2])
     ready.update({pb.name: pb.matrix_basis.copy() for pb in rig.pose.bones
                   if pb.name.startswith(('LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand'))})
-    actions = []
-    for name, (source, first, last, frames) in CLIPS.items():
-        activate(rig, source_actions[source])
-        scene.frame_set(first)
-        foot_floor = min(f.head.z for f in feet)
-        poses = []
-        for t in range(frames):
-            u = t / (frames - 1)
-            # Guard holds its block: play the held span forward and back so the loop closes.
-            if name == 'guard':
-                u = 1 - abs(1 - 2 * u)
-            frame = first + (last - first) * u
-            if name == 'dodge':
-                frame = float(np.interp(t, *zip(*DODGE_KNOTS)))
-            scene.frame_set(int(frame), subframe=frame % 1)
-            p = hip.matrix.translation
-            # Tripo's jump travels upward; Godot's physics owns the height.
-            lift = max(0, min(f.head.z for f in feet) - foot_floor) if name == 'jump' else 0
-            pose = {pb.name: pb.matrix_basis.copy() for pb in rig.pose.bones}
-            pose['Hips'].translation -= basis @ Vector((p.x, p.y, lift))
-            if name.startswith('attack'):
-                w = min(1, t / ATTACK_IN, (frames - 1 - t) / ATTACK_OUT)
-                pose = mix(ready, pose, w * w * (3 - 2 * w))
-            pose.update({n: m.copy() for n, m in grip.items()})
-            poses.append(pose)
-        if name == 'jump':
-            rig.animation_data.action = None
-            for t, pose in enumerate(poses):
-                for pb in rig.pose.bones:
-                    pb.rotation_mode = 'QUATERNION'
-                    pb.matrix_basis = pose[pb.name]
-                c, k = JUMP_CROUCH[t], JUMP_TUCK[t]
-                for side in ('Left', 'Right'):
-                    for bone, degrees in (('UpLeg', -50 * c - 60 * k), ('Leg', 90 * c + 80 * k), ('Foot', -40 * c - 20 * k)):
-                        pb = rig.pose.bones[side + bone]
-                        pb.rotation_quaternion = turn(pb, degrees) @ pb.rotation_quaternion
-                spine = rig.pose.bones['Spine']
-                spine.rotation_quaternion = turn(spine, 20 * c + 10 * k) @ spine.rotation_quaternion
-                if c:
-                    # A crouch on the ground lowers the hips until the feet are back on the floor.
-                    bpy.context.view_layer.update()
-                    hip.location -= basis @ Vector((0, 0, min(f.head.z for f in feet) - foot_floor))
-                pose.update({pb.name: pb.matrix_basis.copy() for pb in rig.pose.bones})
-        action = bpy.data.actions.new(name)
-        activate(rig, action)
-        for t, pose in enumerate(poses, 1):
-            for pb in rig.pose.bones:
-                pb.rotation_mode = 'QUATERNION'
-                pb.matrix_basis = pose[pb.name]
-                pb.keyframe_insert('rotation_quaternion', frame=t)
-                pb.keyframe_insert('location', frame=t)
-                pb.keyframe_insert('scale', frame=t)
-        actions.append(action)
-    for action in list(bpy.data.actions):
-        if action not in actions:
-            bpy.data.actions.remove(action)
     rig.animation_data.action = None
     for pb in rig.pose.bones:
         pb.matrix_basis = Matrix.Identity(4)
-
     # Keep the original sword, fitted to the new right-hand rest transform.
     with bpy.data.libraries.load(str(ROOT / 'assets/source/characters.blend')) as (src, dst):
         dst.scenes = ['HumanV2_mio']
@@ -309,6 +240,69 @@ def main():
     for obj in list(old_scene.objects):
         bpy.data.objects.remove(obj, do_unlink=True)
     bpy.data.scenes.remove(old_scene)
+    # mio_combat.py points the seated blade, hilt to tip, with its edge leading.
+    steel = scene.objects['Sword blade steel']
+    blade, edge, _, _ = mio_combat.sword(rig, [steel.matrix_basis @ v.co for v in steel.data.vertices])
+    clips = {}
+    for name, (source, first, last, frames) in CLIPS.items():
+        activate(rig, source_actions[source])
+        scene.frame_set(first)
+        foot_floor = min(f.head.z for f in feet)
+        poses = []
+        for t in range(frames):
+            u = t / (frames - 1)
+            # Guard holds its block: play the held span forward and back so the loop closes.
+            if name == 'guard':
+                u = 1 - abs(1 - 2 * u)
+            frame = first + (last - first) * u
+            if name == 'dodge':
+                frame = float(np.interp(t, *zip(*DODGE_KNOTS)))
+            scene.frame_set(int(frame), subframe=frame % 1)
+            p = hip.matrix.translation
+            # Tripo's jump travels upward; Godot's physics owns the height.
+            lift = max(0, min(f.head.z for f in feet) - foot_floor) if name == 'jump' else 0
+            pose = {pb.name: pb.matrix_basis.copy() for pb in rig.pose.bones}
+            pose['Hips'].translation -= basis @ Vector((p.x, p.y, lift))
+            pose.update({n: m.copy() for n, m in grip.items()})
+            poses.append(pose)
+        if name == 'jump':
+            rig.animation_data.action = None
+            for t, pose in enumerate(poses):
+                for pb in rig.pose.bones:
+                    pb.rotation_mode = 'QUATERNION'
+                    pb.matrix_basis = pose[pb.name]
+                c, k = JUMP_CROUCH[t], JUMP_TUCK[t]
+                for side in ('Left', 'Right'):
+                    for bone, degrees in (('UpLeg', -50 * c - 60 * k), ('Leg', 90 * c + 80 * k), ('Foot', -40 * c - 20 * k)):
+                        pb = rig.pose.bones[side + bone]
+                        pb.rotation_quaternion = turn(pb, degrees) @ pb.rotation_quaternion
+                spine = rig.pose.bones['Spine']
+                spine.rotation_quaternion = turn(spine, 20 * c + 10 * k) @ spine.rotation_quaternion
+                if c:
+                    # A crouch on the ground lowers the hips until the feet are back on the floor.
+                    bpy.context.view_layer.update()
+                    hip.location -= basis @ Vector((0, 0, min(f.head.z for f in feet) - foot_floor))
+                pose.update({pb.name: pb.matrix_basis.copy() for pb in rig.pose.bones})
+        clips[name] = poses
+    clips.update(mio_combat.clips(rig, ready, (blade, edge), grip))
+    actions = []
+    for name, poses in clips.items():
+        action = bpy.data.actions.new(name)
+        activate(rig, action)
+        for t, pose in enumerate(poses, 1):
+            for pb in rig.pose.bones:
+                pb.rotation_mode = 'QUATERNION'
+                pb.matrix_basis = pose[pb.name]
+                pb.keyframe_insert('rotation_quaternion', frame=t)
+                pb.keyframe_insert('location', frame=t)
+                pb.keyframe_insert('scale', frame=t)
+        actions.append(action)
+    for action in list(bpy.data.actions):
+        if action not in actions:
+            bpy.data.actions.remove(action)
+    rig.animation_data.action = None
+    for pb in rig.pose.bones:
+        pb.matrix_basis = Matrix.Identity(4)
     for action in actions:
         action.use_fake_user = True
         track = rig.animation_data.nla_tracks.new()
@@ -328,7 +322,8 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     report = {'source': SOURCE, 'textures_from': FIXED, 'bones': len(rig.data.bones),
               'body_faces': len(body.data.polygons), 'height_m': 1.84, 'scale': scale, 'images': images,
-              'clips': {n: {'tripo': CLIPS[n][0], 'source_frames': list(CLIPS[n][1:3]), 'frames': CLIPS[n][3]} for n in CLIPS},
+              'clips': {n: {'tripo': CLIPS[n][0], 'source_frames': list(CLIPS[n][1:3]), 'frames': CLIPS[n][3]} if n in CLIPS
+                        else {'keyed': 'tools/mio_combat.py', 'frames': len(p)} for n, p in clips.items()},
               'weapon_faces': weapon_faces}
     (OUT / 'build.json').write_text(json.dumps(report, indent=2) + '\n')
     print('TRIPO_EXPORT_COMPLETE', json.dumps(report), flush=True)

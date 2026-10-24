@@ -15,7 +15,7 @@ public partial class Game : Node3D
     public Enemy? Locked;
     public GameMode Mode=GameMode.Title;
     public int QuestStage;
-    public float CameraYaw,CameraPitch=-.29f,CameraShake;
+    public float CameraYaw,CameraPitch=-.29f,CameraShake,CameraPunch;
     public Camera3D Camera=null!;
     public Hud Hud=null!;
     public string Speaker="",SpeakerRole="",Dialogue="",ToastTitle="",ToastBody="",FeedbackText="";
@@ -37,6 +37,7 @@ public partial class Game : Node3D
     private bool captured;
     private string capturePath="";
     private string previousRegion="Hoshikawa";
+    private float fov;
     public string Region=>Hoshikawa.World.RegionAt(Player.GlobalPosition);
     public override void _Ready()
     {
@@ -66,7 +67,7 @@ public partial class Game : Node3D
         if(args.Contains("--portrait-close")){Player.GlobalPosition=new(0,.1f,23);CameraYaw=Mathf.Pi+.45f;CameraPitch=-.09f;spring.SpringLength=2.1f;Camera.Fov=37;}
         if(args.Contains("--komorebi")){Player.GlobalPosition=new(0,Hoshikawa.World.Height(0,-235)+.1f,-235);CameraPitch=-.3f;spring.SpringLength=11;}
         if(args.Contains("--pass-view")){Player.GlobalPosition=new(Hoshikawa.World.RoadX(-199),Hoshikawa.World.Height(Hoshikawa.World.RoadX(-199),-199)+.1f,-199);CameraPitch=-.27f;spring.SpringLength=10;}
-        Hud.RefreshMenu();GD.Print($"HOSHIKAWA_READY buildings={World.Buildings.Count} residents={World.Residents.Count} patrols={Patrols.Count()} scouts={Enemies.Count(e=>e.Scout)}");
+        fov=Camera.Fov;Hud.RefreshMenu();GD.Print($"HOSHIKAWA_READY buildings={World.Buildings.Count} residents={World.Residents.Count} patrols={Patrols.Count()} scouts={Enemies.Count(e=>e.Scout)}");
     }
     // A stopped playback, and the valley.wav it holds, is only released on the audio thread's next mix step; if the engine
     // shuts the AudioServer down first, both leak at exit. Blocking briefly at quit lets that step run first.
@@ -124,6 +125,7 @@ public partial class Game : Node3D
         CameraShake=Math.Max(0,CameraShake-dt);
         Camera.HOffset=CameraShake>0?Mathf.Sin((float)elapsed*100)*CameraShake*.2f:0;
         Camera.VOffset=CameraShake>0?Mathf.Cos((float)elapsed*86)*CameraShake*.15f:0;
+        CameraPunch=Math.Max(0,CameraPunch-dt*3);Camera.Fov=fov-CameraPunch*CameraPunch*7;
         for(int i=effects.Count-1;i>=0;i--)
         {
             var fx=effects[i];float life=fx.Life-dt;
@@ -259,6 +261,20 @@ public partial class Game : Node3D
             spark.Rotation=new(i,.2f*i,i*.5f);
             var tween=CreateTween();tween.TweenProperty(spark,"position",p+new Vector3(Mathf.Sin(i)*radius,Mathf.Sin(i*4)*radius*.4f,Mathf.Cos(i)*radius),.24);tween.TweenCallback(Callable.From(spark.QueueFree));
         }
+    }
+    // A flat ring on the ground that grows (or closes) from one radius to another and fades.
+    public void Ring(Vector3 p,float from,float to,float seconds,Color color)
+    {
+        var mat=new StandardMaterial3D {ShadingMode=BaseMaterial3D.ShadingModeEnum.Unshaded,Transparency=BaseMaterial3D.TransparencyEnum.Alpha,BlendMode=BaseMaterial3D.BlendModeEnum.Add,AlbedoColor=color};
+        var ring=Hoshikawa.World.Mesh(this,"Resonance wave",new TorusMesh {InnerRadius=.93f,OuterRadius=1,Rings=48,RingSegments=4},p+Vector3.Up*.08f,mat);
+        ring.Scale=new(from,.4f,from);ring.CastShadow=GeometryInstance3D.ShadowCastingSetting.Off;
+        var t=CreateTween().SetParallel();t.TweenProperty(ring,"scale",new Vector3(to,.4f,to),seconds).SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Cubic);
+        t.TweenProperty(mat,"albedo_color:a",0f,seconds).SetEase(Tween.EaseType.In);t.Chain().TweenCallback(Callable.From(ring.QueueFree));
+    }
+    // A blow lands: the whole valley slows to a twentieth for a moment, measured in unscaled time.
+    public void HitStop(float seconds)
+    {
+        Engine.TimeScale=.05;GetTree().CreateTimer(seconds,true,false,true).Timeout+=()=>Engine.TimeScale=1;
     }
     public void Slash(Vector3 p,Vector3 forward,bool red)
     {
