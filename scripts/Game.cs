@@ -195,7 +195,7 @@ public partial class Game : Node3D
                 else Play(QuestStage==4?Prologue.RenRest:QuestStage==2?Prologue.RenRoadClear:Prologue.RenReminder);
                 return;
             }
-            if(r.Name is "Aki" or "Emi"){Player.Health=100;Player.Posture=0;Player.Remedies=Player.MaxRemedies;Sound("heal");}
+            if(r.Name is "Aki" or "Emi"){Player.Rest();Sound("heal");}
             Play(Heard.Add(r.Name)&&Prologue.FirstMeeting.TryGetValue(r.Name,out var scene)?scene:Prologue.Usual(r.Name));return;
         }
         if(World.RelayPosition.DistanceTo(Player.GlobalPosition)<3.3f)

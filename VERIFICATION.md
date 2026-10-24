@@ -1,5 +1,11 @@
 # MVP verification
 
+## Combat: robots shut down from behind — 2026-10-24
+
+- **Rules:** from the front Mio's sword takes 3 health and 5 posture from a robot and no longer staggers it; attacking within 60° of its back (`Enemy.BehindDot`) in finisher reach shuts it down outright. A robot neither moves nor turns while it recovers after a swing, a deflect or a stun. Strikes take 45 vitality, 70 for the perilous sweep, 60% of that from scouts. Resonance Cut stuns every robot within 5.5 m for 4 s and deals no damage; it has 3 charges and no cooldown, refilled by `Player.Rest()`: Aki, Emi and `Respawn()` (recovering at the village, restart). Deflect, posture break and the frontal finisher are unchanged. The constants are at the top of `scripts/Enemy.cs` and `Player.MaxSkillCharges`.
+- **Unit tests:** `dotnet test tests/unit` passes 35; new: only a robot's back within 60° counts as behind, whatever the height.
+- **Self-test:** **531 checks pass headless** in `en`, `ja` and `zh_TW` in a cloud container with Godot 4.6.2 mono. New or changed checks: Emi refills the charges; a perilous hit takes 70 and a patrol's real windup strike 45; a frontal swing takes exactly the chip damage; Resonance Cut spends one charge, stuns at 4.2 m without harm, casts three times and then refuses; a robot facing Mio cannot be shut down even stunned, one with its back to her can, and the attack kills it; the stun holds and wears off under the robot's own physics; a stunned robot keeps its back turned while Mio is placed behind it, and the attack key shuts it down. Not run graphically: no Metal run, no capture of the new HUD charge counter or robot hints, and no hands-on feel check of the numbers.
+
 ## Tripo batch 2: Cedar Pass and the roadside — 2026-10-23
 
 The Cedar Pass shelter, the valley overlook, the signposts and the teahouse ladder are now Tripo models (140 credits, `ASSETS.md`). The Cedar Pass and canyon-choke boulders, the quarry sled and the pouch's crate reuse earlier models at no cost.

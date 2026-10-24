@@ -71,7 +71,7 @@ public partial class Hud : Control
             float x=w/2-170;Text(F(closest.Scout?"SIRIUS  /  SCOUT {0}":"SIRIUS  /  PATROL {0}",closest.Index.ToString("00")),new(x,80),13,cream);
             Bar(new(x,94),new(340,7),closest.Health/closest.MaxHealth,new("d48568"));
             Bar(new(x,106),new(340,4),closest.Posture/100,gold);
-            Text(T(closest.Broken?"POSTURE BROKEN · ATTACK TO FINISH":closest.Perilous&&closest.State=="PERILOUS"?"◆ PERILOUS SWEEP · DODGE / JUMP":Game.Locked==closest?"TARGET LOCKED":"TAB   LOCK TARGET"),new(x,131),11,closest.Perilous?new("ff9c83"):gold);
+            Text(T(closest.Broken?"POSTURE BROKEN · ATTACK TO FINISH":Game.Player.CanShutDown(closest)?"BEHIND IT · ATTACK TO SHUT DOWN":closest.Stunned?"STUNNED · GET BEHIND IT":closest.Perilous&&closest.State=="PERILOUS"?"◆ PERILOUS SWEEP · DODGE / JUMP":Game.Locked==closest?"TARGET LOCKED":"TAB   LOCK TARGET"),new(x,131),11,closest.Perilous?new("ff9c83"):gold);
             if(Game.Locked!=null&&!Game.Camera.IsPositionBehind(closest.GlobalPosition))
             {
                 var p=Game.Camera.UnprojectPosition(closest.GlobalPosition+Vector3.Up*1.4f)/scale;
@@ -134,10 +134,10 @@ public partial class Hud : Control
         Text(T("POSTURE"),new(140,h-54),10,gold);
         Text(F("H   REMEDY  ×{0}",Game.Player.Remedies),new(274,h-54),10,cream);
         float sx=441;Panel(new(sx,h-124,236,84));
-        DrawArc(new(sx+41,h-83),26,-Mathf.Pi/2,-Mathf.Pi/2+Mathf.Tau*(1-Game.Player.SkillCooldown/12),40,jade,2);
+        if(Game.Player.SkillCharges>0)DrawArc(new(sx+41,h-83),26,-Mathf.Pi/2,-Mathf.Pi/2+Mathf.Tau*Game.Player.SkillCharges/Player.MaxSkillCharges,40,jade,2);
         Text("Q",new(sx+32,h-76),23,cream);
         Text(T("RESONANCE CUT"),new(sx+79,h-93),12,jade);
-        Text(Game.Player.SkillCooldown>0?F("{0:0.0}s  /  RECHARGING",Game.Player.SkillCooldown):T("ZERO LINK  ·  READY"),new(sx+79,h-69),10,cream);
+        Text(F("ZERO LINK  ·  {0} / {1}",Game.Player.SkillCharges,Player.MaxSkillCharges),new(sx+79,h-69),10,cream);
     }
     private void Controls()
     {

@@ -59,6 +59,8 @@ Chinese is Taiwan usage (臺灣用語): 軟體, 網路, 資訊, 號誌, 影片, 
 | Dodge | 回避 | 閃避 | |
 | Perilous attack | 危 | 危 | The red diamond. "Perilous sweep" is 危 薙ぎ払い / 危 橫掃 |
 | Finish | とどめ | 終結 | |
+| Shut down (a robot, from behind) | 機能停止 | 停機 | The same words as the DISABLED number. "Behind it" is 後ろ / 後方 |
+| Stunned (by Resonance Cut) | スタン | 動彈不得 | The robot is locked in place, not dazed |
 | Sensory link | 感覚リンク | 感官連結 | |
 | Offline | オフライン | 離線 | |
 | Signal (railway) | 信号 | 號誌 | 進行信号 / 進行號誌 (proceed), 停止信号 / 停止號誌 (stop) |

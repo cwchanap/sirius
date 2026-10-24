@@ -354,9 +354,9 @@ public static class IntegrationCheck
             ("Toma",new Vector2(0,-254),new Vector2(16.2f,-254.5f))})
         {
             await WalkTo(road);await WalkTo(approach);await Frames(5);
-            if(name=="Emi"){g.Player.Health=20;g.Player.Remedies=0;}
+            if(name=="Emi"){g.Player.Health=20;g.Player.Remedies=0;g.Player.SkillCharges=0;}
             g.Interact();Check(g.Mode==GameMode.Dialogue&&g.Speaker==name,"walk from village street to service: "+name);
-            if(name=="Emi")Check(g.Player.Health==100&&g.Player.Remedies==g.Player.MaxRemedies,"Komorebi medic restores health and remedies");
+            if(name=="Emi")Check(g.Player.Health==100&&g.Player.Remedies==g.Player.MaxRemedies&&g.Player.SkillCharges==Player.MaxSkillCharges,"Komorebi medic restores health, remedies and Resonance Cut's charges");
             g.Mode=GameMode.Playing;await WalkTo(road);
         }
         await WalkTo(new(22,-254));await WalkTo(new(24,-251));await WalkTo(new(28,-251));await WalkTo(new(28,-245));
@@ -566,7 +566,8 @@ public static class IntegrationCheck
         Check(g.Speaker=="Chiyo"&&g.Script.Count==1,"a first-meeting scene plays once, then the resident's usual line");g.EndDialogue();
         var opponent=g.Enemies[0];
         Vector3 spot=new(0,Hoshikawa.World.Height(0,-29)+.1f,-29);
-        Place(g.Player,spot);opponent.GlobalPosition=spot+Vector3.Forward*2;g.Player.Model.Rotation=new(0,Mathf.Pi,0);await Frames(12);
+        // Mio faces north (-Z) and the robot faces her (+Z) unless a check turns it round.
+        Place(g.Player,spot);opponent.GlobalPosition=spot+Vector3.Forward*2;opponent.Model.Rotation=Vector3.Zero;g.Player.Model.Rotation=new(0,Mathf.Pi,0);g.Player.Health=100;await Frames(12);
         Hold("guard");await Frames(2);
         float hp=g.Player.Health;string response=g.Player.ReceiveHit(opponent,false);
         Check(response=="deflected"&&g.Player.Health==hp&&opponent.Posture==48,"timed deflect damages enemy posture without health loss");
@@ -574,23 +575,30 @@ public static class IntegrationCheck
         await Frames(20);while(g.Player.DeflectWindow>0)await Frames(1);response=g.Player.ReceiveHit(opponent,false);
         Check(response=="guarded"&&g.Player.Posture>0,$"late guard builds player posture: response={response}, guard={g.Player.Guarding}, window={g.Player.DeflectWindow}, posture={g.Player.Posture}");
         response=g.Player.ReceiveHit(opponent,true);
-        Check(response=="hit"&&g.Player.Health<hp,"perilous strike bypasses guard");Release("guard");
+        Check(response=="hit"&&g.Player.Health==hp-Enemy.PerilousDamage,$"perilous strike bypasses guard and takes {Enemy.PerilousDamage} vitality");Release("guard");
         await Frames(65);g.Player.Dodge(Vector3.Right);hp=g.Player.Health;
         Check(g.Player.ReceiveHit(opponent,true)=="evaded"&&g.Player.Health==hp,"dodge evades perilous damage");
         await Frames(50);Place(g.Player,spot);opponent.GlobalPosition=spot+Vector3.Forward*2;g.Player.Model.Rotation=new(0,Mathf.Pi,0);
         float enemyHp=opponent.Health;await Press("attack",2);await Frames(40);
-        Check(opponent.Health<enemyHp,"attack resolves one physical-range hit");
+        Check(enemyHp-opponent.Health==Enemy.SwordDamage&&!opponent.Dead,"from the front a swing only scratches a robot's plating");
         float afterHit=opponent.Health;await Frames(30);Check(opponent.Health==afterHit,"one swing cannot hit again after its active frame");
-        opponent.Reset();opponent.GlobalPosition=spot+Vector3.Forward*4.2f;
-        Check(g.Player.Skill(),"skill is available initially");Check(!g.Player.Skill(),"skill cannot be recast during cooldown");
-        await Frames(65);Check(opponent.Health<100&&opponent.Posture>0,"skill hits at extended range");
+        opponent.Reset();opponent.GlobalPosition=spot+Vector3.Forward*4.2f;opponent.Model.Rotation=Vector3.Zero;
+        Check(g.Player.SkillCharges==Player.MaxSkillCharges&&g.Player.Skill()&&g.Player.SkillCharges==Player.MaxSkillCharges-1,"Resonance Cut spends one of its charges");
+        Check(!g.Player.Skill()&&g.Player.SkillCharges==Player.MaxSkillCharges-1,"Resonance Cut cannot be recast while it is cast");
+        await Frames(65);Check(opponent.Stunned&&opponent.Health==opponent.MaxHealth&&opponent.Posture==0,"Resonance Cut stuns a robot at extended range and does it no harm");
+        opponent.GlobalPosition=spot+Vector3.Forward*2;Check(!g.Player.CanShutDown(opponent),"a robot facing Mio cannot be shut down, even stunned");
+        opponent.Model.Rotation=new(0,Mathf.Pi,0);Check(g.Player.CanShutDown(opponent),"a robot in reach with its back to Mio can be shut down");
+        g.Player.Attack();Check(opponent.Dead,"an attack from behind shuts a robot down outright");
+        opponent.Reset();opponent.GlobalPosition=spot+Vector3.Forward*2;opponent.Model.Rotation=Vector3.Zero;
         opponent.TakeHit(0,100);Check(opponent.Broken,"full posture opens execution window");
-        opponent.GlobalPosition=spot+Vector3.Forward*2;g.Player.Attack();Check(opponent.Dead,"attack executes a broken robot");
+        g.Player.Attack();Check(opponent.Dead,"attack executes a broken robot");opponent.Reset();
         g.Player.Health=35;int herbs=g.Player.Remedies;g.Player.Heal();
         Check(g.Player.Health==35,"healing is blocked during an attack");await Frames(60);g.Player.Heal();
         Check(g.Player.Health==80&&g.Player.Remedies==herbs-1,"remedy restores health and consumes one charge");
+        for(int cast=1;cast<Player.MaxSkillCharges;cast++){await Frames(65);Check(g.Player.Skill(),$"Resonance Cut casts again on charge {cast+1}");}
+        await Frames(65);Check(g.Player.SkillCharges==0&&!g.Player.Skill(),$"with its {Player.MaxSkillCharges} charges spent Resonance Cut waits for a rest");
         var scout=g.Enemies.First(e=>e.Scout);g.Player.Health=100;g.Player.Invulnerable=0;
-        Check(scout.Health==scout.MaxHealth&&scout.MaxHealth<opponent.MaxHealth&&scout.Model.Scale.X<opponent.Model.Scale.X&&g.Player.ReceiveHit(scout,true)=="hit"&&g.Player.Health>100-32+5,
+        Check(scout.Health==scout.MaxHealth&&scout.MaxHealth<opponent.MaxHealth&&scout.Model.Scale.X<opponent.Model.Scale.X&&g.Player.ReceiveHit(scout,true)=="hit"&&g.Player.Health==100-scout.Strike(true)&&scout.Strike(true)<opponent.Strike(true),
             $"scouts are smaller, weaker and strike lighter than the patrols ({100-g.Player.Health:F1} damage)");
         // Patrol and aggro also execute their own real physics loop.
         var live=g.Enemies[0];live.Reset();live.SetPhysicsProcess(true);
@@ -599,8 +607,13 @@ public static class IntegrationCheck
         Place(g.Player,live.GlobalPosition+Vector3.Back*6);await Frames(30);Check(live.State=="PURSUE","robot acquires a nearby countryside player");
         g.Player.Health=100;g.Player.Invulnerable=0;g.Player.Stun=0;
         Place(g.Player,live.GlobalPosition+Vector3.Back*2);await Frames(110);
-        Check(g.Player.Health<100,"enemy windup resolves a real damaging strike");
+        Check(g.Player.Health==100-Enemy.StrikeDamage,$"enemy windup resolves a real strike that takes {Enemy.StrikeDamage} vitality");
         g.SetPaused(true);before=live.GlobalPosition;await Frames(30);Check(live.GlobalPosition==before,"pause freezes patrol simulation");g.SetPaused(false);
+        live.Stun(.25f);await Frames(5);Check(live.State=="STUNNED","a stun holds a robot");await Frames(20);Check(!live.Stunned&&live.State!="STUNNED","the stun wears off by itself");
+        // Stunned, it neither turns nor strikes while Mio walks round behind it; then her real attack input shuts it down.
+        live.Stun(Enemy.ResonanceStun);var back=live.Forward;var behind=live.GlobalPosition-back*2;behind.Y=Hoshikawa.World.Height(behind.X,behind.Z)+.1f;Place(g.Player,behind);g.Player.Model.Rotation=new(0,Mathf.Atan2(back.X,back.Z),0);await Frames(30);
+        Check(live.State=="STUNNED"&&live.Forward.Dot(back)>.999f&&g.Player.CanShutDown(live),"a stunned robot keeps its back turned while Mio gets behind it");
+        await Press("attack");Check(live.Dead,"behind a robot, Mio's attack button shuts it down");
         foreach(var e in g.Enemies)e.SetPhysicsProcess(false);foreach(var e in g.Patrols)e.Execute();
         Check(g.QuestStage==2&&g.Enemies.Where(e=>e.Scout).All(e=>!e.Dead),"all three patrols disabled advances the mission, the scouts left standing");
         Place(g.Player,g.World.RelayPosition+Vector3.Back*2);g.Interact();
