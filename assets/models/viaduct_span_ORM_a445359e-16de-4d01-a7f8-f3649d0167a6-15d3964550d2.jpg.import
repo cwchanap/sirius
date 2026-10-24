@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bbpv23cllmpe8"
-path="res://.godot/imported/viaduct_span_ORM_a445359e-16de-4d01-a7f8-f3649d0167a6-15d3964550d2.jpg-c369c73c467a8c31bbb9c91e265e3a3f.ctex"
+path.s3tc="res://.godot/imported/viaduct_span_ORM_a445359e-16de-4d01-a7f8-f3649d0167a6-15d3964550d2.jpg-c369c73c467a8c31bbb9c91e265e3a3f.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "a7761b9223653762dcf8827ba1e39e51"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/viaduct_span_ORM_a445359e-16de-4d01-a7f8-f3649d0167a6-15d3964550d2.jpg"
-dest_files=["res://.godot/imported/viaduct_span_ORM_a445359e-16de-4d01-a7f8-f3649d0167a6-15d3964550d2.jpg-c369c73c467a8c31bbb9c91e265e3a3f.ctex"]
+dest_files=["res://.godot/imported/viaduct_span_ORM_a445359e-16de-4d01-a7f8-f3649d0167a6-15d3964550d2.jpg-c369c73c467a8c31bbb9c91e265e3a3f.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

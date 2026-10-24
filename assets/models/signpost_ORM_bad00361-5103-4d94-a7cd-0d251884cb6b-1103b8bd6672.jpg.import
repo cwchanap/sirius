@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dsov3yuis5hll"
-path="res://.godot/imported/signpost_ORM_bad00361-5103-4d94-a7cd-0d251884cb6b-1103b8bd6672.jpg-77dbf00b1f14b026402e71e1663c84b3.ctex"
+path.s3tc="res://.godot/imported/signpost_ORM_bad00361-5103-4d94-a7cd-0d251884cb6b-1103b8bd6672.jpg-77dbf00b1f14b026402e71e1663c84b3.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "f32f6063b127fddd1aaefb5316dc4e41"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/signpost_ORM_bad00361-5103-4d94-a7cd-0d251884cb6b-1103b8bd6672.jpg"
-dest_files=["res://.godot/imported/signpost_ORM_bad00361-5103-4d94-a7cd-0d251884cb6b-1103b8bd6672.jpg-77dbf00b1f14b026402e71e1663c84b3.ctex"]
+dest_files=["res://.godot/imported/signpost_ORM_bad00361-5103-4d94-a7cd-0d251884cb6b-1103b8bd6672.jpg-77dbf00b1f14b026402e71e1663c84b3.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

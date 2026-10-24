@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b60s6278o0oan"
-path="res://.godot/imported/relay_ORM_55dd764e-acbb-484e-9758-d01d1c59e6e3-b68c57d6ba76.jpg-9363c3af5865be9666d89427e2f3a6ce.ctex"
+path.s3tc="res://.godot/imported/relay_ORM_55dd764e-acbb-484e-9758-d01d1c59e6e3-b68c57d6ba76.jpg-9363c3af5865be9666d89427e2f3a6ce.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "fcb014449af025fbd71a2cfaa4192871"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/relay_ORM_55dd764e-acbb-484e-9758-d01d1c59e6e3-b68c57d6ba76.jpg"
-dest_files=["res://.godot/imported/relay_ORM_55dd764e-acbb-484e-9758-d01d1c59e6e3-b68c57d6ba76.jpg-9363c3af5865be9666d89427e2f3a6ce.ctex"]
+dest_files=["res://.godot/imported/relay_ORM_55dd764e-acbb-484e-9758-d01d1c59e6e3-b68c57d6ba76.jpg-9363c3af5865be9666d89427e2f3a6ce.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://e80l7sglc6yf"
-path="res://.godot/imported/signpost_Color_bad00361-5103-4d94-a7cd-0d251884cb6b-e6982f8cbcc3.jpg-8220388b3db5f7143306ac1beece272c.ctex"
+path.s3tc="res://.godot/imported/signpost_Color_bad00361-5103-4d94-a7cd-0d251884cb6b-e6982f8cbcc3.jpg-8220388b3db5f7143306ac1beece272c.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "8673a3d72f6edb9e4a3b4ef269d2b24a"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/signpost_Color_bad00361-5103-4d94-a7cd-0d251884cb6b-e6982f8cbcc3.jpg"
-dest_files=["res://.godot/imported/signpost_Color_bad00361-5103-4d94-a7cd-0d251884cb6b-e6982f8cbcc3.jpg-8220388b3db5f7143306ac1beece272c.ctex"]
+dest_files=["res://.godot/imported/signpost_Color_bad00361-5103-4d94-a7cd-0d251884cb6b-e6982f8cbcc3.jpg-8220388b3db5f7143306ac1beece272c.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

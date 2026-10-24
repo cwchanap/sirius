@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://waaynsl4k2w2"
-path="res://.godot/imported/shelter_ORM_6cf22790-b505-42ec-b451-443aa0488927-50d88d07acaf.jpg-6a0ebf3ea38266a1677860b6ff6b4283.ctex"
+path.s3tc="res://.godot/imported/shelter_ORM_6cf22790-b505-42ec-b451-443aa0488927-50d88d07acaf.jpg-6a0ebf3ea38266a1677860b6ff6b4283.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "e3af1a2a14297dd2a6ffd94f117e54e7"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/shelter_ORM_6cf22790-b505-42ec-b451-443aa0488927-50d88d07acaf.jpg"
-dest_files=["res://.godot/imported/shelter_ORM_6cf22790-b505-42ec-b451-443aa0488927-50d88d07acaf.jpg-6a0ebf3ea38266a1677860b6ff6b4283.ctex"]
+dest_files=["res://.godot/imported/shelter_ORM_6cf22790-b505-42ec-b451-443aa0488927-50d88d07acaf.jpg-6a0ebf3ea38266a1677860b6ff6b4283.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
