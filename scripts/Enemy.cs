@@ -19,9 +19,12 @@ public partial class Enemy : CharacterBody3D
     public Vector3 Forward=>new(Mathf.Sin(Model.Rotation.Y),0,Mathf.Cos(Model.Rotation.Y));
     public bool Perilous {get;private set;}
     public string State {get;private set;}="PATROL";
+    // The icon over its head (assets/art/ui/): perilous, finish, stunned, or shutdown when Mio stands where her attack would shut it down.
+    public string Badge {get;private set;}="";
     public ActorVisual Visual=null!;
     public Node3D Model=null!;
     private Label3D marker=null!;
+    private Sprite3D badge=null!,badgeShade=null!;
     private float clock,attackTimer,recovery,broken,stagger,stunned;
     private bool attacking,struck;
     private int swings;
@@ -33,6 +36,9 @@ public partial class Enemy : CharacterBody3D
         Model=GD.Load<PackedScene>("res://assets/models/patrol.glb").Instantiate<Node3D>();AddChild(Model);Model.Scale=Vector3.One*(Scout?.86f:1.12f);
         Visual=new ActorVisual();AddChild(Visual);Visual.Bind(Model);Visual.Play("walk");
         marker=World.Label(this,"",new(0,2.8f,0),World.Gold,38);clock=Index*2;
+        // The shade, a little larger and drawn first, keeps the tinted icon readable against the sky.
+        foreach(var (size,priority) in new[]{(.0029f,0),(.0025f,1)})
+        {var s=new Sprite3D {Position=new(0,2.9f,0),PixelSize=size,RenderPriority=priority,Billboard=BaseMaterial3D.BillboardModeEnum.Enabled,TextureFilter=BaseMaterial3D.TextureFilterEnum.LinearWithMipmaps};AddChild(s);if(priority==0){badgeShade=s;s.Modulate=new(.04f,.08f,.09f,.75f);}else badge=s;}
     }
     public override void _PhysicsProcess(double delta)
     {
@@ -42,19 +48,17 @@ public partial class Enemy : CharacterBody3D
         Vector3 movement=Vector3.Zero;
         if(broken>0)
         {
-            broken-=dt;State="BROKEN";marker.Text="◆  FINISH";marker.Modulate=World.Gold;
-            if(broken<=0){Posture=40;recovery=1;marker.Text="";}
+            broken-=dt;State="BROKEN";
+            if(broken<=0){Posture=40;recovery=1;}
         }
         else if(stunned>0)
         {
-            stunned-=dt;State="STUNNED";marker.Text="◇  STUNNED";marker.Modulate=World.Jade;
-            if(stunned<=0){recovery=.6f;marker.Text="";}
+            stunned-=dt;State="STUNNED";
+            if(stunned<=0)recovery=.6f;
         }
         else if(attacking)
         {
             attackTimer-=dt;State=attackTimer>.22f?(Perilous?"PERILOUS":"WINDUP"):"STRIKE";
-            marker.Text=attackTimer>.22f?(Perilous?"◆  DODGE / JUMP":"◇"):"";
-            marker.Modulate=Perilous?new("ff6d58"):World.Gold;
             if(attackTimer<=.22f&&!struck)
             {
                 struck=true;Visual.Play("attack2",1.6f,true);Game.Slash(GlobalPosition+Vector3.Up,attackDirection,Perilous);
@@ -62,7 +66,7 @@ public partial class Enemy : CharacterBody3D
                     &&attackDirection.Dot(to.Normalized())>.1f&&Game.ClearSight(GlobalPosition+Vector3.Up,Game.Player.GlobalPosition+Vector3.Up))
                     Game.Player.ReceiveHit(this,Perilous);
             }
-            if(attackTimer<=0){attacking=false;recovery=1.05f;marker.Text="";}
+            if(attackTimer<=0){attacking=false;recovery=1.05f;}
         }
         else if(stagger>0){State="STAGGER";}
         // While it recovers from a swing, a deflect or a stun it neither moves nor turns, in sight of Mio or not: the opening to get round to its back.
@@ -83,8 +87,15 @@ public partial class Enemy : CharacterBody3D
             var d=destination-GlobalPosition;d.Y=0;movement=d.Normalized()*1.25f;
             Model.Rotation=new(0,Mathf.LerpAngle(Model.Rotation.Y,Mathf.Atan2(d.X,d.Z),dt*3),0);Visual.Play("walk",.8f);
         }
+        marker.Text=State=="WINDUP"?"◇":"";
+        ShowBadge(Broken?"finish":Game.Player.CanShutDown(this)?"shutdown":Stunned?"stunned":State=="PERILOUS"?"perilous":"");
         Velocity=new(movement.X,IsOnFloor()?-.5f:Velocity.Y-22*dt,movement.Z);MoveAndSlide();
         if(GlobalPosition.Y<-8)Reset();
+    }
+    private void ShowBadge(string icon)
+    {
+        if(icon==Badge)return;
+        Badge=icon;badge.Texture=badgeShade.Texture=icon==""?null:Hud.Icon(icon);badge.Modulate=icon switch {"perilous"=>new("ff6d58"),"stunned"=>World.Jade,_=>World.Gold};
     }
     private void BeginAttack(Vector3 direction)
     {
@@ -113,7 +124,7 @@ public partial class Enemy : CharacterBody3D
         if(Posture>=100)
         {
             broken=4.5f;attacking=false;stagger=stunned=0;Visual.Play("stagger",.65f,true);Game.Sound("break");
-            Game.Feedback("POSTURE BREAK  ·  ATTACK TO FINISH",World.Gold);
+            Game.Flash("posture_break",World.Gold);
         }
         else if(damage==0)
         {stagger=.22f;attacking=false;recovery=.6f;Visual.Play("stagger",1.6f,true);}
@@ -121,13 +132,13 @@ public partial class Enemy : CharacterBody3D
     public void Execute()
     {
         if(State=="DEFEATED")return;
-        Health=0;State="DEFEATED";marker.Text="";CollisionLayer=0;CollisionMask=0;
+        Health=0;State="DEFEATED";marker.Text="";ShowBadge("");CollisionLayer=0;CollisionMask=0;
         Visual.Play("death",1.5f,true);Game.Sound("break");
         Game.FloatingNumber(GlobalPosition+Vector3.Up*2,"DISABLED",World.Jade);Game.OnEnemyDefeated();
     }
     public void Reset()
     {
         GlobalPosition=Home+Vector3.Up*.15f;Velocity=Vector3.Zero;Health=MaxHealth;Posture=0;broken=attackTimer=recovery=stagger=stunned=0;
-        attacking=struck=false;swings=0;CollisionLayer=4;CollisionMask=1|2|4;State="PATROL";marker.Text="";Visual.Play("idle",1,true);
+        attacking=struck=false;swings=0;CollisionLayer=4;CollisionMask=1|2|4;State="PATROL";marker.Text="";ShowBadge("");Visual.Play("idle",1,true);
     }
 }

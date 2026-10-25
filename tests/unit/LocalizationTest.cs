@@ -46,7 +46,7 @@ public class LocalizationTest
     [TestCase("zh_TW")]
     public void EveryStringTheCodeShowsHasATranslation(string lang)
     {
-        var shown=Shown().Distinct().ToList();AssertThat(shown.Count).IsGreater(80);
+        var shown=Shown().Distinct().ToList();AssertThat(shown.Count).IsGreater(50);
         AssertThat(string.Join(" | ",shown.Where(s=>!Ui(lang).ContainsKey(s)))).IsEmpty();
     }
     [TestCase("ja")]

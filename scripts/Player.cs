@@ -6,10 +6,11 @@ public partial class Player : CharacterBody3D
     public Game Game = null!;
     // Resonance Cut charges, spent one per cast and refilled only by resting (Aki, Emi, or recovering at the village).
     public const int MaxSkillCharges = 3;
-    public float Health = 100, Posture, Invulnerable, Stun;
+    public float Health = 100, Posture, Invulnerable, Stun, Spent;
     public int Remedies = 3, MaxRemedies = 3, SkillCharges = MaxSkillCharges;
     public bool Guarding { get; private set; }
     public bool Dodging => dodge > 0;
+    public bool Casting => skillCast > 0;
     public float DeflectWindow { get; private set; }
     public ActorVisual Visual = null!;
     public Node3D Model = null!;
@@ -34,7 +35,7 @@ public partial class Player : CharacterBody3D
         Invulnerable=Math.Max(0,Invulnerable-dt);
         Stun=Math.Max(0,Stun-dt);DeflectWindow=Math.Max(0,DeflectWindow-dt);
         dodgeCooldown=Math.Max(0,dodgeCooldown-dt);comboGrace=Math.Max(0,comboGrace-dt);
-        healTimer=Math.Max(0,healTimer-dt);
+        healTimer=Math.Max(0,healTimer-dt);Spent=Math.Max(0,Spent-dt);
         landing=Math.Max(0,landing-dt);
         var input=Input.GetVector("left","right","forward","back");
         var dir=new Vector3(input.X,0,input.Y).Rotated(Vector3.Up,Game.CameraYaw);
@@ -71,7 +72,6 @@ public partial class Player : CharacterBody3D
                 Game.Burst(GlobalPosition+Vector3.Up*.8f,World.Jade,5.2f);Game.Sound("skill");
                 foreach(var enemy in Game.Enemies.Where(e=>!e.Dead))
                     if(CanReach(enemy.GlobalPosition,5.5f,-1))enemy.Stun(Enemy.ResonanceStun);
-                Game.Toast("RESONANCE CUT", "Zero: their actuators are locked. Get behind them.",2.5f);
             }
         }
         float speed=Guarding?1.7f:Input.IsActionPressed("run")?7.8f:2f;
@@ -143,7 +143,7 @@ public partial class Player : CharacterBody3D
     public bool Skill()
     {
         if(attack>0||dodge>0||skillCast>0||Stun>0||healTimer>0||Health<=0)return false;
-        if(SkillCharges<=0){Game.Feedback("ZERO LINK SPENT  ·  REST TO RECHARGE",World.Jade);return false;}
+        if(SkillCharges<=0){Spent=1;Game.Feedback("REST TO RECHARGE",World.Jade);return false;}
         SkillCharges--;skillCast=.95f;Invulnerable=.55f;Guarding=false;Visual.Play("skill",1.2f,true);return true;
     }
     public string ReceiveHit(Enemy enemy,bool perilous)
@@ -157,10 +157,10 @@ public partial class Player : CharacterBody3D
             {
                 enemy.TakeHit(0,48);Posture=Math.Max(0,Posture-18);DeflectWindow=0;
                 Game.Burst(GlobalPosition+Vector3.Up*1.2f,World.Gold,1.2f);Game.Sound("deflect");
-                Game.Feedback("DEFLECT",World.Gold);Game.CameraShake=.13f;return "deflected";
+                Game.Flash("deflect",World.Gold);Game.CameraShake=.13f;return "deflected";
             }
-            Posture+=34;Game.Sound("guard");Game.Feedback("GUARD",World.Gold);
-            if(Posture>=100){Posture=100;Stun=1.2f;Guarding=false;Visual.Play("stagger",1,true);Game.Feedback("POSTURE BROKEN",new("f18470"));}
+            Posture+=34;Game.Sound("guard");
+            if(Posture>=100){Posture=100;Stun=1.2f;Guarding=false;Visual.Play("stagger",1,true);Game.Flash("posture_break",new("f18470"));}
             return "guarded";
         }
         Health=Math.Max(0,Health-enemy.Strike(perilous));Invulnerable=.65f;Stun=.32f;
@@ -173,9 +173,9 @@ public partial class Player : CharacterBody3D
     {
         if(Remedies<=0||Health>=100||Stun>0||attack>0||skillCast>0||dodge>0||Health<=0)return;
         Remedies--;Health=Math.Min(100,Health+45);healTimer=.65f;
-        Game.Burst(GlobalPosition+Vector3.Up*.6f,World.Jade,1.2f);Game.Sound("heal");Game.Feedback("+45 VITALITY",World.Jade);
+        Game.Burst(GlobalPosition+Vector3.Up*.6f,World.Jade,1.2f);Game.Sound("heal");Game.FloatingNumber(GlobalPosition+Vector3.Up*2.1f,"+45",World.Jade);
     }
-    public void Rest(){Health=100;Posture=0;Remedies=MaxRemedies;SkillCharges=MaxSkillCharges;}
+    public void Rest(){Health=100;Posture=0;Remedies=MaxRemedies;SkillCharges=MaxSkillCharges;Spent=0;}
     public void Respawn()
     {
         GlobalPosition=new(0,World.Height(0,31)+.1f,31);Velocity=Vector3.Zero;Rest();

@@ -409,12 +409,12 @@ public static class IntegrationCheck
         // lowered from the terrace, it is walked both ways and stays down when Mio recovers at the village.
         var ladder=g.World.Shortcuts.Single();bool Turned(float angle)=>ladder.Part.Quaternion.AngleTo(new Quaternion(Vector3.Right,angle))<.01f;var lever=new Vector2(ladder.From.X,ladder.From.Z);var top=new Vector2(ladder.Part.Position.X,ladder.Part.Position.Z-2);var below=top+new Vector2(0,12);
         Place(g.Player,new(below.X,Hoshikawa.World.Height(below.X,below.Y)+.1f,below.Y));await Frames(10);
-        Check(!await Head(top,true,240)&&g.Player.GlobalPosition.Y<4&&g.InteractionPrompt()!=Localization.T("E   Lower the ladder"),
+        Check(!await Head(top,true,240)&&g.Player.GlobalPosition.Y<4&&g.Interaction().Icon!="ladder",
             $"the drawn-up ladder leaves the teahouse terrace out of reach from the junction, and cannot be lowered from below {g.Player.GlobalPosition}");
         Place(g.Player,new(lever.X,Hoshikawa.World.Height(lever.X,lever.Y)+.1f,lever.Y));await Frames(10);
-        Check(g.InteractionPrompt()==Localization.T("E   Lower the ladder"),"the ladder is lowered from the terrace");
+        Check(g.Interaction().Icon=="ladder","the ladder is lowered from the terrace");
         g.Interact();await Frames(130);await WalkTo(top,false);
-        Check(g.Opened.Contains(ladder.Name)&&Turned(ladder.Open)&&g.InteractionPrompt()!=Localization.T("E   Lower the ladder"),"lowering the ladder opens the shortcut, once");
+        Check(g.Opened.Contains(ladder.Name)&&Turned(ladder.Open)&&g.Interaction().Icon!="ladder","lowering the ladder opens the shortcut, once");
         await WalkTo(below,false);
         Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Y<2.5f,$"the lowered ladder walks down to the junction {g.Player.GlobalPosition}");
         await WalkTo(top);
@@ -422,9 +422,9 @@ public static class IntegrationCheck
         // The quarry's remedy pouch lets Mio carry one more remedy for the rest of the prologue.
         var pouch=g.World.Pouches.Single();var crate=pouch.GlobalPosition+Vector3.Back*1.3f;
         Place(g.Player,new(crate.X,Hoshikawa.World.Height(crate.X,crate.Z)+.1f,crate.Z));await Frames(10);
-        Check(g.InteractionPrompt()==Localization.T("E   Take the remedy pouch"),"the remedy pouch waits on its crate at the quarry's end");
+        Check(g.Interaction().Icon=="remedy","the remedy pouch waits on its crate at the quarry's end");
         g.Interact();
-        Check(!pouch.Visible&&g.Player.MaxRemedies==4&&g.Player.Remedies==4&&g.InteractionPrompt()!=Localization.T("E   Take the remedy pouch"),"taking the remedy pouch raises the remedies Mio carries to four");
+        Check(!pouch.Visible&&g.Player.MaxRemedies==4&&g.Player.Remedies==4&&g.Interaction().Icon!="remedy","taking the remedy pouch raises the remedies Mio carries to four");
         g.Retry();await Frames(5);
         Check(g.Opened.Contains(ladder.Name)&&Turned(ladder.Open)&&!pouch.Visible&&g.Player.Remedies==4,"the ladder stays down and the pouch taken when Mio recovers at the village");
         // The map's edges are its terrain now: a cliff behind Komorebi stops a walker at chest height, and the one wall on land's side is off the beach, here in the cove between two capes.
@@ -539,6 +539,8 @@ public static class IntegrationCheck
         g.Begin();
         Check(g.Mode==GameMode.Dialogue&&g.Speaker=="Zero"&&g.Script.Count==Prologue.Intro.Length,"the journey opens on Zero's voice over the link");
         Check(g.Hud.Portrait("Mio")!=null&&g.World.Residents.All(r=>g.Hud.Portrait(r.Name)!=null)&&g.Hud.Portrait("Zero")==null,"Mio and every resident have a dialogue portrait; unseen Zero has none");
+        Check(Hud.Icons.All(n=>Hud.Icon(n) is {} t&&t.GetWidth()==256&&t.GetHeight()==256)&&ResourceLoader.Exists("res://assets/art/ui/logo.png"),$"all {Hud.Icons.Length} HUD icons and the title logo load, the icons 256 px square");
+        Check(g.World.Residents.All(r=>r.Body.GetChildren().OfType<Label3D>().Single().VisibilityRangeEnd is >0 and <20),"residents' names float over them only near the camera");
         var voiced=Prologue.SceneNames.Where(s=>!Prologue.Unvoiced.Contains(s.Value)).SelectMany(s=>s.Key.Select((b,i)=>(b.Speaker,Path:$"res://assets/audio/voice/ja/{b.Speaker}/{s.Value}.{i}.mp3"))).Where(b=>b.Speaker is "Mio" or "Zero").ToArray();
         Check(voiced.Length>0&&voiced.All(b=>ResourceLoader.Load(b.Path) is AudioStreamMP3 mp3&&mp3.GetLength()>.5),$"each of Mio's and Zero's {voiced.Length} prologue lines has its Japanese voice at its beat");
         await Frames(10);Check(g.Reveal>0&&g.Reveal<g.Dialogue.Length,"dialogue text types out");
@@ -609,13 +611,13 @@ public static class IntegrationCheck
         Place(g.Player,live.GlobalPosition+Vector3.Back*2);await Frames(110);
         Check(g.Player.Health==100-Enemy.StrikeDamage,$"enemy windup resolves a real strike that takes {Enemy.StrikeDamage} vitality");
         g.SetPaused(true);before=live.GlobalPosition;await Frames(30);Check(live.GlobalPosition==before,"pause freezes patrol simulation");g.SetPaused(false);
-        live.Stun(.25f);await Frames(5);Check(live.State=="STUNNED","a stun holds a robot");await Frames(20);Check(!live.Stunned&&live.State!="STUNNED","the stun wears off by itself");
+        live.Stun(.25f);await Frames(5);Check(live.State=="STUNNED"&&live.Badge=="stunned","a stun holds a robot, its stunned icon over its head");await Frames(20);Check(!live.Stunned&&live.State!="STUNNED","the stun wears off by itself");
         Place(g.Player,new(0,0,30));before=live.GlobalPosition;var facing=live.Forward;await Frames(10);
         Check(live.State=="RECOVER"&&live.GlobalPosition.DistanceTo(before)<.02f&&live.Forward.Dot(facing)>.999f,"a recovering robot stays put and keeps its facing even once Mio is out of its sight");
         // Stunned, it neither turns nor strikes while Mio walks round behind it; then her real attack input shuts it down.
         live.Stun(Enemy.ResonanceStun);var back=live.Forward;var behind=live.GlobalPosition-back*2;behind.Y=Hoshikawa.World.Height(behind.X,behind.Z)+.1f;Place(g.Player,behind);g.Player.Model.Rotation=new(0,Mathf.Atan2(back.X,back.Z),0);await Frames(30);
-        Check(live.State=="STUNNED"&&live.Forward.Dot(back)>.999f&&g.Player.CanShutDown(live),"a stunned robot keeps its back turned while Mio gets behind it");
-        await Press("attack");Check(live.Dead,"behind a robot, Mio's attack button shuts it down");
+        Check(live.State=="STUNNED"&&live.Forward.Dot(back)>.999f&&g.Player.CanShutDown(live)&&live.Badge=="shutdown","a stunned robot keeps its back turned while Mio gets behind it, its icon now the shutdown one");
+        await Press("attack");Check(live.Dead&&live.Badge=="","behind a robot, Mio's attack button shuts it down and clears its icon");
         foreach(var e in g.Enemies)e.SetPhysicsProcess(false);foreach(var e in g.Patrols)e.Execute();
         Check(g.QuestStage==2&&g.Enemies.Where(e=>e.Scout).All(e=>!e.Dead),"all three patrols disabled advances the mission, the scouts left standing");
         Place(g.Player,g.World.RelayPosition+Vector3.Back*2);g.Interact();
@@ -651,12 +653,10 @@ public static class IntegrationCheck
             var nameFace=Localization.NameFont(code)!;var lackingName=name.Where(c=>!nameFace.HasChar(c)).ToArray();
             Check(lackingName.Length==0,$"{name}: the face its language button is drawn in has every character of the button's own name {new string(lackingName)}");
             float Width(string english,int size,Font? face=null)=>(face??sans).GetStringSize(Localization.T(english),fontSize:size).X;
-            var tight=new (string Text,int Size,float Room)[]{("BEGIN JOURNEY     →",17,288),("R   Return to Hoshikawa",17,288),("Resume journey",17,278),("Recover at the village",17,278),("Restart prologue",17,278),
+            var tight=new (string Text,int Size,float Room)[]{("BEGIN JOURNEY     →",17,288),("Return to Hoshikawa",17,288),("Resume journey",17,278),("Recover at the village",17,278),("Restart prologue",17,278),
                 ("Quit game",17,278),("Quit",17,78),("WASD  Move      SHIFT  Run      SPACE  Jump",13,334),("LMB / J  Attack     RMB / K  Guard & deflect",13,334),
-                ("CTRL / ALT  Dodge     TAB  Lock     Q  Skill",13,334),("E  Interact    H  Remedy    ESC  Pause",12,334),("01   THE TRAIN WITH NO PASSENGERS",12,340),
-                ("Speak to Ren at the workshop",17,340),("Restart the manual relay",17,340),("Return to Ren in Hoshikawa",17,340),("Evacuation route secured",17,340),
-                ("NORTHERN SETTLEMENT  /  LODGE & CLINIC",11,340),("CEDAR RIVER  /  ORCHARDS & HIGHLANDS",11,340),("MANUAL RELAY  /  PATROL ROAD",11,340),("THE OFFLINE VALLEY  /  HUMAN SETTLEMENT",11,340),
-                ("OLD RELAY ROAD",25,340),("CEDAR PASS",25,340),("KOMOREBI",25,340),("HOSHIKAWA",25,340)};
+                ("CTRL / ALT  Dodge     TAB  Lock     Q  Skill",13,334),("E  Interact    H  Remedy    ESC  Pause",12,334),("The train with no passengers",19,360),
+                ("Speak to Ren at the workshop",17,340),("Clear the old relay road",17,340),("Restart the manual relay",17,340),("Return to Ren in Hoshikawa",17,340),("Evacuation route secured",17,340)};
             var overflow=tight.Where(t=>Width(t.Text,t.Size)>t.Room).Select(t=>t.Text).ToArray();
             Check(overflow.Length==0,$"{name}: every menu, control and panel string fits its fixed box {string.Join(" | ",overflow)}");
             var wide=ui.Keys.Where(k=>Width(k,14)>540).ToArray();Check(wide.Length==0,$"{name}: no string is wider than the toast panel {string.Join(" | ",wide)}");

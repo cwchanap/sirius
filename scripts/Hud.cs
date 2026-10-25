@@ -7,25 +7,31 @@ public partial class Hud : Control
     public Game Game=null!;
     private readonly Font font=ThemeDB.FallbackFont;
     private readonly SystemFont serif=new() {FontNames=new[]{"Georgia","Noto Serif","DejaVu Serif"}};
-    private Texture2D art=null!;
-    private GradientTexture2D titleShade=null!,sceneShade=null!;
+    private Texture2D art=null!,logo=null!;
+    private GradientTexture2D titleShade=null!,sceneShade=null!,questShade=null!;
     private readonly Dictionary<string,Texture2D?> portraits=new();
+    // White on clear, tinted where they are drawn (assets/art/ui/ui-art-generation.md).
+    public static readonly string[] Icons={"zero","resonance","remedy","talk","repair","ladder","perilous","finish","stunned","shutdown","deflect","posture_break","sirius"};
+    private static readonly Dictionary<string,Texture2D> icons=new();
+    public static Texture2D Icon(string name)=>icons.TryGetValue(name,out var t)?t:icons[name]=GD.Load<Texture2D>($"res://assets/art/ui/{name}.png");
     private Control menu=null!;
     private float scale=1,w=1440,h=900;
     public int Redraws;
-    private Color ink=new("12282f"),cream=new("f1ead5"),muted=new("aec0b4"),gold=World.Gold,jade=World.Jade;
+    private Color ink=new("12282f"),cream=new("f1ead5"),muted=new("aec0b4"),gold=World.Gold,jade=World.Jade,red=new("f18470"),crest=new("e58b66");
     public override void _Ready()
     {
-        SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);MouseFilter=MouseFilterEnum.Ignore;
-        art=GD.Load<Texture2D>("res://assets/art/mio-keyart.png");
+        SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);MouseFilter=MouseFilterEnum.Ignore;TextureFilter=TextureFilterEnum.LinearWithMipmaps;
+        art=GD.Load<Texture2D>("res://assets/art/mio-keyart.png");logo=GD.Load<Texture2D>("res://assets/art/ui/logo.png");
         titleShade=new GradientTexture2D {Width=512,Height=1,FillFrom=Vector2.Zero,FillTo=Vector2.Right,
             Gradient=new Gradient {Colors=new[]{new Color(.028f,.068f,.076f,.86f),new Color(.028f,.068f,.076f,.30f),new Color(.028f,.068f,.076f,0)},Offsets=new[]{0f,.45f,1f}}};
+        questShade=new GradientTexture2D {Width=512,Height=1,FillFrom=Vector2.Zero,FillTo=Vector2.Right,
+            Gradient=new Gradient {Colors=new[]{new Color(.028f,.068f,.076f,.8f),new Color(.028f,.068f,.076f,.8f),new Color(.028f,.068f,.076f,0)},Offsets=new[]{0f,.7f,1f}}};
         sceneShade=new GradientTexture2D {Width=1,Height=256,FillFrom=Vector2.Zero,FillTo=Vector2.Down,
             Gradient=new Gradient {Colors=new[]{new Color(.012f,.03f,.035f,0),new Color(.012f,.03f,.035f,.9f)},Offsets=new[]{0f,1f}}};
         menu=new Control {MouseFilter=MouseFilterEnum.Ignore};AddChild(menu);Resized+=RefreshMenu;serif.Fallbacks=SerifFallbacks();
     }
     public void ApplyLanguage(){serif.Fallbacks=SerifFallbacks();wrapped=("",0,"",new());RefreshMenu();}
-    public override void _ExitTree() { serif.Dispose(); titleShade.Dispose(); sceneShade.Dispose(); }
+    public override void _ExitTree() { serif.Dispose(); titleShade.Dispose(); sceneShade.Dispose(); questShade.Dispose(); }
     // Portraits are looked up by speaker (KOMA-7 -> koma7.png); a speaker without one is shown by name plate alone.
     public Texture2D? Portrait(string who)
     {
@@ -42,6 +48,16 @@ public partial class Hud : Control
         DrawStyleBox(new StyleBoxFlat {BgColor=new Color(ink,alpha),CornerRadiusTopLeft=3,CornerRadiusBottomRight=3,
             BorderColor=new Color(gold,.35f),BorderWidthLeft=1,BorderWidthBottom=1,BorderWidthRight=1,BorderWidthTop=1},rect);
     }
+    private void DrawIcon(string name,Vector2 center,float size,Color c)=>DrawTextureRect(Icon(name),new Rect2(center-Vector2.One*size/2,Vector2.One*size),false,c);
+    private float KeyWidth(string key,int size)=>Math.Max(size*1.9f,font.GetStringSize(key,fontSize:size).X+size*1.1f);
+    // A key drawn as a small cap with its name on it; p is the cap's top-left corner.
+    private void Keycap(string key,Vector2 p,int size=12)
+    {
+        var rect=new Rect2(p,KeyWidth(key,size),size*1.9f);
+        DrawStyleBox(new StyleBoxFlat {BgColor=new Color(ink,.92f),BorderColor=new Color(cream,.75f),BorderWidthLeft=1,BorderWidthTop=1,BorderWidthRight=1,BorderWidthBottom=2,
+            CornerRadiusTopLeft=3,CornerRadiusTopRight=3,CornerRadiusBottomLeft=3,CornerRadiusBottomRight=3},rect);
+        Text(key,new(rect.GetCenter().X-font.GetStringSize(key,fontSize:size).X/2,rect.GetCenter().Y+size*.36f),size,cream);
+    }
     private void Bar(Vector2 p,Vector2 size,float value,Color c)
     {
         DrawRect(new Rect2(p,size),new Color(.015f,.045f,.05f,.8f));
@@ -55,36 +71,16 @@ public partial class Hud : Control
         DrawSetTransform(Vector2.Zero,0,Vector2.One*scale);menu.Scale=Vector2.One*scale;
         if(Game.Mode==GameMode.Title){Title();return;}
         if(Game.Mode==GameMode.Dialogue){Dialogue();return;}
-        Panel(new(30,24,385,160),.78f);
-        Text(T(Game.Region.ToUpperInvariant()),new(42,52),25,cream,true);
-        Text(T(Game.Region switch { "Komorebi"=>"NORTHERN SETTLEMENT  /  LODGE & CLINIC", "Cedar Pass"=>"CEDAR RIVER  /  ORCHARDS & HIGHLANDS",
-            "Old Relay Road"=>"MANUAL RELAY  /  PATROL ROAD", _=>"THE OFFLINE VALLEY  /  HUMAN SETTLEMENT" }),new(44,77),11,gold);
-        DrawLine(new(44,93),new(350,93),new Color(gold,.55f));
-        Text(T("01   THE TRAIN WITH NO PASSENGERS"),new(44,120),12,gold);
-        Text(Game.ObjectiveText,new(44,145),17,cream);
-        if(Game.QuestStage<4)Text(F("{0} m",(int)Game.Player.GlobalPosition.DistanceTo(Game.ObjectivePosition)),new(44,169),12,muted);
-        Minimap();Vitals();Controls();
-        Text(T("2147  /  SHIKOKU HIGHLANDS"),new(w-280,h-26),11,new Color(cream,.65f));
+        Quest();Minimap();Vitals();
         var closest=Game.Locked??Game.Enemies.Where(e=>!e.Dead&&e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)<12).OrderBy(e=>e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)).FirstOrDefault();
-        if(closest!=null)
-        {
-            float x=w/2-170;Text(F(closest.Scout?"SIRIUS  /  SCOUT {0}":"SIRIUS  /  PATROL {0}",closest.Index.ToString("00")),new(x,80),13,cream);
-            Bar(new(x,94),new(340,7),closest.Health/closest.MaxHealth,new("d48568"));
-            Bar(new(x,106),new(340,4),closest.Posture/100,gold);
-            Text(T(closest.Broken?"POSTURE BROKEN · ATTACK TO FINISH":Game.Player.CanShutDown(closest)?"BEHIND IT · ATTACK TO SHUT DOWN":closest.Stunned?"STUNNED · GET BEHIND IT":closest.Perilous&&closest.State=="PERILOUS"?"◆ PERILOUS SWEEP · DODGE / JUMP":Game.Locked==closest?"TARGET LOCKED":"TAB   LOCK TARGET"),new(x,131),11,closest.Perilous?new("ff9c83"):gold);
-            if(Game.Locked!=null&&!Game.Camera.IsPositionBehind(closest.GlobalPosition))
-            {
-                var p=Game.Camera.UnprojectPosition(closest.GlobalPosition+Vector3.Up*1.4f)/scale;
-                DrawArc(p,15,0,Mathf.Tau,32,new Color(gold,.8f),1.5f);DrawCircle(p,3,gold);
-            }
-        }
+        if(closest!=null)Target(closest);
         if(Game.Mode==GameMode.Playing)
         {
-            string prompt=Game.InteractionPrompt();
-            if(prompt!="")
+            var (icon,label)=Game.Interaction();
+            if(icon!="")
             {
-                var width=font.GetStringSize(prompt,fontSize:18).X+46;Panel(new((w-width)/2,h-225,width,44),.92f);
-                Center(prompt,h-196,18,cream);
+                float width=font.GetStringSize(label,fontSize:18).X+108,x=(w-width)/2;Panel(new(x,h-225,width,44),.92f);
+                Keycap("E",new(x+14,h-214.4f));DrawIcon(icon,new(x+66,h-203),30,cream);Text(label,new(x+90,h-196),18,cream);
             }
             if(Game.QuestStage<4&&!Game.Camera.IsPositionBehind(Game.ObjectivePosition))
             {
@@ -94,15 +90,44 @@ public partial class Hud : Control
         }
         if(Game.ToastTime>0&&Game.Mode!=GameMode.Dialogue)
         {
-            Panel(new(w/2-280,174,560,83),.83f);
-            Center(T(Game.ToastTitle),208,23,gold,true);Center(T(Game.ToastBody),235,14,cream);
+            bool body=Game.ToastBody!="";Panel(new(w/2-280,174,560,body?83:56),.83f);
+            Center(T(Game.ToastTitle),body?208:211,23,gold,true);if(body)Center(T(Game.ToastBody),235,14,cream);
+        }
+        if(Game.FlashTime>0)
+        {
+            // Pops in a little larger for its first tenth of a second, then fades over its last quarter.
+            float pop=Game.FlashTime>Game.FlashLength?0:Math.Clamp(1-(Game.FlashLength-Game.FlashTime)/.1f,0,1);
+            DrawIcon(Game.FlashIcon,new(w/2,h*.44f),96*(1+.3f*pop),new Color(Game.FlashColor,Math.Min(1,Game.FlashTime/.25f)));
         }
         if(Game.FeedbackTime>0)Center(T(Game.FeedbackText),h*.46f,21,Game.FeedbackColor);
         if(Game.Mode==GameMode.Paused||Game.Mode==GameMode.Defeated)
         {
             DrawRect(new(0,0,w,h),new Color(.025f,.055f,.067f,.77f));
             Center(T(Game.Mode==GameMode.Paused?"A moment of quiet":"The light has not gone out"),h*.28f,39,cream,true);
-            Center(T(Game.Mode==GameMode.Paused?"HOSHIKAWA  /  JOURNEY PAUSED":"Recover in the village. Disabled patrols stay disabled."),h*.28f+37,14,muted);
+            if(Game.Mode==GameMode.Paused)Controls(w/2+205,h*.40f);else Keycap("R",new(w/2-206,h*.43f+14),14);
+        }
+    }
+    // The objective on one line; the patrols it counts are crests, each dimmed as it is shut down.
+    private void Quest()
+    {
+        string text=Game.ObjectiveText;float x=78+font.GetStringSize(text,fontSize:17).X;
+        DrawTextureRect(questShade,new(0,24,x+(Game.QuestStage==1?190:110),46),false);
+        Diamond(new(44,47),6,gold);Text(text,new(62,53),17,cream);
+        if(Game.QuestStage==1)foreach(var patrol in Game.Patrols){DrawIcon("sirius",new(x+12,47),28,patrol.Dead?new Color(cream,.22f):crest);x+=28;}
+        if(Game.QuestStage<4)Text(F("{0} m",(int)Game.Player.GlobalPosition.DistanceTo(Game.ObjectivePosition)),new(x+8,53),12,muted);
+    }
+    // The nearest robot: its crest (a scout's smaller), health and posture, and the TAB key until it is locked on.
+    private void Target(Enemy e)
+    {
+        float x=w/2-175,bars=Game.Locked==e?286:236;Panel(new(x,70,350,44),.8f);
+        DrawIcon("sirius",new(x+24,92),e.Scout?26:34,crest);
+        Bar(new(x+48,83),new(bars,7),e.Health/e.MaxHealth,new("d48568"));
+        Bar(new(x+48,96),new(bars,4),e.Posture/100,gold);
+        if(Game.Locked!=e)Keycap("TAB",new(x+296,81),11);
+        if(Game.Locked!=null&&!Game.Camera.IsPositionBehind(e.GlobalPosition))
+        {
+            var p=Game.Camera.UnprojectPosition(e.GlobalPosition+Vector3.Up*1.4f)/scale;
+            DrawArc(p,15,0,Mathf.Tau,32,new Color(gold,.8f),1.5f);DrawCircle(p,3,gold);
         }
     }
     private void Title()
@@ -110,42 +135,47 @@ public partial class Hud : Control
         DrawTextureRect(art,new(0,0,w,h),false);
         DrawTextureRect(titleShade,new(0,0,w,h),false);
         DrawRect(new(0,h-88,w,88),new Color(.018f,.04f,.05f,.6f));
-        Text(T("A STORY OF TWO WORLDS"),new(83,h*.25f-38),13,gold);
-        Text(T("Hoshikawa"),new(78,h*.25f+35),70,cream,true);
-        Text(T("T H E   O F F L I N E   V A L L E Y"),new(84,h*.25f+74),15,gold);
-        DrawLine(new(85,h*.25f+101),new(445,h*.25f+101),new Color(gold,.65f));
-        Text(T("Beyond the cities of machines,"),new(85,h*.25f+143),20,cream,true);
-        Text(T("a small village still keeps its lights on."),new(85,h*.25f+174),20,cream,true);
-        Text(T("PROLOGUE  01"),new(85,h*.25f+220),11,gold);
-        Text(T("The train with no passengers"),new(85,h*.25f+248),19,cream);
-        Text(T("MIO  /  HUMAN SIDE"),new(w-280,h-51),12,gold);
-        Text(T("GODOT 4  ·  PLAYABLE PROLOGUE"),new(83,h-36),11,new Color(cream,.75f));
+        // The logo carries the game's name in every language; only the chapter is text.
+        DrawTextureRect(logo,new(70,h*.25f-112,460,460f*logo.GetHeight()/logo.GetWidth()),false,cream);
+        DrawLine(new(85,h*.25f+204),new(445,h*.25f+204),new Color(gold,.65f));
+        Text(T("The train with no passengers"),new(85,h*.25f+240),19,cream);
     }
+    // Mio's face from her dialogue portrait, vitality and posture as bars, and a pouch for each remedy she can carry.
     private void Vitals()
     {
-        Panel(new(36,h-159,376,119),.91f);
-        DrawTextureRectRegion(art,new Rect2(46,h-148,77,96),new Rect2(1040,140,350,435));
-        DrawRect(new Rect2(46,h-148,77,96),new Color(gold,.5f),false);
-        Text(T("Mio").ToUpperInvariant(),new(140,h-128),24,cream,true);
-        Text(T("OFFLINE RUNNER"),new(Math.Max(210,150+serif.GetStringSize(T("Mio").ToUpperInvariant(),fontSize:24).X),h-129),10,muted);
-        Bar(new(140,h-110),new(250,9),Game.Player.Health/100,jade);
-        Text(F("VITALITY  {0} / 100",(int)Game.Player.Health),new(140,h-87),11,cream);
-        Bar(new(140,h-72),new(250,5),Game.Player.Posture/100,gold);
-        Text(T("POSTURE"),new(140,h-54),10,gold);
-        Text(F("H   REMEDY  ×{0}",Game.Player.Remedies),new(274,h-54),10,cream);
-        float sx=441;Panel(new(sx,h-124,236,84));
-        if(Game.Player.SkillCharges>0)DrawArc(new(sx+41,h-83),26,-Mathf.Pi/2,-Mathf.Pi/2+Mathf.Tau*Game.Player.SkillCharges/Player.MaxSkillCharges,40,jade,2);
-        Text("Q",new(sx+32,h-76),23,cream);
-        Text(T("RESONANCE CUT"),new(sx+79,h-93),12,jade);
-        Text(F("ZERO LINK  ·  {0} / {1}",Game.Player.SkillCharges,Player.MaxSkillCharges),new(sx+79,h-69),10,cream);
+        Panel(new(36,h-132,306,94),.88f);
+        var face=new Vector2(84,h-85);DrawCircle(face,39,new Color(gold,.6f));
+        if(Portrait("Mio") is {} mio)
+        {
+            var points=new Vector2[40];var uvs=new Vector2[40];
+            for(int i=0;i<40;i++){var d=Vector2.FromAngle(i*Mathf.Tau/40);points[i]=face+d*37;uvs[i]=(new Vector2(490,255)+d*215)/mio.GetSize();}
+            DrawPolygon(points,new[]{Colors.White},uvs,mio);
+        }
+        Bar(new(136,h-112),new(190,9),Game.Player.Health/100,jade);
+        Bar(new(136,h-96),new(190,5),Game.Player.Posture/100,gold);
+        float x=136;
+        for(int i=0;i<Game.Player.MaxRemedies;i++){DrawIcon("remedy",new(x+11,h-64),26,i<Game.Player.Remedies?cream:new Color(cream,.22f));x+=26;}
+        Keycap("H",new(x+6,h-75.4f));
+        Skill(new(398,h-86));
     }
-    private void Controls()
+    // Resonance Cut: its icon lights while it is cast, under a dot per charge that flashes red when Mio tries it with none left.
+    private void Skill(Vector2 c)
     {
-        float x=w-410;Panel(new(x,h-166,370,122),.75f);
-        Text(T("WASD  Move      SHIFT  Run      SPACE  Jump"),new(x+18,h-139),13,cream);
-        Text(T("LMB / J  Attack     RMB / K  Guard & deflect"),new(x+18,h-112),13,cream);
-        Text(T("CTRL / ALT  Dodge     TAB  Lock     Q  Skill"),new(x+18,h-85),13,cream);
-        Text(T("E  Interact    H  Remedy    ESC  Pause"),new(x+18,h-59),12,gold);
+        int charges=Game.Player.SkillCharges;bool cast=Game.Player.Casting,warn=Game.Player.Spent>0&&(Time.GetTicksMsec()/120)%2==0;
+        if(cast)DrawCircle(c,54,new Color(jade,.16f));
+        DrawCircle(c,40,new Color(ink,.9f));DrawArc(c,40,0,Mathf.Tau,48,cast?jade:new Color(gold,.45f),cast?3:1.5f);
+        DrawIcon("resonance",c,56,cast?cream:new Color(jade,charges>0?1:.3f));
+        for(int i=0;i<Player.MaxSkillCharges;i++)DrawCircle(c+new Vector2((i-(Player.MaxSkillCharges-1)/2f)*14,54),4.5f,warn?red:i<charges?jade:new Color(jade,.2f));
+        Keycap("Q",c+new Vector2(28,18));
+    }
+    // The key reference, shown on the pause screen rather than over play.
+    private void Controls(float x,float y)
+    {
+        Panel(new(x,y,370,122),.9f);
+        Text(T("WASD  Move      SHIFT  Run      SPACE  Jump"),new(x+18,y+27),13,cream);
+        Text(T("LMB / J  Attack     RMB / K  Guard & deflect"),new(x+18,y+54),13,cream);
+        Text(T("CTRL / ALT  Dodge     TAB  Lock     Q  Skill"),new(x+18,y+81),13,cream);
+        Text(T("E  Interact    H  Remedy    ESC  Pause"),new(x+18,y+107),12,gold);
     }
     private void Minimap()
     {
@@ -174,7 +204,7 @@ public partial class Hud : Control
         {var p=Map(e.GlobalPosition);if(p.Length()<r-4)DrawCircle(center+p,3,new("e58b66"));}
         DrawCircle(center,4,cream);DrawLine(center,center+new Vector2(-Mathf.Sin(Game.CameraYaw),-Mathf.Cos(Game.CameraYaw))*10,cream,2);
         if(Game.QuestStage<4)Diamond(center+Map(Game.ObjectivePosition).LimitLength(r-9),4,gold);
-        Text(T("SENSORY LINK  •"),new(w-195,238),10,jade);
+        var link=center+new Vector2(-60,60);DrawCircle(link,17,new Color(ink,.95f));DrawArc(link,17,0,Mathf.Tau,32,new Color(jade,.6f),1);DrawIcon("zero",link,30,jade);
     }
     private void Diamond(Vector2 p,float radius,Color c)
         =>DrawPolyline(new[]{p+Vector2.Up*radius,p+Vector2.Right*radius,p+Vector2.Down*radius,p+Vector2.Left*radius,p+Vector2.Up*radius},c,2);
@@ -210,10 +240,13 @@ public partial class Hud : Control
             else Text(part,new(box.Position.X+44,y),20,cream);
             y+=32;
         }
-        string hint=T("E / ENTER   Next        ESC   Skip scene");float hintX=box.End.X-26-font.GetStringSize(hint,fontSize:12).X;
-        Text(hint,new(hintX,box.End.Y-18),12,new Color(gold,.8f));
-        if(Game.Reveal>=Game.Dialogue.Length&&(Time.GetTicksMsec()/450)%2==0)
-        {var c=new Vector2(hintX-24,box.End.Y-23);DrawColoredPolygon(new[]{c+new Vector2(-6,-4),c+new Vector2(6,-4),c+new Vector2(0,4)},gold);}
+        // Next is E and an arrow that blinks once the line has typed out; skip is ESC and a double chevron.
+        float kx=box.End.X-30,ky=box.End.Y-36;var dim=new Color(gold,.8f);
+        foreach(float dx in new[]{-12f,-3f}){var v=new Vector2(kx+dx,ky+10.5f);DrawColoredPolygon(new[]{v+new Vector2(-4,-6),v+new Vector2(4,0),v+new Vector2(-4,6)},dim);}
+        kx-=26+KeyWidth("ESC",11);Keycap("ESC",new(kx,ky),11);
+        var c=new Vector2(kx-20,ky+10.5f);bool ready=Game.Reveal>=Game.Dialogue.Length;
+        DrawColoredPolygon(new[]{c+new Vector2(-6,-4),c+new Vector2(6,-4),c+new Vector2(0,4)},ready&&(Time.GetTicksMsec()/450)%2==0?gold:new Color(gold,.35f));
+        Keycap("E",new(c.X-14-KeyWidth("E",11),ky),11);
     }
     private void Figure(string who,bool right,bool speaking)
     {
@@ -228,14 +261,13 @@ public partial class Hud : Control
         DrawCircle(c,64,new Color(jade,.10f*glow));DrawCircle(c,47,new Color(ink,.94f));
         DrawArc(c,47,0,Mathf.Tau,48,new Color(jade,.35f+.4f*glow),1.5f);
         for(int i=0;i<3;i++)DrawArc(c,55,t*.9f+i*Mathf.Tau/3,t*.9f+i*Mathf.Tau/3+.8f,12,new Color(jade,.7f*glow),2);
-        Text("0",new(c.X-serif.GetStringSize("0",fontSize:44).X/2,c.Y+15),44,new Color(cream,.5f+.5f*glow),true);
+        DrawIcon("zero",c,72,new Color(jade,.5f+.5f*glow));
         bool voicing=speaking&&Game.Reveal<Game.Dialogue.Length;
         for(int i=0;i<9;i++)
         {
             float level=voicing?.35f+.65f*Mathf.Abs(Mathf.Sin(t*11+i*1.7f)*Mathf.Sin(t*4.3f+i)):.12f;
             DrawRect(new Rect2(c.X+72+i*9,c.Y-level*22,4,level*44),new Color(jade,.4f+.6f*glow));
         }
-        Text(T("ZERO  ·  LINK"),new(c.X+72,c.Y+44),11,new Color(jade,.5f+.5f*glow));
     }
     private (string Text,int Size,string Language,List<(int Start,int End)> Lines) wrapped=("",0,"",new());
     // Line breaks come from the text server, which knows where CJK text may break; the ranges index into text.
@@ -267,7 +299,7 @@ public partial class Hud : Control
             LanguageButtons(w/2-155,h*.40f+250,98,40,8);
         }
         if(Game.Mode==GameMode.Defeated)
-            Button("R   Return to Hoshikawa",new(w/2-160,h*.43f),new(320,55),Game.Retry,true);
+            Button("Return to Hoshikawa",new(w/2-160,h*.43f),new(320,55),Game.Retry,true);
     }
     // One button per language, each named in its own script; the current one is lit.
     private void LanguageButtons(float x,float y,float width,float height,float gap)
