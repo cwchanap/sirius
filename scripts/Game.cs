@@ -125,7 +125,7 @@ public partial class Game : Node3D
             {var to=Locked.GlobalPosition-Player.GlobalPosition;CameraYaw=Mathf.LerpAngle(CameraYaw,Mathf.Atan2(-to.X,-to.Z),dt*3.8f);}
         }
         // Any robot out of its patrol, chasing, striking, recovering or held, is a fight; robots only ever engage Mio. A pause, the items
-        // screen or a scene freezes the fight and keeps its music; a defeat ends it.
+        // screen or a scene freezes the fight and keeps its music; a defeat ends it, and so does Retry() (recovering or restarting).
         if(Mode==GameMode.Playing)danger=Enemies.Any(e=>!e.Dead&&e.State!="PATROL")?Music.Calm:Math.Max(0,danger-dt);else if(Mode==GameMode.Defeated)danger=0;
         Music.Want(Music.Track(Region,danger>0));
         cameraRig.Position=cameraRig.Position.Lerp(Player.GlobalPosition+Vector3.Up*1.35f,1-Mathf.Exp(-dt*10));
@@ -159,7 +159,7 @@ public partial class Game : Node3D
     {Mode=GameMode.Defeated;Input.MouseMode=Input.MouseModeEnum.Visible;Hud.RefreshMenu();}
     public void Retry()
     {
-        Player.Respawn();Locked=null;
+        Player.Respawn();Locked=null;danger=0;
         foreach(var e in Enemies)if(!e.Dead)e.Reset();
         CameraYaw=0;FreezeAnimations(false);Start();Toast("BACK AT THE VILLAGE");
     }
