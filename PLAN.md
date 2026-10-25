@@ -159,7 +159,7 @@ Bring the non-character environment up to the Tripo characters' detail: semi-rea
 
 - [x] Robots have 500 health (scouts 300) and Mio's sword only scratches one from the front (2 health, 5 posture, no stagger); attacking within 60° of its back shuts it down outright. After a swing a robot neither moves nor turns while it recovers, the opening to get round it.
 - [x] Robot strikes are heavy: 50 vitality, 75 for the perilous sweep, scouts 60%.
-- [x] Resonance Cut no longer damages: it stuns robots in reach for 4 s and has 3 charges (`Player.MaxSkillCharges`) instead of a cooldown, refilled only by resting with Aki or Emi or recovering at the village. The HUD shows the charges, and the robot panel says when Mio is behind one or it is stunned.
+- [x] Resonance Cut no longer damages: it stuns robots in reach for 4 s and has 3 charges (`Player.MaxSkillCharges`) instead of a cooldown, refilled by resting with Aki or Emi or recovering at the village (and, since the items, one at a time by a resonance cell). The HUD shows the charges, and the robot panel says when Mio is behind one or it is stunned.
 - [x] Deflect, posture break and the frontal finisher are unchanged.
 
 ## Combat: Mio's combo and Resonance Cut animations
