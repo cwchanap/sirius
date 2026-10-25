@@ -149,7 +149,7 @@ public partial class Enemy : CharacterBody3D
         if(State=="DEFEATED")return;
         Health=0;State="DEFEATED";marker.Text="";ShowBadge("");CollisionLayer=0;CollisionMask=0;
         Visual.Play("death",1.5f,true);Game.Sound("break");
-        Game.FloatingNumber(GlobalPosition+Vector3.Up*2,"DISABLED",World.Jade);Game.OnEnemyDefeated();
+        Game.FloatingNumber(GlobalPosition+Vector3.Up*2,"DISABLED",World.Jade);Game.OnEnemyDefeated(this);
     }
     public void Reset()
     {

@@ -19,6 +19,8 @@ public partial class Hud : Control
     // The settings screen's volume sliders are bare HSliders for focus, keys and the mouse; _Draw paints them, named for their bus.
     private readonly List<HSlider> sliders=new();
     private readonly Texture2D bare=ImageTexture.CreateFromImage(Image.CreateEmpty(1,1,false,Image.Format.Rgba8));
+    // The save point's row whose button was last pressed, which keeps the focus as the screen is rebuilt.
+    private string pressed="";
     // The item the items screen shows, the one whose slot last took focus.
     public string Selected{get;private set;}="";
     private float scale=1,w=1440,h=900;
@@ -55,6 +57,17 @@ public partial class Hud : Control
             BorderColor=new Color(gold,.35f),BorderWidthLeft=1,BorderWidthBottom=1,BorderWidthRight=1,BorderWidthTop=1},rect);
     }
     private void DrawIcon(string name,Vector2 center,float size,Color c)=>DrawTextureRect(Icon(name),new Rect2(center-Vector2.One*size/2,Vector2.One*size),false,c);
+    // Stardust has no icon art yet: it is a four-pointed star drawn here, which Mark() draws in place of an icon named StardustIcon.
+    public const string StardustIcon="stardust";
+    private void Star(Vector2 c,float r,Color color)
+        =>DrawColoredPolygon(Enumerable.Range(0,8).Select(i=>c+Vector2.FromAngle(i*Mathf.Pi/4-Mathf.Pi/2)*(i%2==0?r:r*.36f)).ToArray(),color);
+    private void Mark(string icon,Vector2 center,float size,Color c){if(icon==StardustIcon)Star(center,size*.45f,c);else DrawIcon(icon,center,size,c);}
+    // A stardust amount, the star before the number, ending at x on the text's baseline y.
+    private void Amount(int amount,float x,float y,int size,Color c)
+    {
+        string text=amount.ToString();float width=serif.GetStringSize(text,fontSize:size).X;
+        Text(text,new(x-width,y),size,c,true);Star(new(x-width-size*.62f,y-size*.36f),size*.42f,gold);
+    }
     private float KeyWidth(string key,int size)=>Math.Max(size*1.9f,font.GetStringSize(key,fontSize:size).X+size*1.1f);
     // A key drawn as a small cap with its name on it; p is the cap's top-left corner.
     private void Keycap(string key,Vector2 p,int size=12)
@@ -79,7 +92,7 @@ public partial class Hud : Control
         if(Game.Mode==GameMode.Title||settings&&Game.SettingsFrom==GameMode.Title){Title();if(settings){DrawRect(new(0,0,w,h),new Color(.025f,.055f,.067f,.77f));Settings();}return;}
         if(Game.Mode==GameMode.Dialogue){Dialogue();return;}
         if(Game.TintTime>0)DrawRect(new Rect2(0,0,w,h),new Color(Game.TintColor,Game.TintColor.A*Game.TintTime/Game.TintLength));
-        Quest();Minimap();Vitals();
+        Quest();Minimap();Vitals();Wallet();
         var closest=Game.Locked??Game.Enemies.Where(e=>!e.Dead&&e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)<12).OrderBy(e=>e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)).FirstOrDefault();
         if(closest!=null)Target(closest);
         if(Game.Mode==GameMode.Playing)
@@ -88,7 +101,7 @@ public partial class Hud : Control
             if(icon!="")
             {
                 float width=font.GetStringSize(label,fontSize:18).X+108,x=(w-width)/2;Panel(new(x,h-225,width,44),.92f);
-                Keycap("E",new(x+14,h-214.4f));DrawIcon(icon,new(x+66,h-203),30,cream);Text(label,new(x+90,h-196),18,cream);
+                Keycap("E",new(x+14,h-214.4f));Mark(icon,new(x+66,h-203),30,cream);Text(label,new(x+90,h-196),18,cream);
             }
             if(Game.QuestStage<4&&!Game.Camera.IsPositionBehind(Game.ObjectivePosition))
             {
@@ -100,7 +113,7 @@ public partial class Hud : Control
         {
             bool body=Game.ToastBody!="";Panel(new(w/2-280,174,560,body?83:56),.83f);string title=T(Game.ToastTitle).ToUpperInvariant();
             Center(title,body?208:211,23,gold,true);if(body)Center(T(Game.ToastBody),235,14,cream);
-            if(Game.ToastIcon!="")DrawIcon(Game.ToastIcon,new((w-serif.GetStringSize(title,fontSize:23).X)/2-28,202),34,cream);
+            if(Game.ToastIcon!="")Mark(Game.ToastIcon,new((w-serif.GetStringSize(title,fontSize:23).X)/2-28,202),34,cream);
         }
         if(Game.FlashTime>0)
         {
@@ -114,9 +127,12 @@ public partial class Hud : Control
             DrawRect(new(0,0,w,h),new Color(.025f,.055f,.067f,.77f));
             Center(T(Game.Mode==GameMode.Paused?"A moment of quiet":"The light has not gone out"),h*.28f,39,cream,true);
             if(Game.Mode==GameMode.Paused)Controls(w/2+205,h*.40f);else Keycap("R",new(w/2-206,h*.43f+14),14);
+            if(Game.Mode==GameMode.Defeated&&Game.Dropped is {} drop)
+            {string left=F("{0} stardust lies where Mio fell",drop.Amount);Center(left,h*.36f,17,cream);Star(new((w-font.GetStringSize(left,fontSize:17).X)/2-16,h*.36f-6),8,gold);}
         }
-        if(Game.Mode==GameMode.Inventory){DrawRect(new(0,0,w,h),new Color(.025f,.055f,.067f,.77f));Inventory();Vitals();}
+        if(Game.Mode==GameMode.Inventory){DrawRect(new(0,0,w,h),new Color(.025f,.055f,.067f,.77f));Inventory();Vitals();Wallet();}
         if(settings){DrawRect(new(0,0,w,h),new Color(.025f,.055f,.067f,.77f));Settings();}
+        if(Game.Mode==GameMode.Rest){DrawRect(new(0,0,w,h),new Color(.025f,.055f,.067f,.77f));SavePoint();Vitals();}
     }
     // The objective on one line; the patrols it counts are crests, each dimmed as it is shut down.
     private void Quest()
@@ -156,19 +172,26 @@ public partial class Hud : Control
     {
         Panel(new(36,h-132,306,94),.88f);
         var face=new Vector2(84,h-85);DrawCircle(face,39,new Color(gold,.6f));
-        if(Portrait("Mio") is {} mio)
+        if(Portrait("Mio") is {} portrait)
         {
             var points=new Vector2[40];var uvs=new Vector2[40];
-            for(int i=0;i<40;i++){var d=Vector2.FromAngle(i*Mathf.Tau/40);points[i]=face+d*37;uvs[i]=(new Vector2(490,255)+d*215)/mio.GetSize();}
-            DrawPolygon(points,new[]{Colors.White},uvs,mio);
+            for(int i=0;i<40;i++){var d=Vector2.FromAngle(i*Mathf.Tau/40);points[i]=face+d*37;uvs[i]=(new Vector2(490,255)+d*215)/portrait.GetSize();}
+            DrawPolygon(points,new[]{Colors.White},uvs,portrait);
         }
-        Bar(new(136,h-112),new(190,9),Game.Player.Health/100,jade);
-        Bar(new(136,h-96),new(190,5),Game.Player.Posture/100,gold);
+        var mio=Game.Player;Bar(new(136,h-114),new(190,9),mio.Health/mio.MaxHealth,jade);
+        Bar(new(136,h-101),new(190,5),mio.Stamina/mio.MaxStamina,mio.Winded?red:cream);
+        Bar(new(136,h-92),new(190,4),mio.Posture/100,gold);
         float x=136;
         var bag=Game.Player.Inventory;
         for(int i=0;i<bag.Capacity("remedy");i++){DrawIcon("remedy",new(x+11,h-64),26,i<bag.Count("remedy")?cream:new Color(cream,.22f));x+=26;}
         Keycap("H",new(x+6,h-75.4f));
         Skill(new(398,h-86));
+    }
+    // The stardust Mio carries, bottom right, with what she last earned rising over it.
+    private void Wallet()
+    {
+        Panel(new(w-196,h-82,160,44),.85f);Amount(Game.Player.Growth.Stardust,w-52,h-50,22,cream);
+        if(Game.GainTime>0)Text($"+{Game.Gained}",new(w-110,h-94-(2.5f-Game.GainTime)*8),17,new Color(gold,Math.Min(1,Game.GainTime)));
     }
     // Resonance Cut: its icon lights while it is cast, under a dot per charge that flashes red when Mio tries it with none left.
     private void Skill(Vector2 c)
@@ -246,6 +269,31 @@ public partial class Hud : Control
         float y=o.Y+234;string text=T(shown.Text);
         foreach(var (start,end) in Wrap(text,358,15)){Text(text[start..end].TrimEnd(),new(o.X+470,y),15,cream);y+=24;}
     }
+    private Vector2 RestCorner=>new(w/2-430,h/2-220);
+    // The save point's screen: Mio's level and a row per stat on the left, each with its value now and after one more point, the next level's
+    // cost by the heading; on the right, each priced item, how many she carries and its price. The Raise and Buy buttons are RefreshMenu's.
+    private void SavePoint()
+    {
+        var o=RestCorner;var growth=Game.Player.Growth;var bag=Game.Player.Inventory;Panel(new(o,860,440),.95f);
+        Text(T(World.SavePointName),o+new Vector2(32,52),30,cream,true);Amount(growth.Stardust,o.X+828,o.Y+52,24,cream);
+        DrawLine(o+new Vector2(32,70),o+new Vector2(828,70),new Color(gold,.5f));DrawLine(o+new Vector2(440,94),o+new Vector2(440,410),new Color(gold,.25f));
+        bool afford=growth.Stardust>=growth.NextCost;
+        Text(F("Level {0}",growth.Level),o+new Vector2(32,106),13,muted);Amount(growth.NextCost,o.X+418,o.Y+106,15,afford?cream:red);
+        for(int i=0;i<Stats.All.Length;i++)
+        {
+            var stat=Stats.All[i];float y=o.Y+146+i*52;
+            Text(T(stat.Short),new(o.X+32,y),17,gold);Text(T(stat.Name),new(o.X+92,y),15,cream);
+            Text($"{growth.Value(stat.Id):0} → {growth.Value(stat.Id)+stat.PerPoint:0}",new(o.X+214,y),15,afford?cream:muted);
+        }
+        Text(T("Trade"),o+new Vector2(470,106),13,muted);
+        foreach(var (item,i) in Items.All.Where(it=>it.Price>0).Select((it,i)=>(it,i)))
+        {
+            float y=o.Y+146+i*52;int n=bag.Count(item.Id);
+            DrawIcon(item.Icon,new(o.X+490,y-5),34,cream);Text(T(item.Name),new(o.X+518,y-4),15,cream);Text($"{n} / {bag.Capacity(item.Id)}",new(o.X+518,y+14),12,muted);
+            Amount(item.Price,o.X+706,y,15,item.Price<=growth.Stardust?cream:red);
+        }
+        Keycap("ESC",o+new Vector2(32,377.6f));
+    }
     private void Minimap()
     {
         var center=new Vector2(w-130,131);float r=78;
@@ -271,6 +319,7 @@ public partial class Hud : Control
         {var p=Map(n.Body.Position);if(p.Length()<r-3)DrawCircle(center+p,2,jade);}
         foreach(var e in Game.Enemies.Where(e=>!e.Dead))
         {var p=Map(e.GlobalPosition);if(p.Length()<r-4)DrawCircle(center+p,3,new("e58b66"));}
+        if(Game.Dropped is {} drop&&Map(drop.At) is var left&&left.Length()<r-5)Star(center+left,6,gold);
         DrawCircle(center,4,cream);DrawLine(center,center+new Vector2(-Mathf.Sin(Game.CameraYaw),-Mathf.Cos(Game.CameraYaw))*10,cream,2);
         if(Game.QuestStage<4)Diamond(center+Map(Game.ObjectivePosition).LimitLength(r-9),4,gold);
         var link=center+new Vector2(-60,60);DrawCircle(link,17,new Color(ink,.95f));DrawArc(link,17,0,Mathf.Tau,32,new Color(jade,.6f),1);DrawIcon("zero",link,30,jade);
@@ -394,6 +443,23 @@ public partial class Hud : Control
         }
         if(Game.Mode==GameMode.Defeated)
             Button("Return to Hoshikawa",new(w/2-160,h*.43f),new(320,55),Game.Retry,true);
+        if(Game.Mode==GameMode.Rest)
+        {
+            // Focus stays on the row last pressed, else the first that can be pressed, else Back.
+            var o=RestCorner;var growth=Game.Player.Growth;var bag=Game.Player.Inventory;var rows=new List<(string Id,Button Button)>();
+            for(int i=0;i<Stats.All.Length;i++)
+            {
+                string id=Stats.All[i].Id;var raise=Button("Raise",new(o.X+318,o.Y+120+i*52),new(100,36),()=>{pressed=id;Game.Raise(id);},false,null,15,false);
+                raise.Disabled=growth.Stardust<growth.NextCost;rows.Add((id,raise));
+            }
+            foreach(var (item,i) in Items.All.Where(it=>it.Price>0).Select((it,i)=>(it,i)))
+            {
+                string id=item.Id;var buy=Button("Buy",new(o.X+718,o.Y+120+i*52),new(100,36),()=>{pressed=id;Game.Buy(id);},false,null,15,false);
+                buy.Disabled=item.Price>growth.Stardust||bag.Count(id)>=bag.Capacity(id);rows.Add((id,buy));
+            }
+            var back=Button("Back",new(o.X+80,o.Y+366),new(170,46),Game.LeaveRest,false,grab:false);
+            (rows.FirstOrDefault(r=>r.Id==pressed&&!r.Button.Disabled).Button??rows.FirstOrDefault(r=>!r.Button.Disabled).Button??back).GrabFocus();
+        }
     }
     private void Slider(string bus,Vector2 pos,Vector2 size)
     {

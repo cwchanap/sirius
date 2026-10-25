@@ -11,9 +11,14 @@ public partial class Player : CharacterBody3D
     public static readonly (float Hit,float Link,float End,float Lunge,float From,float To)[] Swings={(.17f,.3f,.55f,.45f,.04f,.2f),(.11f,.26f,.55f,.5f,.02f,.15f),(.3f,.5f,.85f,1.2f,.06f,.3f)};
     // Resonance Cut: a crouch, a leap spinning twice, and the slam that locks every robot within SkillRadius.
     public const float SkillLength=1.3f,SkillSlam=.78f,SkillRadius=5.5f;
-    public float Health = 100, Posture, Invulnerable, Stun, Spent;
+    public float Health = 100, Stamina = 100, Posture, Invulnerable, Stun, Spent;
     public int SkillCharges = MaxSkillCharges;
     public readonly Inventory Inventory = new();
+    public readonly Growth Growth = new();
+    public float MaxHealth => Growth.Value("hp");
+    public float MaxStamina => Growth.Value("sp");
+    // Run dry, until her stamina is back to Stats.Winded's share.
+    public bool Winded { get; private set; }
     public bool Guarding { get; private set; }
     public bool Dodging => dodge > 0;
     public bool Casting => skillCast > 0;
@@ -21,7 +26,7 @@ public partial class Player : CharacterBody3D
     public ActorVisual Visual = null!;
     public Node3D Model = null!;
     public Vector3 Facing => new(Mathf.Sin(Model.Rotation.Y),0,Mathf.Cos(Model.Rotation.Y));
-    private float attack, attackElapsed, dodge, dodgeCooldown, comboGrace, skillCast, healTimer, lunge;
+    private float attack, attackElapsed, dodge, dodgeCooldown, comboGrace, skillCast, healTimer, lunge, sinceRun;
     private bool struck, comboQueued;
     private int combo;
     private Vector3 dodgeDirection;
@@ -75,7 +80,7 @@ public partial class Player : CharacterBody3D
             {
                 struck=true;bool landed=false;
                 foreach(var enemy in Game.Enemies.Where(e=>!e.Dead))
-                    if(CanReach(enemy.GlobalPosition,2.9f,.15f)){enemy.TakeHit(Enemy.SwordDamage,Enemy.SwordPosture);landed=true;Cut(enemy,1.8f);}
+                    if(CanReach(enemy.GlobalPosition,2.9f,.15f)){enemy.TakeHit(Enemy.SwordDamage*Growth.Scale("atk"),Enemy.SwordPosture*Growth.Scale("atk"));landed=true;Cut(enemy,1.8f);}
                 if(combo==2){Game.Ring(GlobalPosition+Facing*1.1f,.3f,2.2f,.3f,World.Gold);Game.Dust(GlobalPosition+Facing*1.1f,1.5f,16);Game.CameraShake=.14f;}
                 if(landed)Game.HitStop(combo==2?.1f:.055f);
             }
@@ -93,8 +98,11 @@ public partial class Player : CharacterBody3D
                 if(caught.Count>0)Game.Sound("stun");
             }
         }
-        float speed=Guarding?1.7f:Input.IsActionPressed("run")?7.8f:2f;
+        bool running=Input.IsActionPressed("run")&&!Winded&&!Guarding&&dir.LengthSquared()>.01f&&Stun<=0&&skillCast<=0&&healTimer<=0&&attack<=0;
+        float speed=Guarding?1.7f:running?7.8f:2f;
         if(Stun>0||skillCast>0||healTimer>0||attack>0)speed=0;
+        if(running){Stamina=Math.Max(0,Stamina-Stats.RunCost*dt);sinceRun=0;Winded=Stamina<=0;}
+        else{sinceRun+=dt;if(sinceRun>=Stats.RegenDelay)Stamina=Math.Min(MaxStamina,Stamina+Stats.Regen*dt);if(Stamina>=MaxStamina*Stats.Winded)Winded=false;}
         Vector3 horizontal=dir*speed;
         if(attack>0)
         {
@@ -204,7 +212,7 @@ public partial class Player : CharacterBody3D
             if(Posture>=100){Posture=100;Stun=1.2f;Guarding=false;Visual.Play("stagger",1,true);Game.Flash("posture_break",new("f18470"));}
             return "guarded";
         }
-        Health=Math.Max(0,Health-enemy.Strike(perilous));Invulnerable=.65f;Stun=.32f;
+        Health=Math.Max(0,Health-enemy.Strike(perilous)/Growth.Scale("def"));Invulnerable=.65f;Stun=.32f;
         attack=skillCast=0;comboQueued=false;Game.CameraShake=.2f;Visual.Play("stagger",1.3f,true);
         Game.Burst(GlobalPosition+Vector3.Up,new("ee8b76"),.8f);Game.Sound("hurt");Game.Bark("hurt");
         if(Health<=0){Visual.Play("death",1,true);Game.Die();}
@@ -218,8 +226,8 @@ public partial class Player : CharacterBody3D
     }
     public bool Heal()
     {
-        if(Health>=100||Stun>0||attack>0||skillCast>0||dodge>0||Health<=0)return false;
-        Health=Math.Min(100,Health+45);healTimer=.65f;
+        if(Health>=MaxHealth||Stun>0||attack>0||skillCast>0||dodge>0||Health<=0)return false;
+        Health=Math.Min(MaxHealth,Health+45);healTimer=.65f;
         Game.Burst(GlobalPosition+Vector3.Up*.6f,World.Jade,1.2f);Game.Sound("heal");Game.FloatingNumber(GlobalPosition+Vector3.Up*2.1f,"+45",World.Jade);return true;
     }
     public bool Recharge()
@@ -227,7 +235,7 @@ public partial class Player : CharacterBody3D
         if(SkillCharges>=MaxSkillCharges||Health<=0)return false;
         SkillCharges++;Spent=0;Game.Burst(GlobalPosition+Vector3.Up*.8f,World.Jade,1.6f);Game.Sound("heal");return true;
     }
-    public void Rest(){Health=100;Posture=0;Inventory.Fill("remedy");SkillCharges=MaxSkillCharges;Spent=0;}
+    public void Rest(){Health=MaxHealth;Stamina=MaxStamina;Winded=false;Posture=0;Inventory.Fill("remedy");SkillCharges=MaxSkillCharges;Spent=0;}
     public void Respawn()
     {
         GlobalPosition=new(0,World.Height(0,31)+.1f,31);Velocity=Vector3.Zero;Rest();

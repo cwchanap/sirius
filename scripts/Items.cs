@@ -3,12 +3,13 @@ namespace Hoshikawa;
 public enum ItemKind { Consumable, Key }
 // Name and Text are English keys into the ui tables, translated where they are drawn; Icon is one of Hud.Icons. Use is what a consumable
 // does, false when it would do nothing now, and then it is not spent. Each one held of an item with Raises lets Mio carry one more of that item.
-public record Item(string Id,string Name,string Text,string Icon,ItemKind Kind,int Max,Func<Player,bool>? Use=null,string? Raises=null);
+// An item with a Price is traded at the save point for that much stardust.
+public record Item(string Id,string Name,string Text,string Icon,ItemKind Kind,int Max,Func<Player,bool>? Use=null,string? Raises=null,int Price=0);
 public static class Items
 {
     public static readonly Item[] All={
-        new("remedy","Remedy","Restores 45 vitality. Resting with Aki or Emi refills them.","remedy",ItemKind.Consumable,3,p=>p.Heal()),
-        new("cell","Resonance cell","Restores one charge of Resonance Cut. Resting does not refill these.","resonance",ItemKind.Consumable,3,p=>p.Recharge()),
+        new("remedy","Remedy","Restores 45 vitality. Resting refills them.","remedy",ItemKind.Consumable,3,p=>p.Heal()),
+        new("cell","Resonance cell","Restores one charge of Resonance Cut. Resting does not refill these; they are traded where Mio rests.","resonance",ItemKind.Consumable,3,p=>p.Recharge(),Price:80),
         new("pouch","Remedy pouch","Found at the old quarry. Mio carries one more remedy.","remedy",ItemKind.Key,1,Raises:"remedy"),
         new("terminal","Wrist terminal","Gold casing and a little jade lamp. Zero's voice reaches Mio through it.","zero",ItemKind.Key,1),
     };
