@@ -53,7 +53,9 @@ func capture():
 	await talk(game,"Hana",[["hana-koma",1]])
 	await talk(game,"Chiyo",[["chiyo-narration",6]])
 	game.call("EndDialogue")
-	player.global_position=Vector3(0,0.2,-21)
+	# On the junction's floor: placed under it, Mio is pushed back south over the region line and its toast replaces this one.
+	var ground=game.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(0,60,-21),Vector3(0,-30,-21),1))
+	player.global_position=ground.position+Vector3(0,.1,0)
 	game.set("CameraYaw",.15)
 	game.call("ToggleLock")
 	await process_frame
