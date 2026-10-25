@@ -25,6 +25,7 @@ public partial class Enemy : CharacterBody3D
     public Node3D Model=null!;
     private Label3D marker=null!;
     private Sprite3D badge=null!,badgeShade=null!;
+    private CpuParticles3D crackle=null!;
     private float clock,attackTimer,recovery,broken,stagger,stunned;
     private bool attacking,struck;
     private int swings;
@@ -39,9 +40,15 @@ public partial class Enemy : CharacterBody3D
         // The shade, a little larger and drawn first, keeps the tinted icon readable against the sky.
         foreach(var (size,priority) in new[]{(.0029f,0),(.0025f,1)})
         {var s=new Sprite3D {Position=new(0,2.9f,0),PixelSize=size,RenderPriority=priority,Billboard=BaseMaterial3D.BillboardModeEnum.Enabled,TextureFilter=BaseMaterial3D.TextureFilterEnum.LinearWithMipmaps};AddChild(s);if(priority==0){badgeShade=s;s.Modulate=new(.04f,.08f,.09f,.75f);}else badge=s;}
+        // Jade sparks jump over the plating while Resonance Cut holds its actuators.
+        crackle=new CpuParticles3D {Name="Stun crackle",Position=new(0,1.2f,0),Amount=14,Lifetime=.16,Emitting=false,LocalCoords=false,Randomness=1,Mesh=new BoxMesh {Size=new(.015f,.16f,.015f)},
+            MaterialOverride=Game.Fx(World.Jade,4),ParticleFlagAlignY=true,EmissionShape=CpuParticles3D.EmissionShapeEnum.Box,EmissionBoxExtents=new(.35f,.8f,.35f),
+            Spread=180,InitialVelocityMin=1.5f,InitialVelocityMax=3,Gravity=Vector3.Zero,ColorRamp=Game.Cool,CastShadow=GeometryInstance3D.ShadowCastingSetting.Off};
+        AddChild(crackle);
     }
     public override void _PhysicsProcess(double delta)
     {
+        if(crackle.Emitting!=Stunned)crackle.Emitting=Stunned;
         if(Game.Mode!=GameMode.Playing||Dead)return;
         float dt=(float)delta;clock+=dt;recovery=Math.Max(0,recovery-dt);stagger=Math.Max(0,stagger-dt);
         var to=Game.Player.GlobalPosition-GlobalPosition;float distance=new Vector2(to.X,to.Z).Length();to.Y=0;
@@ -109,7 +116,7 @@ public partial class Enemy : CharacterBody3D
     public void Stun(float seconds)
     {
         if(Dead||Broken)return;
-        stunned=seconds;attacking=false;stagger=0;Visual.Play("stagger",.4f,true);
+        stunned=seconds;attacking=false;stagger=0;crackle.Emitting=true;Visual.Play("stagger",.4f,true);
     }
     public void TakeHit(float damage,float posture)
     {
@@ -117,7 +124,8 @@ public partial class Enemy : CharacterBody3D
         Health=Math.Max(0,Health-damage);Posture=Math.Min(100,Posture+posture);
         if(damage>0)
         {
-            Game.Burst(GlobalPosition+Vector3.Up*1.3f,World.Gold,.7f);Game.Sound("impact");
+            var away=GlobalPosition-Game.Player.GlobalPosition;away.Y=0;away=away.Normalized();
+            Game.Impact(GlobalPosition+Vector3.Up*1.25f-away*.35f,away,World.Gold);Blink(new("fff1cf"));Game.Sound("impact");
             Game.FloatingNumber(GlobalPosition+Vector3.Up*2.1f,((int)damage).ToString(),World.Gold);
         }
         if(Health<=0){Execute();return;}
@@ -128,6 +136,13 @@ public partial class Enemy : CharacterBody3D
         }
         else if(damage==0)
         {stagger=.22f;attacking=false;recovery=.6f;Visual.Play("stagger",1.6f,true);}
+    }
+    // The plating flares for a moment when struck, held through the hit-stop, which slows everything but this.
+    public void Blink(Color c)
+    {
+        var flare=new StandardMaterial3D {ShadingMode=BaseMaterial3D.ShadingModeEnum.Unshaded,Transparency=BaseMaterial3D.TransparencyEnum.Alpha,BlendMode=BaseMaterial3D.BlendModeEnum.Add,AlbedoColor=new(c,.4f)};
+        var plates=ActorVisual.Descendants(Model).OfType<MeshInstance3D>().ToArray();foreach(var plate in plates)plate.MaterialOverlay=flare;
+        GetTree().CreateTimer(.06,true,false,true).Timeout+=()=>{foreach(var plate in plates)if(plate.MaterialOverlay==flare)plate.MaterialOverlay=null;};
     }
     public void Execute()
     {
