@@ -34,6 +34,7 @@ just run
 | Zoom camera | Mouse wheel |
 | Save screenshot | F8 (`artifacts/gameplay.png`) |
 | Language | The English / 日本語 / 繁體中文 buttons on the title screen and pause menu |
+| Volume | Settings on the title screen and pause menu: a Voice and a Music slider (arrow keys, d-pad or mouse); Esc or Back closes it |
 
 The HUD carries little text: the objective, what E would act on, and an occasional banner. Everything else is icons, bars and keycaps drawn beside what they do (E, Q, H, Tab, Esc), and this key list is on the pause screen.
 
@@ -156,6 +157,7 @@ The importer regression check exercises all four input formats, transformed mult
 - `tools/build_characters.py`: builds the patrol robot (`patrol.glb`), then runs `tools/refine_humans.py`.
 - `tools/refine_humans.py`: the shared villager (`villager.glb`): 58-bone rig, normalized skinning and all 12 action clips. Saves `assets/source/villager.blend`.
 - `assets/art/`: original imagegen art used directly in the game; prompts in `ASSETS.md`.
+- `scripts/Volume.cs`: the Voice and Music mixer buses and their ten-step volumes, which the settings screen sets and `user://settings.cfg` keeps beside the language. Dialogue voice lines and Mio's shouts play on Voice, the music on Music; the sound effects stay on Master.
 - `scripts/Music.cs`: background music. The valley's loop plays in the villages and Cedar Pass, the relay road has its own, and a battle track takes over while a robot is after Mio; each change crossfades over 1.5 s.
 - `tools/build_audio.py`: original synthesized ambient loop and the remaining interface and movement cues using Python's standard library.
 - `assets/audio/`: the sword, slam and short-circuit sounds, Mio's combat shouts (`mio_*.wav`, Japanese, her voice Yuki) and the relay road and battle music (`relay.ogg`, `battle.ogg`, one loop each) are ElevenLabs takes; ASSETS.md lists their prompts.

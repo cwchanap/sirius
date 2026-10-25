@@ -651,7 +651,35 @@ public static class IntegrationCheck
         Check(g.Player.SkillCharges==3&&bag.Count("cell")==0&&g.Hud.Selected=="cell"&&Labelled("Use").Disabled,"its Use button spends the last resonance cell, which keeps its slot, now empty");
         await Tap(Key.Escape);Check(g.Mode==GameMode.Paused,"escape closes it back to the pause menu it came from");
         Labelled("Items").EmitSignal(BaseButton.SignalName.Pressed);await Frames(2);Labelled("Back").EmitSignal(BaseButton.SignalName.Pressed);await Frames(2);
-        Check(g.Mode==GameMode.Paused,"so does its Back button");g.SetPaused(false);g.Player.SkillCharges=charges;
+        Check(g.Mode==GameMode.Paused,"so does its Back button");
+        // The settings screen opens from the pause menu or the title, sets the voice and the music each on its own bus with the arrow keys, and closes back with Esc or Back.
+        HSlider Slider(string bus)=>g.Hud.FindChildren(bus,"HSlider",true,false).OfType<HSlider>().Single();
+        float BusDb(string bus)=>AudioServer.GetBusVolumeDb(AudioServer.GetBusIndex(bus));
+        Check(Volume.Buses.All(b=>AudioServer.GetBusIndex(b)>=0&&AudioServer.GetBusSend(AudioServer.GetBusIndex(b))=="Master"&&Volume.Level(b)==Volume.Steps&&BusDb(b)==0),"the voice and the music each have a bus under Master, at full volume");
+        Check(g.Voice.Bus=="Voice"&&g.Music.Players.Values.All(p=>p.Bus=="Music"),"the dialogue voice plays on the voice bus and every music track on the music bus");
+        Labelled("Settings").EmitSignal(BaseButton.SignalName.Pressed);await Frames(2);
+        Check(g.Mode==GameMode.Settings&&g.Hud.FindChildren("*","HSlider",true,false).Count==Volume.Buses.Length&&g.Hud.GetViewport().GuiGetFocusOwner()==Slider("Voice"),"the pause menu's Settings button opens the settings screen on the voice slider");
+        await Tap(Key.Left);
+        Check(Volume.Level("Voice")==Volume.Steps-1&&Slider("Voice").Value==Volume.Steps-1&&Math.Abs(BusDb("Voice")-Volume.Db(Volume.Steps-1))<.001f&&Volume.Level("Music")==Volume.Steps&&BusDb("Music")==0,"left on the voice slider lowers the voice bus a step and leaves the music alone");
+        await Tap(Key.Down);Check(g.Hud.GetViewport().GuiGetFocusOwner()==Slider("Music"),"down moves to the music slider");
+        for(int i=0;i<3;i++)await Tap(Key.Left);
+        Check(Volume.Level("Music")==Volume.Steps-3&&Math.Abs(BusDb("Music")-Volume.Db(Volume.Steps-3))<.001f&&BusDb("Music")<BusDb("Voice"),"the music slider sets the music bus on its own");
+        Slider("Music").Value=0;Check(Volume.Level("Music")==0&&BusDb("Music")<=-80,"a slider at its left end silences its bus");
+        await Tap(Key.Down);Check(Focused().Text=="Back","down from the last slider reaches Back");
+        await Tap(Key.Escape);Check(g.Mode==GameMode.Paused,"Esc closes the settings back to the pause menu");
+        Labelled("Settings").EmitSignal(BaseButton.SignalName.Pressed);await Frames(2);
+        Check(Slider("Voice").Value==Volume.Steps-1&&Slider("Music").Value==0,"reopened, the sliders show the levels set");
+        Labelled("Back").EmitSignal(BaseButton.SignalName.Pressed);await Frames(2);Check(g.Mode==GameMode.Paused,"the Back button closes it too");
+        g.Mode=GameMode.Title;g.Hud.RefreshMenu();await Frames(2);Labelled("Settings").EmitSignal(BaseButton.SignalName.Pressed);await Frames(2);
+        Check(g.Mode==GameMode.Settings&&g.SettingsFrom==GameMode.Title,"the title screen's Settings button opens it as well");
+        await Tap(Key.Escape);Check(g.Mode==GameMode.Title,"and Esc returns to the title");
+        var config=new ConfigFile();Volume.Write(config);Volume.Set("Voice",4,false);Volume.Set("Music",9,false);Volume.Read(config);
+        Check(Volume.Level("Voice")==Volume.Steps-1&&Volume.Level("Music")==0,"the volumes round-trip through settings.cfg");
+        config.SetValue("audio","Voice",99);config.SetValue("audio","Music",-5);Volume.Read(config);
+        Check(Volume.Level("Voice")==Volume.Steps&&Volume.Level("Music")==0,"a saved volume out of range is clamped to the sliders' ends");
+        foreach(string bus in Volume.Buses)Volume.Set(bus,Volume.Steps,false);
+        g.Mode=GameMode.Paused;g.Hud.RefreshMenu();await Frames(2);
+        g.SetPaused(false);g.Player.SkillCharges=charges;
         for(int charge=1;charge<Player.MaxSkillCharges;charge++){await Frames(cast);Check(g.Player.Skill(),$"Resonance Cut casts again on charge {charge+1}");}
         await Frames(cast);Check(g.Player.SkillCharges==0&&!g.Player.Skill(),$"with its {Player.MaxSkillCharges} charges spent Resonance Cut waits for a rest");
         var scout=g.Enemies.First(e=>e.Scout);g.Player.Health=100;g.Player.Invulnerable=0;
@@ -718,7 +746,7 @@ public static class IntegrationCheck
             var tight=new (string Text,int Size,float Room)[]{("BEGIN JOURNEY     →",17,288),("Return to Hoshikawa",17,288),("Resume journey",17,278),("Recover at the village",17,278),("Restart prologue",17,278),
                 ("Quit game",17,278),("Quit",17,78),("WASD  Move      SHIFT  Run      SPACE  Jump",13,334),("LMB / J  Attack     RMB / K  Guard & deflect",13,334),
                 ("CTRL / ALT  Dodge     TAB  Lock     Q  Skill",13,334),("E  Interact    H  Remedy    I  Items    ESC  Pause",12,334),
-                ("Items",17,278),("Use",17,138),("Back",17,138),("Supplies",13,378),("Key items",13,378),("The train with no passengers",19,360),
+                ("Items",17,278),("Settings",17,278),("Use",17,138),("Back",17,138),("Supplies",13,378),("Key items",13,378),("The train with no passengers",19,360),
                 ("Speak to Ren at the workshop",17,340),("Clear the old relay road",17,340),("Restart the manual relay",17,340),("Return to Ren in Hoshikawa",17,340),("Evacuation route secured",17,340)};
             var overflow=tight.Where(t=>Width(t.Text,t.Size)>t.Room).Select(t=>t.Text).ToArray();
             Check(overflow.Length==0,$"{name}: every menu, control and panel string fits its fixed box {string.Join(" | ",overflow)}");
@@ -745,7 +773,7 @@ public static class IntegrationCheck
             Check(Localization.Current==code&&TranslationServer.GetLocale()==code,$"the title screen's {name} button switches the game to it");
             foreach(var (mode,action) in new[]{(GameMode.Title,"BEGIN JOURNEY     →"),(GameMode.Paused,"Resume journey")})
             {g.Mode=mode;g.Hud.RefreshMenu();await Frames(2);Check((g.Hud.GetViewport().GuiGetFocusOwner() as Button)?.Text==action,$"{name}: on the {mode} screen the main button, not a language button, holds focus, so Enter does what it says");}
-            foreach(var mode in new[]{GameMode.Title,GameMode.Paused,GameMode.Defeated,GameMode.Inventory,GameMode.Playing})
+            foreach(var mode in new[]{GameMode.Title,GameMode.Paused,GameMode.Defeated,GameMode.Inventory,GameMode.Settings,GameMode.Playing})
             {int drawn=g.Hud.Redraws;g.Mode=mode;g.Hud.RefreshMenu();await Frames(3);Check(g.Hud.Redraws>drawn,$"{name}: the HUD draws its {mode} screen");}
         }
         g.SetLanguage(startLanguage);g.Mode=GameMode.Playing;g.Hud.RefreshMenu();

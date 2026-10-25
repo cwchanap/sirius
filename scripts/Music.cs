@@ -15,7 +15,7 @@ public partial class Music : Node
     private readonly Dictionary<string,float> level=new();
     public override void _Ready()
     {
-        foreach(var (name,(path,_)) in Tracks){var player=new AudioStreamPlayer {Name=name,Stream=GD.Load<AudioStream>(path),VolumeDb=-80};AddChild(player);player.Finished+=()=>player.Play();Players[name]=player;level[name]=0;}
+        foreach(var (name,(path,_)) in Tracks){var player=new AudioStreamPlayer {Name=name,Stream=GD.Load<AudioStream>(path),VolumeDb=-80,Bus="Music"};AddChild(player);player.Finished+=()=>player.Play();Players[name]=player;level[name]=0;}
         Want(Current);
     }
     public void Want(string track){Current=track;var player=Players[track];if(player.StreamPaused)player.StreamPaused=false;else if(!player.Playing)player.Play();}
