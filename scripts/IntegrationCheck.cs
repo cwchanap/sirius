@@ -277,6 +277,10 @@ public static class IntegrationCheck
         Release("forward");Release("run");await Frames((int)((Stats.RegenDelay+g.Player.MaxStamina*Stats.Winded/Stats.Regen)*60)+10);
         Hold("run");Hold("forward");await Frames(20);float rested=Pace();Release("forward");Release("run");
         Check(!g.Player.Winded&&rested>7,$"a breath later her stamina is back and she runs again ({rested:F2} m/s)");
+        // The roll's own speed replaces her running, so holding Run through it costs nothing.
+        g.Player.Stamina=g.Player.MaxStamina;Hold("run");Hold("forward");g.Player.Dodge(Vector3.Forward);await Frames(20);
+        bool rolling=g.Player.Dodging;float afterRoll=g.Player.Stamina;Release("forward");Release("run");
+        Check(rolling&&afterRoll==g.Player.MaxStamina,$"a dodge roll spends no stamina, even with Run held ({g.Player.MaxStamina-afterRoll:F1} SP spent)");
         tireless=true;
         Check(Math.Abs(animator.GetAnimation("jump").Length-13/24.0)<.01,"jump contains one Tripo hop, not the repeated source sequence");
         foreach(string scenario in new[]{"standing","running","long fall"})
