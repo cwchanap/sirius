@@ -187,6 +187,11 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [x] Art: thirteen solid kamon-style HUD icons and the 星川 title logo, drawn by Codex and cut by `tools/cut_ui_art.gd` into white images the HUD tints (`assets/art/ui/`).
 - [x] Code: the HUD, combat markers, toasts, title, pause, defeated and dialogue screens use the icons and keycaps instead of text; the always-on controls panel moves to the pause screen; the translation tables go from 134 interface strings to 80. 534 checks pass headless and in native Metal in all three languages.
 
+## Items
+
+- [x] An item table (`scripts/Items.cs`) and `Inventory`; remedies and the remedy pouch move into it, joined by the wrist terminal (key item) and two resonance cells on the relay road (each restores one Resonance Cut charge, not refilled by resting). An items screen opens with I or from the pause menu: supplies and key items in slots, the selected one's icon, count and text, E or Use to spend a supply. Icons reuse the HUD set.
+- [ ] Art: item icons of their own (Codex), in place of the remedy, resonance and Zero icons the items borrow.
+
 ## Languages: Japanese and Traditional Chinese
 
 - [x] Phase 0: `assets/dialogue/glossary.md`, with the names, places, terms and tone for all three languages; kanji names for Chinese settled as proposals for the owner to confirm.

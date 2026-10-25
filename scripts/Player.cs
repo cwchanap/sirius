@@ -12,7 +12,8 @@ public partial class Player : CharacterBody3D
     // Resonance Cut: a crouch, a leap spinning twice, and the slam that locks every robot within SkillRadius.
     public const float SkillLength=1.3f,SkillSlam=.78f,SkillRadius=5.5f;
     public float Health = 100, Posture, Invulnerable, Stun, Spent;
-    public int Remedies = 3, MaxRemedies = 3, SkillCharges = MaxSkillCharges;
+    public int SkillCharges = MaxSkillCharges;
+    public readonly Inventory Inventory = new();
     public bool Guarding { get; private set; }
     public bool Dodging => dodge > 0;
     public bool Casting => skillCast > 0;
@@ -53,7 +54,7 @@ public partial class Player : CharacterBody3D
         var input=Input.GetVector("left","right","forward","back");
         var dir=new Vector3(input.X,0,input.Y).Rotated(Vector3.Up,Game.CameraYaw);
         if(Input.IsActionJustPressed("lock"))Game.ToggleLock();
-        if(Input.IsActionJustPressed("heal"))Heal();
+        if(Input.IsActionJustPressed("heal"))Use("remedy");
         Guarding=Input.IsActionPressed("guard")&&attack<=0&&dodge<=0&&skillCast<=0&&Stun<=0;
         if(Input.IsActionJustPressed("guard")&&Guarding)DeflectWindow=.19f;
         if(Stun<=0&&healTimer<=0)
@@ -209,13 +210,24 @@ public partial class Player : CharacterBody3D
         if(Health<=0){Visual.Play("death",1,true);Game.Die();}
         return "hit";
     }
-    public void Heal()
+    // Spends one of a consumable on its effect, unless she has none or it would do nothing now.
+    public bool Use(string id)
     {
-        if(Remedies<=0||Health>=100||Stun>0||attack>0||skillCast>0||dodge>0||Health<=0)return;
-        Remedies--;Health=Math.Min(100,Health+45);healTimer=.65f;
-        Game.Burst(GlobalPosition+Vector3.Up*.6f,World.Jade,1.2f);Game.Sound("heal");Game.FloatingNumber(GlobalPosition+Vector3.Up*2.1f,"+45",World.Jade);
+        var item=Items.Get(id);
+        return Inventory.Count(id)>0&&item.Use!=null&&item.Use(this)&&Inventory.Take(id);
     }
-    public void Rest(){Health=100;Posture=0;Remedies=MaxRemedies;SkillCharges=MaxSkillCharges;Spent=0;}
+    public bool Heal()
+    {
+        if(Health>=100||Stun>0||attack>0||skillCast>0||dodge>0||Health<=0)return false;
+        Health=Math.Min(100,Health+45);healTimer=.65f;
+        Game.Burst(GlobalPosition+Vector3.Up*.6f,World.Jade,1.2f);Game.Sound("heal");Game.FloatingNumber(GlobalPosition+Vector3.Up*2.1f,"+45",World.Jade);return true;
+    }
+    public bool Recharge()
+    {
+        if(SkillCharges>=MaxSkillCharges||Health<=0)return false;
+        SkillCharges++;Spent=0;Game.Burst(GlobalPosition+Vector3.Up*.8f,World.Jade,1.6f);Game.Sound("heal");return true;
+    }
+    public void Rest(){Health=100;Posture=0;Inventory.Fill("remedy");SkillCharges=MaxSkillCharges;Spent=0;}
     public void Respawn()
     {
         GlobalPosition=new(0,World.Height(0,31)+.1f,31);Velocity=Vector3.Zero;Rest();

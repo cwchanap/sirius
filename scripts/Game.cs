@@ -2,7 +2,7 @@ using Godot;
 using static Hoshikawa.Localization;
 namespace Hoshikawa;
 
-public enum GameMode { Title, Playing, Dialogue, Paused, Defeated }
+public enum GameMode { Title, Playing, Dialogue, Paused, Defeated, Inventory }
 public partial class Game : Node3D
 {
     public World World=null!;
@@ -18,7 +18,7 @@ public partial class Game : Node3D
     public float CameraYaw,CameraPitch=-.29f,CameraShake,CameraPunch;
     public Camera3D Camera=null!;
     public Hud Hud=null!;
-    public string Speaker="",SpeakerRole="",Dialogue="",ToastTitle="",ToastBody="",FeedbackText="",FlashIcon="";
+    public string Speaker="",SpeakerRole="",Dialogue="",ToastTitle="",ToastBody="",ToastIcon="",FeedbackText="",FlashIcon="";
     public readonly List<(string Speaker,string Text)> Script=new();
     public readonly HashSet<string> Heard=new();
     public int Beat,NightFrom=-1;
@@ -38,6 +38,7 @@ public partial class Game : Node3D
     private string capturePath="";
     private string previousRegion="Hoshikawa";
     private float fov;
+    private GameMode itemsFrom;
     public string Region=>Hoshikawa.World.RegionAt(Player.GlobalPosition);
     public override void _Ready()
     {
@@ -89,6 +90,9 @@ public partial class Game : Node3D
             if(Mode==GameMode.Dialogue&&key.Keycode==Key.Escape){EndDialogue();GetViewport().SetInputAsHandled();return;}
             if(key.Keycode==Key.Escape&&Mode is GameMode.Playing or GameMode.Paused)
             {SetPaused(Mode==GameMode.Playing);return;}
+            if(Mode==GameMode.Inventory&&(key.Keycode==Key.Escape||key.PhysicalKeycode==Key.I)||Mode==GameMode.Playing&&key.PhysicalKeycode==Key.I)
+            {ShowItems(Mode==GameMode.Playing);return;}
+            if(key.PhysicalKeycode==Key.E&&Mode==GameMode.Inventory){UseItem(Hud.Selected);return;}
             if(key.PhysicalKeycode==Key.E&&Mode==GameMode.Playing){Interact();return;}
             if(key.PhysicalKeycode==Key.R&&Mode==GameMode.Defeated){Retry();return;}
         }
@@ -135,6 +139,14 @@ public partial class Game : Node3D
         Mode=pause?GameMode.Paused:GameMode.Playing;Input.MouseMode=pause?Input.MouseModeEnum.Visible:Input.MouseModeEnum.Captured;
         FreezeAnimations(pause);Hud.RefreshMenu();
     }
+    // The items screen opens over play (I) or from the pause menu, and closes back to whichever it came from; play stays frozen under it.
+    public void ShowItems(bool show)
+    {
+        if(show){itemsFrom=Mode;Mode=GameMode.Inventory;Input.MouseMode=Input.MouseModeEnum.Visible;FreezeAnimations(true);Hud.Select(null);Hud.RefreshMenu();}
+        else if(itemsFrom==GameMode.Paused){Mode=GameMode.Paused;Hud.RefreshMenu();}
+        else SetPaused(false);
+    }
+    public bool UseItem(string id){bool used=Player.Use(id);Hud.RefreshMenu();return used;}
     private void FreezeAnimations(bool freeze)
     {
         foreach(var a in ActorVisual.Descendants(this).OfType<AnimationPlayer>())a.SpeedScale=freeze?0:1;
@@ -151,7 +163,7 @@ public partial class Game : Node3D
     {
         QuestStage=0;Heard.Clear();foreach(var e in Enemies)e.Reset();
         opening?.Kill();Opened.Clear();foreach(var s in World.Shortcuts)s.Swing(s.Closed);
-        foreach(var pouch in World.Pouches)pouch.Visible=true;Player.MaxRemedies=3;
+        foreach(var pickup in World.Pickups)pickup.Node.Visible=true;Player.Inventory.Reset();
         Retry();Play(Prologue.Intro);
     }
     // English is what quest logic and the route tests read; the HUD shows the translated one, and counts the patrols in crests.
@@ -176,7 +188,7 @@ public partial class Game : Node3D
         foreach(var r in World.Residents)if(r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition)<3.1f)return ("talk",T(r.Name).ToUpperInvariant());
         if(World.RelayPosition.DistanceTo(Player.GlobalPosition)<3.3f)return ("repair",T("MANUAL RELAY"));
         if(ShortcutHere()!=null)return ("ladder",T("LADDER"));
-        if(PouchHere()!=null)return ("remedy",T("REMEDY POUCH"));
+        if(PickupHere() is {} pickup){var item=Items.Get(pickup.Item);return (item.Icon,T(item.Name).ToUpperInvariant());}
         return ("","");
     }
     public void Interact()
@@ -207,13 +219,15 @@ public partial class Game : Node3D
             Opened.Add(shortcut.Name);opening=CreateTween();opening.TweenMethod(Callable.From<float>(shortcut.Swing),shortcut.Closed,shortcut.Open,1.8f).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
             Sound("guard");Toast("SHORTCUT OPENED",seconds:4);return;
         }
-        if(PouchHere() is {} pouch)
+        // A pickup that raises what Mio carries, the remedy pouch, refills what it raises.
+        if(PickupHere() is {} pickup&&Player.Inventory.Add(pickup.Item))
         {
-            pouch.Visible=false;Player.MaxRemedies++;Player.Remedies=Player.MaxRemedies;Sound("heal");Toast("REMEDY POUCH",seconds:4);
+            var item=Items.Get(pickup.Item);pickup.Node.Visible=false;if(item.Raises!=null)Player.Inventory.Fill(item.Raises);
+            Sound("heal");Toast(item.Name,seconds:4,icon:item.Icon);
         }
     }
     private World.Shortcut? ShortcutHere()=>World.Shortcuts.FirstOrDefault(s=>!Opened.Contains(s.Name)&&s.From.DistanceTo(Player.GlobalPosition)<2.2f);
-    private Node3D? PouchHere()=>World.Pouches.FirstOrDefault(p=>p.Visible&&p.GlobalPosition.DistanceTo(Player.GlobalPosition)<2.2f);
+    private World.Pickup? PickupHere()=>World.Pickups.FirstOrDefault(p=>p.Node.Visible&&p.Node.GlobalPosition.DistanceTo(Player.GlobalPosition)<2.2f);
     public void Play(params (string Speaker,string Text)[] beats)
     {Script.Clear();Script.AddRange(beats);scene=Prologue.SceneNames.GetValueOrDefault(beats);Beat=-1;NightFrom=-1;Mode=GameMode.Dialogue;Input.MouseMode=Input.MouseModeEnum.Visible;Advance();}
     // The first press finishes a line still typing out; the next one moves on.
@@ -243,7 +257,7 @@ public partial class Game : Node3D
         return GetWorld3D().DirectSpaceState.IntersectRay(query).Count==0;
     }
     public void SetLanguage(string code){Localization.Set(code);if(!SelfTest)Localization.Save();Hud.ApplyLanguage();}
-    public void Toast(string title,string body="",float seconds=3){ToastTitle=title;ToastBody=body;ToastTime=seconds;}
+    public void Toast(string title,string body="",float seconds=3,string icon=""){ToastTitle=title;ToastBody=body;ToastTime=seconds;ToastIcon=icon;}
     public void Feedback(string text,Color color){FeedbackText=text;FeedbackColor=color;FeedbackTime=1.2f;}
     // A combat beat shown as an icon (assets/art/ui/) flashing in the middle of the screen, not as words.
     public void Flash(string icon,Color color){FlashIcon=icon;FlashColor=color;FlashTime=FlashLength;}

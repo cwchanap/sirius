@@ -75,8 +75,9 @@ public partial class World
     // Open one. Game keeps which are open through deaths, until the prologue restarts.
     public record Shortcut(string Name,AnimatableBody3D Part,Vector3 From,float Closed,float Open){public void Swing(float angle)=>Part.Quaternion=new(Vector3.Right,angle);}
     public readonly List<Shortcut> Shortcuts=new();
-    // Remedy pouches lying off the road; Game hides each one Mio takes until the prologue restarts.
-    public readonly List<Node3D> Pouches=new();
+    // Items lying off the road, each an Items id; Game hides each one Mio takes until the prologue restarts.
+    public record Pickup(string Item,Node3D Node);
+    public readonly List<Pickup> Pickups=new();
     // The ruined teahouse on its terrace above the junction, in the Hamlet table's shape.
     public static readonly (string Name,Vector2 At,Vector3 Size,float Yaw,string Style) OldTeahouse=("Old Teahouse",new(12,-59.5f),new(8,4.03f,7),0,"teahouse");
     public Vector3 RelayPosition=>new(-6,Height(-6,-167),-167);
@@ -156,7 +157,13 @@ public partial class World
         var pouch=new Node3D{Name="Remedy pouch",Position=new(-40,Height(-40,-137),-137)};AddChild(pouch);
         Prop(this,"Pouch barrel","barrel",pouch.Position,.6f);
         var barrel=new StaticBody3D{Position=pouch.Position+new Vector3(0,.42f,0)};AddChild(barrel);barrel.AddChild(new CollisionShape3D{Shape=new CylinderShape3D{Radius=.32f,Height=.84f}});
-        pouch.AddChild(Combined("Pouch",Mat(new("c9a25a"),.25f),(new(0,.96f,0),new(.34f,.24f,.26f)),(new(0,1.12f,0),new(.14f,.1f,.12f))));Pouches.Add(pouch);
+        pouch.AddChild(Combined("Pouch",Mat(new("c9a25a"),.25f),(new(0,.96f,0),new(.34f,.24f,.26f)),(new(0,1.12f,0),new(.14f,.1f,.12f))));Pickups.Add(new("pouch",pouch));
+        // Two resonance cells, standing lit on the ground: one behind the terrace's patrol, one at the forest valley's eastern bend.
+        foreach(var (x,z) in new[]{(19.5f,-62f),(16f,-96f)})
+        {
+            var cell=new Node3D{Name="Resonance cell",Position=new(x,Height(x,z),z)};AddChild(cell);
+            cell.AddChild(Combined("Cell",Mat(Jade,.9f),(new(0,.14f,0),new(.13f,.28f,.13f)),(new(0,.31f,0),new(.07f,.06f,.07f))));Pickups.Add(new("cell",cell));
+        }
         // The Tripo cabinet on its plinth (assets/models/relay.glb) turned so its door faces the plaza, the dead screen lit behind its
         // window, and the mast behind it on the plinth.
         var relay=new Node3D {Name="Manual relay",Position=RelayPosition};AddChild(relay);
