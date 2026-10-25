@@ -664,7 +664,8 @@ public static class IntegrationCheck
         await Tap(Key.Down);Check(g.Hud.GetViewport().GuiGetFocusOwner()==Slider("Music"),"down moves to the music slider");
         for(int i=0;i<3;i++)await Tap(Key.Left);
         Check(Volume.Level("Music")==Volume.Steps-3&&Math.Abs(BusDb("Music")-Volume.Db(Volume.Steps-3))<.001f&&BusDb("Music")<BusDb("Voice"),"the music slider sets the music bus on its own");
-        Slider("Music").Value=0;Check(Volume.Level("Music")==0&&BusDb("Music")<=-80,"a slider at its left end silences its bus");
+        Check(!AudioServer.IsBusMute(AudioServer.GetBusIndex("Music")),"a bus above level 0 is not muted");
+        Slider("Music").Value=0;Check(Volume.Level("Music")==0&&BusDb("Music")<=-80&&AudioServer.IsBusMute(AudioServer.GetBusIndex("Music")),"a slider at its left end mutes its bus");
         await Tap(Key.Down);Check(Focused().Text=="Back","down from the last slider reaches Back");
         await Tap(Key.Escape);Check(g.Mode==GameMode.Paused,"Esc closes the settings back to the pause menu");
         Labelled("Settings").EmitSignal(BaseButton.SignalName.Pressed);await Frames(2);

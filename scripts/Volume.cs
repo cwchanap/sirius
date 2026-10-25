@@ -30,5 +30,9 @@ public static class Volume
         if(!save)return;
         var config=new ConfigFile();config.Load(Localization.Settings);Write(config);config.Save(Localization.Settings);
     }
-    private static void Apply(string bus)=>AudioServer.SetBusVolumeDb(AudioServer.GetBusIndex(bus),Db(levels[bus]));
+    private static void Apply(string bus)
+    {
+        int index=AudioServer.GetBusIndex(bus);
+        AudioServer.SetBusVolumeDb(index,Db(levels[bus]));AudioServer.SetBusMute(index,levels[bus]==0);
+    }
 }
