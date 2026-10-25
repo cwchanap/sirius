@@ -28,16 +28,17 @@ for i in range(RATE*length):
     value*=min(1,t/.5,(length-t)/.8)
     samples.append(value)
 write('valley',samples)
-params={'swing':(170,.19),'impact':(110,.19),'guard':(420,.22),'deflect':(880,.42),'break':(180,.55),'skill':(330,.75),
+# swing, impact, guard, deflect, slam and stun are ElevenLabs sound effects now (ASSETS.md); this no longer writes them.
+params={'break':(180,.55),'skill':(330,.75),
         'hurt':(90,.22),'jump':(260,.13),'dodge':(150,.16),'heal':(660,.65),'warning':(540,.17)}
 for name,(freq,duration) in params.items():
     data=[]
     for i in range(int(RATE*duration)):
         t=i/RATE;env=math.exp(-t/duration*5)*min(1,t/.006)
-        noisy=name in ('swing','impact','hurt','dodge','break')
+        noisy=name in ('hurt','dodge','break')
         tone=math.sin(math.tau*freq*t*(1+.2*t/duration))
         high=math.sin(math.tau*freq*2.7*t)
         value=(random.uniform(-1,1)*.5+tone*.35) if noisy else (tone*.4+high*.2)
         data.append(value*env*.55)
     write(name,data)
-print('Generated valley loop and 11 original combat cues.')
+print('Generated valley loop and 7 original combat cues.')

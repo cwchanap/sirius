@@ -543,6 +543,7 @@ public static class IntegrationCheck
         Check(g.World.Residents.All(r=>r.Body.GetChildren().OfType<Label3D>().Single().VisibilityRangeEnd is >0 and <20),"residents' names float over them only near the camera");
         var voiced=Prologue.SceneNames.Where(s=>!Prologue.Unvoiced.Contains(s.Value)).SelectMany(s=>s.Key.Select((b,i)=>(b.Speaker,Path:$"res://assets/audio/voice/ja/{b.Speaker}/{s.Value}.{i}.mp3"))).Where(b=>b.Speaker is "Mio" or "Zero").ToArray();
         Check(voiced.Length>0&&voiced.All(b=>ResourceLoader.Load(b.Path) is AudioStreamMP3 mp3&&mp3.GetLength()>.5),$"each of Mio's and Zero's {voiced.Length} prologue lines has its Japanese voice at its beat");
+        Check(g.Sounds.Count==18&&g.Sounds.Values.All(s=>s!=null&&s.GetLength()>.1)&&new[]{"attack1","attack2","attack3","skill","hurt"}.All(b=>g.Sounds.ContainsKey("mio_"+b)),"every combat sound and each of Mio's five combat shouts loads");
         await Frames(10);Check(g.Reveal>0&&g.Reveal<g.Dialogue.Length,"dialogue text types out");
         await Tap(Key.E);Check(g.Beat==0&&g.Reveal==g.Dialogue.Length,"the first press completes the typing line instead of skipping it");
         Check(g.Voice.Playing&&g.Voice.Stream?.ResourcePath=="res://assets/audio/voice/ja/Zero/Intro.0.mp3","Zero wakes Mio in Japanese over the link");

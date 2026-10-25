@@ -85,10 +85,11 @@ public partial class Player : CharacterBody3D
             float was=SkillLength-skillCast;skillCast-=dt;float now=SkillLength-skillCast;trail.Emitting=now>.38f&&now<SkillSlam+.04f;
             if(was<SkillSlam&&now>=SkillSlam)
             {
-                Game.Slam(GlobalPosition,SkillRadius);Game.Sound("skill");
+                Game.Slam(GlobalPosition,SkillRadius);Game.Sound("slam");
                 Game.CameraShake=.3f;Game.CameraPunch=1;Game.HitStop(.12f);
-                foreach(var enemy in Game.Enemies.Where(e=>!e.Dead))
-                    if(CanReach(enemy.GlobalPosition,SkillRadius,-1)){enemy.Stun(Enemy.ResonanceStun);Game.Burst(enemy.GlobalPosition+Vector3.Up*1.3f,World.Jade,1.3f);enemy.Blink(World.Jade);}
+                var caught=Game.Enemies.Where(e=>!e.Dead&&CanReach(e.GlobalPosition,SkillRadius,-1)).ToList();
+                foreach(var enemy in caught){enemy.Stun(Enemy.ResonanceStun);Game.Burst(enemy.GlobalPosition+Vector3.Up*1.3f,World.Jade,1.3f);enemy.Blink(World.Jade);}
+                if(caught.Count>0)Game.Sound("stun");
             }
         }
         float speed=Guarding?1.7f:Input.IsActionPressed("run")?7.8f:2f;
@@ -149,7 +150,7 @@ public partial class Player : CharacterBody3D
         if(victim!=null)
         {
             victim.Execute();Invulnerable=.8f;combo=2;attack=Swings[2].End;attackElapsed=0;lunge=0;struck=true;comboQueued=false;comboGrace=0;
-            Visual.Play("attack3",1,true);Game.Burst(victim.GlobalPosition+Vector3.Up,World.Gold,2.3f);Cut(victim,2.6f);Game.HitStop(.12f);Game.CameraShake=.18f;return;
+            Visual.Play("attack3",1,true);Game.Burst(victim.GlobalPosition+Vector3.Up,World.Gold,2.3f);Cut(victim,2.6f);Game.HitStop(.12f);Game.CameraShake=.18f;Game.Sound("impact");Game.Bark("attack3");return;
         }
         combo=comboGrace>0?(combo+1)%3:0;var swing=Swings[combo];comboGrace=swing.End+.15f;attack=swing.End;attackElapsed=0;struck=false;
         // Each swing turns to the locked robot, or the nearest within reach, else the way she is steering, and lunges no closer than 1.3 m.
@@ -161,6 +162,7 @@ public partial class Player : CharacterBody3D
         lunge=aim!=null?Math.Clamp(heading.Length()-1.3f,0,swing.Lunge):swing.Lunge;
         // A chained swing starts from the pose the last one links at, so it needs only the shortest blend.
         Guarding=false;trail.Life=.12f;trail.From=.5f;trail.Glow(combo==2?World.Gold:World.Jade,2.5f);Visual.Play("attack"+(combo+1),1,true,.05f);Game.Sound("swing");
+        if(combo==2||GD.Randf()<.5f)Game.Bark("attack"+(combo+1));
     }
     // The bright cut a landed blow leaves on a robot's plating, along the way the blade's tip is moving.
     private void Cut(Enemy enemy,float length)
@@ -182,7 +184,7 @@ public partial class Player : CharacterBody3D
         if(attack>0||dodge>0||skillCast>0||Stun>0||healTimer>0||Health<=0)return false;
         if(SkillCharges<=0){Spent=1;Game.Feedback("REST TO RECHARGE",World.Jade);return false;}
         // The spin draws the whole blade round her, its full moon.
-        SkillCharges--;skillCast=SkillLength;Invulnerable=SkillSlam+.1f;Guarding=false;trail.Life=.3f;trail.From=.15f;trail.Glow(World.Jade,3);Visual.Play("skill",1,true);
+        SkillCharges--;skillCast=SkillLength;Invulnerable=SkillSlam+.1f;Guarding=false;trail.Life=.3f;trail.From=.15f;trail.Glow(World.Jade,3);Visual.Play("skill",1,true);Game.Bark("skill");
         Game.Ring(GlobalPosition,2.6f,.4f,.36f,World.Jade);Game.Gather(this,Vector3.Up*1.1f,World.Jade,.38f);return true;
     }
     public string ReceiveHit(Enemy enemy,bool perilous)
@@ -204,7 +206,7 @@ public partial class Player : CharacterBody3D
         }
         Health=Math.Max(0,Health-enemy.Strike(perilous));Invulnerable=.65f;Stun=.32f;
         attack=skillCast=0;comboQueued=false;Game.CameraShake=.2f;Visual.Play("stagger",1.3f,true);
-        Game.Burst(GlobalPosition+Vector3.Up,new("ee8b76"),.8f);Game.Sound("hurt");
+        Game.Burst(GlobalPosition+Vector3.Up,new("ee8b76"),.8f);Game.Sound("hurt");Game.Bark("hurt");
         if(Health<=0){Visual.Play("death",1,true);Game.Die();}
         return "hit";
     }

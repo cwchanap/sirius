@@ -28,9 +28,10 @@ public partial class Game : Node3D
     public bool SelfTest;
     private Node3D cameraRig=null!;
     private SpringArm3D spring=null!;
-    private readonly Dictionary<string,AudioStreamWav> sounds=new();
+    public readonly Dictionary<string,AudioStreamWav> Sounds=new();
     private AudioStreamPlayer ambience=null!;
     public AudioStreamPlayer Voice=null!;
+    private AudioStreamPlayer bark=null!;
     private string? scene;
     private double elapsed;
     private bool captured;
@@ -52,10 +53,10 @@ public partial class Game : Node3D
         spring=new SpringArm3D {SpringLength=7.5f,Margin=.25f,CollisionMask=1|Hoshikawa.World.CameraLayer,Shape=new SphereShape3D {Radius=.2f}};cameraRig.AddChild(spring);
         Camera=new Camera3D {Fov=59,Near=.08f,Far=260,Current=true};spring.AddChild(Camera);
         var layer=new CanvasLayer();AddChild(layer);Hud=new Hud {Game=this};layer.AddChild(Hud);
-        foreach(string name in new[]{"swing","impact","guard","deflect","break","skill","hurt","jump","dodge","heal","warning"})
-            sounds[name]=GD.Load<AudioStreamWav>("res://assets/audio/"+name+".wav");
+        foreach(string name in new[]{"swing","impact","guard","deflect","break","skill","slam","stun","hurt","jump","dodge","heal","warning","mio_attack1","mio_attack2","mio_attack3","mio_skill","mio_hurt"})
+            Sounds[name]=GD.Load<AudioStreamWav>("res://assets/audio/"+name+".wav");
         ambience=new AudioStreamPlayer {Stream=GD.Load<AudioStreamWav>("res://assets/audio/valley.wav"),VolumeDb=-16};AddChild(ambience);ambience.Finished+=()=>ambience.Play();ambience.Play();
-        Voice=new AudioStreamPlayer();AddChild(Voice);
+        Voice=new AudioStreamPlayer();AddChild(Voice);bark=new AudioStreamPlayer {VolumeDb=-10};AddChild(bark);
         var args=OS.GetCmdlineUserArgs();SelfTest=args.Contains("--self-test");
         var capture=args.FirstOrDefault(a=>a.StartsWith("--capture="));if(capture!=null)capturePath=capture[10..];
         if(SelfTest||args.Contains("--play")||(capturePath!=""&&!args.Contains("--title-view")))Start();
@@ -70,7 +71,7 @@ public partial class Game : Node3D
     }
     // A stopped playback, and the valley.wav it holds, is only released on the audio thread's next mix step; if the engine
     // shuts the AudioServer down first, both leak at exit. Blocking briefly at quit lets that step run first.
-    public override void _ExitTree(){ambience.Stop();Voice.Stop();OS.DelayMsec(100);}
+    public override void _ExitTree(){ambience.Stop();Voice.Stop();bark.Stop();OS.DelayMsec(100);}
     public void Start()
     {
         Mode=GameMode.Playing;Input.MouseMode=SelfTest?Input.MouseModeEnum.Visible:Input.MouseModeEnum.Captured;
@@ -248,9 +249,15 @@ public partial class Game : Node3D
     public const float FlashLength=.7f;
     public void Sound(string name)
     {
-        if(SelfTest||!sounds.TryGetValue(name,out var sound))return;
+        if(SelfTest||!Sounds.TryGetValue(name,out var sound))return;
         var player=new AudioStreamPlayer {Stream=sound,VolumeDb=-13,PitchScale=(float)GD.RandRange(.94,1.06)};
         AddChild(player);player.Finished+=player.QueueFree;player.Play();
+    }
+    // Mio's shouts share one player, so a chained swing cuts her last shout off instead of talking over it.
+    public void Bark(string name)
+    {
+        if(SelfTest||!Sounds.TryGetValue("mio_"+name,out var sound))return;
+        bark.Stream=sound;bark.Play();
     }
     public async void SaveScreenshot(string path)
     {
