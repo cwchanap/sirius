@@ -6,7 +6,8 @@
 - **Seams:** measured on the Mac (the cut points sit on bar lines and the wrap is sample-exact), and previewed as `artifacts/music/relay-ingame.mp3` and `battle-ingame.mp3` (each file three times). The owner listened to the first cuts (intro once, then the loop): the relay track was fine, and the battle track was to lose its intro. Nobody has listened to these one-loop files yet. Both files start mid-waveform, which could click on a cold start; in the game every track fades in from silence over 1.5 s, so it cannot.
 - **Levels:** the new takes measure −10.6 LUFS (relay) and −10.3 LUFS (battle) against the placeholders' −17.9 and −18.3, so `Music.Tracks` plays both at −24 dB, which puts them where the placeholders were (about −34.5 LUFS). Set by measurement, not by ear.
 - **Tests:** the self-test passes 571 checks headless in `en`, `ja` and `zh_TW` (cloud container, dummy audio driver); new: the relay and battle streams are Vorbis looping whole from the start. Unit tests pass 43 and e2e 4.
-- **Not yet:** no Metal run, and nobody has heard them in the game.
+- **Metal** (Hapadona's Mac, M1 Pro, Mobile renderer, engine-injected input): the graphical self-test passes 571 checks in `en` on the PR's head, the new loop check and every music check among them, with no error or warning lines and no audio messages. The first launch after cloning the import cache into a fresh worktree stopped at "Chiyo idle animates the rig" (76 checks in, far from the music); the same build rerun unchanged passed in full.
+- **Not yet:** nobody has heard the tracks in the game, so the −24 dB levels are untested by ear.
 
 ## Background music by area and danger — 2026-10-25
 
