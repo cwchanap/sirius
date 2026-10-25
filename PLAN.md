@@ -168,7 +168,7 @@ Bring the non-character environment up to the Tripo characters' detail: semi-rea
 - [x] `Player.Swings`: per-swing hit, link, end and lunge; a queued press chains at the link; each swing aims at the locked or nearest robot and lunges no closer than 1.3 m.
 - [x] A sword trail, hit-stop on a landed blow, a ground ring under the third swing, Resonance Cut's shockwave ring from the slam, and a camera punch.
 - [x] Effects (`scripts/Effects.cs`, `glow.gdshader`, `sword_trail.gdshader`): a glowing trail with a white-hot edge and no corners in the spin, gold on the third swing, the whole blade through Resonance Cut's spin; a landed blow flashes, throws sparks past the robot, cuts a streak across it along the blade's path and flares its plating; the third swing throws dust; Resonance Cut gathers motes as she crouches, and its slam sends two rings, a column of light, dust, sparks and a jade tint across the screen; a stunned robot crackles with jade sparks.
-- [ ] Sound effects for the new swings and the slam (ElevenLabs), a separate task.
+- [x] Combat sounds from ElevenLabs (the owner asked for them with Mio's voice): new swing, impact, guard and deflect, a slam for Resonance Cut and a short-circuit for the robots it stuns; Mio shouts on her swings (always on the third and the finisher, half the time on the first two), calls 共鳴斬 as she casts and cries out when hit, in her cast voice Yuki, through one player so a chained swing cuts her last shout off. `build_audio.py` no longer writes the four cues it replaced.
 
 ## Map redesign (地圖重新設計)
 

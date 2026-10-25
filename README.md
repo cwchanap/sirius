@@ -152,7 +152,8 @@ The importer regression check exercises all four input formats, transformed mult
 - `tools/build_characters.py`: builds the patrol robot (`patrol.glb`), then runs `tools/refine_humans.py`.
 - `tools/refine_humans.py`: the shared villager (`villager.glb`): 58-bone rig, normalized skinning and all 12 action clips. Saves `assets/source/villager.blend`.
 - `assets/art/`: original imagegen art used directly in the game; prompts in `ASSETS.md`.
-- `tools/build_audio.py`: original synthesized ambient loop and combat sounds using Python's standard library.
+- `tools/build_audio.py`: original synthesized ambient loop and the remaining interface and movement cues using Python's standard library.
+- `assets/audio/`: the sword, slam and short-circuit sounds and Mio's combat shouts (`mio_*.wav`, Japanese, her voice Yuki) are ElevenLabs takes; ASSETS.md lists their prompts.
 - `assets/dialogue/ja.json`, `zh_TW.json`: every prologue line in Japanese and Traditional Chinese, keyed like `Intro.1` by scene and beat in `Prologue.cs`; `ja.json` is also the script for the Japanese voice. `ui.ja.json`, `ui.zh_TW.json`: the interface strings, keyed by their English text. `glossary.md`: names, places, game terms and each character's tone in all three languages.
 - `assets/fonts/`: Noto Sans and Serif CJK (JP and TC), cut down to the characters the translations use by `tools/build_fonts.py` (needs fontTools and the Noto CJK collections; re-run it after adding a character). OFL licence in `OFL.txt`.
 - `tests/unit/`: gdUnit4Net unit tests on plain .NET against the game assembly: the road against the terrain shader, house pads and clearances, the brook bed, level paddy floors, regions, Tripo resident assets, the prologue's voice files and portraits, and that both translations cover every line and string with matching placeholders and no dead entries.
