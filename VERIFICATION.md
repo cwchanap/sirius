@@ -7,7 +7,9 @@
 - **Unit tests:** `dotnet test tests/unit` passes 35. `EveryStringTheCodeShowsHasATranslation`'s floor on how many shown strings it finds drops from 80 to 50; it finds 58.
 - **Self-test:** **534 checks pass headless** in `en`, `ja` and `zh_TW` (cloud container, Godot 4.6.2 mono). New: all 13 icons and the logo load; residents' labels have a visibility range; a stunned robot's badge is the stunned icon, it turns to shutdown once Mio stands behind it, and clears when she shuts it down. The ladder and pouch checks read the prompt's icon instead of its text. The fixed-width list drops the region and chapter lines and adds `Clear the old relay road`, `Return to Hoshikawa` and the title's chapter line.
 - **Captures** (software Vulkan under Xvfb, 1440×900; shapes and layout only): `tools/review_languages.gd` in all three languages under `artifacts/i18n/<lang>/`, and a robot's stunned and shutdown badges under `artifacts/ui-code/`.
-- **Not done:** no Metal run, no e2e run here (CI runs it), and no hands-on check of how the icons read in play.
+- **Metal:** on the owner's Mac (Apple M1 Pro, Metal 4.0, Mobile renderer) the graphical self-test passes 534 checks in `en`, `ja` and `zh_TW` with no error or warning lines. `review_languages.gd -- --lang=en` there draws every icon crisp on a transparent ground, the keycaps clear of their text, Mio's round face and the logo; the stunned badge over a patrol shows with no box in `hud-village.png`. In that run's `hud-patrol.png` the HOSHIKAWA region toast replaced the capture's own toast and covers the patrol's badge, so the badge up close was judged from the headless self-test and the cloud captures only.
+- **E2E:** CI's godot-e2e job passes on the PR.
+- **Not done:** no hands-on check of how the icons read in play.
 
 ## Combat: robots shut down from behind — 2026-10-24
 
