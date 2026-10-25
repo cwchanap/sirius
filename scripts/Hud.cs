@@ -16,6 +16,9 @@ public partial class Hud : Control
     public static Texture2D Icon(string name)=>icons.TryGetValue(name,out var t)?t:icons[name]=GD.Load<Texture2D>($"res://assets/art/ui/{name}.png");
     private Control menu=null!;
     private Button? use;
+    // The settings screen's volume sliders are bare HSliders for focus, keys and the mouse; _Draw paints them, named for their bus.
+    private readonly List<HSlider> sliders=new();
+    private readonly Texture2D bare=ImageTexture.CreateFromImage(Image.CreateEmpty(1,1,false,Image.Format.Rgba8));
     // The item the items screen shows, the one whose slot last took focus.
     public string Selected{get;private set;}="";
     private float scale=1,w=1440,h=900;
@@ -72,7 +75,8 @@ public partial class Hud : Control
         Redraws++;scale=Math.Min(GetViewportRect().Size.X/1440,GetViewportRect().Size.Y/900);
         w=GetViewportRect().Size.X/scale;h=GetViewportRect().Size.Y/scale;
         DrawSetTransform(Vector2.Zero,0,Vector2.One*scale);menu.Scale=Vector2.One*scale;
-        if(Game.Mode==GameMode.Title){Title();return;}
+        bool settings=Game.Mode==GameMode.Settings;
+        if(Game.Mode==GameMode.Title||settings&&Game.SettingsFrom==GameMode.Title){Title();if(settings){DrawRect(new(0,0,w,h),new Color(.025f,.055f,.067f,.77f));Settings();}return;}
         if(Game.Mode==GameMode.Dialogue){Dialogue();return;}
         if(Game.TintTime>0)DrawRect(new Rect2(0,0,w,h),new Color(Game.TintColor,Game.TintColor.A*Game.TintTime/Game.TintLength));
         Quest();Minimap();Vitals();
@@ -112,6 +116,7 @@ public partial class Hud : Control
             if(Game.Mode==GameMode.Paused)Controls(w/2+205,h*.40f);else Keycap("R",new(w/2-206,h*.43f+14),14);
         }
         if(Game.Mode==GameMode.Inventory){DrawRect(new(0,0,w,h),new Color(.025f,.055f,.067f,.77f));Inventory();Vitals();}
+        if(settings){DrawRect(new(0,0,w,h),new Color(.025f,.055f,.067f,.77f));Settings();}
     }
     // The objective on one line; the patrols it counts are crests, each dimmed as it is shut down.
     private void Quest()
@@ -185,6 +190,24 @@ public partial class Hud : Control
         Text(T("E  Interact    H  Remedy    I  Items    ESC  Pause"),new(x+18,y+107),12,gold);
     }
     private Vector2 ItemsCorner=>new(w/2-430,h/2-220);
+    private Vector2 SettingsCorner=>new(w/2-280,h/2-180);
+    // The settings screen: a bar for each volume, lit up to its level and ticked at each step, with a diamond at the end; the focused one is outlined in gold.
+    private void Settings()
+    {
+        var o=SettingsCorner;Panel(new(o,560,360),.95f);
+        Text(T("Settings"),o+new Vector2(32,52),30,cream,true);DrawLine(o+new Vector2(32,70),o+new Vector2(528,70),new Color(gold,.5f));
+        foreach(var slider in sliders)
+        {
+            var rect=new Rect2(slider.Position,slider.Size);bool focus=slider.HasFocus();float x=rect.Position.X+rect.Size.X*(float)(slider.Value/slider.MaxValue);
+            Text(T(slider.Name),rect.Position+new Vector2(0,-12),15,focus?gold:muted);
+            DrawRect(rect,new Color(ink,.9f));DrawRect(new Rect2(rect.Position,new Vector2(x-rect.Position.X,rect.Size.Y)),new Color(gold,focus?.9f:.6f));
+            for(int i=1;i<Volume.Steps;i++){float tick=rect.Position.X+rect.Size.X*i/Volume.Steps;DrawLine(new(tick,rect.Position.Y),new(tick,rect.End.Y),new Color(ink,.5f));}
+            DrawRect(rect,focus?gold:new Color(gold,.3f),false,focus?3:2);
+            var mid=new Vector2(x,rect.GetCenter().Y);
+            DrawColoredPolygon(new[]{mid+Vector2.Up*13,mid+Vector2.Right*9,mid+Vector2.Down*13,mid+Vector2.Left*9},cream);
+        }
+        Keycap("ESC",o+new Vector2(32,291.6f));
+    }
     // The items screen's slots: a row of consumables over a row of key items, each in the table's order.
     private IEnumerable<(Item Item,Rect2 Rect)> Slots()
     {
@@ -328,23 +351,25 @@ public partial class Hud : Control
     {
         if(menu==null)return;
         foreach(var child in menu.GetChildren()){menu.RemoveChild(child);child.QueueFree();}
-        use=null;
+        use=null;sliders.Clear();
         float width=GetViewportRect().Size.X,height=GetViewportRect().Size.Y;
         scale=Math.Min(width/1440,height/900);w=width/scale;h=height/scale;
         if(Game.Mode==GameMode.Title)
         {
             Button("BEGIN JOURNEY     →",new(84,h*.25f+295),new(320,58),Game.Begin,true);
-            Button("Quit",new(84,h*.25f+367),new(110,40),()=>GetTree().Quit(),false);
-            LanguageButtons(214,h*.25f+367,104,40,8);
+            Button("Settings",new(84,h*.25f+367),new(320,40),()=>Game.ShowSettings(true),false);
+            Button("Quit",new(84,h*.25f+419),new(110,40),()=>GetTree().Quit(),false);
+            LanguageButtons(214,h*.25f+419,104,40,8);
         }
         if(Game.Mode==GameMode.Paused)
         {
             Button("Resume journey",new(w/2-155,h*.40f),new(310,52),()=>Game.SetPaused(false),true);
             Button("Items",new(w/2-155,h*.40f+65),new(310,48),()=>Game.ShowItems(true),false);
-            Button("Recover at the village",new(w/2-155,h*.40f+126),new(310,48),Game.Retry,false);
-            Button("Restart prologue",new(w/2-155,h*.40f+187),new(310,48),Game.Restart,false);
-            Button("Quit game",new(w/2-155,h*.40f+248),new(310,48),()=>GetTree().Quit(),false);
-            LanguageButtons(w/2-155,h*.40f+311,98,40,8);
+            Button("Settings",new(w/2-155,h*.40f+126),new(310,48),()=>Game.ShowSettings(true),false);
+            Button("Recover at the village",new(w/2-155,h*.40f+187),new(310,48),Game.Retry,false);
+            Button("Restart prologue",new(w/2-155,h*.40f+248),new(310,48),Game.Restart,false);
+            Button("Quit game",new(w/2-155,h*.40f+309),new(310,48),()=>GetTree().Quit(),false);
+            LanguageButtons(w/2-155,h*.40f+372,98,40,8);
         }
         if(Game.Mode==GameMode.Inventory)
         {
@@ -360,8 +385,22 @@ public partial class Hud : Control
             use=Button("Use",new(o.X+502,o.Y+366),new(170,46),()=>Game.UseItem(Selected),true,grab:false);
             Select(Selected);chosen?.GrabFocus();
         }
+        if(Game.Mode==GameMode.Settings)
+        {
+            var o=SettingsCorner;
+            for(int i=0;i<Volume.Buses.Length;i++)Slider(Volume.Buses[i],new(o.X+32,o.Y+130+i*80),new(496,32));
+            Button("Back",new(o.X+80,o.Y+280),new(170,46),()=>Game.ShowSettings(false),false,grab:false);
+            sliders[0].GrabFocus();
+        }
         if(Game.Mode==GameMode.Defeated)
             Button("Return to Hoshikawa",new(w/2-160,h*.43f),new(320,55),Game.Retry,true);
+    }
+    private void Slider(string bus,Vector2 pos,Vector2 size)
+    {
+        var slider=new HSlider {Name=bus,Position=pos,Size=size,MaxValue=Volume.Steps,Step=1,Value=Volume.Level(bus),MouseDefaultCursorShape=CursorShape.PointingHand};
+        foreach(string part in new[]{"slider","grabber_area","grabber_area_highlight"})slider.AddThemeStyleboxOverride(part,new StyleBoxEmpty());
+        foreach(string part in new[]{"grabber","grabber_highlight","grabber_disabled"})slider.AddThemeIconOverride(part,bare);
+        slider.ValueChanged+=value=>Game.SetVolume(bus,(int)value);menu.AddChild(slider);sliders.Add(slider);
     }
     // One button per language, each named in its own script; the current one is lit.
     private void LanguageButtons(float x,float y,float width,float height,float gap)

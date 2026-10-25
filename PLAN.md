@@ -197,6 +197,12 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [x] An item table (`scripts/Items.cs`) and `Inventory`; remedies and the remedy pouch move into it, joined by the wrist terminal (key item) and two resonance cells on the relay road (each restores one Resonance Cut charge, not refilled by resting). An items screen opens with I or from the pause menu: supplies and key items in slots, the selected one's icon, count and text, E or Use to spend a supply. Icons reuse the HUD set.
 - [ ] Art: item icons of their own (Codex), in place of the remedy, resonance and Zero icons the items borrow.
 
+## Settings
+
+- [x] A settings screen (`GameMode.Settings`, from the title screen and the pause menu) with a Voice and a Music slider (`scripts/Volume.cs`): ten steps each, arrow keys, d-pad or mouse, saved in `user://settings.cfg` beside the language. Dialogue voice lines and Mio's shouts play on a Voice bus, the music on a Music bus, the sound effects stay on Master; the Voice slider plays one of Mio's shouts so its level can be judged.
+- [ ] Art: icons for the two sliders in place of the words Voice and Music (Codex).
+- [ ] A third slider for the sound effects, if the owner asks for one.
+
 ## Languages: Japanese and Traditional Chinese
 
 - [x] Phase 0: `assets/dialogue/glossary.md`, with the names, places, terms and tone for all three languages; kanji names for Chinese settled as proposals for the owner to confirm.

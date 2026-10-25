@@ -2,7 +2,7 @@ using Godot;
 using static Hoshikawa.Localization;
 namespace Hoshikawa;
 
-public enum GameMode { Title, Playing, Dialogue, Paused, Defeated, Inventory }
+public enum GameMode { Title, Playing, Dialogue, Paused, Defeated, Inventory, Settings }
 public partial class Game : Node3D
 {
     public World World=null!;
@@ -42,7 +42,7 @@ public partial class Game : Node3D
     public string Region=>Hoshikawa.World.RegionAt(Player.GlobalPosition);
     public override void _Ready()
     {
-        Localization.Initialize(OS.GetCmdlineUserArgs());InputBindings();
+        Localization.Initialize(OS.GetCmdlineUserArgs());Volume.Initialize(OS.GetCmdlineUserArgs());InputBindings();
         World=new World();AddChild(World);
         Player=new Player {Game=this,Position=new(0,.12f,31)};AddChild(Player);
         foreach(var (homes,scout) in new[]{(Hoshikawa.World.PatrolHomes,false),(Hoshikawa.World.ScoutHomes,true)})for(int i=0;i<homes.Length;i++)
@@ -57,7 +57,7 @@ public partial class Game : Node3D
         foreach(string name in new[]{"swing","impact","guard","deflect","break","skill","slam","stun","hurt","jump","dodge","heal","warning","mio_attack1","mio_attack2","mio_attack3","mio_skill","mio_hurt"})
             Sounds[name]=GD.Load<AudioStreamWav>("res://assets/audio/"+name+".wav");
         Music=new Music();AddChild(Music);
-        Voice=new AudioStreamPlayer();AddChild(Voice);bark=new AudioStreamPlayer {VolumeDb=-10};AddChild(bark);
+        Voice=new AudioStreamPlayer {Bus="Voice"};AddChild(Voice);bark=new AudioStreamPlayer {VolumeDb=-10,Bus="Voice"};AddChild(bark);
         var args=OS.GetCmdlineUserArgs();SelfTest=args.Contains("--self-test");
         var capture=args.FirstOrDefault(a=>a.StartsWith("--capture="));if(capture!=null)capturePath=capture[10..];
         if(SelfTest||args.Contains("--play")||(capturePath!=""&&!args.Contains("--title-view")))Start();
@@ -92,6 +92,7 @@ public partial class Game : Node3D
             {SetPaused(Mode==GameMode.Playing);return;}
             if(Mode==GameMode.Inventory&&(key.Keycode==Key.Escape||key.PhysicalKeycode==Key.I)||Mode==GameMode.Playing&&key.PhysicalKeycode==Key.I)
             {ShowItems(Mode==GameMode.Playing);return;}
+            if(key.Keycode==Key.Escape&&Mode==GameMode.Settings){ShowSettings(false);return;}
             if(key.PhysicalKeycode==Key.E&&Mode==GameMode.Inventory){UseItem(Hud.Selected);return;}
             if(key.PhysicalKeycode==Key.E&&Mode==GameMode.Playing){Interact();return;}
             if(key.PhysicalKeycode==Key.R&&Mode==GameMode.Defeated){Retry();return;}
@@ -151,6 +152,11 @@ public partial class Game : Node3D
         else SetPaused(false);
     }
     public bool UseItem(string id){bool used=Player.Use(id);Hud.RefreshMenu();return used;}
+    // The settings screen opens from the title or the pause menu and closes back to it; play is already frozen under either.
+    public GameMode SettingsFrom{get;private set;}
+    public void ShowSettings(bool show){if(show)SettingsFrom=Mode;Mode=show?GameMode.Settings:SettingsFrom;Hud.RefreshMenu();}
+    // A voice slider plays one of Mio's shouts, if none is sounding, so the level can be judged without leaving the menu.
+    public void SetVolume(string bus,int level){Volume.Set(bus,level,!SelfTest);if(bus=="Voice"&&!bark.Playing)Bark("attack1");}
     private void FreezeAnimations(bool freeze)
     {
         foreach(var a in ActorVisual.Descendants(this).OfType<AnimationPlayer>())a.SpeedScale=freeze?0:1;

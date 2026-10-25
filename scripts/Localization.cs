@@ -30,7 +30,7 @@ public static class Localization
         if(args.Contains("--self-test"))return "en";
         return saved!=null&&Languages.Any(l=>l.Code==saved)?saved:FromLocale(osLocale);
     }
-    private const string Settings="user://settings.cfg";
+    public const string Settings="user://settings.cfg";
     public static void Initialize(string[] args)
     {
         foreach(var (code,_) in Languages.Skip(1))

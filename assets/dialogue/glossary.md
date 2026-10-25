@@ -58,6 +58,9 @@ Chinese is Taiwan usage (臺灣用語): 軟體, 網路, 資訊, 號誌, 影片, 
 | Wrist terminal (a key item) | 手首の端末 | 腕上終端機 | Ren's and Chiyo's "terminal on your wrist" |
 | Items (the items screen, its pause-menu button) | 持ち物 | 物品 | |
 | Supplies (the items screen's consumables) | 消耗品 | 消耗品 | |
+| Settings (the settings screen, its button) | 設定 | 設定 | |
+| Voice (the volume of dialogue and Mio's shouts) | ボイス | 語音 | The game's spoken lines, not the sound effects |
+| Music (the volume of the background music) | 音楽 | 音樂 | |
 | Key items | 大事なもの | 重要物品 | The words JRPGs use in each language |
 | Deflect | 弾き | 彈反 | |
 | Guard | 防御 | 防禦 | |
