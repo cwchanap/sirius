@@ -9,6 +9,7 @@
 - **Captures** (software Vulkan under Xvfb, 1440×900; layout only): `tools/review_languages.gd` in all three languages now adds `hud-pickup` (the E prompt at a resonance cell), `hud-obtained` (its banner with the icon) and `items` / `items-cell` (the screen showing the remedy and the cell); every name, text, count and button sits in its box in each language. The script keeps Mio invulnerable for these, since the terrace's patrol killed her at the first cell.
 - **E2E:** CI's godot-e2e job passes on the PR.
 - **Metal** (Hapadona's Mac, engine-injected input, not a hands-on session): the graphical self-test passes 556 checks in `en`, `ja` and `zh_TW` with no error lines, and `review_languages.gd`'s captures match the cloud ones, except that the unselected slots' 1 px borders broke into gaps where the HUD draws below 1:1; they are now 2 px, the selected one 3 px. The cell on the ground is small and pale, easy to miss.
+- **Rebased onto the combat animation** (2026-10-25): 562 checks pass headless in `en`, `ja` and `zh_TW` and the unit tests pass 41; the remedy check now waits out the longer keyed swing (70 frames) before healing. Not rerun on Metal.
 - **Not done:** no hands-on check yet; the thicker borders are not recaptured on Metal.
 
 ## Combat: Mio's combo and Resonance Cut animations — 2026-10-24
