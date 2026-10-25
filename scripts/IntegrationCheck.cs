@@ -8,6 +8,8 @@ public static class IntegrationCheck
     {
         void Check(bool ok,string message){if(!ok)throw new Exception(message);GD.Print("CHECK "+message);}
         var held=new HashSet<string>();
+        // Stamina is checked on its own below; elsewhere it stays full, or the runs across the valley would crawl through their frame budgets.
+        bool tireless=true;
         void Hold(string action){held.Add(action);Input.ActionPress(action);}
         void Release(string action){held.Remove(action);Input.ActionRelease(action);}
         async Task Frames(int count)
@@ -17,6 +19,7 @@ public static class IntegrationCheck
                 // OS focus changes release injected actions too; keep the test's intended holds alive.
                 foreach(string action in held)if(!Input.IsActionPressed(action))
                 {GD.Print("TEST_INPUT_RESTORE "+action);Input.ActionPress(action);}
+                if(tireless)g.Player.Stamina=g.Player.MaxStamina;
                 await g.ToSignal(g.GetTree(),SceneTree.SignalName.PhysicsFrame);
             }
         }
@@ -264,6 +267,17 @@ public static class IntegrationCheck
         float walk=before.DistanceTo(g.Player.GlobalPosition);Check(walk>1.5f&&walk<2.5f,"camera-relative walking");
         before=g.Player.GlobalPosition;Hold("run");await Press("forward",60);Release("run");
         Check(before.DistanceTo(g.Player.GlobalPosition)>walk*1.5f,"running is faster than walking");
+        // Running spends SP; run dry, Mio walks until it is back to Stats.Winded's share, a moment after she stops.
+        tireless=false;g.Player.Respawn();await Frames(5);
+        Hold("run");await Press("forward",30);Release("run");float drained=g.Player.MaxStamina-g.Player.Stamina;
+        Check(drained>Stats.RunCost*.4f&&drained<Stats.RunCost*.6f,$"running spends stamina ({drained:F1} SP in half a second)");
+        float Pace()=>new Vector2(g.Player.Velocity.X,g.Player.Velocity.Z).Length();
+        g.Player.Stamina=1;Hold("run");Hold("forward");await Frames(40);float tired=Pace();
+        Check(g.Player.Winded&&g.Player.Stamina<g.Player.MaxStamina*Stats.Winded&&tired is >1.5f and <2.2f,$"run dry, Mio can only walk ({tired:F2} m/s)");
+        Release("forward");Release("run");await Frames((int)((Stats.RegenDelay+g.Player.MaxStamina*Stats.Winded/Stats.Regen)*60)+10);
+        Hold("run");Hold("forward");await Frames(20);float rested=Pace();Release("forward");Release("run");
+        Check(!g.Player.Winded&&rested>7,$"a breath later her stamina is back and she runs again ({rested:F2} m/s)");
+        tireless=true;
         Check(Math.Abs(animator.GetAnimation("jump").Length-13/24.0)<.01,"jump contains one Tripo hop, not the repeated source sequence");
         foreach(string scenario in new[]{"standing","running","long fall"})
         {
@@ -625,7 +639,8 @@ public static class IntegrationCheck
         await Frames(cast-(int)(Player.SkillSlam*60)-4);
         opponent.GlobalPosition=spot+Vector3.Forward*2;Check(!g.Player.CanShutDown(opponent),"a robot facing Mio cannot be shut down, even stunned");
         opponent.Model.Rotation=new(0,Mathf.Pi,0);Check(g.Player.CanShutDown(opponent),"a robot in reach with its back to Mio can be shut down");
-        g.Player.Attack();Check(opponent.Dead,"an attack from behind shuts a robot down outright");
+        int purse=g.Player.Growth.Stardust;g.Player.Attack();Check(opponent.Dead,"an attack from behind shuts a robot down outright");
+        Check(g.Player.Growth.Stardust==purse+Stats.PatrolReward&&g.Gained==Stats.PatrolReward&&g.GainTime>0,$"a shut-down patrol leaves Mio {Stats.PatrolReward} stardust");
         opponent.Reset();opponent.GlobalPosition=spot+Vector3.Forward*2;opponent.Model.Rotation=Vector3.Zero;
         opponent.TakeHit(0,100);Check(opponent.Broken,"full posture opens execution window");
         g.Player.Attack();Check(opponent.Dead,"attack executes a broken robot");opponent.Reset();
@@ -705,8 +720,53 @@ public static class IntegrationCheck
         await Press("attack");Check(live.Dead&&live.Badge=="","behind a robot, Mio's attack button shuts it down and clears its icon");
         Check(g.Music.Current=="battle","the battle music outlasts the fight a moment");await Frames((int)(Music.Calm*60)+10);
         Check(g.Music.Current=="relay","then the relay road's music returns");
+        var growth=g.Player.Growth;purse=growth.Stardust;int standing=g.Patrols.Count(e=>!e.Dead);
         foreach(var e in g.Enemies)e.SetPhysicsProcess(false);foreach(var e in g.Patrols)e.Execute();
         Check(g.QuestStage==2&&g.Enemies.Where(e=>e.Scout).All(e=>!e.Dead),"all three patrols disabled advances the mission, the scouts left standing");
+        Check(growth.Stardust==purse+standing*Stats.PatrolReward,$"each patrol shut down once pays once ({standing} for {standing*Stats.PatrolReward} stardust)");
+        // Hoshikawa's well is the save point. Resting there refills Mio and brings back the scouts she shut down, but not the patrols the mission
+        // counts; its screen raises a stat a point for each level's cost and trades stardust for resonance cells.
+        var downed=g.Enemies.First(e=>e.Scout);purse=growth.Stardust;downed.Execute();
+        Check(downed.Dead&&growth.Stardust==purse+Stats.ScoutReward,$"a shut-down scout leaves Mio {Stats.ScoutReward} stardust");
+        var savePoint=Hoshikawa.World.SavePoint;Place(g.Player,new(savePoint.X+2,Hoshikawa.World.Height(savePoint.X+2,savePoint.Y)+.1f,savePoint.Y));await Frames(10);
+        Check(g.Player.IsOnFloor()&&g.Interaction()==(Hud.StardustIcon,Localization.T(Hoshikawa.World.SavePointName).ToUpperInvariant())&&g.GetNode<OmniLight3D>("Save point light").GlobalPosition.DistanceTo(new(savePoint.X,g.Player.GlobalPosition.Y,savePoint.Y))<1.5f,
+            "Hoshikawa's well is the save point, lit, its name on the prompt");
+        g.Player.Health=20;g.Player.SkillCharges=0;g.Player.Stamina=0;await Tap(Key.E);
+        Check(g.Mode==GameMode.Rest&&g.Player.Health==g.Player.MaxHealth&&g.Player.SkillCharges==Player.MaxSkillCharges&&!downed.Dead&&downed.GlobalPosition.DistanceTo(downed.Home)<.5f&&g.Patrols.All(e=>e.Dead),
+            "E at the save point rests Mio and opens its screen; the scout she shut down is back home, the patrols stay down");
+        still=g.Player.GlobalPosition;Hold("forward");await Frames(10);Release("forward");Check(g.Player.GlobalPosition==still,"play stays frozen under the save point's screen");
+        Button[] Pressable(string text)=>g.Hud.FindChildren("*","Button",true,false).OfType<Button>().Where(b=>b.Text==text).ToArray();
+        var raise=Pressable("Raise");int levelBefore=growth.Level,cost=growth.NextCost,carried=growth.Stardust;float vitality=g.Player.MaxHealth;
+        Check(raise.Length==Stats.All.Length&&carried>=cost&&Focused()==raise[0]&&raise.All(b=>!b.Disabled),$"a Raise button for each of the {Stats.All.Length} stats, the first focused, with {carried} stardust for a level costing {cost}");
+        await Tap(Key.Enter);
+        Check(growth.Level==levelBefore+1&&growth.Points("hp")==1&&growth.Stardust==carried-cost&&g.Player.MaxHealth==vitality+Stats.Get("hp").PerPoint&&g.Player.Health==g.Player.MaxHealth&&growth.NextCost>cost&&Focused()==Pressable("Raise")[0],
+            $"Enter on HP's Raise spends {cost} stardust on {Stats.Get("hp").PerPoint} more vitality, filled at once; the next level costs {growth.NextCost}");
+        growth.Stardust=Math.Min(growth.NextCost,Items.Get("cell").Price)-1;g.Hud.RefreshMenu();await Frames(2);
+        Check(Pressable("Raise").Concat(Pressable("Buy")).All(b=>b.Disabled)&&g.Hud.GetViewport().GuiGetFocusOwner()==Labelled("Back"),"short of the next level's cost and every price, each Raise and Buy button is disabled and Back takes the focus");
+        growth.Stardust=growth.NextCost+Stats.Cost(growth.Level+1);Pressable("Raise")[2].EmitSignal(BaseButton.SignalName.Pressed);await Frames(2);
+        Pressable("Raise")[3].EmitSignal(BaseButton.SignalName.Pressed);await Frames(2);
+        Check(growth.Points("atk")==1&&growth.Points("def")==1&&growth.Stardust==0&&growth.Level==levelBefore+3,"ATK and DEF each take a point");
+        var traded=Items.Get("cell");growth.Stardust=traded.Price*(bag.Capacity("cell")-bag.Count("cell"))+5;g.Hud.RefreshMenu();await Frames(2);
+        while(!Pressable("Buy")[0].Disabled){Pressable("Buy")[0].EmitSignal(BaseButton.SignalName.Pressed);await Frames(2);}
+        Check(bag.Count("cell")==bag.Capacity("cell")&&growth.Stardust==5,$"Buy trades {traded.Price} stardust for each resonance cell, until Mio carries all {bag.Capacity("cell")}");
+        await Tap(Key.Escape);Check(g.Mode==GameMode.Playing,"escape leaves the save point's screen back to play");
+        // ATK scales the sword's damage and posture damage; DEF divides a strike's damage.
+        var dummy=downed;Place(g.Player,spot);dummy.GlobalPosition=spot+Vector3.Forward*2;dummy.Model.Rotation=Vector3.Zero;g.Player.Model.Rotation=new(0,Mathf.Pi,0);await Frames(12);
+        float dummyHp=dummy.Health;await Press("attack",2);for(int i=0;i<30&&dummy.Health==dummyHp;i++)await Frames(1);await Frames(40);
+        Check(Math.Abs(dummyHp-dummy.Health-Enemy.SwordDamage*growth.Scale("atk"))<.001f&&Math.Abs(dummy.Posture-Enemy.SwordPosture*growth.Scale("atk"))<.001f&&growth.Scale("atk")>1,
+            $"a point of ATK makes the sword bite {growth.Scale("atk"):F1} times as hard");
+        g.Player.Health=g.Player.MaxHealth;g.Player.Invulnerable=0;g.Player.Stun=0;hp=g.Player.Health;g.Player.ReceiveHit(dummy,false);
+        Check(Math.Abs(hp-g.Player.Health-dummy.Strike(false)/growth.Scale("def"))<.001f&&hp-g.Player.Health<dummy.Strike(false),$"a point of DEF takes {dummy.Strike(false)-(hp-g.Player.Health):F1} off a scout's strike");
+        // Falling, Mio leaves the stardust she carries where she fell, and touching it there takes it back; falling again first loses it.
+        await Frames(50);growth.Stardust=300;g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;var fell=g.Player.GlobalPosition;g.Player.ReceiveHit(dummy,false);
+        var mark=g.GetNode<Node3D>("Dropped stardust");
+        Check(g.Mode==GameMode.Defeated&&growth.Stardust==0&&g.Dropped is {Amount:300} drop&&drop.At.DistanceTo(fell)<.1f&&mark.Visible&&mark.GlobalPosition.DistanceTo(fell)<.1f,"falling, Mio leaves her 300 stardust glowing where she fell");
+        g.Retry();await Frames(5);Check(g.Dropped?.Amount==300&&growth.Stardust==0&&mark.Visible,"recovering at the village leaves it there");
+        Place(g.Player,fell+Vector3.Back*4);await Frames(10);await WalkTo(new(fell.X,fell.Z),false);await Frames(2);
+        Check(growth.Stardust==300&&g.Dropped==null&&!mark.Visible&&g.ToastTitle=="STARDUST RECOVERED","walking back to where she fell takes it back");
+        g.Die();g.Retry();g.Earn(40);g.Die();
+        Check(g.Dropped?.Amount==40&&g.Dropped.Value.At.DistanceTo(g.Player.GlobalPosition)<.1f,"falling again before she goes back for it loses the first, and leaves the second");
+        g.Retry();await Frames(5);growth.Reset();g.Player.Rest();dummy.Reset();
         Place(g.Player,g.World.RelayPosition+Vector3.Back*2);g.Interact();
         Check(g.QuestStage==3&&g.Speaker=="Zero","relay activation contacts remote Zero");g.Mode=GameMode.Playing;
         Place(g.Player,g.World.Residents[0].Body.GlobalPosition+Vector3.Back*2);await Frames(60);g.Interact();
@@ -748,10 +808,13 @@ public static class IntegrationCheck
                 ("Quit game",17,278),("Quit",17,78),("WASD  Move      SHIFT  Run      SPACE  Jump",13,334),("LMB / J  Attack     RMB / K  Guard & deflect",13,334),
                 ("CTRL / ALT  Dodge     TAB  Lock     Q  Skill",13,334),("E  Interact    H  Remedy    I  Items    ESC  Pause",12,334),
                 ("Items",17,278),("Settings",17,278),("Use",17,138),("Back",17,138),("Supplies",13,378),("Key items",13,378),("The train with no passengers",19,360),
+                ("Raise",15,68),("Buy",15,68),("Trade",13,340),("Level {0}",13,300),("{0} stardust lies where Mio fell",17,640),
                 ("Speak to Ren at the workshop",17,340),("Clear the old relay road",17,340),("Restart the manual relay",17,340),("Return to Ren in Hoshikawa",17,340),("Evacuation route secured",17,340)};
             var overflow=tight.Where(t=>Width(t.Text,t.Size)>t.Room).Select(t=>t.Text).ToArray();
             Check(overflow.Length==0,$"{name}: every menu, control and panel string fits its fixed box {string.Join(" | ",overflow)}");
-            var items=Items.All.Where(i=>Width(i.Name,26,serif)>236||g.Hud.Wrap(Localization.T(i.Text),358,15).Count>5).Select(i=>i.Name).ToArray();
+            var stats=Stats.All.Where(s=>Width(s.Short,17)>56||Width(s.Name,15)>118).Select(s=>s.Name).ToArray();
+            Check(stats.Length==0,$"{name}: every stat's name fits its row on the save point's screen {string.Join(" | ",stats)}");
+            var items=Items.All.Where(i=>Width(i.Name,26,serif)>236||g.Hud.Wrap(Localization.T(i.Text),358,15).Count>5||i.Price>0&&Width(i.Name,15)>180).Select(i=>i.Name).ToArray();
             Check(items.Length==0,$"{name}: every item's name fits beside its icon and its text in five lines {string.Join(" | ",items)}");
             var wide=ui.Keys.Where(k=>Width(k,14)>540).ToArray();Check(wide.Length==0,$"{name}: no string is wider than the toast panel {string.Join(" | ",wide)}");
             int Wrapped(string text,out bool badStart)
@@ -774,7 +837,7 @@ public static class IntegrationCheck
             Check(Localization.Current==code&&TranslationServer.GetLocale()==code,$"the title screen's {name} button switches the game to it");
             foreach(var (mode,action) in new[]{(GameMode.Title,"BEGIN JOURNEY     →"),(GameMode.Paused,"Resume journey")})
             {g.Mode=mode;g.Hud.RefreshMenu();await Frames(2);Check((g.Hud.GetViewport().GuiGetFocusOwner() as Button)?.Text==action,$"{name}: on the {mode} screen the main button, not a language button, holds focus, so Enter does what it says");}
-            foreach(var mode in new[]{GameMode.Title,GameMode.Paused,GameMode.Defeated,GameMode.Inventory,GameMode.Settings,GameMode.Playing})
+            foreach(var mode in new[]{GameMode.Title,GameMode.Paused,GameMode.Defeated,GameMode.Inventory,GameMode.Settings,GameMode.Rest,GameMode.Playing})
             {int drawn=g.Hud.Redraws;g.Mode=mode;g.Hud.RefreshMenu();await Frames(3);Check(g.Hud.Redraws>drawn,$"{name}: the HUD draws its {mode} screen");}
         }
         g.SetLanguage(startLanguage);g.Mode=GameMode.Playing;g.Hud.RefreshMenu();

@@ -30,6 +30,9 @@ public partial class World : Node3D
         ("Weavers House",new(-12.5f,-262),new(9.2f,3.61f,7),90,"workshop"),("Orchard Store",new(13,-261.2f),new(6.2f,3.24f,3.67f),-90,"kura"),
         ("Komorebi Meeting Hall",new(0,-277),new(10.82f,3.6f,7.4f),0,"hall")};
     public static readonly Vector2 ShrineCenter=new(-1,63);
+    // Hoshikawa's well is the valley's one save point, where Mio rests, levels up and trades. Its name is drawn through the ui tables.
+    public static readonly Vector2 SavePoint=new(-3.2f,24);
+    public const string SavePointName="Starwell";
     public static readonly (Vector2 From,Vector2 To)[] Footpaths={(new(0,15),new(17.2f,15)),(new(21.4f,15),new(34,15)),(new(34,15),new(34,20))};
     public static bool OnFootpath(Vector2 p,float margin)=>Footpaths.Any(f=>Geometry2D.GetClosestPointToSegment(p,f.From,f.To).DistanceTo(p)<1.2f+margin);
     private static readonly float[] PadLevel=Hamlet.Select(h=>HamletGround(h.At.X,h.At.Y,BaseHeight(h.At.X,h.At.Y),false)).ToArray();
@@ -377,7 +380,7 @@ public partial class World : Node3D
         Resident("Hana", "FARMER",new(6,0,37.5f),3,Face(6,37.5f));
         Resident("Sora", "COURIER",new(6.8f,0,22),4,Face(6.8f,22));
         Resident("KOMA-7", "OFFLINE GARDENER",new(8.3f,0,11.5f),5,Face(8.3f,11.5f));
-        Well("Village well",new(-3.2f,24));
+        Well("Village well",SavePoint);
         RiceFields();
         Fence(new(-24,0,0),new(-24,0,42));
         Fence(new(23,0,1),new(23,0,13));Fence(new(23,0,17),new(23,0,42));

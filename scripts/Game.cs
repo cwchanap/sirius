@@ -2,7 +2,7 @@ using Godot;
 using static Hoshikawa.Localization;
 namespace Hoshikawa;
 
-public enum GameMode { Title, Playing, Dialogue, Paused, Defeated, Inventory, Settings }
+public enum GameMode { Title, Playing, Dialogue, Paused, Defeated, Inventory, Settings, Rest }
 public partial class Game : Node3D
 {
     public World World=null!;
@@ -24,7 +24,11 @@ public partial class Game : Node3D
     public int Beat,NightFrom=-1;
     public float Reveal;
     public Color FeedbackColor=Hoshikawa.World.Gold,FlashColor=Hoshikawa.World.Gold;
-    public float ToastTime,FeedbackTime,FlashTime;
+    public float ToastTime,FeedbackTime,FlashTime,GainTime;
+    // The stardust last earned, shown rising over the HUD's count, and what Mio left where she last fell.
+    public int Gained;
+    public (Vector3 At,int Amount)? Dropped;
+    private Node3D dropMark=null!,savePointGlow=null!;
     public bool SelfTest;
     private Node3D cameraRig=null!;
     private SpringArm3D spring=null!;
@@ -50,6 +54,13 @@ public partial class Game : Node3D
             var p=new Vector3(homes[i].X,Hoshikawa.World.Height(homes[i].X,homes[i].Y)+.1f,homes[i].Y);
             var enemy=new Enemy {Game=this,Home=p,Position=p,Index=i+1,Scout=scout};Enemies.Add(enemy);AddChild(enemy);
         }
+        // Outside World, whose static meshes are baked: the save point's light over the well, and the stardust Mio leaves where she falls.
+        var well=Hoshikawa.World.SavePoint;var mouth=new Vector3(well.X,Hoshikawa.World.Height(well.X,well.Y)+1.15f,well.Y);
+        savePointGlow=Glow(this,"Save point glow",new QuadMesh(),mouth,Fx(Hoshikawa.World.Jade,1.6f,Soft,true));savePointGlow.Scale=Vector3.One*1.6f;
+        AddChild(new OmniLight3D {Name="Save point light",Position=mouth,LightColor=Hoshikawa.World.Jade,LightEnergy=1.4f,OmniRange=5});
+        dropMark=new Node3D {Name="Dropped stardust",Visible=false};AddChild(dropMark);
+        Glow(dropMark,"Stardust glow",new QuadMesh(),Vector3.Up*.8f,Fx(Hoshikawa.World.Gold,2.4f,Soft,true)).Scale=Vector3.One*.9f;
+        dropMark.AddChild(new OmniLight3D {Position=Vector3.Up*.8f,LightColor=Hoshikawa.World.Gold,LightEnergy=1,OmniRange=3});
         cameraRig=new Node3D {Position=Player.Position+Vector3.Up*1.3f};AddChild(cameraRig);
         spring=new SpringArm3D {SpringLength=7.5f,Margin=.25f,CollisionMask=1|Hoshikawa.World.CameraLayer,Shape=new SphereShape3D {Radius=.2f}};cameraRig.AddChild(spring);
         Camera=new Camera3D {Fov=59,Near=.08f,Far=260,Current=true};spring.AddChild(Camera);
@@ -88,6 +99,7 @@ public partial class Game : Node3D
             if(key.Keycode==Key.Enter&&Mode==GameMode.Title){Begin();GetViewport().SetInputAsHandled();return;}
             if(Mode==GameMode.Dialogue&&(key.PhysicalKeycode==Key.E||key.Keycode==Key.Enter)){Advance();GetViewport().SetInputAsHandled();return;}
             if(Mode==GameMode.Dialogue&&key.Keycode==Key.Escape){EndDialogue();GetViewport().SetInputAsHandled();return;}
+            if(Mode==GameMode.Rest&&key.Keycode==Key.Escape){LeaveRest();return;}
             if(key.Keycode==Key.Escape&&Mode is GameMode.Playing or GameMode.Paused)
             {SetPaused(Mode==GameMode.Playing);return;}
             if(Mode==GameMode.Inventory&&(key.Keycode==Key.Escape||key.PhysicalKeycode==Key.I)||Mode==GameMode.Playing&&key.PhysicalKeycode==Key.I)
@@ -116,7 +128,9 @@ public partial class Game : Node3D
         if(Mode==GameMode.Dialogue)Reveal=Math.Min(Dialogue.Length,Reveal+dt*RevealSpeed);
         if(Mode==GameMode.Playing)
         {
-            ToastTime=Math.Max(0,ToastTime-dt);FeedbackTime=Math.Max(0,FeedbackTime-dt);FlashTime=Math.Max(0,FlashTime-dt);
+            ToastTime=Math.Max(0,ToastTime-dt);FeedbackTime=Math.Max(0,FeedbackTime-dt);FlashTime=Math.Max(0,FlashTime-dt);GainTime=Math.Max(0,GainTime-dt);
+            if(Dropped is {} drop&&drop.At.DistanceTo(Player.GlobalPosition)<1.6f)
+            {Earn(drop.Amount);Dropped=null;dropMark.Visible=false;Toast("STARDUST RECOVERED",seconds:3,icon:Hud.StardustIcon);}
             if(Region!=previousRegion)
             {
                 previousRegion=Region;Toast(Region.ToUpperInvariant(),seconds:3.5f);
@@ -135,6 +149,7 @@ public partial class Game : Node3D
         Camera.HOffset=CameraShake>0?Mathf.Sin((float)elapsed*100)*CameraShake*.2f:0;
         Camera.VOffset=CameraShake>0?Mathf.Cos((float)elapsed*86)*CameraShake*.15f:0;
         CameraPunch=Math.Max(0,CameraPunch-dt*3);Camera.Fov=fov-CameraPunch*CameraPunch*7;
+        savePointGlow.Scale=Vector3.One*(1.6f+.15f*Mathf.Sin((float)elapsed*1.7f));
         TintTime=Math.Max(0,TintTime-dt);
         Hud.QueueRedraw();
         if(capturePath!=""&&!captured&&elapsed>6){captured=true;SaveScreenshot(capturePath);}
@@ -161,12 +176,16 @@ public partial class Game : Node3D
     {
         foreach(var a in ActorVisual.Descendants(this).OfType<AnimationPlayer>())a.SpeedScale=freeze?0:1;
     }
+    // The stardust Mio carries stays where she falls, until she touches it again; falling again first loses it.
     public void Die()
-    {Mode=GameMode.Defeated;Input.MouseMode=Input.MouseModeEnum.Visible;Hud.RefreshMenu();}
+    {
+        var growth=Player.Growth;Dropped=growth.Stardust>0?(Player.GlobalPosition,growth.Stardust):null;growth.Stardust=0;
+        dropMark.Visible=Dropped!=null;if(Dropped is {} drop)dropMark.GlobalPosition=drop.At;
+        Mode=GameMode.Defeated;Input.MouseMode=Input.MouseModeEnum.Visible;Hud.RefreshMenu();
+    }
     public void Retry()
     {
-        Player.Respawn();Locked=null;danger=0;
-        foreach(var e in Enemies)if(!e.Dead)e.Reset();
+        Player.Respawn();Locked=null;danger=0;Regroup();
         CameraYaw=0;FreezeAnimations(false);Start();Toast("BACK AT THE VILLAGE");
     }
     public void Restart()
@@ -174,8 +193,24 @@ public partial class Game : Node3D
         QuestStage=0;Heard.Clear();foreach(var e in Enemies)e.Reset();
         opening?.Kill();Opened.Clear();foreach(var s in World.Shortcuts)s.Swing(s.Closed);
         foreach(var pickup in World.Pickups)pickup.Node.Visible=true;Player.Inventory.Reset();
+        Player.Growth.Reset();Dropped=null;dropMark.Visible=false;
         Retry();Play(Prologue.Intro);
     }
+    // Recovering at the village or resting at the save point sends every robot home and brings back the scouts Mio shut down;
+    // the patrols stay down, because the mission counts them.
+    private void Regroup(){foreach(var e in Enemies)if(!e.Dead||e.Scout)e.Reset();}
+    public bool AtSavePoint=>new Vector2(Player.GlobalPosition.X,Player.GlobalPosition.Z).DistanceTo(Hoshikawa.World.SavePoint)<2.4f;
+    // The save point rests Mio and opens its screen, where she levels up and trades; play stays frozen under it.
+    public void Rest()
+    {
+        Player.Rest();Regroup();Sound("heal");
+        Mode=GameMode.Rest;Input.MouseMode=Input.MouseModeEnum.Visible;FreezeAnimations(true);Hud.RefreshMenu();
+    }
+    public void LeaveRest()=>SetPaused(false);
+    // A new point fills the stat it raises, as resting would.
+    public bool Raise(string id){bool raised=Player.Growth.Raise(id);if(raised){Player.Rest();Sound("heal");}Hud.RefreshMenu();return raised;}
+    public bool Buy(string id){bool bought=Player.Growth.Buy(Player.Inventory,id);if(bought)Sound("heal");Hud.RefreshMenu();return bought;}
+    public void Earn(int amount){Player.Growth.Stardust+=amount;Gained=amount;GainTime=2.5f;}
     // English is what quest logic and the route tests read; the HUD shows the translated one, and counts the patrols in crests.
     public string Objective=>QuestStage switch
     {
@@ -197,6 +232,7 @@ public partial class Game : Node3D
     {
         foreach(var r in World.Residents)if(r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition)<3.1f)return ("talk",T(r.Name).ToUpperInvariant());
         if(World.RelayPosition.DistanceTo(Player.GlobalPosition)<3.3f)return ("repair",T("MANUAL RELAY"));
+        if(AtSavePoint)return (Hud.StardustIcon,T(Hoshikawa.World.SavePointName).ToUpperInvariant());
         if(ShortcutHere()!=null)return ("ladder",T("LADDER"));
         if(PickupHere() is {} pickup){var item=Items.Get(pickup.Item);return (item.Icon,T(item.Name).ToUpperInvariant());}
         return ("","");
@@ -224,6 +260,7 @@ public partial class Game : Node3D
             else Play(Prologue.RelaySteady);
             return;
         }
+        if(AtSavePoint){Rest();return;}
         if(ShortcutHere() is {} shortcut)
         {
             Opened.Add(shortcut.Name);opening=CreateTween();opening.TweenMethod(Callable.From<float>(shortcut.Swing),shortcut.Closed,shortcut.Open,1.8f).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
@@ -251,8 +288,9 @@ public partial class Game : Node3D
         SpeakerRole=Speaker switch {"Mio"=>"OFFLINE RUNNER","Zero"=>"SENSORY LINK · CITY SIDE",_=>World.Residents.FirstOrDefault(r=>r.Name==Speaker).Role??""};
     }
     public void EndDialogue(){Voice.Stop();Mode=GameMode.Playing;Input.MouseMode=SelfTest?Input.MouseModeEnum.Visible:Input.MouseModeEnum.Captured;}
-    public void OnEnemyDefeated()
+    public void OnEnemyDefeated(Enemy enemy)
     {
+        Earn(enemy.Scout?Stats.ScoutReward:Stats.PatrolReward);
         if(QuestStage==1&&Patrols.All(e=>e.Dead)){QuestStage=2;Toast("ROAD CLEARED",seconds:5);}
     }
     public void ToggleLock()
