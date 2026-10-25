@@ -172,8 +172,8 @@ Bring the non-character environment up to the Tripo characters' detail: semi-rea
 
 ## Music
 
-- [x] Background music by area and danger (`scripts/Music.cs`): the valley's loop in the villages and Cedar Pass, the relay road's own track there, and a battle track while any robot is out of its patrol and for 3 s after; 1.5 s crossfades, and a faded track pauses where it is. The relay and battle tracks are synthesized placeholders from `tools/build_audio.py`.
-- [ ] Art: the relay road and battle tracks from ElevenLabs Music in Falcom style (the owner's pick), as seamless OGG loops replacing the placeholders.
+- [x] Background music by area and danger (`scripts/Music.cs`): the valley's loop in the villages and Cedar Pass, the relay road's own track there, and a battle track while any robot is out of its patrol and for 3 s after; 1.5 s crossfades, and a faded track pauses where it is. The relay and battle tracks started as synthesized placeholders from `tools/build_audio.py`.
+- [x] The relay road and battle tracks from ElevenLabs Music in Falcom style (the owner's pick): `relay.ogg` and `battle.ogg`, each one loop with no intro (the owner's rule: fights start at once, and the files stay small), replacing the placeholders.
 
 ## Map redesign (地圖重新設計)
 

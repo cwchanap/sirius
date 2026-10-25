@@ -258,6 +258,7 @@ public static class IntegrationCheck
         g.Player.Visual.Play("idle",1,true);
         await Frames(30);Check(g.Player.IsOnFloor(),"player starts on physical terrain");
         Check(g.Music.Current=="valley"&&g.Music.Players.All(p=>p.Value.Playing==(p.Key=="valley")),"the valley's music plays in Hoshikawa, and no other track");
+        Check(g.Music.Players.Where(p=>p.Key!="valley").All(p=>p.Value.Stream is AudioStreamOggVorbis {Loop:true,LoopOffset:0}),"the relay road and battle tracks are each one loop that repeats whole");
         foreach(var enemy in g.Enemies)enemy.SetPhysicsProcess(false);
         var before=g.Player.GlobalPosition;await Press("forward",60);
         float walk=before.DistanceTo(g.Player.GlobalPosition);Check(walk>1.5f&&walk<2.5f,"camera-relative walking");
