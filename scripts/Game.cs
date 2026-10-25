@@ -69,9 +69,10 @@ public partial class Game : Node3D
         if(args.Contains("--pass-view")){Player.GlobalPosition=new(Hoshikawa.World.RoadX(-199),Hoshikawa.World.Height(Hoshikawa.World.RoadX(-199),-199)+.1f,-199);CameraPitch=-.27f;spring.SpringLength=10;}
         fov=Camera.Fov;Hud.RefreshMenu();GD.Print($"HOSHIKAWA_READY buildings={World.Buildings.Count} residents={World.Residents.Count} patrols={Patrols.Count()} scouts={Enemies.Count(e=>e.Scout)}");
     }
-    // A stopped playback, and the valley.wav it holds, is only released on the audio thread's next mix step; if the engine
-    // shuts the AudioServer down first, both leak at exit. Blocking briefly at quit lets that step run first.
-    public override void _ExitTree(){ambience.Stop();Voice.Stop();bark.Stop();OS.DelayMsec(100);}
+    // Leaving the tree only pauses a player's playback, and a stopped one, with the wav it holds, is only released on the audio
+    // thread's next mix step; if the engine shuts the AudioServer down first, both leak at exit. So every player still sounding,
+    // the ambience, a voice or a long one-shot such as the stun, is stopped here, and blocking briefly lets that step run first.
+    public override void _ExitTree(){foreach(var player in GetChildren().OfType<AudioStreamPlayer>())player.Stop();OS.DelayMsec(100);}
     public void Start()
     {
         Mode=GameMode.Playing;Input.MouseMode=SelfTest?Input.MouseModeEnum.Visible:Input.MouseModeEnum.Captured;
