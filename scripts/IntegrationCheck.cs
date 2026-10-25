@@ -354,9 +354,9 @@ public static class IntegrationCheck
             ("Toma",new Vector2(0,-254),new Vector2(16.2f,-254.5f))})
         {
             await WalkTo(road);await WalkTo(approach);await Frames(5);
-            if(name=="Emi"){g.Player.Health=20;g.Player.Remedies=0;g.Player.SkillCharges=0;}
+            if(name=="Emi"){g.Player.Health=20;while(g.Player.Inventory.Take("remedy")){}g.Player.SkillCharges=0;}
             g.Interact();Check(g.Mode==GameMode.Dialogue&&g.Speaker==name,"walk from village street to service: "+name);
-            if(name=="Emi")Check(g.Player.Health==100&&g.Player.Remedies==g.Player.MaxRemedies&&g.Player.SkillCharges==Player.MaxSkillCharges,"Komorebi medic restores health, remedies and Resonance Cut's charges");
+            if(name=="Emi")Check(g.Player.Health==100&&g.Player.Inventory.Count("remedy")==g.Player.Inventory.Capacity("remedy")&&g.Player.SkillCharges==Player.MaxSkillCharges,"Komorebi medic restores health, remedies and Resonance Cut's charges");
             g.Mode=GameMode.Playing;await WalkTo(road);
         }
         await WalkTo(new(22,-254));await WalkTo(new(24,-251));await WalkTo(new(28,-251));await WalkTo(new(28,-245));
@@ -420,13 +420,28 @@ public static class IntegrationCheck
         await WalkTo(top);
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-7.5f)<.3f,$"and back up to the teahouse terrace {g.Player.GlobalPosition}");
         // The quarry's remedy pouch lets Mio carry one more remedy for the rest of the prologue.
-        var pouch=g.World.Pouches.Single();var crate=pouch.GlobalPosition+Vector3.Back*1.3f;
+        var bag=g.Player.Inventory;
+        Check(bag.Held.Select(i=>i.Id).SequenceEqual(new[]{"remedy","terminal"})&&bag.Count("remedy")==3&&bag.Count("terminal")==1,"Mio sets out with three remedies and the wrist terminal");
+        var pouch=g.World.Pickups.Single(p=>p.Item=="pouch").Node;var crate=pouch.GlobalPosition+Vector3.Back*1.3f;
         Place(g.Player,new(crate.X,Hoshikawa.World.Height(crate.X,crate.Z)+.1f,crate.Z));await Frames(10);
         Check(g.Interaction().Icon=="remedy","the remedy pouch waits on its crate at the quarry's end");
         g.Interact();
-        Check(!pouch.Visible&&g.Player.MaxRemedies==4&&g.Player.Remedies==4&&g.Interaction().Icon!="remedy","taking the remedy pouch raises the remedies Mio carries to four");
+        Check(!pouch.Visible&&bag.Count("pouch")==1&&bag.Capacity("remedy")==4&&bag.Count("remedy")==4&&g.Interaction().Icon!="remedy"&&g.ToastIcon=="remedy",
+            "taking the remedy pouch adds it to Mio's key items and raises the remedies she carries to four");
+        // Two resonance cells lie on the relay road, each on standable ground and taken once.
+        var cells=g.World.Pickups.Where(p=>p.Item=="cell").Select(p=>p.Node).ToArray();
+        foreach(var found in cells)
+        {
+            var by=found.GlobalPosition+Vector3.Back*1.3f;by.Y=Hoshikawa.World.Height(by.X,by.Z)+.1f;Place(g.Player,by);await Frames(10);
+            Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-by.X,g.Player.GlobalPosition.Z-by.Z).Length()<.2f&&g.Interaction().Icon=="resonance",$"a resonance cell lies on standable ground at {found.GlobalPosition}");
+            int had=bag.Count("cell");g.Interact();
+            Check(!found.Visible&&bag.Count("cell")==had+1&&g.Interaction().Icon!="resonance",$"taking it puts a resonance cell in Mio's supplies ({had+1})");
+        }
+        g.Player.SkillCharges=Player.MaxSkillCharges;Check(cells.Length==2&&!g.Player.Use("cell")&&bag.Count("cell")==2,"a resonance cell is not spent while Resonance Cut's charges are full");
+        g.Player.SkillCharges=1;Check(g.Player.Use("cell")&&g.Player.SkillCharges==2&&bag.Count("cell")==1,"a resonance cell restores one charge of Resonance Cut");
         g.Retry();await Frames(5);
-        Check(g.Opened.Contains(ladder.Name)&&Turned(ladder.Open)&&!pouch.Visible&&g.Player.Remedies==4,"the ladder stays down and the pouch taken when Mio recovers at the village");
+        Check(g.Opened.Contains(ladder.Name)&&Turned(ladder.Open)&&!pouch.Visible&&bag.Count("remedy")==4&&bag.Count("cell")==1&&g.Player.SkillCharges==Player.MaxSkillCharges,
+            "the ladder stays down and the pouch taken when Mio recovers at the village, which refills remedies but not cells");
         // The map's edges are its terrain now: a cliff behind Komorebi stops a walker at chest height, and the one wall on land's side is off the beach, here in the cove between two capes.
         float chest=Hoshikawa.World.Height(0,-297)+1.2f;
         using(var cliff=PhysicsRayQueryParameters3D.Create(new(0,chest,-297),new(0,chest,-315),1))
@@ -609,9 +624,29 @@ public static class IntegrationCheck
         opponent.Reset();opponent.GlobalPosition=spot+Vector3.Forward*2;opponent.Model.Rotation=Vector3.Zero;
         opponent.TakeHit(0,100);Check(opponent.Broken,"full posture opens execution window");
         g.Player.Attack();Check(opponent.Dead,"attack executes a broken robot");opponent.Reset();
-        g.Player.Health=35;int herbs=g.Player.Remedies;g.Player.Heal();
-        Check(g.Player.Health==35,"healing is blocked during an attack");await Frames(70);g.Player.Heal();
-        Check(g.Player.Health==80&&g.Player.Remedies==herbs-1,"remedy restores health and consumes one charge");
+        g.Player.Health=35;int herbs=bag.Count("remedy");
+        Check(!g.Player.Use("remedy")&&g.Player.Health==35&&bag.Count("remedy")==herbs,"healing is blocked during an attack, and keeps the remedy");await Frames(70);
+        Check(g.Player.Use("remedy")&&g.Player.Health==80&&bag.Count("remedy")==herbs-1,"remedy restores health and consumes one charge");
+        // The items screen opens with I over play, or from the pause menu, uses the item shown with E or its Use button and closes back
+        // to where it opened, play frozen under it.
+        Button Focused()=>(Button)g.Hud.GetViewport().GuiGetFocusOwner();
+        Button Labelled(string text)=>g.Hud.FindChildren("*","Button",true,false).OfType<Button>().Single(b=>b.Text==text);
+        int charges=g.Player.SkillCharges;g.Player.Health=30;await Tap(Key.I);herbs=bag.Count("remedy");
+        Check(g.Mode==GameMode.Inventory&&g.Hud.Selected=="remedy"&&Focused().Text==""&&g.Hud.FindChildren("*","Button",true,false).Count(b=>((Button)b).Text=="")==bag.Held.Count(),
+            "I opens the items screen with a slot for each item Mio holds, the first one focused and shown");
+        var still=g.Player.GlobalPosition;Hold("forward");await Frames(10);Release("forward");
+        Check(g.Player.GlobalPosition==still,"play stays frozen under the items screen");
+        await Tap(Key.E);Check(g.Mode==GameMode.Inventory&&g.Player.Health==75&&bag.Count("remedy")==herbs-1,"E on the items screen uses the remedy it shows");
+        await Tap(Key.Right);Check(g.Hud.Selected=="cell"&&!Labelled("Use").Disabled,"the arrow keys move the selection to the next slot, a resonance cell");
+        await Tap(Key.Down);Check(Items.Get(g.Hud.Selected).Kind==ItemKind.Key&&!Labelled("Use").Visible,"and down to the key items, which have no Use button");
+        await Tap(Key.I);Check(g.Mode==GameMode.Playing,"I closes the items screen back to play");
+        await Tap(Key.Escape);Labelled("Items").EmitSignal(BaseButton.SignalName.Pressed);await Frames(2);
+        Check(g.Mode==GameMode.Inventory,"the pause menu's Items button opens the items screen");
+        g.Player.SkillCharges=2;await Tap(Key.Right);Labelled("Use").EmitSignal(BaseButton.SignalName.Pressed);await Frames(2);
+        Check(g.Player.SkillCharges==3&&bag.Count("cell")==0&&g.Hud.Selected=="cell"&&Labelled("Use").Disabled,"its Use button spends the last resonance cell, which keeps its slot, now empty");
+        await Tap(Key.Escape);Check(g.Mode==GameMode.Paused,"escape closes it back to the pause menu it came from");
+        Labelled("Items").EmitSignal(BaseButton.SignalName.Pressed);await Frames(2);Labelled("Back").EmitSignal(BaseButton.SignalName.Pressed);await Frames(2);
+        Check(g.Mode==GameMode.Paused,"so does its Back button");g.SetPaused(false);g.Player.SkillCharges=charges;
         for(int charge=1;charge<Player.MaxSkillCharges;charge++){await Frames(cast);Check(g.Player.Skill(),$"Resonance Cut casts again on charge {charge+1}");}
         await Frames(cast);Check(g.Player.SkillCharges==0&&!g.Player.Skill(),$"with its {Player.MaxSkillCharges} charges spent Resonance Cut waits for a rest");
         var scout=g.Enemies.First(e=>e.Scout);g.Player.Health=100;g.Player.Invulnerable=0;
@@ -649,7 +684,8 @@ public static class IntegrationCheck
         Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Intro),"restarting the prologue replays its opening scene");g.EndDialogue();
         // The ladder's body takes its new turn on the next physics step.
         await Frames(2);
-        Check(g.Opened.Count==0&&Turned(ladder.Closed)&&pouch.Visible&&g.Player.MaxRemedies==3&&g.Player.Remedies==3,"restart draws the ladder up again and puts the pouch back");
+        Check(g.Opened.Count==0&&Turned(ladder.Closed)&&g.World.Pickups.All(p=>p.Node.Visible)&&bag.Held.Select(i=>i.Id).SequenceEqual(new[]{"remedy","terminal"})&&bag.Capacity("remedy")==3&&bag.Count("remedy")==3,
+            "restart draws the ladder up again, puts the pouch and cells back and Mio's items back to what she set out with");
         Place(g.Player,new(lever.X,Hoshikawa.World.Height(lever.X,lever.Y)+.1f,lever.Y));await Frames(10);g.Interact();await Frames(20);
         g.Restart();g.EndDialogue();await Frames(100);
         Check(g.Opened.Count==0&&Turned(ladder.Closed),"a restart while the ladder is still swinging down leaves it drawn up");
@@ -670,10 +706,13 @@ public static class IntegrationCheck
             float Width(string english,int size,Font? face=null)=>(face??sans).GetStringSize(Localization.T(english),fontSize:size).X;
             var tight=new (string Text,int Size,float Room)[]{("BEGIN JOURNEY     →",17,288),("Return to Hoshikawa",17,288),("Resume journey",17,278),("Recover at the village",17,278),("Restart prologue",17,278),
                 ("Quit game",17,278),("Quit",17,78),("WASD  Move      SHIFT  Run      SPACE  Jump",13,334),("LMB / J  Attack     RMB / K  Guard & deflect",13,334),
-                ("CTRL / ALT  Dodge     TAB  Lock     Q  Skill",13,334),("E  Interact    H  Remedy    ESC  Pause",12,334),("The train with no passengers",19,360),
+                ("CTRL / ALT  Dodge     TAB  Lock     Q  Skill",13,334),("E  Interact    H  Remedy    I  Items    ESC  Pause",12,334),
+                ("Items",17,278),("Use",17,138),("Back",17,138),("Supplies",13,378),("Key items",13,378),("The train with no passengers",19,360),
                 ("Speak to Ren at the workshop",17,340),("Clear the old relay road",17,340),("Restart the manual relay",17,340),("Return to Ren in Hoshikawa",17,340),("Evacuation route secured",17,340)};
             var overflow=tight.Where(t=>Width(t.Text,t.Size)>t.Room).Select(t=>t.Text).ToArray();
             Check(overflow.Length==0,$"{name}: every menu, control and panel string fits its fixed box {string.Join(" | ",overflow)}");
+            var items=Items.All.Where(i=>Width(i.Name,26,serif)>236||g.Hud.Wrap(Localization.T(i.Text),358,15).Count>5).Select(i=>i.Name).ToArray();
+            Check(items.Length==0,$"{name}: every item's name fits beside its icon and its text in five lines {string.Join(" | ",items)}");
             var wide=ui.Keys.Where(k=>Width(k,14)>540).ToArray();Check(wide.Length==0,$"{name}: no string is wider than the toast panel {string.Join(" | ",wide)}");
             int Wrapped(string text,out bool badStart)
             {
@@ -695,7 +734,7 @@ public static class IntegrationCheck
             Check(Localization.Current==code&&TranslationServer.GetLocale()==code,$"the title screen's {name} button switches the game to it");
             foreach(var (mode,action) in new[]{(GameMode.Title,"BEGIN JOURNEY     →"),(GameMode.Paused,"Resume journey")})
             {g.Mode=mode;g.Hud.RefreshMenu();await Frames(2);Check((g.Hud.GetViewport().GuiGetFocusOwner() as Button)?.Text==action,$"{name}: on the {mode} screen the main button, not a language button, holds focus, so Enter does what it says");}
-            foreach(var mode in new[]{GameMode.Title,GameMode.Paused,GameMode.Defeated,GameMode.Playing})
+            foreach(var mode in new[]{GameMode.Title,GameMode.Paused,GameMode.Defeated,GameMode.Inventory,GameMode.Playing})
             {int drawn=g.Hud.Redraws;g.Mode=mode;g.Hud.RefreshMenu();await Frames(3);Check(g.Hud.Redraws>drawn,$"{name}: the HUD draws its {mode} screen");}
         }
         g.SetLanguage(startLanguage);g.Mode=GameMode.Playing;g.Hud.RefreshMenu();

@@ -46,7 +46,7 @@
   "WASD  Move      SHIFT  Run      SPACE  Jump": "WASD  移動      SHIFT  奔跑      SPACE  跳躍",
   "LMB / J  Attack     RMB / K  Guard & deflect": "滑鼠左鍵 / J  攻擊     滑鼠右鍵 / K  防禦與彈反",
   "CTRL / ALT  Dodge     TAB  Lock     Q  Skill": "CTRL / ALT  閃避     TAB  鎖定     Q  技能",
-  "E  Interact    H  Remedy    ESC  Pause": "E  互動    H  藥草    ESC  暫停",
+  "E  Interact    H  Remedy    I  Items    ESC  Pause": "E  互動    H  藥草    I  物品    ESC  暫停",
   "BEGIN JOURNEY     →": "開始旅程     →",
   "Quit": "離開",
   "Resume journey": "繼續旅程",
@@ -78,5 +78,17 @@
   "E · STATION\nROCKFALL · ROAD CLOSED": "東 · 車站\n落石 · 道路封閉",
   "LADDER": "木梯",
   "SHORTCUT OPENED": "捷徑已打開",
-  "REMEDY POUCH": "藥草袋"
+  "Items": "物品",
+  "Use": "使用",
+  "Back": "返回",
+  "Supplies": "消耗品",
+  "Key items": "重要物品",
+  "Remedy": "藥草",
+  "Restores 45 vitality. Resting with Aki or Emi refills them.": "回復 45 點體力。在秋或繪美那裡休息就會補滿。",
+  "Resonance cell": "共鳴電池",
+  "Restores one charge of Resonance Cut. Resting does not refill these.": "回復一次共鳴斬。休息不會補充。",
+  "Remedy pouch": "藥草袋",
+  "Found at the old quarry. Mio carries one more remedy.": "在舊採石場找到的袋子。可以多帶一份藥草。",
+  "Wrist terminal": "腕上終端機",
+  "Gold casing and a little jade lamp. Zero's voice reaches Mio through it.": "金色外殼，一盞小小的翡翠色燈。零的聲音透過它傳給澪。"
 }

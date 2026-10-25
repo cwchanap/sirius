@@ -15,6 +15,9 @@ public partial class Hud : Control
     private static readonly Dictionary<string,Texture2D> icons=new();
     public static Texture2D Icon(string name)=>icons.TryGetValue(name,out var t)?t:icons[name]=GD.Load<Texture2D>($"res://assets/art/ui/{name}.png");
     private Control menu=null!;
+    private Button? use;
+    // The item the items screen shows, the one whose slot last took focus.
+    public string Selected{get;private set;}="";
     private float scale=1,w=1440,h=900;
     public int Redraws;
     private Color ink=new("12282f"),cream=new("f1ead5"),muted=new("aec0b4"),gold=World.Gold,jade=World.Jade,red=new("f18470"),crest=new("e58b66");
@@ -30,7 +33,7 @@ public partial class Hud : Control
             Gradient=new Gradient {Colors=new[]{new Color(.012f,.03f,.035f,0),new Color(.012f,.03f,.035f,.9f)},Offsets=new[]{0f,1f}}};
         menu=new Control {MouseFilter=MouseFilterEnum.Ignore};AddChild(menu);Resized+=RefreshMenu;serif.Fallbacks=SerifFallbacks();
     }
-    public void ApplyLanguage(){serif.Fallbacks=SerifFallbacks();wrapped=("",0,"",new());RefreshMenu();}
+    public void ApplyLanguage(){serif.Fallbacks=SerifFallbacks();wrapped=("",0,0,"",new());RefreshMenu();}
     public override void _ExitTree() { serif.Dispose(); titleShade.Dispose(); sceneShade.Dispose(); questShade.Dispose(); }
     // Portraits are looked up by speaker (KOMA-7 -> koma7.png); a speaker without one is shown by name plate alone.
     public Texture2D? Portrait(string who)
@@ -91,8 +94,9 @@ public partial class Hud : Control
         }
         if(Game.ToastTime>0&&Game.Mode!=GameMode.Dialogue)
         {
-            bool body=Game.ToastBody!="";Panel(new(w/2-280,174,560,body?83:56),.83f);
-            Center(T(Game.ToastTitle),body?208:211,23,gold,true);if(body)Center(T(Game.ToastBody),235,14,cream);
+            bool body=Game.ToastBody!="";Panel(new(w/2-280,174,560,body?83:56),.83f);string title=T(Game.ToastTitle).ToUpperInvariant();
+            Center(title,body?208:211,23,gold,true);if(body)Center(T(Game.ToastBody),235,14,cream);
+            if(Game.ToastIcon!="")DrawIcon(Game.ToastIcon,new((w-serif.GetStringSize(title,fontSize:23).X)/2-28,202),34,cream);
         }
         if(Game.FlashTime>0)
         {
@@ -107,6 +111,7 @@ public partial class Hud : Control
             Center(T(Game.Mode==GameMode.Paused?"A moment of quiet":"The light has not gone out"),h*.28f,39,cream,true);
             if(Game.Mode==GameMode.Paused)Controls(w/2+205,h*.40f);else Keycap("R",new(w/2-206,h*.43f+14),14);
         }
+        if(Game.Mode==GameMode.Inventory){DrawRect(new(0,0,w,h),new Color(.025f,.055f,.067f,.77f));Inventory();Vitals();}
     }
     // The objective on one line; the patrols it counts are crests, each dimmed as it is shut down.
     private void Quest()
@@ -155,7 +160,8 @@ public partial class Hud : Control
         Bar(new(136,h-112),new(190,9),Game.Player.Health/100,jade);
         Bar(new(136,h-96),new(190,5),Game.Player.Posture/100,gold);
         float x=136;
-        for(int i=0;i<Game.Player.MaxRemedies;i++){DrawIcon("remedy",new(x+11,h-64),26,i<Game.Player.Remedies?cream:new Color(cream,.22f));x+=26;}
+        var bag=Game.Player.Inventory;
+        for(int i=0;i<bag.Capacity("remedy");i++){DrawIcon("remedy",new(x+11,h-64),26,i<bag.Count("remedy")?cream:new Color(cream,.22f));x+=26;}
         Keycap("H",new(x+6,h-75.4f));
         Skill(new(398,h-86));
     }
@@ -176,7 +182,46 @@ public partial class Hud : Control
         Text(T("WASD  Move      SHIFT  Run      SPACE  Jump"),new(x+18,y+27),13,cream);
         Text(T("LMB / J  Attack     RMB / K  Guard & deflect"),new(x+18,y+54),13,cream);
         Text(T("CTRL / ALT  Dodge     TAB  Lock     Q  Skill"),new(x+18,y+81),13,cream);
-        Text(T("E  Interact    H  Remedy    ESC  Pause"),new(x+18,y+107),12,gold);
+        Text(T("E  Interact    H  Remedy    I  Items    ESC  Pause"),new(x+18,y+107),12,gold);
+    }
+    private Vector2 ItemsCorner=>new(w/2-430,h/2-220);
+    // The items screen's slots: a row of consumables over a row of key items, each in the table's order.
+    private IEnumerable<(Item Item,Rect2 Rect)> Slots()
+    {
+        foreach(var kind in new[]{ItemKind.Consumable,ItemKind.Key})
+        {
+            int i=0;
+            foreach(var item in Game.Player.Inventory.Held.Where(it=>it.Kind==kind))yield return (item,new Rect2(ItemsCorner+new Vector2(32+i++*98,kind==ItemKind.Consumable?118:252),84,84));
+        }
+    }
+    // Keeps the shown item if Mio still holds it, else shows the first she does.
+    public void Select(string? id)
+    {
+        var held=Game.Player.Inventory.Held.ToList();Selected=held.Any(i=>i.Id==id)?id!:held.FirstOrDefault()?.Id??"";
+        if(use!=null&&Selected!=""){use.Visible=Items.Get(Selected).Kind==ItemKind.Consumable;use.Disabled=Game.Player.Inventory.Count(Selected)==0;}
+    }
+    // The items screen: the slots on the left, and on the right the selected item's icon, name, count and text, over its Use button.
+    private void Inventory()
+    {
+        var o=ItemsCorner;var bag=Game.Player.Inventory;Panel(new(o,860,440),.95f);
+        Text(T("Items"),o+new Vector2(32,52),30,cream,true);DrawLine(o+new Vector2(32,70),o+new Vector2(828,70),new Color(gold,.5f));
+        Text(T("Supplies"),o+new Vector2(32,106),13,muted);Text(T("Key items"),o+new Vector2(32,240),13,muted);
+        DrawLine(o+new Vector2(440,94),o+new Vector2(440,410),new Color(gold,.25f));
+        foreach(var (item,rect) in Slots())
+        {
+            bool chosen=item.Id==Selected;int n=bag.Count(item.Id);
+            DrawRect(rect,new Color(ink,.9f));DrawRect(rect,chosen?gold:new Color(gold,.35f),false,chosen?2:1);
+            DrawIcon(item.Icon,rect.GetCenter(),56,n>0?cream:new Color(cream,.25f));
+            if(item.Kind==ItemKind.Consumable){string count=n.ToString();Text(count,rect.End-new Vector2(10+font.GetStringSize(count,fontSize:15).X,9),15,n>0?cream:muted);}
+        }
+        Keycap("ESC",o+new Vector2(32,377.6f));
+        if(Selected=="")return;
+        var shown=Items.Get(Selected);var c=o+new Vector2(522,140);
+        DrawCircle(c,52,new Color(ink,.9f));DrawArc(c,52,0,Mathf.Tau,48,new Color(gold,.6f),1.5f);DrawIcon(shown.Icon,c,78,cream);
+        Text(T(shown.Name),o+new Vector2(592,134),26,gold,true);
+        if(shown.Kind==ItemKind.Consumable){Text($"{bag.Count(shown.Id)} / {bag.Capacity(shown.Id)}",o+new Vector2(594,164),15,cream);Keycap("E",o+new Vector2(470,377.6f));}
+        float y=o.Y+234;string text=T(shown.Text);
+        foreach(var (start,end) in Wrap(text,358,15)){Text(text[start..end].TrimEnd(),new(o.X+470,y),15,cream);y+=24;}
     }
     private void Minimap()
     {
@@ -270,19 +315,20 @@ public partial class Hud : Control
             DrawRect(new Rect2(c.X+72+i*9,c.Y-level*22,4,level*44),new Color(jade,.4f+.6f*glow));
         }
     }
-    private (string Text,int Size,string Language,List<(int Start,int End)> Lines) wrapped=("",0,"",new());
+    private (string Text,int Size,float Width,string Language,List<(int Start,int End)> Lines) wrapped=("",0,0,"",new());
     // Line breaks come from the text server, which knows where CJK text may break; the ranges index into text.
-    private List<(int Start,int End)> Wrap(string text,float width,int size)
+    public List<(int Start,int End)> Wrap(string text,float width,int size)
     {
-        if(wrapped.Text==text&&wrapped.Size==size&&wrapped.Language==Current)return wrapped.Lines;
+        if(wrapped.Text==text&&wrapped.Size==size&&wrapped.Width==width&&wrapped.Language==Current)return wrapped.Lines;
         var paragraph=new TextParagraph {Width=width};paragraph.AddString(text,font,size,Current);
         var lines=Enumerable.Range(0,paragraph.GetLineCount()).Select(i=>{var r=paragraph.GetLineRange(i);return (r.X,r.Y);}).ToList();
-        wrapped=(text,size,Current,lines);return lines;
+        wrapped=(text,size,width,Current,lines);return lines;
     }
     public void RefreshMenu()
     {
         if(menu==null)return;
         foreach(var child in menu.GetChildren()){menu.RemoveChild(child);child.QueueFree();}
+        use=null;
         float width=GetViewportRect().Size.X,height=GetViewportRect().Size.Y;
         scale=Math.Min(width/1440,height/900);w=width/scale;h=height/scale;
         if(Game.Mode==GameMode.Title)
@@ -294,10 +340,25 @@ public partial class Hud : Control
         if(Game.Mode==GameMode.Paused)
         {
             Button("Resume journey",new(w/2-155,h*.40f),new(310,52),()=>Game.SetPaused(false),true);
-            Button("Recover at the village",new(w/2-155,h*.40f+65),new(310,48),Game.Retry,false);
-            Button("Restart prologue",new(w/2-155,h*.40f+126),new(310,48),Game.Restart,false);
-            Button("Quit game",new(w/2-155,h*.40f+187),new(310,48),()=>GetTree().Quit(),false);
-            LanguageButtons(w/2-155,h*.40f+250,98,40,8);
+            Button("Items",new(w/2-155,h*.40f+65),new(310,48),()=>Game.ShowItems(true),false);
+            Button("Recover at the village",new(w/2-155,h*.40f+126),new(310,48),Game.Retry,false);
+            Button("Restart prologue",new(w/2-155,h*.40f+187),new(310,48),Game.Restart,false);
+            Button("Quit game",new(w/2-155,h*.40f+248),new(310,48),()=>GetTree().Quit(),false);
+            LanguageButtons(w/2-155,h*.40f+311,98,40,8);
+        }
+        if(Game.Mode==GameMode.Inventory)
+        {
+            // The slots are bare buttons that only take focus and clicks; _Draw paints them, under the menu's children.
+            Button? chosen=null;var o=ItemsCorner;
+            foreach(var (item,rect) in Slots())
+            {
+                var slot=new Button {Position=rect.Position,Size=rect.Size,MouseDefaultCursorShape=CursorShape.PointingHand};
+                foreach(string state in new[]{"normal","hover","pressed","focus"})slot.AddThemeStyleboxOverride(state,new StyleBoxEmpty());
+                slot.FocusEntered+=()=>Select(item.Id);menu.AddChild(slot);if(item.Id==Selected)chosen=slot;
+            }
+            Button("Back",new(o.X+80,o.Y+366),new(170,46),()=>Game.ShowItems(false),false,grab:false);
+            use=Button("Use",new(o.X+502,o.Y+366),new(170,46),()=>Game.UseItem(Selected),true,grab:false);
+            Select(Selected);chosen?.GrabFocus();
         }
         if(Game.Mode==GameMode.Defeated)
             Button("Return to Hoshikawa",new(w/2-160,h*.43f),new(320,55),Game.Retry,true);
@@ -308,16 +369,17 @@ public partial class Hud : Control
         foreach(var (code,name) in Languages)
         {Button(name,new(x,y),new(width,height),()=>Game.SetLanguage(code),code==Current,NameFont(code),15,false);x+=width+gap;}
     }
-    private void Button(string text,Vector2 pos,Vector2 size,Action action,bool primary,Font? face=null,int fontSize=17,bool grab=true)
+    private Button Button(string text,Vector2 pos,Vector2 size,Action action,bool primary,Font? face=null,int fontSize=17,bool grab=true)
     {
         var b=new Button {Text=text,Position=pos,Size=size,MouseDefaultCursorShape=CursorShape.PointingHand};
         b.AddThemeFontSizeOverride("font_size",fontSize);if(face!=null)b.AddThemeFontOverride("font",face);
         foreach(string color in new[]{"font_color","font_hover_color","font_pressed_color","font_focus_color"})
             b.AddThemeColorOverride(color,primary?ink:cream);
-        foreach(string state in new[]{"normal","hover","pressed","focus"})
-            b.AddThemeStyleboxOverride(state,new StyleBoxFlat {BgColor=primary?(state=="hover"?cream:gold):new Color(ink,.9f),
-                BorderColor=gold,BorderWidthLeft=1,BorderWidthRight=1,BorderWidthTop=1,BorderWidthBottom=1,
+        b.AddThemeColorOverride("font_disabled_color",new Color(cream,.35f));
+        foreach(string state in new[]{"normal","hover","pressed","focus","disabled"})
+            b.AddThemeStyleboxOverride(state,new StyleBoxFlat {BgColor=state=="disabled"?new Color(ink,.6f):primary?(state=="hover"?cream:gold):new Color(ink,.9f),
+                BorderColor=state=="disabled"?new Color(gold,.3f):gold,BorderWidthLeft=1,BorderWidthRight=1,BorderWidthTop=1,BorderWidthBottom=1,
                 ContentMarginLeft=16,ContentMarginRight=16,CornerRadiusTopLeft=2,CornerRadiusBottomRight=2});
-        b.Pressed+=()=>action();menu.AddChild(b);if(primary&&grab)b.GrabFocus();
+        b.Pressed+=()=>action();menu.AddChild(b);if(primary&&grab)b.GrabFocus();return b;
     }
 }

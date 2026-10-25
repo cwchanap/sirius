@@ -46,7 +46,7 @@
   "WASD  Move      SHIFT  Run      SPACE  Jump": "WASD  移動      SHIFT  走る      SPACE  ジャンプ",
   "LMB / J  Attack     RMB / K  Guard & deflect": "左クリック / J  攻撃     右クリック / K  ガードと弾き",
   "CTRL / ALT  Dodge     TAB  Lock     Q  Skill": "CTRL / ALT  回避     TAB  固定     Q  技",
-  "E  Interact    H  Remedy    ESC  Pause": "E  調べる    H  薬    ESC  ポーズ",
+  "E  Interact    H  Remedy    I  Items    ESC  Pause": "E  調べる    H  薬    I  持ち物    ESC  ポーズ",
   "BEGIN JOURNEY     →": "旅を始める     →",
   "Quit": "終了",
   "Resume journey": "旅を続ける",
@@ -78,5 +78,17 @@
   "E · STATION\nROCKFALL · ROAD CLOSED": "東 · 駅\n落石 · 通行止め",
   "LADDER": "はしご",
   "SHORTCUT OPENED": "近道が開いた",
-  "REMEDY POUCH": "薬袋"
+  "Items": "持ち物",
+  "Use": "使う",
+  "Back": "戻る",
+  "Supplies": "消耗品",
+  "Key items": "大事なもの",
+  "Remedy": "薬",
+  "Restores 45 vitality. Resting with Aki or Emi refills them.": "体力を45回復する。アキかエミのもとで休むと補充される。",
+  "Resonance cell": "共鳴セル",
+  "Restores one charge of Resonance Cut. Resting does not refill these.": "共鳴斬を1回分回復する。休んでも補充されない。",
+  "Remedy pouch": "薬袋",
+  "Found at the old quarry. Mio carries one more remedy.": "旧採石場で見つけた袋。薬をもう1つ持てる。",
+  "Wrist terminal": "手首の端末",
+  "Gold casing and a little jade lamp. Zero's voice reaches Mio through it.": "金の筐体に、小さな翡翠色のランプ。ゼロの声はこれを通してミオに届く。"
 }

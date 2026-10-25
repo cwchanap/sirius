@@ -59,7 +59,7 @@ func capture():
 	game.set("CameraYaw",.15)
 	game.call("ToggleLock")
 	await process_frame
-	game.call("Toast","THE TRAIN WITH NO PASSENGERS","",30.0)
+	game.call("Toast","THE TRAIN WITH NO PASSENGERS","",30.0,"")
 	game.call("Flash","deflect",Color("e7c873"))
 	game.set("FlashTime",30.0)
 	var target=game.get("Locked")
@@ -77,6 +77,23 @@ func capture():
 	game.call("Die")
 	await shot(game,"defeated",false)
 	game.call("Retry")
+	# The items screen with every item held: Mio takes both resonance cells and the pouch first, the prompt and banner captured at the first cell,
+	# Mio kept unhurt by the terrace's patrol.
+	player.set("Invulnerable",1000.0)
+	for spot in [Vector2(19.5,-60.7),Vector2(16,-94.7),Vector2(-40,-135.7)]:
+		var floor=game.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(spot.x,20,spot.y),Vector3(spot.x,-30,spot.y),1))
+		player.global_position=floor.position+Vector3(0,.1,0)
+		for i in range(30): await process_frame
+		game.set("ToastTime",0.0)
+		if spot.x==19.5: await shot(game,"hud-pickup",false)
+		game.call("Interact")
+		if spot.x==19.5: await shot(game,"hud-obtained",false)
+	game.set("ToastTime",0.0)
+	game.call("ShowItems",true)
+	await shot(game,"items",false)
+	game.get("Hud").call("Select","cell")
+	await shot(game,"items-cell",false)
+	game.call("ShowItems",false)
 	await talk(game,"Nao",[["nao-usual",0]])
 	game.call("EndDialogue")
 	game.set("QuestStage",3)
