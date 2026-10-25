@@ -257,6 +257,7 @@ public static class IntegrationCheck
         }
         g.Player.Visual.Play("idle",1,true);
         await Frames(30);Check(g.Player.IsOnFloor(),"player starts on physical terrain");
+        Check(g.Music.Current=="valley"&&g.Music.Players.All(p=>p.Value.Playing==(p.Key=="valley")),"the valley's music plays in Hoshikawa, and no other track");
         foreach(var enemy in g.Enemies)enemy.SetPhysicsProcess(false);
         var before=g.Player.GlobalPosition;await Press("forward",60);
         float walk=before.DistanceTo(g.Player.GlobalPosition);Check(walk>1.5f&&walk<2.5f,"camera-relative walking");
@@ -345,10 +346,13 @@ public static class IntegrationCheck
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-7.5f)<.3f,$"the switchback climbs from the junction to the teahouse terrace {g.Player.GlobalPosition}");
         await Follow("High road");await Follow("Relay plaza");
         Check(g.Player.IsOnFloor()&&g.Region=="Old Relay Road"&&Math.Abs(g.Player.GlobalPosition.Y-3)<.3f,$"the high road comes down into the relay plaza under the viaduct {g.Player.GlobalPosition}");
+        Check(g.Music.Current=="relay"&&g.Music.Players["relay"].Playing&&Math.Abs(g.Music.Players["relay"].VolumeDb-Music.Tracks["relay"].Db)<.01f&&g.Music.Players["valley"].StreamPaused,
+            "the relay road has its own music, crossfaded in while the valley's waits paused");
         foreach(float z in new[]{-180f,-186f,-192f,-200f,-206f,-213f,-221f,-228f,-235f,-243f,-254f})
             await WalkTo(new(Hoshikawa.World.RoadX(z),z));
         await Frames(5);
         Check(g.Region=="Komorebi"&&g.Player.IsOnFloor(),"walk from the relay under the viaduct and over Cedar Bridge into Komorebi");
+        Check(g.Music.Current=="valley"&&g.Music.Players["valley"].Playing&&g.Music.Players["relay"].StreamPaused,"past the relay road the valley's music comes back");
         foreach(var (name,road,approach) in new[]{("Nao",new Vector2(0,-238),new Vector2(-3.8f,-238)),
             ("Emi",new Vector2(0,-246),new Vector2(4.5f,-245)),("Yui",new Vector2(0,-260.2f),new Vector2(-4,-260.2f)),
             ("Toma",new Vector2(0,-254),new Vector2(16.2f,-254.5f))})
@@ -657,6 +661,7 @@ public static class IntegrationCheck
         Place(g.Player,new(0,0,30));before=live.GlobalPosition;await Frames(60);
         Check(live.GlobalPosition.DistanceTo(before)>.4f&&live.State=="PATROL","robot follows its patrol route");
         Place(g.Player,live.GlobalPosition+Vector3.Back*6);await Frames(30);Check(live.State=="PURSUE","robot acquires a nearby countryside player");
+        Check(g.Music.Current=="battle","a robot after Mio brings in the battle music");
         g.Player.Health=100;g.Player.Invulnerable=0;g.Player.Stun=0;
         Place(g.Player,live.GlobalPosition+Vector3.Back*2);await Frames(110);
         Check(g.Player.Health==100-Enemy.StrikeDamage,$"enemy windup resolves a real strike that takes {Enemy.StrikeDamage} vitality");
@@ -668,6 +673,8 @@ public static class IntegrationCheck
         live.Stun(Enemy.ResonanceStun);var back=live.Forward;var behind=live.GlobalPosition-back*2;behind.Y=Hoshikawa.World.Height(behind.X,behind.Z)+.1f;Place(g.Player,behind);g.Player.Model.Rotation=new(0,Mathf.Atan2(back.X,back.Z),0);await Frames(30);
         Check(live.State=="STUNNED"&&live.Forward.Dot(back)>.999f&&g.Player.CanShutDown(live)&&live.Badge=="shutdown","a stunned robot keeps its back turned while Mio gets behind it, its icon now the shutdown one");
         await Press("attack");Check(live.Dead&&live.Badge=="","behind a robot, Mio's attack button shuts it down and clears its icon");
+        Check(g.Music.Current=="battle","the battle music outlasts the fight a moment");await Frames((int)(Music.Calm*60)+10);
+        Check(g.Music.Current=="relay","then the relay road's music returns");
         foreach(var e in g.Enemies)e.SetPhysicsProcess(false);foreach(var e in g.Patrols)e.Execute();
         Check(g.QuestStage==2&&g.Enemies.Where(e=>e.Scout).All(e=>!e.Dead),"all three patrols disabled advances the mission, the scouts left standing");
         Place(g.Player,g.World.RelayPosition+Vector3.Back*2);g.Interact();

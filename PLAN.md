@@ -170,6 +170,11 @@ Bring the non-character environment up to the Tripo characters' detail: semi-rea
 - [x] Effects (`scripts/Effects.cs`, `glow.gdshader`, `sword_trail.gdshader`): a glowing trail with a white-hot edge and no corners in the spin, gold on the third swing, the whole blade through Resonance Cut's spin; a landed blow flashes, throws sparks past the robot, cuts a streak across it along the blade's path and flares its plating; the third swing throws dust; Resonance Cut gathers motes as she crouches, and its slam sends two rings, a column of light, dust, sparks and a jade tint across the screen; a stunned robot crackles with jade sparks.
 - [x] Combat sounds from ElevenLabs (the owner asked for them with Mio's voice): new swing, impact, guard and deflect, a slam for Resonance Cut and a short-circuit for the robots it stuns; Mio shouts on every swing and the finisher (at first only half the first two swings shouted; the owner missed them in the recording), calls 共鳴斬 as she casts and cries out when hit, in her cast voice Yuki, through one player so a chained swing cuts her last shout off. `build_audio.py` no longer writes the four cues it replaced.
 
+## Music
+
+- [x] Background music by area and danger (`scripts/Music.cs`): the valley's loop in the villages and Cedar Pass, the relay road's own track there, and a battle track while any robot is out of its patrol and for 3 s after; 1.5 s crossfades, and a faded track pauses where it is. The relay and battle tracks are synthesized placeholders from `tools/build_audio.py`.
+- [ ] Art: the relay road and battle tracks from ElevenLabs Music in Falcom style (the owner's pick), as seamless OGG loops replacing the placeholders.
+
 ## Map redesign (地圖重新設計)
 
 Plan: the design doc in the project's Claude Docs (GoW / Dark Souls-style layout, one PR per phase, art and sound as separate tasks).
