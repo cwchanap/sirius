@@ -98,7 +98,7 @@ public partial class Player : CharacterBody3D
                 if(caught.Count>0)Game.Sound("stun");
             }
         }
-        bool running=Input.IsActionPressed("run")&&!Winded&&!Guarding&&dir.LengthSquared()>.01f&&Stun<=0&&skillCast<=0&&healTimer<=0&&attack<=0;
+        bool running=Input.IsActionPressed("run")&&!Winded&&!Guarding&&dodge<=0&&dir.LengthSquared()>.01f&&Stun<=0&&skillCast<=0&&healTimer<=0&&attack<=0;
         float speed=Guarding?1.7f:running?7.8f:2f;
         if(Stun>0||skillCast>0||healTimer>0||attack>0)speed=0;
         if(running){Stamina=Math.Max(0,Stamina-Stats.RunCost*dt);sinceRun=0;Winded=Stamina<=0;}
