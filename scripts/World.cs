@@ -397,7 +397,8 @@ public partial class World : Node3D
         {
             if(!custom&&(m.Name.ToString().Contains("coat",StringComparison.OrdinalIgnoreCase)||m.Name.ToString().Contains("armor",StringComparison.OrdinalIgnoreCase))) m.MaterialOverride=Mat(colors[variant]);
         }
-        Label(n,name,new(0,custom?model.Label:2.35f,0),variant==0?Gold:new("ecedda"),29);
+        // Only within about 10 m of Mio: the camera trails her by up to 7.5 m.
+        Label(n,name,new(0,custom?model.Label:2.35f,0),variant==0?Gold:new("ecedda"),29).VisibilityRangeEnd=17;
         var collision=new StaticBody3D {CollisionLayer=1};n.AddChild(collision);
         float height=custom?model.Height:1.8f;
         collision.AddChild(new CollisionShape3D { Position=new(0,height/2,0),Shape=new CapsuleShape3D { Radius=.32f,Height=height } });

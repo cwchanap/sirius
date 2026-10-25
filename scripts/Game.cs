@@ -18,13 +18,13 @@ public partial class Game : Node3D
     public float CameraYaw,CameraPitch=-.29f,CameraShake;
     public Camera3D Camera=null!;
     public Hud Hud=null!;
-    public string Speaker="",SpeakerRole="",Dialogue="",ToastTitle="",ToastBody="",FeedbackText="";
+    public string Speaker="",SpeakerRole="",Dialogue="",ToastTitle="",ToastBody="",FeedbackText="",FlashIcon="";
     public readonly List<(string Speaker,string Text)> Script=new();
     public readonly HashSet<string> Heard=new();
     public int Beat,NightFrom=-1;
     public float Reveal;
-    public Color FeedbackColor=Hoshikawa.World.Gold;
-    public float ToastTime,FeedbackTime;
+    public Color FeedbackColor=Hoshikawa.World.Gold,FlashColor=Hoshikawa.World.Gold;
+    public float ToastTime,FeedbackTime,FlashTime;
     public bool SelfTest;
     private Node3D cameraRig=null!;
     private SpringArm3D spring=null!;
@@ -74,7 +74,7 @@ public partial class Game : Node3D
     public void Start()
     {
         Mode=GameMode.Playing;Input.MouseMode=SelfTest?Input.MouseModeEnum.Visible:Input.MouseModeEnum.Captured;
-        Toast("HOSHIKAWA","An offline valley, beyond the city's reach.",5);Hud.RefreshMenu();
+        Toast("HOSHIKAWA",seconds:5);Hud.RefreshMenu();
     }
     public void Begin(){Start();Play(Prologue.Intro);}
     public override void _UnhandledInput(InputEvent e)
@@ -109,11 +109,10 @@ public partial class Game : Node3D
         if(Mode==GameMode.Dialogue)Reveal=Math.Min(Dialogue.Length,Reveal+dt*RevealSpeed);
         if(Mode==GameMode.Playing)
         {
-            ToastTime=Math.Max(0,ToastTime-dt);FeedbackTime=Math.Max(0,FeedbackTime-dt);
+            ToastTime=Math.Max(0,ToastTime-dt);FeedbackTime=Math.Max(0,FeedbackTime-dt);FlashTime=Math.Max(0,FlashTime-dt);
             if(Region!=previousRegion)
             {
-                previousRegion=Region;
-                Toast(Region.ToUpperInvariant(),Region=="Komorebi"?"Orchards, open doors, and a place to recover.":Region=="Cedar Pass"?"Follow the lanterns to the northern village.":Region=="Hoshikawa"?"The lanterns of home.":"The manual relay lies beneath the viaduct.",3.5f);
+                previousRegion=Region;Toast(Region.ToUpperInvariant(),seconds:3.5f);
             }
             if(Locked!=null&&(Locked.Dead||Locked.GlobalPosition.DistanceTo(Player.GlobalPosition)>22))Locked=null;
             if(Locked!=null)
@@ -149,7 +148,7 @@ public partial class Game : Node3D
     {
         Player.Respawn();Locked=null;
         foreach(var e in Enemies)if(!e.Dead)e.Reset();
-        CameraYaw=0;FreezeAnimations(false);Start();Toast("BACK AT THE VILLAGE","Aki: breathe. Your work here is not finished.",3);
+        CameraYaw=0;FreezeAnimations(false);Start();Toast("BACK AT THE VILLAGE");
     }
     public void Restart()
     {
@@ -158,30 +157,30 @@ public partial class Game : Node3D
         foreach(var pouch in World.Pouches)pouch.Visible=true;Player.MaxRemedies=3;
         Retry();Play(Prologue.Intro);
     }
-    private (string Template,int Count) ObjectiveStep=>QuestStage switch
+    // English is what quest logic and the route tests read; the HUD shows the translated one, and counts the patrols in crests.
+    public string Objective=>QuestStage switch
     {
-        0=>("Speak to Ren at the workshop",0),
-        1=>("Clear the old relay road   {0} / 3",Patrols.Count(e=>e.Dead)),
-        2=>("Restart the manual relay",0),
-        3=>("Return to Ren in Hoshikawa",0),
-        _=>("Evacuation route secured",0)
+        0=>"Speak to Ren at the workshop",
+        1=>"Clear the old relay road",
+        2=>"Restart the manual relay",
+        3=>"Return to Ren in Hoshikawa",
+        _=>"Evacuation route secured"
     };
-    // English is what quest logic and the route tests read; the HUD shows the translated one.
-    public string Objective=>string.Format(ObjectiveStep.Template,ObjectiveStep.Count);
-    public string ObjectiveText=>F(ObjectiveStep.Template,ObjectiveStep.Count);
+    public string ObjectiveText=>T(Objective);
     public Vector3 ObjectivePosition=>QuestStage switch
     {
         0 or 3=>World.Residents[0].Body.GlobalPosition,
         1=>Patrols.FirstOrDefault(e=>!e.Dead)?.GlobalPosition??World.RelayPosition,
         _=>World.RelayPosition
     };
-    public string InteractionPrompt()
+    // What E would do here, as the HUD's prompt shows it: an icon under assets/art/ui/ and what it acts on.
+    public (string Icon,string Label) Interaction()
     {
-        foreach(var r in World.Residents)if(r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition)<3.1f)return F("E   Talk to {0}",T(r.Name));
-        if(World.RelayPosition.DistanceTo(Player.GlobalPosition)<3.3f)return T("E   Inspect manual relay");
-        if(ShortcutHere()!=null)return T("E   Lower the ladder");
-        if(PouchHere()!=null)return T("E   Take the remedy pouch");
-        return "";
+        foreach(var r in World.Residents)if(r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition)<3.1f)return ("talk",T(r.Name).ToUpperInvariant());
+        if(World.RelayPosition.DistanceTo(Player.GlobalPosition)<3.3f)return ("repair",T("MANUAL RELAY"));
+        if(ShortcutHere()!=null)return ("ladder",T("LADDER"));
+        if(PouchHere()!=null)return ("remedy",T("REMEDY POUCH"));
+        return ("","");
     }
     public void Interact()
     {
@@ -190,7 +189,7 @@ public partial class Game : Node3D
             if(r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition)>=3.1f)continue;
             if(r.Name=="Ren")
             {
-                if(QuestStage==0){QuestStage=Patrols.All(e=>e.Dead)?2:1;Toast("THE TRAIN WITH NO PASSENGERS","Clear the patrols. Reopen the road.",4);Play(Prologue.Briefing);}
+                if(QuestStage==0){QuestStage=Patrols.All(e=>e.Dead)?2:1;Toast("THE TRAIN WITH NO PASSENGERS",seconds:4);Play(Prologue.Briefing);}
                 else if(QuestStage==3){QuestStage=4;Toast("ROUTE SECURED","Chapter prologue complete · Hoshikawa is ready.",8);Sound("heal");Play(Prologue.Homecoming);NightFrom=Prologue.NightFalls;}
                 else Play(QuestStage==4?Prologue.RenRest:QuestStage==2?Prologue.RenRoadClear:Prologue.RenReminder);
                 return;
@@ -209,11 +208,11 @@ public partial class Game : Node3D
         if(ShortcutHere() is {} shortcut)
         {
             Opened.Add(shortcut.Name);opening=CreateTween();opening.TweenMethod(Callable.From<float>(shortcut.Swing),shortcut.Closed,shortcut.Open,1.8f).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
-            Sound("guard");Toast("SHORTCUT OPENED","The ladder now links the teahouse to the junction.",4);return;
+            Sound("guard");Toast("SHORTCUT OPENED",seconds:4);return;
         }
         if(PouchHere() is {} pouch)
         {
-            pouch.Visible=false;Player.MaxRemedies++;Player.Remedies=Player.MaxRemedies;Sound("heal");Toast("REMEDY POUCH","You can carry one more remedy.",4);
+            pouch.Visible=false;Player.MaxRemedies++;Player.Remedies=Player.MaxRemedies;Sound("heal");Toast("REMEDY POUCH",seconds:4);
         }
     }
     private World.Shortcut? ShortcutHere()=>World.Shortcuts.FirstOrDefault(s=>!Opened.Contains(s.Name)&&s.From.DistanceTo(Player.GlobalPosition)<2.2f);
@@ -233,7 +232,7 @@ public partial class Game : Node3D
     public void EndDialogue(){Voice.Stop();Mode=GameMode.Playing;Input.MouseMode=SelfTest?Input.MouseModeEnum.Visible:Input.MouseModeEnum.Captured;}
     public void OnEnemyDefeated()
     {
-        if(QuestStage==1&&Patrols.All(e=>e.Dead)){QuestStage=2;Toast("ROAD CLEARED","Follow the lanterns to the manual relay.",5);}
+        if(QuestStage==1&&Patrols.All(e=>e.Dead)){QuestStage=2;Toast("ROAD CLEARED",seconds:5);}
     }
     public void ToggleLock()
     {
@@ -247,8 +246,11 @@ public partial class Game : Node3D
         return GetWorld3D().DirectSpaceState.IntersectRay(query).Count==0;
     }
     public void SetLanguage(string code){Localization.Set(code);if(!SelfTest)Localization.Save();Hud.ApplyLanguage();}
-    public void Toast(string title,string body,float seconds=3){ToastTitle=title;ToastBody=body;ToastTime=seconds;}
+    public void Toast(string title,string body="",float seconds=3){ToastTitle=title;ToastBody=body;ToastTime=seconds;}
     public void Feedback(string text,Color color){FeedbackText=text;FeedbackColor=color;FeedbackTime=1.2f;}
+    // A combat beat shown as an icon (assets/art/ui/) flashing in the middle of the screen, not as words.
+    public void Flash(string icon,Color color){FlashIcon=icon;FlashColor=color;FlashTime=FlashLength;}
+    public const float FlashLength=.7f;
     public void Burst(Vector3 p,Color color,float radius)
     {
         var ring=Hoshikawa.World.Mesh(this,"Resonance ring",new TorusMesh {InnerRadius=.9f,OuterRadius=1, Rings=32,RingSegments=6},p,Hoshikawa.World.Mat(color,1));

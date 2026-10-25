@@ -177,7 +177,7 @@ Plan: the design doc in the project's Claude Docs (GoW / Dark Souls-style layout
 Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remove/icon table, new HUD wireframe); art and code are separate tasks.
 
 - [x] Art: thirteen solid kamon-style HUD icons and the 星川 title logo, drawn by Codex and cut by `tools/cut_ui_art.gd` into white images the HUD tints (`assets/art/ui/`).
-- [ ] Code: the HUD, combat markers, toasts, title, pause, defeated and dialogue screens use the icons and keycaps instead of text; the always-on controls panel moves to the pause screen; about 45 interface strings go from the translation tables.
+- [x] Code: the HUD, combat markers, toasts, title, pause, defeated and dialogue screens use the icons and keycaps instead of text; the always-on controls panel moves to the pause screen; the translation tables go from 134 interface strings to 80.
 
 ## Languages: Japanese and Traditional Chinese
 
