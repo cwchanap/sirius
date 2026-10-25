@@ -1,5 +1,14 @@
 # MVP verification
 
+## Background music by area and danger — 2026-10-25
+
+The owner asked for livelier music on the relay road and battle music under danger.
+
+- **Code:** `scripts/Music.cs` keeps one looping player per track and crossfades toward the one `Game._Process` wants: `battle` while any living robot is out of `PATROL` (chasing, winding up, striking, recovering, staggered, stunned or broken) and for `Music.Calm` (3 s) of play after, else `relay` on the Old Relay Road, else `valley`. A pause, the items screen or a scene keeps the fight's music; a defeat ends it. A faded track pauses where it is. `Game._ExitTree` now stops every `AudioStreamPlayer` below it, the music's included, keeping the shutdown leak fix.
+- **Tracks:** `relay.wav` and `battle.wav` are synthesized placeholders from `tools/build_audio.py` (22.05 kHz mono, 1.2 MB together) until the ElevenLabs tracks replace them.
+- **Self-test:** 568 checks pass headless in `en`, `ja` and `zh_TW` in a cloud container (Godot's dummy audio driver), after the rebase onto the item system. New: only the valley's track plays at the start; in the relay plaza the relay track is at its level and the valley's paused; Komorebi brings the valley's back; a pursuing robot brings in the battle track, which outlasts the robot's shutdown and then gives way to the relay track. The unit tests pass 43, two of them new: each region's track and the battle override, and every track's file exists.
+- **Not yet:** nobody has listened to the music or the crossfades on speakers, and there was no Metal run.
+
 ## Items: an item table, an inventory and the items screen — 2026-10-25
 
 - **What changed:** `scripts/Items.cs` holds the item table and `Inventory`, which `Player.Inventory` holds. Remedies and the remedy pouch move into it (H still uses a remedy straight away; the pouch is a key item that raises the remedies Mio carries to four), joined by the wrist terminal (a key item she starts with) and the resonance cell, a new supply that restores one Resonance Cut charge, of which she carries up to three and which resting does not refill. Two cells lie on the relay road, behind the terrace's patrol and at the forest valley's eastern bend; `World.Pickups` replaces `World.Pouches`. The items screen (`GameMode.Inventory`) opens with I over play or from the pause menu's new Items button, freezes play, and closes back to where it opened with I, Esc or Back: supplies and key items in slots, the selected one's icon, name, count and text, and E or Use to spend a supply. A pickup's banner carries its icon. The items borrow the remedy, resonance and Zero icons.

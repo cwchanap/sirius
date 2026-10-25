@@ -29,7 +29,7 @@ public partial class Game : Node3D
     private Node3D cameraRig=null!;
     private SpringArm3D spring=null!;
     public readonly Dictionary<string,AudioStreamWav> Sounds=new();
-    private AudioStreamPlayer ambience=null!;
+    public Music Music=null!;
     public AudioStreamPlayer Voice=null!;
     private AudioStreamPlayer bark=null!;
     private string? scene;
@@ -37,7 +37,7 @@ public partial class Game : Node3D
     private bool captured;
     private string capturePath="";
     private string previousRegion="Hoshikawa";
-    private float fov;
+    private float fov,danger;
     private GameMode itemsFrom;
     public string Region=>Hoshikawa.World.RegionAt(Player.GlobalPosition);
     public override void _Ready()
@@ -56,7 +56,7 @@ public partial class Game : Node3D
         var layer=new CanvasLayer();AddChild(layer);Hud=new Hud {Game=this};layer.AddChild(Hud);
         foreach(string name in new[]{"swing","impact","guard","deflect","break","skill","slam","stun","hurt","jump","dodge","heal","warning","mio_attack1","mio_attack2","mio_attack3","mio_skill","mio_hurt"})
             Sounds[name]=GD.Load<AudioStreamWav>("res://assets/audio/"+name+".wav");
-        ambience=new AudioStreamPlayer {Stream=GD.Load<AudioStreamWav>("res://assets/audio/valley.wav"),VolumeDb=-16};AddChild(ambience);ambience.Finished+=()=>ambience.Play();ambience.Play();
+        Music=new Music();AddChild(Music);
         Voice=new AudioStreamPlayer();AddChild(Voice);bark=new AudioStreamPlayer {VolumeDb=-10};AddChild(bark);
         var args=OS.GetCmdlineUserArgs();SelfTest=args.Contains("--self-test");
         var capture=args.FirstOrDefault(a=>a.StartsWith("--capture="));if(capture!=null)capturePath=capture[10..];
@@ -72,8 +72,8 @@ public partial class Game : Node3D
     }
     // Leaving the tree only pauses a player's playback, and a stopped one, with the wav it holds, is only released on the audio
     // thread's next mix step; if the engine shuts the AudioServer down first, both leak at exit. So every player still sounding,
-    // the ambience, a voice or a long one-shot such as the stun, is stopped here, and blocking briefly lets that step run first.
-    public override void _ExitTree(){foreach(var player in GetChildren().OfType<AudioStreamPlayer>())player.Stop();OS.DelayMsec(100);}
+    // the music, a voice or a long one-shot such as the stun, is stopped here, and blocking briefly lets that step run first.
+    public override void _ExitTree(){foreach(var player in FindChildren("*",nameof(AudioStreamPlayer),true,false).Cast<AudioStreamPlayer>())player.Stop();OS.DelayMsec(100);}
     public void Start()
     {
         Mode=GameMode.Playing;Input.MouseMode=SelfTest?Input.MouseModeEnum.Visible:Input.MouseModeEnum.Captured;
@@ -124,6 +124,10 @@ public partial class Game : Node3D
             if(Locked!=null)
             {var to=Locked.GlobalPosition-Player.GlobalPosition;CameraYaw=Mathf.LerpAngle(CameraYaw,Mathf.Atan2(-to.X,-to.Z),dt*3.8f);}
         }
+        // Any robot out of its patrol, chasing, striking, recovering or held, is a fight; robots only ever engage Mio. A pause, the items
+        // screen or a scene freezes the fight and keeps its music; a defeat ends it.
+        if(Mode==GameMode.Playing)danger=Enemies.Any(e=>!e.Dead&&e.State!="PATROL")?Music.Calm:Math.Max(0,danger-dt);else if(Mode==GameMode.Defeated)danger=0;
+        Music.Want(Music.Track(Region,danger>0));
         cameraRig.Position=cameraRig.Position.Lerp(Player.GlobalPosition+Vector3.Up*1.35f,1-Mathf.Exp(-dt*10));
         cameraRig.Rotation=new(CameraPitch,CameraYaw,0);
         CameraShake=Math.Max(0,CameraShake-dt);
