@@ -7,7 +7,7 @@ public partial class SwordTrail : MeshInstance3D
 {
     public bool Emitting;
     public float Life=.12f,From=.5f;
-    public Skeleton3D Skeleton=null!;
+    public new Skeleton3D Skeleton=null!;
     public int Bone;
     public Vector3 Hilt,Tip;
     private readonly List<(Vector3 Base,Vector3 Tip,float Age)> samples=new();
