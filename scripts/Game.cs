@@ -29,7 +29,6 @@ public partial class Game : Node3D
     private Node3D cameraRig=null!;
     private SpringArm3D spring=null!;
     private readonly Dictionary<string,AudioStreamWav> sounds=new();
-    private readonly List<(Node3D Node,float Life,float Total,float Radius)> effects=new();
     private AudioStreamPlayer ambience=null!;
     public AudioStreamPlayer Voice=null!;
     private string? scene;
@@ -125,13 +124,7 @@ public partial class Game : Node3D
         Camera.HOffset=CameraShake>0?Mathf.Sin((float)elapsed*100)*CameraShake*.2f:0;
         Camera.VOffset=CameraShake>0?Mathf.Cos((float)elapsed*86)*CameraShake*.15f:0;
         CameraPunch=Math.Max(0,CameraPunch-dt*3);Camera.Fov=fov-CameraPunch*CameraPunch*7;
-        for(int i=effects.Count-1;i>=0;i--)
-        {
-            var fx=effects[i];float life=fx.Life-dt;
-            if(life<=0){fx.Node.QueueFree();effects.RemoveAt(i);continue;}
-            float t=1-life/fx.Total;fx.Node.Scale=Vector3.One*(.25f+t*fx.Radius);
-            effects[i]=(fx.Node,life,fx.Total,fx.Radius);
-        }
+        TintTime=Math.Max(0,TintTime-dt);
         Hud.QueueRedraw();
         if(capturePath!=""&&!captured&&elapsed>6){captured=true;SaveScreenshot(capturePath);}
     }
@@ -253,51 +246,6 @@ public partial class Game : Node3D
     // A combat beat shown as an icon (assets/art/ui/) flashing in the middle of the screen, not as words.
     public void Flash(string icon,Color color){FlashIcon=icon;FlashColor=color;FlashTime=FlashLength;}
     public const float FlashLength=.7f;
-    public void Burst(Vector3 p,Color color,float radius)
-    {
-        var ring=Hoshikawa.World.Mesh(this,"Resonance ring",new TorusMesh {InnerRadius=.9f,OuterRadius=1, Rings=32,RingSegments=6},p,Hoshikawa.World.Mat(color,1));
-        effects.Add((ring,.35f,.35f,radius));
-        for(int i=0;i<8;i++)
-        {
-            var spark=Hoshikawa.World.Box(this,"Spark",p+new Vector3(Mathf.Sin(i)*.3f,.15f,Mathf.Cos(i)*.3f),new(.035f,.14f,.035f),Hoshikawa.World.Mat(color,1));
-            spark.Rotation=new(i,.2f*i,i*.5f);
-            var tween=CreateTween();tween.TweenProperty(spark,"position",p+new Vector3(Mathf.Sin(i)*radius,Mathf.Sin(i*4)*radius*.4f,Mathf.Cos(i)*radius),.24);tween.TweenCallback(Callable.From(spark.QueueFree));
-        }
-    }
-    // A flat ring on the ground that grows (or closes) from one radius to another and fades.
-    public void Ring(Vector3 p,float from,float to,float seconds,Color color)
-    {
-        var mat=new StandardMaterial3D {ShadingMode=BaseMaterial3D.ShadingModeEnum.Unshaded,Transparency=BaseMaterial3D.TransparencyEnum.Alpha,BlendMode=BaseMaterial3D.BlendModeEnum.Add,AlbedoColor=color};
-        var ring=Hoshikawa.World.Mesh(this,"Resonance wave",new TorusMesh {InnerRadius=.93f,OuterRadius=1,Rings=48,RingSegments=4},p+Vector3.Up*.08f,mat);
-        ring.Scale=new(from,.4f,from);ring.CastShadow=GeometryInstance3D.ShadowCastingSetting.Off;
-        var t=CreateTween().SetParallel();t.TweenProperty(ring,"scale",new Vector3(to,.4f,to),seconds).SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Cubic);
-        t.TweenProperty(mat,"albedo_color:a",0f,seconds).SetEase(Tween.EaseType.In);t.Chain().TweenCallback(Callable.From(ring.QueueFree));
-    }
-    // A blow lands: the whole valley slows to a twentieth for a moment, measured in unscaled time.
-    public void HitStop(float seconds)
-    {
-        Engine.TimeScale=.05;GetTree().CreateTimer(seconds,true,false,true).Timeout+=()=>Engine.TimeScale=1;
-    }
-    public void Slash(Vector3 p,Vector3 forward,bool red)
-    {
-        var node=new Node3D {Position=p,Rotation=new(0,Mathf.Atan2(forward.X,forward.Z),-.18f)};AddChild(node);
-        var st=new SurfaceTool();st.Begin(Godot.Mesh.PrimitiveType.Triangles);
-        for(int i=0;i<18;i++)
-        {
-            float a=-1.1f+i*.12f,b=a+.12f;
-            Vector3 V(float angle,float r)=>new(Mathf.Sin(angle)*r,0,Mathf.Cos(angle)*r);
-            st.AddVertex(V(a,2.25f));st.AddVertex(V(b,2.25f));st.AddVertex(V(a,1.9f));
-            st.AddVertex(V(a,1.9f));st.AddVertex(V(b,2.25f));st.AddVertex(V(b,1.9f));
-        }
-        var mat=Hoshikawa.World.Mat(red?new("fa8163"):Hoshikawa.World.Jade,1,true);
-        Hoshikawa.World.Mesh(node,"Sword arc",st.Commit(),Vector3.Zero,mat);
-        var t=CreateTween();t.TweenProperty(node,"scale",Vector3.One*.4f,.16);t.TweenCallback(Callable.From(node.QueueFree));
-    }
-    public void FloatingNumber(Vector3 p,string text,Color c)
-    {
-        var label=Hoshikawa.World.Label(this,text,p,c,36);var t=CreateTween();
-        t.TweenProperty(label,"position",p+Vector3.Up*.8f,.65);t.TweenCallback(Callable.From(label.QueueFree));
-    }
     public void Sound(string name)
     {
         if(SelfTest||!sounds.TryGetValue(name,out var sound))return;

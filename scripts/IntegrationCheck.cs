@@ -581,8 +581,9 @@ public static class IntegrationCheck
         await Frames(65);g.Player.Dodge(Vector3.Right);hp=g.Player.Health;
         Check(g.Player.ReceiveHit(opponent,true)=="evaded"&&g.Player.Health==hp,"dodge evades perilous damage");
         await Frames(50);Place(g.Player,spot);opponent.GlobalPosition=spot+Vector3.Forward*2;g.Player.Model.Rotation=new(0,Mathf.Pi,0);
+        bool Fx(string name)=>g.GetChildren().Any(n=>n.Name.ToString().Contains(name));
         float enemyHp=opponent.Health;await Press("attack",2);for(int i=0;i<30&&opponent.Health==enemyHp;i++)await Frames(1);
-        Check(Engine.TimeScale<1,"a landed swing holds the valley in a brief hit-stop");await Frames(40);
+        Check(Engine.TimeScale<1&&Fx("Sparks")&&Fx("Cut streak"),"a landed swing holds the valley in a brief hit-stop, throws sparks and cuts a streak across the plating");await Frames(40);
         Check(enemyHp-opponent.Health==Enemy.SwordDamage&&!opponent.Dead&&Engine.TimeScale==1,"from the front a swing only scratches a robot's plating");
         float afterHit=opponent.Health;await Frames(30);Check(opponent.Health==afterHit,"one swing cannot hit again after its active frame");
         // With no robot near, a second press during the first swing waits for its link, well before its end, and each swing lunges.
@@ -598,7 +599,8 @@ public static class IntegrationCheck
         Check(!g.Player.Skill()&&g.Player.SkillCharges==Player.MaxSkillCharges-1,"Resonance Cut cannot be recast while it is cast");
         // The slam's hit-stop holds Mio about seven frames longer than the cast itself.
         int cast=(int)(Player.SkillLength*60)+15;await Frames((int)(Player.SkillSlam*60)+4);
-        Check(opponent.Stunned&&opponent.Health==opponent.MaxHealth&&opponent.Posture==0&&g.GetChildren().Any(n=>n.Name.ToString().Contains("Resonance wave")),"Resonance Cut's slam sends out its wave and stuns a robot at extended range, doing it no harm");
+        Check(opponent.Stunned&&opponent.Health==opponent.MaxHealth&&opponent.Posture==0&&Fx("Resonance wave")&&Fx("Resonance pillar"),"Resonance Cut's slam sends out its wave and stuns a robot at extended range, doing it no harm");
+        Check(opponent.GetNode<CpuParticles3D>("Stun crackle").Emitting,"jade sparks crackle over a stunned robot");
         await Frames(cast-(int)(Player.SkillSlam*60)-4);
         opponent.GlobalPosition=spot+Vector3.Forward*2;Check(!g.Player.CanShutDown(opponent),"a robot facing Mio cannot be shut down, even stunned");
         opponent.Model.Rotation=new(0,Mathf.Pi,0);Check(g.Player.CanShutDown(opponent),"a robot in reach with its back to Mio can be shut down");

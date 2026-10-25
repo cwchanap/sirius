@@ -33,13 +33,13 @@ public partial class Player : CharacterBody3D
         AddChild(new CollisionShape3D {Position=new(0,.9f,0),Shape=new CapsuleShape3D {Radius=.3f,Height=1.8f}});
         Model=GD.Load<PackedScene>("res://assets/models/mio.glb").Instantiate<Node3D>();AddChild(Model);Model.Rotation=new(0,Mathf.Pi,0);
         Visual=new ActorVisual();AddChild(Visual);Visual.Bind(Model);Visual.Play("idle");
-        // The trail runs from the blade's middle to its tip, read from the skinned blade in the hand bone's frame.
+        // The trail spans the blade between hilt and tip, read from the skinned blade in the hand bone's frame.
         var skeleton=ActorVisual.Descendants(Model).OfType<Skeleton3D>().Single();
         var blade=ActorVisual.Descendants(Model).OfType<MeshInstance3D>().Single(m=>m.Name.ToString().Contains("blade"));
         int bind=Enumerable.Range(0,blade.Skin.GetBindCount()).First(i=>blade.Skin.GetBindName(i)=="RightHand"||blade.Skin.GetBindBone(i)==skeleton.FindBone("RightHand"));
         var points=blade.Mesh.SurfaceGetArrays(0)[(int)Mesh.ArrayType.Vertex].AsVector3Array().Select(v=>blade.Skin.GetBindPose(bind)*v).ToArray();
         var tip=points.MaxBy(v=>v.LengthSquared());var hilt=points.MaxBy(v=>v.DistanceSquaredTo(tip));
-        trail=new SwordTrail {Skeleton=skeleton,Bone=skeleton.FindBone("RightHand"),Base=hilt.Lerp(tip,.5f),Tip=tip};AddChild(trail);
+        trail=new SwordTrail {Skeleton=skeleton,Bone=skeleton.FindBone("RightHand"),Hilt=hilt,Tip=tip};AddChild(trail);
     }
     public override void _PhysicsProcess(double delta)
     {
@@ -74,8 +74,8 @@ public partial class Player : CharacterBody3D
             {
                 struck=true;bool landed=false;
                 foreach(var enemy in Game.Enemies.Where(e=>!e.Dead))
-                    if(CanReach(enemy.GlobalPosition,2.9f,.15f)){enemy.TakeHit(Enemy.SwordDamage,Enemy.SwordPosture);landed=true;}
-                if(combo==2){Game.Ring(GlobalPosition+Facing*1.1f,.3f,2.2f,.3f,World.Gold);Game.CameraShake=.14f;}
+                    if(CanReach(enemy.GlobalPosition,2.9f,.15f)){enemy.TakeHit(Enemy.SwordDamage,Enemy.SwordPosture);landed=true;Cut(enemy,1.8f);}
+                if(combo==2){Game.Ring(GlobalPosition+Facing*1.1f,.3f,2.2f,.3f,World.Gold);Game.Dust(GlobalPosition+Facing*1.1f,1.5f,16);Game.CameraShake=.14f;}
                 if(landed)Game.HitStop(combo==2?.1f:.055f);
             }
             if(comboQueued&&attackElapsed>=swing.Link){comboQueued=false;Attack();swing=Swings[combo];}
@@ -85,10 +85,10 @@ public partial class Player : CharacterBody3D
             float was=SkillLength-skillCast;skillCast-=dt;float now=SkillLength-skillCast;trail.Emitting=now>.38f&&now<SkillSlam+.04f;
             if(was<SkillSlam&&now>=SkillSlam)
             {
-                Game.Ring(GlobalPosition,.5f,SkillRadius,.45f,World.Jade);Game.Burst(GlobalPosition+Vector3.Up*.4f,World.Jade,2.4f);Game.Sound("skill");
+                Game.Slam(GlobalPosition,SkillRadius);Game.Sound("skill");
                 Game.CameraShake=.3f;Game.CameraPunch=1;Game.HitStop(.12f);
                 foreach(var enemy in Game.Enemies.Where(e=>!e.Dead))
-                    if(CanReach(enemy.GlobalPosition,SkillRadius,-1)){enemy.Stun(Enemy.ResonanceStun);Game.Burst(enemy.GlobalPosition+Vector3.Up*1.3f,World.Jade,1.3f);}
+                    if(CanReach(enemy.GlobalPosition,SkillRadius,-1)){enemy.Stun(Enemy.ResonanceStun);Game.Burst(enemy.GlobalPosition+Vector3.Up*1.3f,World.Jade,1.3f);enemy.Blink(World.Jade);}
             }
         }
         float speed=Guarding?1.7f:Input.IsActionPressed("run")?7.8f:2f;
@@ -149,7 +149,7 @@ public partial class Player : CharacterBody3D
         if(victim!=null)
         {
             victim.Execute();Invulnerable=.8f;combo=2;attack=Swings[2].End;attackElapsed=0;lunge=0;struck=true;comboQueued=false;comboGrace=0;
-            Visual.Play("attack3",1,true);Game.Burst(victim.GlobalPosition+Vector3.Up,World.Gold,2.3f);Game.HitStop(.12f);Game.CameraShake=.18f;return;
+            Visual.Play("attack3",1,true);Game.Burst(victim.GlobalPosition+Vector3.Up,World.Gold,2.3f);Cut(victim,2.6f);Game.HitStop(.12f);Game.CameraShake=.18f;return;
         }
         combo=comboGrace>0?(combo+1)%3:0;var swing=Swings[combo];comboGrace=swing.End+.15f;attack=swing.End;attackElapsed=0;struck=false;
         // Each swing turns to the locked robot, or the nearest within reach, else the way she is steering, and lunges no closer than 1.3 m.
@@ -160,7 +160,13 @@ public partial class Player : CharacterBody3D
         if(heading.LengthSquared()>.01f)Model.Rotation=new(0,Mathf.Atan2(heading.X,heading.Z),0);
         lunge=aim!=null?Math.Clamp(heading.Length()-1.3f,0,swing.Lunge):swing.Lunge;
         // A chained swing starts from the pose the last one links at, so it needs only the shortest blend.
-        Guarding=false;trail.Life=.12f;Visual.Play("attack"+(combo+1),1,true,.05f);Game.Sound("swing");
+        Guarding=false;trail.Life=.12f;trail.From=.5f;trail.Glow(combo==2?World.Gold:World.Jade,2.5f);Visual.Play("attack"+(combo+1),1,true,.05f);Game.Sound("swing");
+    }
+    // The bright cut a landed blow leaves on a robot's plating, along the way the blade's tip is moving.
+    private void Cut(Enemy enemy,float length)
+    {
+        var toward=GlobalPosition-enemy.GlobalPosition;toward.Y=0;var sweep=trail.Sweep;
+        Game.Streak(enemy.GlobalPosition+Vector3.Up*1.25f+toward.Normalized()*.4f,sweep.LengthSquared()>1e-4f?sweep:Facing.Cross(Vector3.Up),new("fff1cf"),length);
     }
     // From behind, or once its posture breaks, a robot within reach is shut down by the next attack.
     public bool CanShutDown(Enemy e)=>(e.Broken||e.ExposedTo(GlobalPosition))&&CanReach(e.GlobalPosition,3,-.2f);
@@ -175,8 +181,9 @@ public partial class Player : CharacterBody3D
     {
         if(attack>0||dodge>0||skillCast>0||Stun>0||healTimer>0||Health<=0)return false;
         if(SkillCharges<=0){Spent=1;Game.Feedback("REST TO RECHARGE",World.Jade);return false;}
-        SkillCharges--;skillCast=SkillLength;Invulnerable=SkillSlam+.1f;Guarding=false;trail.Life=.3f;Visual.Play("skill",1,true);
-        Game.Ring(GlobalPosition,2.6f,.4f,.36f,World.Jade);return true;
+        // The spin draws the whole blade round her, its full moon.
+        SkillCharges--;skillCast=SkillLength;Invulnerable=SkillSlam+.1f;Guarding=false;trail.Life=.3f;trail.From=.15f;trail.Glow(World.Jade,3);Visual.Play("skill",1,true);
+        Game.Ring(GlobalPosition,2.6f,.4f,.36f,World.Jade);Game.Gather(this,Vector3.Up*1.1f,World.Jade,.38f);return true;
     }
     public string ReceiveHit(Enemy enemy,bool perilous)
     {
