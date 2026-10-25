@@ -161,8 +161,7 @@ public partial class Player : CharacterBody3D
         if(heading.LengthSquared()>.01f)Model.Rotation=new(0,Mathf.Atan2(heading.X,heading.Z),0);
         lunge=aim!=null?Math.Clamp(heading.Length()-1.3f,0,swing.Lunge):swing.Lunge;
         // A chained swing starts from the pose the last one links at, so it needs only the shortest blend.
-        Guarding=false;trail.Life=.12f;trail.From=.5f;trail.Glow(combo==2?World.Gold:World.Jade,2.5f);Visual.Play("attack"+(combo+1),1,true,.05f);Game.Sound("swing");
-        if(combo==2||GD.Randf()<.5f)Game.Bark("attack"+(combo+1));
+        Guarding=false;trail.Life=.12f;trail.From=.5f;trail.Glow(combo==2?World.Gold:World.Jade,2.5f);Visual.Play("attack"+(combo+1),1,true,.05f);Game.Sound("swing");Game.Bark("attack"+(combo+1));
     }
     // The bright cut a landed blow leaves on a robot's plating, along the way the blade's tip is moving.
     private void Cut(Enemy enemy,float length)
