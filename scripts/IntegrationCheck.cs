@@ -687,8 +687,11 @@ public static class IntegrationCheck
         Check(g.Voice.Playing&&g.Voice.Stream?.ResourcePath=="res://assets/audio/voice/ja/Mio/Homecoming.6.mp3","the homecoming voices Mio under its own scene key");
         await Tap(Key.Escape);Check(g.Mode==GameMode.Playing&&!g.Voice.Playing,"escape skips the rest of a scene and silences its voice");
         if(DisplayServer.GetName()!="headless"){g.SaveScreenshot("res://artifacts/mission-complete.png");await Frames(5);}
-        g.Restart();Check(g.QuestStage==0&&g.Enemies.All(e=>!e.Dead)&&g.Player.Health==100,"restart restores a fresh playable mission");
-        Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Intro),"restarting the prologue replays its opening scene");g.EndDialogue();
+        var chaser=g.Enemies.First(e=>e.Scout&&!e.Dead);chaser.SetPhysicsProcess(true);Place(g.Player,chaser.GlobalPosition+Vector3.Back*6);await Frames(30);
+        Check(chaser.State=="PURSUE"&&g.Music.Current=="battle","a scout after Mio brings in the battle music");g.SetPaused(true);
+        g.Restart();Check(g.QuestStage==0&&g.Enemies.All(e=>!e.Dead)&&g.Player.Health==100,"restart restores a fresh playable mission");chaser.SetPhysicsProcess(false);
+        Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Intro),"restarting the prologue replays its opening scene");
+        await Frames(1);Check(g.Music.Current=="valley","restarting from the pause menu mid-fight leaves the battle music behind with the fight");g.EndDialogue();
         // The ladder's body takes its new turn on the next physics step.
         await Frames(2);
         Check(g.Opened.Count==0&&Turned(ladder.Closed)&&g.World.Pickups.All(p=>p.Node.Visible)&&bag.Held.Select(i=>i.Id).SequenceEqual(new[]{"remedy","terminal"})&&bag.Capacity("remedy")==3&&bag.Count("remedy")==3,
