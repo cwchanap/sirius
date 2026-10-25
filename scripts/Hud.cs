@@ -210,7 +210,7 @@ public partial class Hud : Control
         foreach(var (item,rect) in Slots())
         {
             bool chosen=item.Id==Selected;int n=bag.Count(item.Id);
-            DrawRect(rect,new Color(ink,.9f));DrawRect(rect,chosen?gold:new Color(gold,.35f),false,chosen?2:1);
+            DrawRect(rect,new Color(ink,.9f));DrawRect(rect,chosen?gold:new Color(gold,.3f),false,chosen?3:2);
             DrawIcon(item.Icon,rect.GetCenter(),56,n>0?cream:new Color(cream,.25f));
             if(item.Kind==ItemKind.Consumable){string count=n.ToString();Text(count,rect.End-new Vector2(10+font.GetStringSize(count,fontSize:15).X,9),15,n>0?cream:muted);}
         }
