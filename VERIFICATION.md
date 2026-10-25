@@ -1,11 +1,19 @@
 # MVP verification
 
+## Relay road and battle music from ElevenLabs — 2026-10-25
+
+- **Tracks:** `assets/audio/relay.ogg` (40.0 s, 20 bars at 120 BPM, 593 KB) and `battle.ogg` (51.2 s, 32 bars at 150 BPM, 770 KB), 44.1 kHz stereo Vorbis, each exactly one loop cut from a 90 s ElevenLabs Music take on Hapadona's Mac (ASSETS.md has the requests and cut points). Imported `loop=true`, `loop_offset=0`, so the whole file repeats. They replace the synthesized `relay.wav` and `battle.wav`, and `tools/build_audio.py` no longer writes those.
+- **Seams:** measured on the Mac (the cut points sit on bar lines and the wrap is sample-exact), and previewed as `artifacts/music/relay-ingame.mp3` and `battle-ingame.mp3` (each file three times). The owner listened to the first cuts (intro once, then the loop): the relay track was fine, and the battle track was to lose its intro. Nobody has listened to these one-loop files yet. Both files start mid-waveform, which could click on a cold start; in the game every track fades in from silence over 1.5 s, so it cannot.
+- **Levels:** the new takes measure −10.6 LUFS (relay) and −10.3 LUFS (battle) against the placeholders' −17.9 and −18.3, so `Music.Tracks` plays both at −24 dB, which puts them where the placeholders were (about −34.5 LUFS). Set by measurement, not by ear.
+- **Tests:** the self-test passes 571 checks headless in `en`, `ja` and `zh_TW` (cloud container, dummy audio driver); new: the relay and battle streams are Vorbis looping whole from the start. Unit tests pass 43 and e2e 4.
+- **Not yet:** no Metal run, and nobody has heard them in the game.
+
 ## Background music by area and danger — 2026-10-25
 
 The owner asked for livelier music on the relay road and battle music under danger.
 
 - **Code:** `scripts/Music.cs` keeps one looping player per track and crossfades toward the one `Game._Process` wants: `battle` while any living robot is out of `PATROL` (chasing, winding up, striking, recovering, staggered, stunned or broken) and for `Music.Calm` (3 s) of play after, else `relay` on the Old Relay Road, else `valley`. A pause, the items screen or a scene keeps the fight's music; a defeat ends it. A faded track pauses where it is. `Game._ExitTree` now stops every `AudioStreamPlayer` below it, the music's included, keeping the shutdown leak fix.
-- **Tracks:** `relay.wav` and `battle.wav` are synthesized placeholders from `tools/build_audio.py` (22.05 kHz mono, 1.2 MB together) until the ElevenLabs tracks replace them.
+- **Tracks:** `relay.wav` and `battle.wav` were synthesized placeholders from `tools/build_audio.py` (22.05 kHz mono, 1.2 MB together); the ElevenLabs tracks above replace them.
 - **Self-test:** 570 checks pass headless in `en`, `ja` and `zh_TW` in a cloud container (Godot's dummy audio driver), after the rebase onto the item system. New: only the valley's track plays at the start; in the relay plaza the relay track is at its level and the valley's paused; Komorebi brings the valley's back; a pursuing robot brings in the battle track, which outlasts the robot's shutdown and then gives way to the relay track; restarting the prologue from the pause menu while a scout is after Mio drops the battle track for the valley's (this check failed before `Retry()` cleared the fight). The unit tests pass 43, two of them new: each region's track and the battle override, and every track's file exists.
 - **Not yet:** nobody has listened to the music or the crossfades on speakers, and there was no Metal run.
 
