@@ -17,7 +17,7 @@ just e2e                      # build, import, godot-e2e tests
 dotnet build Hoshikawa.csproj # C# only
 ```
 
-`just run` uses `GODOT_MONO`, defaulting to `/Applications/Godot_mono.app/Contents/MacOS/Godot`. The plain `godot` on PATH is a **non-Mono** build and will not run this project. `GODOT_MONO` is not exported in the shell, so set it before running the raw `$GODOT_MONO` commands below: `export GODOT_MONO=/Applications/Godot_mono.app/Contents/MacOS/Godot`. Likewise `blender` is not on PATH; use `/Applications/Blender.app/Contents/MacOS/Blender`.
+`just run` uses `GODOT_MONO`, defaulting to `/Applications/Godot_mono.app/Contents/MacOS/Godot`. The plain `godot` on PATH is a **non-Mono** build and will not run this project. `GODOT_MONO` is not exported in the shell, so set it before running the raw `$GODOT_MONO` commands below: `export GODOT_MONO=/Applications/Godot_mono.app/Contents/MacOS/Godot`. Likewise `blender` is not on PATH; use `/Applications/Blender.app/Contents/MacOS/Blender`. In a Claude Code cloud session, `.claude/hooks/session-start.sh` installs .NET 8, Godot 4.6.2 Mono (exported as `GODOT_MONO` and `GODOT_BIN`), Blender 4.0 (`blender` on PATH), `just`, Mesa's software Vulkan, xvfb and the Noto CJK fonts, so `just unit`, `just self-test` and `just e2e` run as written.
 
 `.claude/worktrees/` holds full checkouts of other branches (excluded via `.git/info/exclude`). Ripgrep skips them; plain `grep -r`/`find` will return duplicate hits from them.
 
@@ -70,7 +70,7 @@ $GODOT_MONO --path . --disable-vsync --fixed-fps 60 --script res://tools/render_
 
 To compare render cost between commits, compare `render_cost.gd`'s draw and primitive counts, which repeat exactly under `--fixed-fps`. Its fps and CPU times drift with whatever else the machine is running.
 
-A cloud session without the Mac can still look at the world: with Mesa's software Vulkan (`apt install mesa-vulkan-drivers`), `xvfb-run -a -s "-screen 0 1280x720x24" $GODOT_MONO --path . --script res://tools/review_map.gd` captures each view in about 40 seconds. Judge shapes and placement there, not shading or performance; Metal is still the reference.
+A cloud session without the Mac can still look at the world: with Mesa's software Vulkan (installed by the session hook), `xvfb-run -a -s "-screen 0 1280x720x24" $GODOT_MONO --path . --script res://tools/review_map.gd` captures each view in about 40 seconds. Judge shapes and placement there, not shading or performance; Metal is still the reference.
 
 `artifacts/` is gitignored; it holds captures, logs and per-change evidence dirs. `VERIFICATION.md` records what was actually verified and the environment's limits — update it when claims change, and do not claim a physical keyboard/mouse session for engine-injected input.
 
