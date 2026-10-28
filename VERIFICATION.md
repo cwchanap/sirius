@@ -1,5 +1,16 @@
 # MVP verification
 
+## Drones: small flying robots to level on — 2026-10-28
+
+The owner asked for a new kind of enemy, a mini-patrol flying robot, easy to kill so Mio can level up on it.
+
+- **Code:** each kind of robot is now a `RobotKind` row in `scripts/Enemy.cs` (health, strike share, model scale, patrol reach, stardust, flies), replacing the `Scout` flag. `Enemy.Drone`: 6 health (three 2-point sword hits, one full combo, from the front), 30% of a patrol's strike (15 vitality) and never the perilous sweep, every hit staggers it out of its windup, 0.55 scale, 60% of a patrol's loop, `Stats.DroneReward` 25 stardust. It is `patrol.glb` with the thigh, knee, greave and foot meshes hidden, a floating `CharacterBody3D` whose origin eases to `World.Height()` + 0.1 m (bobbing 8 cm) with the model 0.6 m above that, so every reach and height check reads it as a walker's; a sphere collider at 1.3 m, an amber glow and jet under its pelvis, idle clip for moving; shut down, the thruster goes out and the model drops to lie on the ground. Five `World.DroneHomes` on the relay road: the switchback's foot, three along the forest valley, one on the high road, each over 16 m from any patrol or scout. `Game.Regroup()` brings them back with the scouts. No new text, art or sound.
+- **Unit tests:** 56 pass (two new): the drone is weaker, smaller, lighter-hitting and cheaper than a scout and dies to a full combo; every drone home is on a trail floor of the relay road, over 16 m from the other robots.
+- **Self-test:** **621 checks pass headless** in `en`, `ja` and `zh_TW` (cloud container, Godot 4.6.2 mono). New: five drones on the relay road; a drone is a legless patrol model with its thruster firing, smaller, weaker and lighter than a scout; with its physics running it patrols holding 0.1 m over the ground; three real attack presses from the front shut one down, each hit playing its stagger, for 25 stardust; shut down, its thruster is out and it lies on the ground; resting at the Starwell brings it back home and aloft. The first run caught a drone on the switchback's middle blocking the walk up it, so the two on the narrow trails sit 2 m off their middles.
+- **Captures:** `tools/review_drones.gd` (new) under Mesa software Vulkan in the cloud: close, side, beside Mio, in the forest valley and shut down. Shapes and placement only.
+- **E2E:** 4 pass in the cloud container.
+- **Not yet:** no Metal run and no hands-on fight.
+
 ## Settings: voice and music volume — 2026-10-25
 
 The owner asked for a settings sub-menu to adjust the sound volume separately for the voice cast and the background music.

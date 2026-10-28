@@ -210,6 +210,13 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [ ] Sound: a stardust pickup and a level-up cue (ElevenLabs); both borrow `heal` for now.
 - [ ] More stats, more shop items and more save points as the map grows; each is a table row.
 
+## Drones
+
+- [x] A third kind of robot to level on: five small flying drones (`Enemy.Drone`, a `RobotKind` row beside the patrol and the scout) over the relay road's switchback, forest valley and high road. A legless half-size `patrol.glb` on an amber thruster; 6 health, so a full combo shuts one down from the front, each hit knocks it off its swing, strikes at 30% of a patrol's and never perilous; 25 stardust; back after a rest like the scouts.
+- [ ] Art: a drone model of its own (Tripo), in place of the legless patrol.
+- [ ] Sound: a thruster hum (ElevenLabs).
+- [ ] Number tuning after hands-on play.
+
 ## Languages: Japanese and Traditional Chinese
 
 - [x] Phase 0: `assets/dialogue/glossary.md`, with the names, places, terms and tone for all three languages; kanji names for Chinese settled as proposals for the owner to confirm.

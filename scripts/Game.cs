@@ -8,8 +8,8 @@ public partial class Game : Node3D
     public World World=null!;
     public Player Player=null!;
     public readonly List<Enemy> Enemies=new();
-    // The three the relay mission counts; the scouts are extra.
-    public IEnumerable<Enemy> Patrols=>Enemies.Where(e=>!e.Scout);
+    // The three the relay mission counts; the scouts and drones are extra.
+    public IEnumerable<Enemy> Patrols=>Enemies.Where(e=>e.Kind==Enemy.Patrol);
     public readonly HashSet<string> Opened=new();
     private Tween? opening;
     public Enemy? Locked;
@@ -49,10 +49,10 @@ public partial class Game : Node3D
         Localization.Initialize(OS.GetCmdlineUserArgs());Volume.Initialize(OS.GetCmdlineUserArgs());InputBindings();
         World=new World();AddChild(World);
         Player=new Player {Game=this,Position=new(0,.12f,31)};AddChild(Player);
-        foreach(var (homes,scout) in new[]{(Hoshikawa.World.PatrolHomes,false),(Hoshikawa.World.ScoutHomes,true)})for(int i=0;i<homes.Length;i++)
+        foreach(var (homes,kind) in new[]{(Hoshikawa.World.PatrolHomes,Enemy.Patrol),(Hoshikawa.World.ScoutHomes,Enemy.Scout),(Hoshikawa.World.DroneHomes,Enemy.Drone)})for(int i=0;i<homes.Length;i++)
         {
             var p=new Vector3(homes[i].X,Hoshikawa.World.Height(homes[i].X,homes[i].Y)+.1f,homes[i].Y);
-            var enemy=new Enemy {Game=this,Home=p,Position=p,Index=i+1,Scout=scout};Enemies.Add(enemy);AddChild(enemy);
+            var enemy=new Enemy {Game=this,Home=p,Position=p,Index=i+1,Kind=kind};Enemies.Add(enemy);AddChild(enemy);
         }
         // Outside World, whose static meshes are baked: the save point's light over the well, and the stardust Mio leaves where she falls.
         var well=Hoshikawa.World.SavePoint;var mouth=new Vector3(well.X,Hoshikawa.World.Height(well.X,well.Y)+1.15f,well.Y);
@@ -79,7 +79,7 @@ public partial class Game : Node3D
         if(args.Contains("--portrait-close")){Player.GlobalPosition=new(0,.1f,23);CameraYaw=Mathf.Pi+.45f;CameraPitch=-.09f;spring.SpringLength=2.1f;Camera.Fov=37;}
         if(args.Contains("--komorebi")){Player.GlobalPosition=new(0,Hoshikawa.World.Height(0,-235)+.1f,-235);CameraPitch=-.3f;spring.SpringLength=11;}
         if(args.Contains("--pass-view")){Player.GlobalPosition=new(Hoshikawa.World.RoadX(-199),Hoshikawa.World.Height(Hoshikawa.World.RoadX(-199),-199)+.1f,-199);CameraPitch=-.27f;spring.SpringLength=10;}
-        fov=Camera.Fov;Hud.RefreshMenu();GD.Print($"HOSHIKAWA_READY buildings={World.Buildings.Count} residents={World.Residents.Count} patrols={Patrols.Count()} scouts={Enemies.Count(e=>e.Scout)}");
+        fov=Camera.Fov;Hud.RefreshMenu();GD.Print($"HOSHIKAWA_READY buildings={World.Buildings.Count} residents={World.Residents.Count} patrols={Patrols.Count()} scouts={Enemies.Count(e=>e.Kind==Enemy.Scout)} drones={Enemies.Count(e=>e.Kind==Enemy.Drone)}");
     }
     // Leaving the tree only pauses a player's playback, and a stopped one, with the wav it holds, is only released on the audio
     // thread's next mix step; if the engine shuts the AudioServer down first, both leak at exit. So every player still sounding,
@@ -196,9 +196,9 @@ public partial class Game : Node3D
         Player.Growth.Reset();Dropped=null;dropMark.Visible=false;
         Retry();Play(Prologue.Intro);
     }
-    // Recovering at the village or resting at the save point sends every robot home and brings back the scouts Mio shut down;
+    // Recovering at the village or resting at the save point sends every robot home and brings back the scouts and drones Mio shut down;
     // the patrols stay down, because the mission counts them.
-    private void Regroup(){foreach(var e in Enemies)if(!e.Dead||e.Scout)e.Reset();}
+    private void Regroup(){foreach(var e in Enemies)if(!e.Dead||e.Kind!=Enemy.Patrol)e.Reset();}
     public bool AtSavePoint=>new Vector2(Player.GlobalPosition.X,Player.GlobalPosition.Z).DistanceTo(Hoshikawa.World.SavePoint)<2.4f;
     // The save point rests Mio and opens its screen, where she levels up and trades; play stays frozen under it.
     public void Rest()
@@ -290,7 +290,7 @@ public partial class Game : Node3D
     public void EndDialogue(){Voice.Stop();Mode=GameMode.Playing;Input.MouseMode=SelfTest?Input.MouseModeEnum.Visible:Input.MouseModeEnum.Captured;}
     public void OnEnemyDefeated(Enemy enemy)
     {
-        Earn(enemy.Scout?Stats.ScoutReward:Stats.PatrolReward);
+        Earn(enemy.Kind.Reward);
         if(QuestStage==1&&Patrols.All(e=>e.Dead)){QuestStage=2;Toast("ROAD CLEARED",seconds:5);}
     }
     public void ToggleLock()

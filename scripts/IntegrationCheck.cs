@@ -177,7 +177,8 @@ public static class IntegrationCheck
         }
         Check(step<.1f,$"hamlet terrain is continuous (largest 5 cm step {step:F3} at {stepAt})");
         Check(g.World.Residents.Count==10&&g.World.Residents.Select(r=>r.Name).Distinct().Count()==10,"ten named residents across two villages");
-        Check(g.Patrols.Count()==3&&g.Enemies.Count(e=>e.Scout)==4&&g.Enemies.All(e=>Hoshikawa.World.RegionAt(e.Home)=="Old Relay Road"),"three patrol robots and four scouts on the relay road");
+        Check(g.Patrols.Count()==3&&g.Enemies.Count(e=>e.Kind==Enemy.Scout)==4&&g.Enemies.Count(e=>e.Kind==Enemy.Drone)==5&&g.Enemies.All(e=>Hoshikawa.World.RegionAt(e.Home)=="Old Relay Road"),
+            "three patrol robots, four scouts and five drones on the relay road");
         var merged=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().StartsWith("Merged statics")).ToArray();
         var baked=g.World.FindChildren("*","MeshInstance3D",true,false).Cast<MeshInstance3D>().Where(n=>!n.Visible&&(n.Mesh is PrimitiveMesh||n.Mesh.ResourceName.StartsWith("prop "))).ToArray();
         Vector3[] Corners(IEnumerable<MeshInstance3D> meshes)=>meshes.SelectMany(n=>n.Mesh.GetFaces().Select(v=>n.GlobalTransform*v)).ToArray();
@@ -702,9 +703,27 @@ public static class IntegrationCheck
         g.SetPaused(false);g.Player.SkillCharges=charges;
         for(int charge=1;charge<Player.MaxSkillCharges;charge++){await Frames(cast);Check(g.Player.Skill(),$"Resonance Cut casts again on charge {charge+1}");}
         await Frames(cast);Check(g.Player.SkillCharges==0&&!g.Player.Skill(),$"with its {Player.MaxSkillCharges} charges spent Resonance Cut waits for a rest");
-        var scout=g.Enemies.First(e=>e.Scout);g.Player.Health=100;g.Player.Invulnerable=0;
+        var scout=g.Enemies.First(e=>e.Kind==Enemy.Scout);g.Player.Health=100;g.Player.Invulnerable=0;
         Check(scout.Health==scout.MaxHealth&&scout.MaxHealth<opponent.MaxHealth&&scout.Model.Scale.X<opponent.Model.Scale.X&&g.Player.ReceiveHit(scout,true)=="hit"&&g.Player.Health==100-scout.Strike(true)&&scout.Strike(true)<opponent.Strike(true),
             $"scouts are smaller, weaker and strike lighter than the patrols ({100-g.Player.Health:F1} damage)");
+        // Drones: legless patrol models on a thruster, holding their height over the ground as they patrol; a full combo of the sword shuts one down.
+        var drone=g.Enemies.First(e=>e.Kind==Enemy.Drone);var thruster=drone.GetNode<Node3D>("Thruster");
+        var greaves=ActorVisual.Descendants(drone.Model).OfType<MeshInstance3D>().Where(m=>m.Name.ToString().Contains("Greave")).ToArray();
+        Check(drone.MaxHealth<scout.MaxHealth&&drone.Model.Scale.X<scout.Model.Scale.X&&drone.Strike(false)<scout.Strike(false)&&greaves.Length==2&&greaves.All(m=>!m.Visible)&&thruster.GetNode<CpuParticles3D>("Thruster jet").Emitting,
+            "drones are legless patrol models on a firing thruster, smaller, weaker and lighter-hitting than the scouts");
+        float Hover(Enemy e)=>e.GlobalPosition.Y-Hoshikawa.World.Height(e.GlobalPosition.X,e.GlobalPosition.Z);
+        drone.SetPhysicsProcess(true);Place(g.Player,new(0,0,30));before=drone.GlobalPosition;await Frames(60);
+        Check(drone.State=="PATROL"&&drone.GlobalPosition.DistanceTo(before)>.4f&&Math.Abs(Hover(drone)-Enemy.Hover)<.12f&&drone.Model.Position.Y==Enemy.Lift,
+            $"a drone patrols its loop holding its height over the ground ({Hover(drone):F2} m) and its body over that");
+        drone.SetPhysicsProcess(false);Place(g.Player,spot);drone.GlobalPosition=spot+Vector3.Forward*2;drone.Model.Rotation=Vector3.Zero;g.Player.Model.Rotation=new(0,Mathf.Pi,0);await Frames(12);
+        purse=g.Player.Growth.Stardust;int hits=0;bool knocked=true;float left=drone.Health;
+        for(int i=0;i<90&&!drone.Dead;i++)
+        {
+            if(i%10==0)await Press("attack");else await Frames(1);
+            if(drone.Health<left){hits++;left=drone.Health;knocked&=drone.Dead||drone.Visual.Animator!.CurrentAnimation.ToString().Contains("stagger");}
+        }
+        Check(drone.Dead&&hits==3&&knocked&&g.Player.Growth.Stardust==purse+Stats.DroneReward,$"three sword hits from the front shut a drone down, each knocking it off its swing, for {Stats.DroneReward} stardust");
+        await Frames(40);Check(!thruster.Visible&&drone.Model.Position.Y<.2f,"a shut-down drone's thruster cuts out and it drops to the ground");
         // Patrol and aggro also execute their own real physics loop.
         var live=g.Enemies[0];live.Reset();live.SetPhysicsProcess(true);
         Place(g.Player,new(0,0,30));before=live.GlobalPosition;await Frames(60);
@@ -726,18 +745,19 @@ public static class IntegrationCheck
         Check(g.Music.Current=="relay","then the relay road's music returns");
         var growth=g.Player.Growth;purse=growth.Stardust;int standing=g.Patrols.Count(e=>!e.Dead);
         foreach(var e in g.Enemies)e.SetPhysicsProcess(false);foreach(var e in g.Patrols)e.Execute();
-        Check(g.QuestStage==2&&g.Enemies.Where(e=>e.Scout).All(e=>!e.Dead),"all three patrols disabled advances the mission, the scouts left standing");
+        Check(g.QuestStage==2&&g.Enemies.Where(e=>e.Kind==Enemy.Scout).All(e=>!e.Dead),"all three patrols disabled advances the mission, the scouts left standing");
         Check(growth.Stardust==purse+standing*Stats.PatrolReward,$"each patrol shut down once pays once ({standing} for {standing*Stats.PatrolReward} stardust)");
         // Hoshikawa's well is the save point. Resting there refills Mio and brings back the scouts she shut down, but not the patrols the mission
         // counts; its screen raises a stat a point for each level's cost and trades stardust for resonance cells.
-        var downed=g.Enemies.First(e=>e.Scout);purse=growth.Stardust;downed.Execute();
+        var downed=g.Enemies.First(e=>e.Kind==Enemy.Scout);purse=growth.Stardust;downed.Execute();
         Check(downed.Dead&&growth.Stardust==purse+Stats.ScoutReward,$"a shut-down scout leaves Mio {Stats.ScoutReward} stardust");
         var savePoint=Hoshikawa.World.SavePoint;Place(g.Player,new(savePoint.X+2,Hoshikawa.World.Height(savePoint.X+2,savePoint.Y)+.1f,savePoint.Y));await Frames(10);
         Check(g.Player.IsOnFloor()&&g.Interaction()==(Hud.StardustIcon,Localization.T(Hoshikawa.World.SavePointName).ToUpperInvariant())&&g.GetNode<OmniLight3D>("Save point light").GlobalPosition.DistanceTo(new(savePoint.X,g.Player.GlobalPosition.Y,savePoint.Y))<1.5f,
             "Hoshikawa's well is the save point, lit, its name on the prompt");
         g.Player.Health=20;g.Player.SkillCharges=0;g.Player.Stamina=0;await Tap(Key.E);
-        Check(g.Mode==GameMode.Rest&&g.Player.Health==g.Player.MaxHealth&&g.Player.SkillCharges==Player.MaxSkillCharges&&!downed.Dead&&downed.GlobalPosition.DistanceTo(downed.Home)<.5f&&g.Patrols.All(e=>e.Dead),
-            "E at the save point rests Mio and opens its screen; the scout she shut down is back home, the patrols stay down");
+        Check(g.Mode==GameMode.Rest&&g.Player.Health==g.Player.MaxHealth&&g.Player.SkillCharges==Player.MaxSkillCharges&&!downed.Dead&&downed.GlobalPosition.DistanceTo(downed.Home)<.5f&&g.Patrols.All(e=>e.Dead)
+            &&!drone.Dead&&drone.GlobalPosition.DistanceTo(drone.Home)<.5f&&thruster.Visible&&drone.Model.Position.Y==Enemy.Lift,
+            "E at the save point rests Mio and opens its screen; the scout and the drone she shut down are back home, the drone aloft, the patrols stay down");
         still=g.Player.GlobalPosition;Hold("forward");await Frames(10);Release("forward");Check(g.Player.GlobalPosition==still,"play stays frozen under the save point's screen");
         Button[] Pressable(string text)=>g.Hud.FindChildren("*","Button",true,false).OfType<Button>().Where(b=>b.Text==text).ToArray();
         var raise=Pressable("Raise");int levelBefore=growth.Level,cost=growth.NextCost,carried=growth.Stardust;float vitality=g.Player.MaxHealth;
@@ -781,7 +801,7 @@ public static class IntegrationCheck
         Check(g.Voice.Playing&&g.Voice.Stream?.ResourcePath=="res://assets/audio/voice/ja/Mio/Homecoming.6.mp3","the homecoming voices Mio under its own scene key");
         await Tap(Key.Escape);Check(g.Mode==GameMode.Playing&&!g.Voice.Playing,"escape skips the rest of a scene and silences its voice");
         if(DisplayServer.GetName()!="headless"){g.SaveScreenshot("res://artifacts/mission-complete.png");await Frames(5);}
-        var chaser=g.Enemies.First(e=>e.Scout&&!e.Dead);chaser.SetPhysicsProcess(true);Place(g.Player,chaser.GlobalPosition+Vector3.Back*6);await Frames(30);
+        var chaser=g.Enemies.First(e=>e.Kind==Enemy.Scout&&!e.Dead);chaser.SetPhysicsProcess(true);Place(g.Player,chaser.GlobalPosition+Vector3.Back*6);await Frames(30);
         Check(chaser.State=="PURSUE"&&g.Music.Current=="battle","a scout after Mio brings in the battle music");g.SetPaused(true);
         g.Restart();Check(g.QuestStage==0&&g.Enemies.All(e=>!e.Dead)&&g.Player.Health==100,"restart restores a fresh playable mission");chaser.SetPhysicsProcess(false);
         Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Intro),"restarting the prologue replays its opening scene");
