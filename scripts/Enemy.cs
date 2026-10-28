@@ -1,9 +1,9 @@
 using Godot;
 namespace Hoshikawa;
 
-// A kind of robot: its health, its strike as a share of a patrol's, its model's scale, how far its patrol loop reaches as a share of a
-// patrol's, and the stardust it leaves Mio. A flying one has no legs and holds its body over the ground on a thruster.
-public record RobotKind(string Name,float Health,float Strike,float Size,float Roam,int Reward,bool Flies=false);
+// A kind of robot: its model (assets/models/<Model>.glb), its health, its strike as a share of a patrol's, its model's scale, how far its
+// patrol loop reaches as a share of a patrol's, and the stardust it leaves Mio. A flying one holds its body over the ground on its rotor.
+public record RobotKind(string Name,string Model,float Health,float Strike,float Size,float Roam,int Reward,bool Flies=false);
 public partial class Enemy : CharacterBody3D
 {
     // Robot combat tuning, all in one place. Mio's sword only scratches the plating, a robot's strike nearly fells her,
@@ -12,12 +12,10 @@ public partial class Enemy : CharacterBody3D
     // The patrols are the three the relay mission counts. Scouts are smaller, weaker and keep closer to home. Drones are the easy ones,
     // stardust to level on: a full combo of the sword shuts one down, each hit knocks it off its swing, and it never winds up the perilous sweep.
     // A new kind is a row here and its homes in World.
-    public static readonly RobotKind Patrol=new("Patrol",500,1,1.12f,1,Stats.PatrolReward),Scout=new("Scout",300,.6f,.86f,.5f,Stats.ScoutReward),
-        Drone=new("Drone",6,.3f,.55f,.6f,Stats.DroneReward,true);
-    // A flyer's origin keeps Hover over the ground, bobbing, and carries its model Lift higher, its body where a patrol's chest would be.
-    public const float Hover=.1f,Lift=.6f;
-    private static readonly string[] Legs={"Thigh","Knee","Greave","Robot foot"};
-    private static readonly Color Amber=new("ffa552");
+    public static readonly RobotKind Patrol=new("Patrol","patrol",500,1,1.12f,1,Stats.PatrolReward),Scout=new("Scout","patrol",300,.6f,.86f,.5f,Stats.ScoutReward),
+        Drone=new("Drone","drone",6,.3f,.7f,.6f,Stats.DroneReward,true);
+    // A flyer's origin keeps Hover over the ground, bobbing, and carries its model Lift higher, its body at Mio's chest; its halo spins at Spin radians a second.
+    public const float Hover=.1f,Lift=.75f,Spin=14;
     public Game Game=null!;
     public Vector3 Home;
     public int Index;
@@ -27,6 +25,7 @@ public partial class Enemy : CharacterBody3D
     public bool Dead=>Health<=0;
     public bool Broken=>broken>0&&!Dead;
     public bool Stunned=>stunned>0&&!Dead;
+    public bool Staggered=>stagger>0&&!Dead;
     public Vector3 Forward=>new(Mathf.Sin(Model.Rotation.Y),0,Mathf.Cos(Model.Rotation.Y));
     public bool Perilous {get;private set;}
     public string State {get;private set;}="PATROL";
@@ -37,8 +36,8 @@ public partial class Enemy : CharacterBody3D
     private Label3D marker=null!;
     private Sprite3D badge=null!,badgeShade=null!;
     private CpuParticles3D crackle=null!;
-    private Node3D? thruster;
-    private Tween? fall;
+    private Node3D? rotor;
+    private Tween? fall,knock;
     private float clock,attackTimer,recovery,broken,stagger,stunned;
     private bool attacking,struck;
     private int swings;
@@ -46,19 +45,9 @@ public partial class Enemy : CharacterBody3D
     public override void _Ready()
     {
         Name=Kind.Name+"_"+Index;Health=MaxHealth;CollisionLayer=4;CollisionMask=1|2|4;FloorSnapLength=.5f;
-        AddChild(new CollisionShape3D {Position=new(0,Kind.Flies?1.3f:1,0),Shape=Kind.Flies?new SphereShape3D {Radius=.4f}:new CapsuleShape3D {Radius=.38f,Height=2}});
-        Model=GD.Load<PackedScene>("res://assets/models/patrol.glb").Instantiate<Node3D>();AddChild(Model);Model.Scale=Vector3.One*Kind.Size;
-        if(Kind.Flies)
-        {
-            MotionMode=MotionModeEnum.Floating;Model.Position=Vector3.Up*Lift;
-            foreach(var part in ActorVisual.Descendants(Model).OfType<MeshInstance3D>().Where(m=>Legs.Any(m.Name.ToString().Contains)))part.Visible=false;
-            // An amber glow under its pelvis and a jet streaming down from it, left behind as it moves.
-            thruster=new Node3D {Name="Thruster",Position=new(0,Lift+.42f,0)};AddChild(thruster);
-            var glow=World.Mesh(thruster,"Thruster glow",new QuadMesh(),Vector3.Zero,Game.Fx(Amber,1.6f,Game.Soft,true));glow.Scale=Vector3.One*.35f;glow.CastShadow=GeometryInstance3D.ShadowCastingSetting.Off;
-            thruster.AddChild(new CpuParticles3D {Name="Thruster jet",Amount=10,Lifetime=.3,LocalCoords=false,Mesh=new SphereMesh {Radius=.02f,Height=.04f,RadialSegments=6,Rings=3},
-                MaterialOverride=Game.Fx(Amber,2.5f),Direction=Vector3.Down,Spread=12,InitialVelocityMin=1.5f,InitialVelocityMax=2.5f,Gravity=Vector3.Zero,ColorRamp=Game.Cool,
-                CastShadow=GeometryInstance3D.ShadowCastingSetting.Off});
-        }
+        AddChild(new CollisionShape3D {Position=new(0,Kind.Flies?1.1f:1,0),Shape=Kind.Flies?new SphereShape3D {Radius=.4f}:new CapsuleShape3D {Radius=.38f,Height=2}});
+        Model=GD.Load<PackedScene>($"res://assets/models/{Kind.Model}.glb").Instantiate<Node3D>();AddChild(Model);Model.Scale=Vector3.One*Kind.Size;
+        if(Kind.Flies){MotionMode=MotionModeEnum.Floating;Model.Position=Vector3.Up*Lift;rotor=Model.FindChild("Rotor") as Node3D;}
         Visual=new ActorVisual();AddChild(Visual);Visual.Bind(Model);Visual.Play("walk");
         marker=World.Label(this,"",new(0,2.8f,0),World.Gold,38);clock=Index*2;
         // The shade, a little larger and drawn first, keeps the tinted icon readable against the sky.
@@ -74,7 +63,7 @@ public partial class Enemy : CharacterBody3D
     {
         if(crackle.Emitting!=Stunned)crackle.Emitting=Stunned;
         if(Game.Mode!=GameMode.Playing||Dead)return;
-        float dt=(float)delta;clock+=dt;recovery=Math.Max(0,recovery-dt);stagger=Math.Max(0,stagger-dt);
+        float dt=(float)delta;clock+=dt;rotor?.RotateY(Spin*dt);recovery=Math.Max(0,recovery-dt);stagger=Math.Max(0,stagger-dt);
         var to=Game.Player.GlobalPosition-GlobalPosition;float distance=new Vector2(to.X,to.Z).Length();to.Y=0;
         Vector3 movement=Vector3.Zero;
         if(broken>0)
@@ -161,7 +150,13 @@ public partial class Enemy : CharacterBody3D
             Game.Flash("posture_break",World.Gold);
         }
         else if(damage==0||Kind.Flies)
-        {stagger=.22f;attacking=false;recovery=.6f;Visual.Play("stagger",1.6f,true);}
+        {stagger=.22f;attacking=false;recovery=.6f;Visual.Play("stagger",1.6f,true);if(Kind.Flies)Knock();}
+    }
+    // A drone has no clips: a blow tips it back on its rotor and it rights itself.
+    private void Knock()
+    {
+        knock?.Kill();knock=CreateTween();
+        knock.TweenProperty(Model,"rotation:x",-.45f,.07f);knock.TweenProperty(Model,"rotation:x",0f,.25f).SetTrans(Tween.TransitionType.Sine);
     }
     // The plating flares for a moment when struck, held through the hit-stop, which slows everything but this.
     public void Blink(Color c)
@@ -175,14 +170,18 @@ public partial class Enemy : CharacterBody3D
         if(State=="DEFEATED")return;
         Health=0;State="DEFEATED";marker.Text="";ShowBadge("");CollisionLayer=0;CollisionMask=0;
         Visual.Play("death",1.5f,true);Game.Sound("break");
-        // A drone's thruster cuts out and it drops to lie on the ground.
-        if(thruster!=null){thruster.Visible=false;fall=CreateTween();fall.TweenProperty(Model,"position:y",.12f,.45f).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.In);}
+        // A drone's rotor stops and it drops onto its prong, tipping forward.
+        if(Kind.Flies)
+        {
+            knock?.Kill();fall=CreateTween().SetParallel().SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.In);
+            fall.TweenProperty(Model,"position:y",World.Height(GlobalPosition.X,GlobalPosition.Z)-GlobalPosition.Y,.45f);fall.TweenProperty(Model,"rotation:x",.5f,.45f);
+        }
         Game.FloatingNumber(GlobalPosition+Vector3.Up*2,"DISABLED",World.Jade);Game.OnEnemyDefeated(this);
     }
     public void Reset()
     {
         GlobalPosition=Home+Vector3.Up*.15f;Velocity=Vector3.Zero;Health=MaxHealth;Posture=0;broken=attackTimer=recovery=stagger=stunned=0;
         attacking=struck=false;swings=0;CollisionLayer=4;CollisionMask=1|2|4;State="PATROL";marker.Text="";ShowBadge("");Visual.Play("idle",1,true);
-        if(thruster!=null){fall?.Kill();thruster.Visible=true;Model.Position=Vector3.Up*Lift;}
+        if(Kind.Flies){fall?.Kill();knock?.Kill();Model.Position=Vector3.Up*Lift;Model.Rotation=Model.Rotation with {X=0};}
     }
 }

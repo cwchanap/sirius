@@ -213,8 +213,9 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 ## Drones
 
 - [x] A third kind of robot to level on: five small flying drones (`Enemy.Drone`, a `RobotKind` row beside the patrol and the scout) over the relay road's switchback, forest valley and high road. A legless half-size `patrol.glb` on an amber thruster; 6 health, so a full combo shuts one down from the front, each hit knocks it off its swing, strikes at 30% of a patrol's and never perilous; 25 stardust; back after a rest like the scouts.
-- [ ] Art: a drone model of its own (Tripo), in place of the legless patrol.
-- [ ] Sound: a thruster hum (ElevenLabs).
+- [x] Art: a drone model of its own, in place of the legless patrol: the owner's Tripo Studio model from Codex four-views (`drone.glb`, static), its halo split off as a `Rotor` that spins in flight; struck it tips back, shut down it drops onto its prong.
+- [x] A new robot for the patrols and scouts: the owner's rigged Tripo Studio model from Codex four-views (`patrol.glb`), its seven clips keyed by `tools/patrol_clips.py`; the authored Blender robot and `tools/build_characters.py` are gone.
+- [ ] Sound: a rotor hum (ElevenLabs).
 - [ ] Number tuning after hands-on play.
 
 ## Languages: Japanese and Traditional Chinese
