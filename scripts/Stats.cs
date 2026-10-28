@@ -14,7 +14,7 @@ public static class Stats
     };
     public static Stat Get(string id)=>All.Single(s=>s.Id==id);
     // Stardust a shut-down robot leaves Mio, and what the next level costs at each level.
-    public const int PatrolReward=150,ScoutReward=60,FirstCost=100,CostStep=50;
+    public const int PatrolReward=150,ScoutReward=60,DroneReward=25,FirstCost=100,CostStep=50;
     public static int Cost(int level)=>FirstCost+CostStep*(level-1);
     // Running spends SP each second; it comes back once she has stopped running a moment. Run dry, she cannot run again until it is back to Winded's share.
     public const float RunCost=20,Regen=40,RegenDelay=.5f,Winded=.3f;

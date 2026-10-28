@@ -18,4 +18,25 @@ public class CombatTest
         AssertThat(Enemy.Behind(forward,robot,robot+new Vector3(2,0,-.5f))).IsFalse();
         AssertThat(Enemy.Behind(forward,robot,robot+Vector3.Up)).IsFalse();
     }
+    // Drones are the easy ones to level on: a full three-swing combo shuts one down, and each strikes, pays and is sized below a scout.
+    [TestCase]
+    public void DronesAreTheEasiestRobots()
+    {
+        AssertThat(Enemy.Drone.Health).IsLessEqual(Enemy.SwordDamage*Player.Swings.Length);
+        AssertThat(Enemy.Drone.Strike).IsLess(Enemy.Scout.Strike);
+        AssertThat(Enemy.Drone.Size).IsLess(Enemy.Scout.Size);
+        AssertThat(Enemy.Drone.Reward).IsGreater(0).IsLess(Enemy.Scout.Reward);
+        AssertThat(Enemy.Drone.Flies).IsTrue();
+    }
+    // Each drone hovers over a trail floor on the relay road, more than 16 m from every patrol and scout, so Mio fights it alone.
+    [TestCase]
+    public void DronesHoverOverTheRoadAwayFromTheOtherRobots()
+    {
+        foreach(var home in World.DroneHomes)
+        {
+            AssertThat(World.RegionAt(new(home.X,0,home.Y))).IsEqual("Old Relay Road");
+            AssertThat(World.RelayEdge(home.X,home.Y)).IsLess(-1);
+            AssertThat(World.PatrolHomes.Concat(World.ScoutHomes).Min(other=>other.DistanceTo(home))).IsGreater(16);
+        }
+    }
 }

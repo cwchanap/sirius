@@ -143,11 +143,11 @@ public partial class Hud : Control
         if(Game.QuestStage==1)foreach(var patrol in Game.Patrols){DrawIcon("sirius",new(x+12,47),28,patrol.Dead?new Color(cream,.22f):crest);x+=28;}
         if(Game.QuestStage<4)Text(F("{0} m",(int)Game.Player.GlobalPosition.DistanceTo(Game.ObjectivePosition)),new(x+8,53),12,muted);
     }
-    // The nearest robot: its crest (a scout's smaller), health and posture, and the TAB key until it is locked on.
+    // The nearest robot: its crest (smaller for a smaller robot), health and posture, and the TAB key until it is locked on.
     private void Target(Enemy e)
     {
         float x=w/2-175,bars=Game.Locked==e?286:236;Panel(new(x,70,350,44),.8f);
-        DrawIcon("sirius",new(x+24,92),e.Scout?26:34,crest);
+        DrawIcon("sirius",new(x+24,92),30*e.Kind.Size,crest);
         Bar(new(x+48,83),new(bars,7),e.Health/e.MaxHealth,new("d48568"));
         Bar(new(x+48,96),new(bars,4),e.Posture/100,gold);
         if(Game.Locked!=e)Keycap("TAB",new(x+296,81),11);

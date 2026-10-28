@@ -82,8 +82,10 @@ public partial class World
     public static readonly (string Name,Vector2 At,Vector3 Size,float Yaw,string Style) OldTeahouse=("Old Teahouse",new(12,-59.5f),new(8,4.03f,7),0,"teahouse");
     public Vector3 RelayPosition=>new(-6,Height(-6,-167),-167);
     // The three patrols guard the junction, the teahouse terrace and the relay plaza. The scouts watch the forest valley, the quarry,
-    // the switchback's hairpin and the high road.
-    public static readonly Vector2[] PatrolHomes={new(2,-30),new(21,-54),new(4,-160)},ScoutHomes={new(-10,-68),new(-32,-131),new(44,-36),new(28,-100)};
+    // the switchback's hairpin and the high road. The drones hover over the switchback's foot, the forest valley and the high road,
+    // each over 16 m from any patrol or scout, so Mio can take one on alone.
+    public static readonly Vector2[] PatrolHomes={new(2,-30),new(21,-54),new(4,-160)},ScoutHomes={new(-10,-68),new(-32,-131),new(44,-36),new(28,-100)},
+        DroneHomes={new(27,-27),new(-11,-50),new(2,-85),new(6,-107),new(26,-80)};
     private void RelayRoad()
     {
         // The relay road's own scatter, so nothing it places moves the countryside's or the valley's.
