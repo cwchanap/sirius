@@ -706,24 +706,25 @@ public static class IntegrationCheck
         var scout=g.Enemies.First(e=>e.Kind==Enemy.Scout);g.Player.Health=100;g.Player.Invulnerable=0;
         Check(scout.Health==scout.MaxHealth&&scout.MaxHealth<opponent.MaxHealth&&scout.Model.Scale.X<opponent.Model.Scale.X&&g.Player.ReceiveHit(scout,true)=="hit"&&g.Player.Health==100-scout.Strike(true)&&scout.Strike(true)<opponent.Strike(true),
             $"scouts are smaller, weaker and strike lighter than the patrols ({100-g.Player.Health:F1} damage)");
-        // Drones: legless patrol models on a thruster, holding their height over the ground as they patrol; a full combo of the sword shuts one down.
-        var drone=g.Enemies.First(e=>e.Kind==Enemy.Drone);var thruster=drone.GetNode<Node3D>("Thruster");
-        var greaves=ActorVisual.Descendants(drone.Model).OfType<MeshInstance3D>().Where(m=>m.Name.ToString().Contains("Greave")).ToArray();
-        Check(drone.MaxHealth<scout.MaxHealth&&drone.Model.Scale.X<scout.Model.Scale.X&&drone.Strike(false)<scout.Strike(false)&&greaves.Length==2&&greaves.All(m=>!m.Visible)&&thruster.GetNode<CpuParticles3D>("Thruster jet").Emitting,
-            "drones are legless patrol models on a firing thruster, smaller, weaker and lighter-hitting than the scouts");
+        // Drones: their own model on a spinning halo rotor, holding their height over the ground as they patrol; a full combo of the sword shuts one down.
+        var drone=g.Enemies.First(e=>e.Kind==Enemy.Drone);var rotor=drone.Model.FindChild("Rotor") as Node3D;
+        Check(drone.MaxHealth<scout.MaxHealth&&drone.Model.Scale.X<scout.Model.Scale.X&&drone.Strike(false)<scout.Strike(false)&&rotor!=null&&!ActorVisual.Descendants(drone.Model).OfType<Skeleton3D>().Any(),
+            "drones are their own rotor model, smaller, weaker and lighter-hitting than the scouts");
         float Hover(Enemy e)=>e.GlobalPosition.Y-Hoshikawa.World.Height(e.GlobalPosition.X,e.GlobalPosition.Z);
-        drone.SetPhysicsProcess(true);Place(g.Player,new(0,0,30));before=drone.GlobalPosition;await Frames(60);
-        Check(drone.State=="PATROL"&&drone.GlobalPosition.DistanceTo(before)>.4f&&Math.Abs(Hover(drone)-Enemy.Hover)<.12f&&drone.Model.Position.Y==Enemy.Lift,
-            $"a drone patrols its loop holding its height over the ground ({Hover(drone):F2} m) and its body over that");
+        drone.SetPhysicsProcess(true);Place(g.Player,new(0,0,30));before=drone.GlobalPosition;var spin=rotor!.Basis;await Frames(60);
+        Check(drone.State=="PATROL"&&drone.GlobalPosition.DistanceTo(before)>.4f&&Math.Abs(Hover(drone)-Enemy.Hover)<.12f&&drone.Model.Position.Y==Enemy.Lift&&!rotor.Basis.IsEqualApprox(spin),
+            $"a drone patrols its loop holding its height over the ground ({Hover(drone):F2} m) and its body over that, its rotor turning");
         drone.SetPhysicsProcess(false);Place(g.Player,spot);drone.GlobalPosition=spot+Vector3.Forward*2;drone.Model.Rotation=Vector3.Zero;g.Player.Model.Rotation=new(0,Mathf.Pi,0);await Frames(12);
         purse=g.Player.Growth.Stardust;int hits=0;bool knocked=true;float left=drone.Health;
         for(int i=0;i<90&&!drone.Dead;i++)
         {
             if(i%10==0)await Press("attack");else await Frames(1);
-            if(drone.Health<left){hits++;left=drone.Health;knocked&=drone.Dead||drone.Visual.Animator!.CurrentAnimation.ToString().Contains("stagger");}
+            if(drone.Health<left){hits++;left=drone.Health;knocked&=drone.Dead||drone.Staggered;}
         }
         Check(drone.Dead&&hits==3&&knocked&&g.Player.Growth.Stardust==purse+Stats.DroneReward,$"three sword hits from the front shut a drone down, each knocking it off its swing, for {Stats.DroneReward} stardust");
-        await Frames(40);Check(!thruster.Visible&&drone.Model.Position.Y<.2f,"a shut-down drone's thruster cuts out and it drops to the ground");
+        drone.SetPhysicsProcess(true);await Frames(40);spin=rotor.Basis;await Frames(10);drone.SetPhysicsProcess(false);
+        Check(rotor.Basis.IsEqualApprox(spin)&&Math.Abs(drone.GlobalPosition.Y+drone.Model.Position.Y-Hoshikawa.World.Height(drone.GlobalPosition.X,drone.GlobalPosition.Z))<.02f&&drone.Model.Rotation.X>.4f,
+            "a shut-down drone's rotor stops and it drops onto the ground, tipped forward");
         // Patrol and aggro also execute their own real physics loop.
         var live=g.Enemies[0];live.Reset();live.SetPhysicsProcess(true);
         Place(g.Player,new(0,0,30));before=live.GlobalPosition;await Frames(60);
@@ -756,7 +757,7 @@ public static class IntegrationCheck
             "Hoshikawa's well is the save point, lit, its name on the prompt");
         g.Player.Health=20;g.Player.SkillCharges=0;g.Player.Stamina=0;await Tap(Key.E);
         Check(g.Mode==GameMode.Rest&&g.Player.Health==g.Player.MaxHealth&&g.Player.SkillCharges==Player.MaxSkillCharges&&!downed.Dead&&downed.GlobalPosition.DistanceTo(downed.Home)<.5f&&g.Patrols.All(e=>e.Dead)
-            &&!drone.Dead&&drone.GlobalPosition.DistanceTo(drone.Home)<.5f&&thruster.Visible&&drone.Model.Position.Y==Enemy.Lift,
+            &&!drone.Dead&&drone.GlobalPosition.DistanceTo(drone.Home)<.5f&&drone.Model.Position.Y==Enemy.Lift&&drone.Model.Rotation.X==0,
             "E at the save point rests Mio and opens its screen; the scout and the drone she shut down are back home, the drone aloft, the patrols stay down");
         still=g.Player.GlobalPosition;Hold("forward");await Frames(10);Release("forward");Check(g.Player.GlobalPosition==still,"play stays frozen under the save point's screen");
         Button[] Pressable(string text)=>g.Hud.FindChildren("*","Button",true,false).OfType<Button>().Where(b=>b.Text==text).ToArray();

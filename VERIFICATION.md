@@ -1,5 +1,16 @@
 # MVP verification
 
+## The owner's patrol robot and drone, with keyed clips — 2026-10-28
+
+The owner built a new patrol robot and a drone in Tripo Studio from Codex four-views, rigged the robot without clips, and asked for them wired in with animations made here.
+
+- **Import:** `tools/import_tripo_patrol.py` and `tools/import_tripo_drone.py` in background Blender 4.0.2 in the cloud container, from GLBs exported on the Mac out of her Blender scenes. `patrol.glb`: 65 bones, 38,927 triangles, 2048 px maps, 1.83 m, seven clips. `drone.glb`: no skeleton, 35,299 triangles, 1024 px maps, 1 m, its halo split into a `Rotor` mesh (10,165 triangles).
+- **Clips:** `tools/patrol_clips.py` keys idle, walk, run, guard (the windup, baton overhead), attack2 (the strike), stagger and death (to a slumped kneel) from per-bone poses, feet kept level, baked at 24 fps. Judged from its Blender contact sheets and from `tools/review_patrol.gd` (new) in the game under Mesa software Vulkan: five frames of each clip from the front and one from the side. Shapes only.
+- **Code:** a `RobotKind` names its model; patrols and scouts share `patrol.glb`, the drone uses `drone.glb`, spins its rotor in flight, tips back on a hit and, shut down, drops to the ground tipped forward with its rotor still. The legless patrol and its amber thruster are gone, and so is `tools/build_characters.py`, which built the old robot.
+- **Self-test:** **621 checks pass headless** in `en`, `ja` and `zh_TW` (cloud container, Godot 4.6.2 mono). Changed: the drone is its own rotor model with no skeleton; its rotor turns as it patrols; shut down, the rotor stops and it lies on the ground tipped forward; a rest rights it.
+- **Unit tests:** 56 pass. **E2E:** 4 pass, both in the cloud container.
+- **Not yet:** no Metal run, and nobody has played against the new clips, so their timing against `Enemy.cs`'s windup and strike is unchecked by hand.
+
 ## Drones: small flying robots to level on — 2026-10-28
 
 The owner asked for a new kind of enemy, a mini-patrol flying robot, easy to kill so Mio can level up on it.
