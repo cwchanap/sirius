@@ -782,16 +782,10 @@ public static class IntegrationCheck
             $"a point of ATK makes the sword bite {growth.Scale("atk"):F1} times as hard");
         g.Player.Health=g.Player.MaxHealth;g.Player.Invulnerable=0;g.Player.Stun=0;hp=g.Player.Health;g.Player.ReceiveHit(dummy,false);
         Check(Math.Abs(hp-g.Player.Health-dummy.Strike(false)/growth.Scale("def"))<.001f&&hp-g.Player.Health<dummy.Strike(false),$"a point of DEF takes {dummy.Strike(false)-(hp-g.Player.Health):F1} off a scout's strike");
-        // Falling, Mio leaves the stardust she carries where she fell, and touching it there takes it back; falling again first loses it.
-        await Frames(50);growth.Stardust=300;g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;var fell=g.Player.GlobalPosition;g.Player.ReceiveHit(dummy,false);
-        var mark=g.GetNode<Node3D>("Dropped stardust");
-        Check(g.Mode==GameMode.Defeated&&growth.Stardust==0&&g.Dropped is {Amount:300} drop&&drop.At.DistanceTo(fell)<.1f&&mark.Visible&&mark.GlobalPosition.DistanceTo(fell)<.1f,"falling, Mio leaves her 300 stardust glowing where she fell");
-        g.Retry();await Frames(5);Check(g.Dropped?.Amount==300&&growth.Stardust==0&&mark.Visible,"recovering at the village leaves it there");
-        Place(g.Player,fell+Vector3.Back*4);await Frames(10);await WalkTo(new(fell.X,fell.Z),false);await Frames(2);
-        Check(growth.Stardust==300&&g.Dropped==null&&!mark.Visible&&g.ToastTitle=="STARDUST RECOVERED","walking back to where she fell takes it back");
-        g.Die();g.Retry();g.Earn(40);g.Die();
-        Check(g.Dropped?.Amount==40&&g.Dropped.Value.At.DistanceTo(g.Player.GlobalPosition)<.1f,"falling again before she goes back for it loses the first, and leaves the second");
-        g.Retry();await Frames(5);growth.Reset();g.Player.Rest();dummy.Reset();
+        // Falling costs Mio nothing she carries: the stardust stays in her purse, through the defeat and the recovery at the village.
+        await Frames(50);growth.Stardust=300;g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(dummy,false);
+        bool defeated=g.Mode==GameMode.Defeated&&growth.Stardust==300;g.Retry();await Frames(5);
+        Check(defeated&&growth.Stardust==300,"falling, and recovering at the village, Mio keeps her 300 stardust");growth.Reset();g.Player.Rest();dummy.Reset();
         Place(g.Player,g.World.RelayPosition+Vector3.Back*2);g.Interact();
         Check(g.QuestStage==3&&g.Speaker=="Zero","relay activation contacts remote Zero");g.Mode=GameMode.Playing;
         Place(g.Player,g.World.Residents[0].Body.GlobalPosition+Vector3.Back*2);await Frames(60);g.Interact();
@@ -833,7 +827,7 @@ public static class IntegrationCheck
                 ("Quit game",17,278),("Quit",17,78),("WASD  Move      SHIFT  Run      SPACE  Jump",13,334),("LMB / J  Attack     RMB / K  Guard & deflect",13,334),
                 ("CTRL / ALT  Dodge     TAB  Lock     Q  Skill",13,334),("E  Interact    H  Remedy    I  Items    ESC  Pause",12,334),
                 ("Items",17,278),("Settings",17,278),("Use",17,138),("Back",17,138),("Supplies",13,378),("Key items",13,378),("The train with no passengers",19,360),
-                ("Raise",15,68),("Buy",15,68),("Trade",13,340),("Level {0}",13,300),("{0} stardust lies where Mio fell",17,640),
+                ("Raise",15,68),("Buy",15,68),("Trade",13,340),("Level {0}",13,300),
                 ("Speak to Ren at the workshop",17,340),("Clear the old relay road",17,340),("Restart the manual relay",17,340),("Return to Ren in Hoshikawa",17,340),("Evacuation route secured",17,340)};
             var overflow=tight.Where(t=>Width(t.Text,t.Size)>t.Room).Select(t=>t.Text).ToArray();
             Check(overflow.Length==0,$"{name}: every menu, control and panel string fits its fixed box {string.Join(" | ",overflow)}");

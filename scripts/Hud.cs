@@ -127,8 +127,6 @@ public partial class Hud : Control
             DrawRect(new(0,0,w,h),new Color(.025f,.055f,.067f,.77f));
             Center(T(Game.Mode==GameMode.Paused?"A moment of quiet":"The light has not gone out"),h*.28f,39,cream,true);
             if(Game.Mode==GameMode.Paused)Controls(w/2+205,h*.40f);else Keycap("R",new(w/2-206,h*.43f+14),14);
-            if(Game.Mode==GameMode.Defeated&&Game.Dropped is {} drop)
-            {string left=F("{0} stardust lies where Mio fell",drop.Amount);Center(left,h*.36f,17,cream);Star(new((w-font.GetStringSize(left,fontSize:17).X)/2-16,h*.36f-6),8,gold);}
         }
         if(Game.Mode==GameMode.Inventory){DrawRect(new(0,0,w,h),new Color(.025f,.055f,.067f,.77f));Inventory();Vitals();Wallet();}
         if(settings){DrawRect(new(0,0,w,h),new Color(.025f,.055f,.067f,.77f));Settings();}
@@ -319,7 +317,6 @@ public partial class Hud : Control
         {var p=Map(n.Body.Position);if(p.Length()<r-3)DrawCircle(center+p,2,jade);}
         foreach(var e in Game.Enemies.Where(e=>!e.Dead))
         {var p=Map(e.GlobalPosition);if(p.Length()<r-4)DrawCircle(center+p,3,new("e58b66"));}
-        if(Game.Dropped is {} drop&&Map(drop.At) is var left&&left.Length()<r-5)Star(center+left,6,gold);
         DrawCircle(center,4,cream);DrawLine(center,center+new Vector2(-Mathf.Sin(Game.CameraYaw),-Mathf.Cos(Game.CameraYaw))*10,cream,2);
         if(Game.QuestStage<4)Diamond(center+Map(Game.ObjectivePosition).LimitLength(r-9),4,gold);
         var link=center+new Vector2(-60,60);DrawCircle(link,17,new Color(ink,.95f));DrawArc(link,17,0,Mathf.Tau,32,new Color(jade,.6f),1);DrawIcon("zero",link,30,jade);

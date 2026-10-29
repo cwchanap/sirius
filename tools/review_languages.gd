@@ -100,7 +100,7 @@ func capture():
 	game.get("Hud").call("Select","cell")
 	await shot(game,"items-cell",false)
 	game.call("ShowItems",false)
-	# The save point: its prompt at Hoshikawa's well and its screen, with stardust for a level and a cell; then a fall that leaves the stardust behind.
+	# The save point: its prompt at Hoshikawa's well and its screen, with stardust for a level and a cell; then a fall.
 	var well=game.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(-1.2,20,24),Vector3(-1.2,-30,24),1))
 	player.global_position=well.position+Vector3(0,.1,0)
 	game.call("Earn",420)
@@ -111,7 +111,7 @@ func capture():
 	await shot(game,"savepoint",false)
 	game.call("LeaveRest")
 	game.call("Die")
-	await shot(game,"defeated-stardust",false)
+	await shot(game,"defeated",false)
 	game.call("Retry")
 	await talk(game,"Nao",[["nao-usual",0]])
 	game.call("EndDialogue")
