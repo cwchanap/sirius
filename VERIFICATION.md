@@ -1,5 +1,13 @@
 # MVP verification
 
+## Stardust is kept through a defeat — 2026-10-29
+
+The owner asked to remove the death penalty so the money stays with the player. `Game.Die()` now only enters the defeat screen; the dropped marker, the pickup on touch, the toast, the defeat-screen line and the minimap star are gone, and so are their two translated strings. The 2026-10-25 entry below describes the drop as it was verified then.
+
+- **Self-test:** **618 checks pass headless** in `en`, `ja` and `zh_TW` (cloud container, Godot 4.6.2 mono). Four drop-and-recover checks became one: after a fall and the recovery at the village, Mio still has her 300 stardust. The language checks no longer measure the removed line.
+- **Unit tests:** 56 pass. **E2E:** passed in CI on the pull request.
+- **Not yet:** no Metal run, so the defeat screen without its stardust line has not been seen on screen.
+
 ## The owner's patrol robot and drone, with keyed clips — 2026-10-28
 
 The owner built a new patrol robot and a drone in Tripo Studio from Codex four-views, rigged the robot without clips, and asked for them wired in with animations made here.
@@ -46,8 +54,8 @@ The owner asked for a settings sub-menu to adjust the sound volume separately fo
 
 The owner asked for one Souls-like currency for level-ups and purchases, levels raised a stat at a time at a save point (Hoshikawa's the only one), and the stats HP, SP (running spends it), ATK and DEF.
 
-- **Code:** `scripts/Stats.cs` holds the stat table, every tunable (rewards 150 / 60, cost 100 + 50 per level, run drain 20 SP/s, regen 40 SP/s after 0.5 s, winded until 30%) and `Growth`; `Game.Rest()` / `GameMode.Rest` is the save point's screen at the well (`World.SavePoint`, named `World.SavePointName`); a defeat leaves the stardust purse alone (the first version dropped it at the fall; removed 2026-10-29). Items gained a `Price`; only the resonance cell has one, because remedies refill on rest.
-- **Self-test:** 617 checks pass headless in `en`, `ja` and `zh_TW` in a cloud container (590 before). New: running spends stamina, run dry Mio only walks until it is back to 30%, then runs again, and a dodge roll with Run held spends none; a shut-down patrol or scout pays its reward, once; the well is lit and its prompt names it; E rests Mio, brings back the scout she shut down but not the patrols, and freezes play under its screen; Raise buttons for every stat, Enter on one spends the level's cost and fills the stat, the cost rises, buttons disable and Back takes focus when she cannot afford anything; ATK and DEF scale a sword hit and a strike; Buy fills the resonance cells to what she can carry; a fall, and recovering at the village, keep the stardust she carries. The language checks add the new strings' widths and the new screen's redraw. The stamina drain is switched off for the long runs across the valley and checked on its own.
+- **Code:** `scripts/Stats.cs` holds the stat table, every tunable (rewards 150 / 60, cost 100 + 50 per level, run drain 20 SP/s, regen 40 SP/s after 0.5 s, winded until 30%) and `Growth`; `Game.Rest()` / `GameMode.Rest` is the save point's screen at the well (`World.SavePoint`, named `World.SavePointName`); `Game.Die()` drops the carried stardust at the fall and `Game._Process` takes it back on touch. Items gained a `Price`; only the resonance cell has one, because remedies refill on rest.
+- **Self-test:** 617 checks pass headless in `en`, `ja` and `zh_TW` in a cloud container (590 before). New: running spends stamina, run dry Mio only walks until it is back to 30%, then runs again, and a dodge roll with Run held spends none; a shut-down patrol or scout pays its reward, once; the well is lit and its prompt names it; E rests Mio, brings back the scout she shut down but not the patrols, and freezes play under its screen; Raise buttons for every stat, Enter on one spends the level's cost and fills the stat, the cost rises, buttons disable and Back takes focus when she cannot afford anything; ATK and DEF scale a sword hit and a strike; Buy fills the resonance cells to what she can carry; a fall drops the stardust where she fell, recovering at the village leaves it, walking back takes it, a second fall loses the first. The language checks add the new strings' widths and the new screen's redraw. The stamina drain is switched off for the long runs across the valley and checked on its own.
 - **Unit tests:** 54 pass (47 before): the stat table, its translations, the cost curve, `Growth.Raise` / `Buy`.
 - **Fonts:** `tools/build_fonts.py` re-cut the four subsets for the new text (the Japanese run first listed 井 戸 屑 倒 買 御 as missing); the self-test's glyph check is what caught it.
 - **Not yet:** no Metal run and nobody has played it by hand: the stamina and stardust numbers are first guesses. The stardust has no icon of its own (a star drawn in code) and the well's glow is a sprite and a light, not art; neither has a sound of its own (both borrow `heal`).
