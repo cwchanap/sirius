@@ -25,10 +25,9 @@ public partial class Game : Node3D
     public float Reveal;
     public Color FeedbackColor=Hoshikawa.World.Gold,FlashColor=Hoshikawa.World.Gold;
     public float ToastTime,FeedbackTime,FlashTime,GainTime;
-    // The stardust last earned, shown rising over the HUD's count, and what Mio left where she last fell.
+    // The stardust last earned, shown rising over the HUD's count.
     public int Gained;
-    public (Vector3 At,int Amount)? Dropped;
-    private Node3D dropMark=null!,savePointGlow=null!;
+    private Node3D savePointGlow=null!;
     public bool SelfTest;
     private Node3D cameraRig=null!;
     private SpringArm3D spring=null!;
@@ -54,13 +53,10 @@ public partial class Game : Node3D
             var p=new Vector3(homes[i].X,Hoshikawa.World.Height(homes[i].X,homes[i].Y)+.1f,homes[i].Y);
             var enemy=new Enemy {Game=this,Home=p,Position=p,Index=i+1,Kind=kind};Enemies.Add(enemy);AddChild(enemy);
         }
-        // Outside World, whose static meshes are baked: the save point's light over the well, and the stardust Mio leaves where she falls.
+        // Outside World, whose static meshes are baked: the save point's light over the well.
         var well=Hoshikawa.World.SavePoint;var mouth=new Vector3(well.X,Hoshikawa.World.Height(well.X,well.Y)+1.15f,well.Y);
         savePointGlow=Glow(this,"Save point glow",new QuadMesh(),mouth,Fx(Hoshikawa.World.Jade,1.6f,Soft,true));savePointGlow.Scale=Vector3.One*1.6f;
         AddChild(new OmniLight3D {Name="Save point light",Position=mouth,LightColor=Hoshikawa.World.Jade,LightEnergy=1.4f,OmniRange=5});
-        dropMark=new Node3D {Name="Dropped stardust",Visible=false};AddChild(dropMark);
-        Glow(dropMark,"Stardust glow",new QuadMesh(),Vector3.Up*.8f,Fx(Hoshikawa.World.Gold,2.4f,Soft,true)).Scale=Vector3.One*.9f;
-        dropMark.AddChild(new OmniLight3D {Position=Vector3.Up*.8f,LightColor=Hoshikawa.World.Gold,LightEnergy=1,OmniRange=3});
         cameraRig=new Node3D {Position=Player.Position+Vector3.Up*1.3f};AddChild(cameraRig);
         spring=new SpringArm3D {SpringLength=7.5f,Margin=.25f,CollisionMask=1|Hoshikawa.World.CameraLayer,Shape=new SphereShape3D {Radius=.2f}};cameraRig.AddChild(spring);
         Camera=new Camera3D {Fov=59,Near=.08f,Far=260,Current=true};spring.AddChild(Camera);
@@ -129,8 +125,6 @@ public partial class Game : Node3D
         if(Mode==GameMode.Playing)
         {
             ToastTime=Math.Max(0,ToastTime-dt);FeedbackTime=Math.Max(0,FeedbackTime-dt);FlashTime=Math.Max(0,FlashTime-dt);GainTime=Math.Max(0,GainTime-dt);
-            if(Dropped is {} drop&&drop.At.DistanceTo(Player.GlobalPosition)<1.6f)
-            {Earn(drop.Amount);Dropped=null;dropMark.Visible=false;Toast("STARDUST RECOVERED",seconds:3,icon:Hud.StardustIcon);}
             if(Region!=previousRegion)
             {
                 previousRegion=Region;Toast(Region.ToUpperInvariant(),seconds:3.5f);
@@ -176,13 +170,7 @@ public partial class Game : Node3D
     {
         foreach(var a in ActorVisual.Descendants(this).OfType<AnimationPlayer>())a.SpeedScale=freeze?0:1;
     }
-    // The stardust Mio carries stays where she falls, until she touches it again; falling again first loses it.
-    public void Die()
-    {
-        var growth=Player.Growth;Dropped=growth.Stardust>0?(Player.GlobalPosition,growth.Stardust):null;growth.Stardust=0;
-        dropMark.Visible=Dropped!=null;if(Dropped is {} drop)dropMark.GlobalPosition=drop.At;
-        Mode=GameMode.Defeated;Input.MouseMode=Input.MouseModeEnum.Visible;Hud.RefreshMenu();
-    }
+    public void Die(){Mode=GameMode.Defeated;Input.MouseMode=Input.MouseModeEnum.Visible;Hud.RefreshMenu();}
     public void Retry()
     {
         Player.Respawn();Locked=null;danger=0;Regroup();
@@ -193,7 +181,7 @@ public partial class Game : Node3D
         QuestStage=0;Heard.Clear();foreach(var e in Enemies)e.Reset();
         opening?.Kill();Opened.Clear();foreach(var s in World.Shortcuts)s.Swing(s.Closed);
         foreach(var pickup in World.Pickups)pickup.Node.Visible=true;Player.Inventory.Reset();
-        Player.Growth.Reset();Dropped=null;dropMark.Visible=false;
+        Player.Growth.Reset();
         Retry();Play(Prologue.Intro);
     }
     // Recovering at the village or resting at the save point sends every robot home and brings back the scouts and drones Mio shut down;

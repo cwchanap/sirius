@@ -205,7 +205,7 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 
 ## Stardust, levels and the save point
 
-- [x] One currency, stardust, from robots shut down; dropped where Mio falls and taken back by touching it. The Starwell (Hoshikawa's well) is the one save point: rest, raise HP / SP / ATK / DEF a point each for a rising cost, and buy resonance cells. Running spends SP. All numbers in `scripts/Stats.cs`.
+- [x] One currency, stardust, from robots shut down, kept through a defeat. The Starwell (Hoshikawa's well) is the one save point: rest, raise HP / SP / ATK / DEF a point each for a rising cost, and buy resonance cells. Running spends SP. All numbers in `scripts/Stats.cs`.
 - [ ] Art: a stardust icon and the save point's own glow or model (Codex); the HUD draws a star in code for now.
 - [ ] Sound: a stardust pickup and a level-up cue (ElevenLabs); both borrow `heal` for now.
 - [ ] More stats, more shop items and more save points as the map grows; each is a table row.
