@@ -75,7 +75,7 @@ public partial class Game : Node3D
         if(args.Contains("--portrait-close")){Player.GlobalPosition=new(0,.1f,23);CameraYaw=Mathf.Pi+.45f;CameraPitch=-.09f;spring.SpringLength=2.1f;Camera.Fov=37;}
         if(args.Contains("--komorebi")){Player.GlobalPosition=new(0,Hoshikawa.World.Height(0,-235)+.1f,-235);CameraPitch=-.3f;spring.SpringLength=11;}
         if(args.Contains("--pass-view")){Player.GlobalPosition=new(Hoshikawa.World.RoadX(-199),Hoshikawa.World.Height(Hoshikawa.World.RoadX(-199),-199)+.1f,-199);CameraPitch=-.27f;spring.SpringLength=10;}
-        fov=Camera.Fov;Hud.RefreshMenu();GD.Print($"HOSHIKAWA_READY buildings={World.Buildings.Count} residents={World.Residents.Count} patrols={Patrols.Count()} scouts={Enemies.Count(e=>e.Kind==Enemy.Scout)} drones={Enemies.Count(e=>e.Kind==Enemy.Drone)}");
+        Stage();fov=Camera.Fov;Hud.RefreshMenu();GD.Print($"HOSHIKAWA_READY buildings={World.Buildings.Count} residents={World.Residents.Count} patrols={Patrols.Count()} scouts={Enemies.Count(e=>e.Kind==Enemy.Scout)} drones={Enemies.Count(e=>e.Kind==Enemy.Drone)}");
     }
     // Leaving the tree only pauses a player's playback, and a stopped one, with the wav it holds, is only released on the audio
     // thread's next mix step; if the engine shuts the AudioServer down first, both leak at exit. So every player still sounding,
@@ -86,7 +86,7 @@ public partial class Game : Node3D
         Mode=GameMode.Playing;Input.MouseMode=SelfTest?Input.MouseModeEnum.Visible:Input.MouseModeEnum.Captured;
         Toast("HOSHIKAWA",seconds:5);Hud.RefreshMenu();
     }
-    public void Begin(){Start();Play(Prologue.Intro);}
+    public void Begin(){Start();Opening();}
     public override void _UnhandledInput(InputEvent e)
     {
         if(e is InputEventKey key&&key.Pressed&&!key.Echo)
@@ -144,7 +144,7 @@ public partial class Game : Node3D
         Camera.VOffset=CameraShake>0?Mathf.Cos((float)elapsed*86)*CameraShake*.15f:0;
         CameraPunch=Math.Max(0,CameraPunch-dt*3);Camera.Fov=fov-CameraPunch*CameraPunch*7;
         savePointGlow.Scale=Vector3.One*(1.6f+.15f*Mathf.Sin((float)elapsed*1.7f));
-        TintTime=Math.Max(0,TintTime-dt);
+        TintTime=Math.Max(0,TintTime-dt);Staging(dt);
         Hud.QueueRedraw();
         if(capturePath!=""&&!captured&&elapsed>6){captured=true;SaveScreenshot(capturePath);}
     }
@@ -173,7 +173,7 @@ public partial class Game : Node3D
     public void Die(){Mode=GameMode.Defeated;Input.MouseMode=Input.MouseModeEnum.Visible;Hud.RefreshMenu();}
     public void Retry()
     {
-        Player.Respawn();Locked=null;danger=0;Regroup();
+        ExitRoom();Player.Visible=true;Player.Respawn();Locked=null;danger=0;Regroup();
         CameraYaw=0;FreezeAnimations(false);Start();Toast("BACK AT THE VILLAGE");
     }
     public void Restart()
@@ -182,7 +182,7 @@ public partial class Game : Node3D
         opening?.Kill();Opened.Clear();foreach(var s in World.Shortcuts)s.Swing(s.Closed);
         foreach(var pickup in World.Pickups)pickup.Node.Visible=true;Player.Inventory.Reset();
         Player.Growth.Reset();
-        Retry();Play(Prologue.Intro);
+        Retry();PlaceYui();Opening();
     }
     // Recovering at the village or resting at the save point sends every robot home and brings back the scouts and drones Mio shut down;
     // the patrols stay down, because the mission counts them.
@@ -200,16 +200,16 @@ public partial class Game : Node3D
     public bool Buy(string id){bool bought=Player.Growth.Buy(Player.Inventory,id);if(bought)Sound("heal");Hud.RefreshMenu();return bought;}
     public void Earn(int amount){Player.Growth.Stardust+=amount;Gained=amount;GainTime=2.5f;}
     // English is what quest logic and the route tests read; the HUD shows the translated one, and counts the patrols in crests.
-    public string Objective=>QuestStage switch
+    public string Objective=>InRoom?"Head outside":QuestStage switch
     {
-        0=>"Speak to Ren at the workshop",
+        0=>"Speak to Renji at the workshop",
         1=>"Clear the old relay road",
         2=>"Restart the manual relay",
-        3=>"Return to Ren in Hoshikawa",
-        _=>"Evacuation route secured"
+        3=>"Return to Renji in Hoshikawa",
+        _=>"Signals restored"
     };
     public string ObjectiveText=>T(Objective);
-    public Vector3 ObjectivePosition=>QuestStage switch
+    public Vector3 ObjectivePosition=>InRoom?Room!.GlobalPosition+Hoshikawa.World.Door:QuestStage switch
     {
         0 or 3=>World.Residents[0].Body.GlobalPosition,
         1=>Patrols.FirstOrDefault(e=>!e.Dead)?.GlobalPosition??World.RelayPosition,
@@ -218,7 +218,8 @@ public partial class Game : Node3D
     // What E would do here, as the HUD's prompt shows it: an icon under assets/art/ui/ and what it acts on.
     public (string Icon,string Label) Interaction()
     {
-        foreach(var r in World.Residents)if(r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition)<3.1f)return ("talk",T(r.Name).ToUpperInvariant());
+        if(InRoom)return AtDoor?("",T("DOOR")):AtPhoto?("",T("PHOTO")):("","");
+        if(Nearest() is {} r)return ("talk",T(r.Name).ToUpperInvariant());
         if(World.RelayPosition.DistanceTo(Player.GlobalPosition)<3.3f)return ("repair",T("MANUAL RELAY"));
         if(AtSavePoint)return (Hud.StardustIcon,T(Hoshikawa.World.SavePointName).ToUpperInvariant());
         if(ShortcutHere()!=null)return ("ladder",T("LADDER"));
@@ -227,17 +228,20 @@ public partial class Game : Node3D
     }
     public void Interact()
     {
-        foreach(var r in World.Residents)
+        if(InRoom){if(AtDoor)LeaveRoom();else if(AtPhoto)Play(Prologue.Photo);return;}
+        if(Nearest() is {} r)
         {
-            if(r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition)>=3.1f)continue;
-            if(r.Name=="Ren")
+            if(r.Name=="Renji")
             {
-                if(QuestStage==0){QuestStage=Patrols.All(e=>e.Dead)?2:1;Toast("THE TRAIN WITH NO PASSENGERS",seconds:4);Play(Prologue.Briefing);}
-                else if(QuestStage==3){QuestStage=4;Toast("ROUTE SECURED","Chapter prologue complete · Hoshikawa is ready.",8);Sound("heal");Play(Prologue.Homecoming);NightFrom=Prologue.NightFalls;}
-                else Play(QuestStage==4?Prologue.RenRest:QuestStage==2?Prologue.RenRoadClear:Prologue.RenReminder);
+                // Yui brings the news with Mio, so she is there even if Mio skipped meeting her at the gate.
+                if(QuestStage==0){Heard.Add("Gate");PlaceYui();QuestStage=Patrols.All(e=>e.Dead)?2:1;Toast("THE TRAIN WITH NO PASSENGERS",seconds:4);Play(Prologue.Briefing);}
+                else if(QuestStage==3){QuestStage=4;Toast("SIGNALS RESTORED","Chapter prologue complete · Hoshikawa is ready.",8);Sound("heal");Play(Prologue.Homecoming);NightFrom=Prologue.NightFalls;}
+                else Play(QuestStage==4?Prologue.RenjiRest:QuestStage==2?Prologue.RenjiRoadClear:Prologue.RenjiReminder);
                 return;
             }
-            if(r.Name is "Aki" or "Emi"){Player.Rest();Sound("heal");}
+            if(r.Name=="Yui"&&!Heard.Contains("Gate")){Play(Prologue.Gate);return;}
+            if(r.Name=="Yui"&&QuestStage==0){Play(Prologue.YuiWaits);return;}
+            if(r.Name is "Chiaki" or "Emiko"){Player.Rest();Sound("heal");}
             Play(Heard.Add(r.Name)&&Prologue.FirstMeeting.TryGetValue(r.Name,out var scene)?scene:Prologue.Usual(r.Name));return;
         }
         if(World.RelayPosition.DistanceTo(Player.GlobalPosition)<3.3f)
@@ -261,10 +265,18 @@ public partial class Game : Node3D
             Sound("heal");Toast(item.Name,seconds:4,icon:item.Icon);
         }
     }
+    private (string Name,string Role,Node3D Body)? Nearest()
+    {
+        var r=World.Residents.MinBy(r=>r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition));
+        return r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition)<3.1f?r:null;
+    }
     private World.Shortcut? ShortcutHere()=>World.Shortcuts.FirstOrDefault(s=>!Opened.Contains(s.Name)&&s.From.DistanceTo(Player.GlobalPosition)<2.2f);
     private World.Pickup? PickupHere()=>World.Pickups.FirstOrDefault(p=>p.Node.Visible&&p.Node.GlobalPosition.DistanceTo(Player.GlobalPosition)<2.2f);
     public void Play(params (string Speaker,string Text)[] beats)
-    {Script.Clear();Script.AddRange(beats);scene=Prologue.SceneNames.GetValueOrDefault(beats);Beat=-1;NightFrom=-1;Mode=GameMode.Dialogue;Input.MouseMode=Input.MouseModeEnum.Visible;Advance();}
+    {
+        Release();Script.Clear();Script.AddRange(beats);scene=Prologue.SceneNames.GetValueOrDefault(beats);if(scene!=null)Heard.Add(scene);
+        Beat=-1;NightFrom=-1;Mode=GameMode.Dialogue;Input.MouseMode=Input.MouseModeEnum.Visible;Gather();Advance();
+    }
     // The first press finishes a line still typing out; the next one moves on.
     public void Advance()
     {
@@ -273,9 +285,10 @@ public partial class Game : Node3D
         Speaker=Script[Beat].Speaker;Dialogue=Line(scene,Beat,Script[Beat].Text);Reveal=0;
         var line=$"res://assets/audio/voice/ja/{Speaker}/{scene}.{Beat}.mp3";
         Voice.Stop();Voice.Stream=scene!=null&&ResourceLoader.Exists(line)?GD.Load<AudioStream>(line):null;if(Voice.Stream!=null)Voice.Play();
+        Cue($"{scene}.{Beat}");
         SpeakerRole=Speaker switch {"Mio"=>"OFFLINE RUNNER","Zero"=>"SENSORY LINK · CITY SIDE",_=>World.Residents.FirstOrDefault(r=>r.Name==Speaker).Role??""};
     }
-    public void EndDialogue(){Voice.Stop();Mode=GameMode.Playing;Input.MouseMode=SelfTest?Input.MouseModeEnum.Visible:Input.MouseModeEnum.Captured;}
+    public void EndDialogue(){Voice.Stop();Mode=GameMode.Playing;Input.MouseMode=SelfTest?Input.MouseModeEnum.Visible:Input.MouseModeEnum.Captured;Release();After(scene);}
     public void OnEnemyDefeated(Enemy enemy)
     {
         Earn(enemy.Kind.Reward);

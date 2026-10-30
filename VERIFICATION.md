@@ -1,5 +1,16 @@
 # MVP verification
 
+## A longer opening in Mio's room, Yui and Renji's Tripo models — 2026-10-30
+
+The owner asked for a longer opening: Mio waking at home and talking with Zero, more of the goal, other characters such as Yui, and the 3D characters acting each visual-novel line. The opening now plays narration over the city and the valley, the `Intro` in Mio's room (its own small map), the `Gate` scene with Yui outside her door and a rewritten briefing; the cast follows the 2026-10-23 name table. Yui's and Renji's Tripo Studio models replace the villager rig for them.
+
+- **Self-test:** **672 checks pass headless** in `en`, `ja` and `zh_TW` (cloud container, Godot 4.6.2 mono). New checks follow the opening from black, Mio asleep on her futon with her sword left behind, waking, sitting up to her terminal and rising on their beats, the scene camera cutting to her face, the tatami under her feet, the photograph and the door, the valley coming back with Yui waving at the gate, Yui running west and waiting at the workshop, her line before Renji has heard, walking on to the clinic after the briefing, and a restart that puts her back at the gate and replays the opening. Yui's and Renji's models pass the Tripo resident checks (looping four-second idle, textures, deformation, grounding, collision, still hips and feet).
+- **Unit tests:** 57 pass, among them a new one that every Mio and Zero line has its mp3 or is listed in `Prologue.Unrecorded`. `tools/build_voice.py --check`: 106 Japanese lines match `Prologue.cs`. `check_mio_export.py`: 65 bones, 18 clips, 47,980 triangles.
+- **E2E:** `just e2e` passes 4. Starting play now skips the narration and the waking scene, walks out of the door with E and skips Yui's scene; outside her door the camera faces west, so the steering test expects her to run down -X.
+- **Mac:** `mio.glb` was rebuilt there with the six new clips (`import_tripo_mio.py` under Blender 5.2, which needed `patrol_clips.py` to read an action's curves through its channel bag).
+- **Captures:** `tools/review_dialogue.gd` under xvfb and software Vulkan, shapes and framing only. They found four faults, all fixed: a cut between two shots of one scene never happened (the camera stayed on the first), Zero's emblem sat in the middle of every staged shot over the actor, the two-shot put both characters behind the portraits, and outside her door the follow camera was pushed into her house's eaves.
+- **Not yet:** no Metal run and nothing heard on speakers. About 27 of the new Mio and Zero lines have no voice (`Prologue.Unrecorded`); Yui's and Renji's portraits are the old ones.
+
 ## Stardust is kept through a defeat — 2026-10-29
 
 The owner asked to remove the death penalty so the money stays with the player. `Game.Die()` now only enters the defeat screen; the dropped marker, the pickup on touch, the toast, the defeat-screen line and the minimap star are gone, and so are their two translated strings. The 2026-10-25 entry below describes the drop as it was verified then.

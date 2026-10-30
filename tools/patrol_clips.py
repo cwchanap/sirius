@@ -161,7 +161,9 @@ def key(rig, unit, clips=None, loops=LOOPS):
                 if loc is not None:
                     pb.location = loc
                     pb.keyframe_insert('location', frame=f)
-        for curve in action.fcurves:
+        # Blender 5 keeps an action's curves only in its layers' channel bags.
+        curves = action.fcurves if hasattr(action, 'fcurves') else [c for layer in action.layers for strip in layer.strips for bag in strip.channelbags for c in bag.fcurves]
+        for curve in curves:
             for point in curve.keyframe_points:
                 point.interpolation = 'LINEAR'
         track = rig.animation_data.nla_tracks.new()
