@@ -78,7 +78,7 @@ func review():
 		await shot("eaves-"+house[0])
 	if wanted("dialogue"):
 		hud.visible=true
-		var sora=game.get("World").find_child("Sora",false,false)
+		var sora=game.get("World").find_child("Sota",false,false)
 		mio.position=sora.global_position+Vector3(0,.1,2)
 		game.set("CameraYaw",0.0)
 		game.set("CameraPitch",-.29)

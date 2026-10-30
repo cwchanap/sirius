@@ -21,7 +21,7 @@ Japanese text is data: `assets/dialogue/ja.json` holds every prologue line, keye
 
 ## Keys and the line file
 
-A key is `<Array>.<index>` into `Prologue.cs`: `Intro.1`, `Briefing.6`, `FirstMeeting.Chiyo.2`, `Komorebi.Nao.0`, `RelayGuardedTwo.0`. Indices count every beat, narration and other speakers included; a one-line scene is index 0. A resident's repeated line is the first beat of their first meeting, so it shares that key.
+A key is `<Array>.<index>` into `Prologue.cs`: `Intro.1`, `Briefing.6`, `FirstMeeting.Chiyo.2`, `Komorebi.Naomi.0`, `RelayGuardedTwo.0`. Indices count every beat, narration and other speakers included; a one-line scene is index 0. A resident's repeated line is the first beat of their first meeting, so it shares that key.
 
 ```json
 "Homecoming.8": {"speaker": "Mio", "en": "<exact English from Prologue.cs>", "ja": "<displayed Japanese>", "tts": "[softly] <spoken Japanese>"}

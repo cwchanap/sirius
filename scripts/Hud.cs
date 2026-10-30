@@ -91,17 +91,18 @@ public partial class Hud : Control
         bool settings=Game.Mode==GameMode.Settings;
         if(Game.Mode==GameMode.Title||settings&&Game.SettingsFrom==GameMode.Title){Title();if(settings){DrawRect(new(0,0,w,h),new Color(.025f,.055f,.067f,.77f));Settings();}return;}
         if(Game.Mode==GameMode.Dialogue){Dialogue();return;}
+        if(Game.Blackout>0)DrawRect(new(0,0,w,h),new Color(0,0,0,Game.Blackout));
         if(Game.TintTime>0)DrawRect(new Rect2(0,0,w,h),new Color(Game.TintColor,Game.TintColor.A*Game.TintTime/Game.TintLength));
-        Quest();Minimap();Vitals();Wallet();
+        Quest();if(!Game.InRoom)Minimap();Vitals();Wallet();
         var closest=Game.Locked??Game.Enemies.Where(e=>!e.Dead&&e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)<12).OrderBy(e=>e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)).FirstOrDefault();
         if(closest!=null)Target(closest);
         if(Game.Mode==GameMode.Playing)
         {
             var (icon,label)=Game.Interaction();
-            if(icon!="")
+            if(label!="")
             {
-                float width=font.GetStringSize(label,fontSize:18).X+108,x=(w-width)/2;Panel(new(x,h-225,width,44),.92f);
-                Keycap("E",new(x+14,h-214.4f));Mark(icon,new(x+66,h-203),30,cream);Text(label,new(x+90,h-196),18,cream);
+                float mark=icon==""?0:38,width=font.GetStringSize(label,fontSize:18).X+70+mark,x=(w-width)/2;Panel(new(x,h-225,width,44),.92f);
+                Keycap("E",new(x+14,h-214.4f));if(icon!="")Mark(icon,new(x+66,h-203),30,cream);Text(label,new(x+52+mark,h-196),18,cream);
             }
             if(Game.QuestStage<4&&!Game.Camera.IsPositionBehind(Game.ObjectivePosition))
             {
@@ -329,13 +330,16 @@ public partial class Hud : Control
     {
         bool night=Game.NightFrom>=0&&Game.Beat>=Game.NightFrom;
         DrawRect(new(0,0,w,h),night?new Color(.012f,.02f,.06f,.8f):new Color(.015f,.035f,.04f,.3f));
+        if(Game.Blackout>0)DrawRect(new(0,0,w,h),new Color(0,0,0,Game.Blackout));
         DrawTextureRect(sceneShade,new(0,h-470,w,470),false);
         string who=Game.Speaker;var script=Game.Script;int beat=Math.Clamp(Game.Beat,0,Math.Max(0,script.Count-1));
         bool Other(string s)=>s is not ("" or "Mio" or "Zero");
         string partner=script.Take(beat+1).Select(b=>b.Speaker).LastOrDefault(Other)??script.Select(b=>b.Speaker).FirstOrDefault(Other)??"";
-        Figure("Mio",false,who=="Mio");
+        // Mio has no figure in narration alone, nor until she is awake.
+        if(script.Any(b=>b.Speaker!="")&&Game.Player.Visual.Clip is not ("sleep" or "wake"))Figure("Mio",false,who=="Mio");
         if(partner!="")Figure(partner,true,who==partner);
-        if(script.Any(b=>b.Speaker=="Zero"))Link(new(w/2-44,h-430),who=="Zero");
+        // A staged shot has its characters in the middle, so Zero's emblem moves up out of their way.
+        if(script.Any(b=>b.Speaker=="Zero"))Link(new(w/2-44,Game.Staged?118:h-430),who=="Zero");
         var box=new Rect2(w/2-560,h-262,1120,206);Panel(box,.95f);
         DrawLine(box.Position,box.Position+new Vector2(box.Size.X,0),gold,2);
         if(who!="")

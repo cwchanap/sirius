@@ -4,7 +4,7 @@ namespace Hoshikawa;
 public partial class Player : CharacterBody3D
 {
     public Game Game = null!;
-    // Resonance Cut charges, spent one per cast and refilled only by resting (Aki, Emi, or recovering at the village).
+    // Resonance Cut charges, spent one per cast and refilled only by resting (Chiaki, Emiko, or recovering at the village).
     public const int MaxSkillCharges = 3;
     // Per swing: seconds to its hit, to its link (the follow-through the next swing starts from, where a queued attack waits)
     // and to its end, and the lunge forward (metres) between two times. tools/mio_combat.py keys the clips to the same numbers.
