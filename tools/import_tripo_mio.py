@@ -4,7 +4,8 @@ Blender --background --factory-startup --python tools/import_tripo_mio.py
 The sources stay untouched. The low-poly body keeps Tripo's 65-bone Mixamo rig and the
 clips the user made in Tripo Studio. Each clip is cut to its motion, retimed to the length
 Player.cs was tuned against and kept over the hips; translation belongs to Godot. The three
-attacks and Resonance Cut are keyed by tools/mio_combat.py on the same rig instead.
+attacks and Resonance Cut are keyed by tools/mio_combat.py on the same rig instead, and the opening's
+waking and terminal clips by tools/cast_clips.py.
 """
 import bpy
 import bmesh
@@ -17,6 +18,7 @@ from mathutils import Matrix, Quaternion, Vector
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
+import cast_clips  # noqa: E402
 import mio_combat  # noqa: E402
 OUT = ROOT / 'artifacts/mio-tripo-animation'
 SOURCE = 'assets/source/tripo-bridge-20261016-mio-anim.blend'
@@ -285,6 +287,7 @@ def main():
                 pose.update({pb.name: pb.matrix_basis.copy() for pb in rig.pose.bones})
         clips[name] = poses
     clips.update(mio_combat.clips(rig, ready, (blade, edge), grip))
+    clips.update(cast_clips.poses(rig, scale, cast_clips.MIO, cast_clips.MIO_LOOPS, grip))
     actions = []
     for name, poses in clips.items():
         action = bpy.data.actions.new(name)
@@ -323,7 +326,8 @@ def main():
     report = {'source': SOURCE, 'textures_from': FIXED, 'bones': len(rig.data.bones),
               'body_faces': len(body.data.polygons), 'height_m': 1.84, 'scale': scale, 'images': images,
               'clips': {n: {'tripo': CLIPS[n][0], 'source_frames': list(CLIPS[n][1:3]), 'frames': CLIPS[n][3]} if n in CLIPS
-                        else {'keyed': 'tools/mio_combat.py', 'frames': len(p)} for n, p in clips.items()},
+                        else {'keyed': 'tools/cast_clips.py' if n in cast_clips.MIO else 'tools/mio_combat.py', 'frames': len(p)}
+                        for n, p in clips.items()},
               'weapon_faces': weapon_faces}
     (OUT / 'build.json').write_text(json.dumps(report, indent=2) + '\n')
     print('TRIPO_EXPORT_COMPLETE', json.dumps(report), flush=True)
