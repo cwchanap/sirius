@@ -1,7 +1,7 @@
 extends SceneTree
 
-# Sora, Nao and Toma (Tripo DCC Bridge imports): -- --only=sora,toma narrows the set.
-const HEIGHTS={"Sora":1.78,"Nao":1.64,"Toma":1.74}
+# The Tripo villagers: Sota, Naomi and Toma (DCC Bridge imports), Yui and Renji (Studio downloads): -- --only=sota,yui narrows the set.
+const HEIGHTS={"Sota":1.78,"Naomi":1.64,"Toma":1.74,"Yui":1.6,"Renji":1.78}
 
 var failed=false
 

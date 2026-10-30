@@ -1,4 +1,4 @@
-"""The opening's acting clips for the human Tripo rigs (Mixamo bones, prefix stripped), as Game.Act() plays them from
+"""The opening's acting clips for the human Tripo rigs (Mixamo bones, prefix stripped), as Game.Cue() plays them from
 Prologue.Stage: Mio's waking in her room, Yui's and Renji's gestures. Keyed with patrol_clips.py's poses: degrees about the
 character's own axes as it stands in the rest pose, its arms hanging, x to its right, y forward, z up; +x swings a hanging limb
 forward and tips an upright bone back, +y lowers an arm toward the body, +z turns to the character's left, left bones mirrored.
@@ -83,7 +83,7 @@ STRIKE = dict(RightArm=(48, 0, 16), RightForeArm=40)
 BENCH = pose(STANCE, lift=(0, 0, -.04), Spine=(-18, 0, 0), Spine1=(-8, 0, 0), Head=(-20, 0, 0), LeftArm=(42, 0, 26), LeftForeArm=62,
              RightArm=(96, -10, 16), RightForeArm=100, RightUpLeg=(6, 0, 0), RightLeg=10, LeftLeg=8, curl=45)
 PEOPLE = {
-    'idle': loop(3, breathing(STANCE)),
+    'idle': loop(4, breathing(STANCE)),
     'give': hold([(0, STANCE), (.5, GIVE), (1, pose(GIVE, RightArm=(72, 4, 12)))]),
     'point': hold([(0, STANCE), (.45, POINT), (.9, pose(POINT, RightArm=(96, 0, 24)))]),
     'read': hold([(0, STANCE), (.5, READ)]),

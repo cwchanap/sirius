@@ -14,7 +14,7 @@ Based on the latest revision of “Story Main line” (6a75647c-8d84-83e8-b467-4
 - [x] Build with installed Godot Mono/.NET; run a deterministic integration self-check; inspect actual rendered gameplay and fix issues.
 
 ## Scope
-Single outdoor map, one playable human character, one remote AI partner, no city chapter or building interiors. Original stylized anime-inspired characters and warm painterly landscapes; deliberate MVP geometry and animation, not franchise assets.
+Single outdoor map and one interior (Mio's room, where the prologue opens), one playable human character, one remote AI partner, no city chapter. Original stylized anime-inspired characters and warm painterly landscapes; deliberate MVP geometry and animation, not franchise assets.
 
 ## Countryside and second settlement
 
@@ -228,3 +228,16 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [ ] A native reader checks the Japanese and Traditional Chinese; the owner confirms the Chinese names and 天狼 / シリウス in the glossary.
 - [ ] Voice Zero's six new relay reminders in Japanese.
 - [ ] Export presets, once they exist, need `*.json` in the resource filter so `assets/dialogue/` ships.
+
+## A longer opening (開場劇情)
+
+- [x] Rename the cast to the 2026-10-23 name table (Renji, Chiaki, Haruka, Sota, Naomi, Emiko; Mio's family name Minase) in code, both translations, the glossary, voice files and portraits.
+- [x] `Opening` narration over the city and the valley, then the `Intro` in Mio's room: Zero wakes her, the smell of the paddies, the freight train with medicine that will not stop at Hoshikawa Station.
+- [x] Mio's room as its own small map (`World.Room()`), with her mother's photograph and a door that loads the valley at the new Minase House.
+- [x] Yui, now happy, energetic and talkative, waits at the gate with Emiko's letter (`Gate`), races Mio to the workshop, joins Renji's briefing and walks on to the clinic; she lives in Hoshikawa now, not Komorebi.
+- [x] Staged scenes: a scene camera per beat and the characters acting each line (`Prologue.Stage`, `scripts/Cutscene.cs`).
+- [x] Import Hapadona's Tripo Studio Yui and Renji; key the opening's clips in Blender (`tools/cast_clips.py`): Mio's sleep, wake, sit, terminal and rise, rebuilt into `mio.glb` on the Mac; Yui's and Renji's idle, walk and gestures.
+- [x] Self-test (671 checks) in English, Japanese and Traditional Chinese, unit tests and e2e.
+- [ ] Voice the new Mio and Zero lines in Japanese (`Prologue.Unrecorded`, ElevenLabs).
+- [ ] New dialogue portraits for Yui and Renji from their Tripo models, the photograph's image, door and photograph icons (Codex).
+- [ ] Graphical check under Metal on the Mac.
