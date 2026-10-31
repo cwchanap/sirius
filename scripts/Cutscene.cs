@@ -28,6 +28,7 @@ public partial class Game
     // The black over the screen, lifting as a map or the opening comes in.
     public float Blackout;
     private Camera3D shot=null!;
+    private Tween? tuck;
     private (Vector3 Eye,Vector3 At) shotFrom,shotTo,shotNow;
     private float shotTime,shotLength;
     // A shot on the characters, which follows them as their clips move their heads; a fixed shot stays put.
@@ -88,9 +89,13 @@ public partial class Game
         foreach(var act in cue.Acts.Split(',',StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries))
         {
             var words=act.Split(' ');Actor(words[0]).Visual.Play(words[1],1,true,.25f);
-            // Getting up, she folds the cover in half at the futon's foot.
-            if(act=="Mio rise"&&Room?.GetNodeOrNull<Node3D>("Blanket") is {} blanket)
-            {var fold=CreateTween().SetParallel();fold.TweenProperty(blanket,"position",blanket.Position+new Vector3(0,-.04f,.33f),.6f).SetDelay(.2f);fold.TweenProperty(blanket,"scale",new Vector3(1,1,.5f),.6f).SetDelay(.2f);}
+            // The cover follows her: sitting up she pushes it into her lap, getting up she folds it in half at the futon's foot.
+            if(act is "Mio wake" or "Mio rise"&&Room?.GetNodeOrNull<MeshInstance3D>("Blanket") is {} cover)
+            {
+                tuck?.Kill();tuck=CreateTween().SetParallel();
+                if(act=="Mio wake")tuck.TweenProperty(cover,"blend_shapes/sit",1f,1.6f).SetDelay(.6f);
+                else{tuck.TweenProperty(cover,"blend_shapes/sit",0f,.6f).SetDelay(.2f);tuck.TweenProperty(cover,"blend_shapes/folded",1f,.6f).SetDelay(.2f);}
+            }
         }
         if(cue.Shot!="")Aim(cue.Shot);
     }

@@ -12,11 +12,12 @@ public partial class World
     public static Node3D Room()
     {
         var room=new Node3D {Name="Mio's room",Position=RoomAt};
-        // Codex's tiling art (assets/art/room/), laid triplanar in each box's own frame so it keeps its size on every face and box.
-        static StandardMaterial3D Look(string art,float metres,Color tint,float glow=0)
+        // Codex's tiling art (assets/art/room/), laid triplanar in each box's own frame so it keeps its size on every face and box,
+        // or on a model's own UVs in metres.
+        static StandardMaterial3D Look(string art,float metres,Color tint,float glow=0,bool laid=false)
         {
             var texture=GD.Load<Texture2D>($"res://assets/art/room/{art}.png");
-            return new() {AlbedoTexture=texture,AlbedoColor=tint,Uv1Triplanar=true,Uv1Scale=Vector3.One/metres,Roughness=.85f,EmissionEnabled=glow>0,Emission=Colors.Black,EmissionTexture=texture,EmissionEnergyMultiplier=glow};
+            return new() {AlbedoTexture=texture,AlbedoColor=tint,Uv1Triplanar=!laid,Uv1Scale=Vector3.One/metres,Roughness=.85f,EmissionEnabled=glow>0,Emission=Colors.Black,EmissionTexture=texture,EmissionEnergyMultiplier=glow};
         }
         // The cedar is the posts' dark wood; the boards are the same grain lifted.
         Material tatami=Look("tatami",.5f,Colors.White),edge=Mat(new("3d4a3c")),plaster=Look("plaster",1,Colors.White),cedar=Look("cedar",.625f,new(1.6f,1.6f,1.6f)),dark=Look("cedar",.625f,Colors.White),paper=Look("shoji",.8f,Colors.White,.15f);
@@ -49,9 +50,12 @@ public partial class World
             foreach(float y in new[]{.02f,.5f,.95f,1.4f,1.88f})Beam("Shoji frame",new(x,y,1.8f),new(.82f,.04f,.05f),cedar);
             foreach(float dx in new[]{-.39f,-.13f,.13f,.39f})Box(room,"Shoji frame",new(x+dx,.95f,1.8f),new(.04f,1.9f,.05f),cedar);
         }
-        Box(room,"Futon",new(Bed.X,.03f,Bed.Z+.1f),new(1,.06f,2.25f),Mat(new("e9e4d8")));
-        Box(room,"Pillow",new(Bed.X,.1f,Bed.Z-.8f),new(.5f,.09f,.28f),Mat(new("8fa7b5")));
-        Box(room,"Blanket",new(Bed.X,.18f,Bed.Z+.56f),new(1.05f,.24f,1.32f),Look("futon",.5f,Colors.White));
+        // The bedding is Blender's (tools/build_bedding.py): the cover is cloth draped over her as she sleeps, with shape keys for her
+        // sitting up under it and for folding it at the futon's foot, which Game.Cue() blends.
+        var bedding=GD.Load<PackedScene>("res://assets/models/props/bedding.glb").Instantiate<Node3D>();
+        foreach(var (part,look) in new[]{("Futon",Mat(new("dcd4c4"))),("Pillow",Mat(new("7f97a6"))),("Blanket",Look("futon",.5f,Colors.White,laid:true))})
+            Mesh(room,part,((MeshInstance3D)bedding.FindChild(part)).Mesh,Bed,look);
+        bedding.Free();
         // The low desk by the west wall, and on the floor the six tools and Renji's line telephone, opened up.
         Box(room,"Desk",new(-1.67f,.32f,-.9f),new(.55f,.05f,1),cedar,true);
         foreach(float x in new[]{-1.9f,-1.44f})foreach(float z in new[]{-1.35f,-.45f})Box(room,"Desk leg",new(x,.15f,z),new(.05f,.3f,.05f),dark);
