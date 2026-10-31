@@ -6,13 +6,15 @@ namespace Hoshikawa;
 public partial class Game
 {
     // Fixed shots: the eye and what it looks at, in the world or (Room) in the room's own frame, and the seconds the camera glides there.
+    // The seconds the camera moves from one shot to a character shot within a scene.
+    public const float CameraMove=2;
     public static readonly Dictionary<string,(Vector3 Eye,Vector3 At,float Glide,bool Room)> Shots=new()
     {
         ["sky"]=(new(40,44,24),new(160,100,-120),0,false),["city"]=(new(40,36,24),new(160,22,-120),7,false),
         ["valley"]=(new(36,22,-4),new(0,2,26),7,false),["home"]=(new(23,7,25),new(31,3,7.5f),6,false),
-        ["bed"]=(new(.5f,1.15f,-.55f),new(-.6f,.2f,-.65f),0,true),["futon"]=(new(.9f,1.2f,.8f),new(-.6f,.55f,-.35f),1.5f,true),
-        ["floor"]=(new(-.1f,1.3f,1),new(.45f,0,0),1.2f,true),["room"]=(new(1.5f,1.6f,1.45f),new(-.6f,1.3f,-.3f),1.5f,true),
-        ["shoji"]=(new(.5f,1.55f,-1.45f),new(-1.3f,1,5),1.5f,true),["backlit"]=(new(1.4f,1.35f,-1.6f),new(-.6f,1.1f,1.6f),2,true),
+        ["bed"]=(new(.5f,1.15f,-.55f),new(-.6f,.2f,-.65f),0,true),["futon"]=(new(.9f,1.2f,.8f),new(-.6f,.55f,-.35f),2,true),
+        ["floor"]=(new(-.1f,1.3f,1),new(.45f,0,0),2,true),["room"]=(new(1.5f,1.6f,1.45f),new(-.6f,1.3f,-.3f),2,true),
+        ["shoji"]=(new(.5f,1.55f,-1.45f),new(-1.3f,1,5),2,true),["backlit"]=(new(1.4f,1.35f,-1.6f),new(-.6f,1.1f,1.6f),2,true),
         ["photo"]=(new(1.55f,1.6f,-.55f),new(.9f,1.35f,-1.79f),0,true),
     };
     // Where Yui stands as the story moves her: at Mio's gate, by Renji's bench until he has heard the news, then outside the clinic.
@@ -22,6 +24,7 @@ public partial class Game
     public Node3D? Room;
     public bool InRoom=>Room!=null;
     public bool Staged=>shot.Current;
+    public (Vector3 Eye,Vector3 At) ShotTarget=>shotTo;
     // The black over the screen, lifting as a map or the opening comes in.
     public float Blackout;
     private Camera3D shot=null!;
@@ -74,7 +77,7 @@ public partial class Game
     }
     private void Aim(string name)
     {
-        shotTo=Frame(name);float glide=Shots.TryGetValue(name,out var s)?s.Glide:0;framed=Shots.ContainsKey(name)?null:name;
+        shotTo=Frame(name);float glide=Shots.TryGetValue(name,out var s)?s.Glide:CameraMove;framed=Shots.ContainsKey(name)?null:name;
         shotFrom=shot.Current&&glide>0?shotNow:shotTo;shotLength=shot.Current?glide:0;shotTime=0;shot.MakeCurrent();Look(shotFrom);
     }
     private void Look((Vector3 Eye,Vector3 At) view){shotNow=view;shot.GlobalPosition=view.Eye;shot.LookAt(view.At,Vector3.Up);}
@@ -85,9 +88,9 @@ public partial class Game
         foreach(var act in cue.Acts.Split(',',StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries))
         {
             var words=act.Split(' ');Actor(words[0]).Visual.Play(words[1],1,true,.25f);
-            // Getting up, she folds the cover back to the futon's foot.
+            // Getting up, she folds the cover in half at the futon's foot.
             if(act=="Mio rise"&&Room?.GetNodeOrNull<Node3D>("Blanket") is {} blanket)
-                CreateTween().TweenProperty(blanket,"position",blanket.Position+new Vector3(0,-.04f,.38f),.6f).SetDelay(.2f);
+            {var fold=CreateTween().SetParallel();fold.TweenProperty(blanket,"position",blanket.Position+new Vector3(0,-.04f,.33f),.6f).SetDelay(.2f);fold.TweenProperty(blanket,"scale",new Vector3(1,1,.5f),.6f).SetDelay(.2f);}
         }
         if(cue.Shot!="")Aim(cue.Shot);
     }
