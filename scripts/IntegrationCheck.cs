@@ -595,18 +595,30 @@ public static class IntegrationCheck
         bool Sheathed()=>ActorVisual.Descendants(g.Player.Model).OfType<MeshInstance3D>().Where(m=>m.Name.ToString().StartsWith("Sword")).All(m=>!m.Visible);
         Check(g.Player.Visual.Clip=="sleep"&&g.Player.GlobalPosition.DistanceTo(g.Room!.GlobalPosition+Hoshikawa.World.Bed)<.01f&&Sheathed()&&g.Voice.Stream==null,
             "she sleeps on her futon, her sword left on its rack, and Zero's new line plays silent until it is recorded");
+        // The clip's blend is run out rather than waited for: a wait lets a short line finish typing in Chinese, saving a press.
+        g.Player.Visual.Animator!.Advance(.5f);var sleeper=ActorVisual.Descendants(g.Player.Model).OfType<Skeleton3D>().First();var blanket=g.Room!.GetNode<MeshInstance3D>("Blanket");var quilt=((BoxMesh)blanket.Mesh).Size;
+        Check(new[]{"LeftLeg","RightLeg","LeftToe_End","RightToe_End","LeftHand","RightHand"}.All(b=>new Aabb(blanket.Position-quilt/2,quilt).HasPoint(g.Room!.ToLocal(sleeper.GlobalTransform*sleeper.GetBoneGlobalPose(sleeper.FindBone(b)).Origin))),
+            "asleep, her knees, toes and hands lie under the blanket");
+        // From here to the end of Yui's scene at the gate, every frame's camera step and turn within a scene is measured: past a scene's
+        // first beat the camera only ever moves, never cuts, because the owner finds frequent complete view changes sickening.
+        float leap=0,turn=0;Transform3D? seen=null;
+        void Watch(){var c=g.GetViewport().GetCamera3D().GlobalTransform;if(g.Staged&&g.Beat>0&&seen is {} s){leap=Math.Max(leap,c.Origin.DistanceTo(s.Origin));turn=Math.Max(turn,Mathf.RadToDeg(c.Basis.Z.AngleTo(s.Basis.Z)));}seen=g.Staged?c:null;}
+        g.GetTree().ProcessFrame+=Watch;
         presses=0;await To(2);Check(g.Player.Visual.Clip=="wake","at Zero's second call she sits up");
         await To(3);Check(g.Player.Visual.Clip=="terminal_sit","sitting, she lifts the terminal on her wrist to answer");
-        await Frames(30);var toShot=g.GetViewport().GetCamera3D().GlobalPosition-g.Player.GlobalPosition;
-        Check(g.Player.Facing.Dot((toShot with {Y=0}).Normalized())>.8f&&toShot.Length()<2.2f,"the scene cuts to her face as she answers");
         await To(6);Check(g.Player.Visual.Clip=="rise","she gets up as Zero smells the paddies");
         await To(7);await Tap(Key.E);presses++;Check(g.Voice.Playing&&g.Voice.Stream?.ResourcePath=="res://assets/audio/voice/ja/Mio/Intro.7.mp3","Mio answers in Japanese");
         await Tap(Key.E);presses++;Check(g.Beat==8&&g.Voice.Playing&&g.Voice.Stream?.ResourcePath=="res://assets/audio/voice/ja/Zero/Intro.8.mp3","Zero's reply cuts her voice off and plays its own");
         await Tap(Key.E);presses++;Check(g.Reveal==g.Dialogue.Length&&g.Voice.Playing,"completing the typing line lets its voice play on");
+        await To(9);var toShot=g.ShotTarget.Eye-g.Player.GlobalPosition;
+        Check(g.Player.Facing.Dot((toShot with {Y=0}).Normalized())>.8f&&toShot.Length()<2.2f,"for Zero's news of the train the camera moves round to her face");
         await To(Prologue.Intro.Length);
         Check(g.Mode==GameMode.Playing&&presses==2*Prologue.Intro.Length&&g.InRoom&&g.Objective=="Head outside"&&g.GetViewport().GetCamera3D()==g.Camera,
             $"the waking scene plays every line, two presses each ({presses}), and leaves Mio to head outside");
         await Frames(10);Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Y>Hoshikawa.World.RoomAt.Y-.1f,"she stands on the tatami");
+        string Art(string node)=>(g.Room!.GetNode<MeshInstance3D>(node).MaterialOverride as StandardMaterial3D)?.AlbedoTexture?.ResourcePath??"";
+        Check(new[]{"Tatami","North wall","Post","Engawa","Shoji","Blanket","Photo"}.All(n=>Art(n).StartsWith("res://assets/art/room/"))&&g.Room!.GetNode<MeshInstance3D>("View").CastShadow==GeometryInstance3D.ShadowCastingSetting.Off,
+            "her room is Codex's art, tatami to Shio's photograph, and the painted view out of the shoji casts no shadow over it");
         void Indoors(Vector3 spot){Place(g.Player,g.Room!.GlobalPosition+spot+Vector3.Up*.05f);}
         Indoors(Hoshikawa.World.Photo);await Frames(5);
         Check(g.Interaction()==("",Localization.T("PHOTO")),"the photograph on the wall can be looked at");
@@ -619,6 +631,8 @@ public static class IntegrationCheck
         Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Gate)&&g.Speaker=="Yui"&&yui.Visual.Clip=="wave"&&g.Player.Facing.Dot((yui.Body.GlobalPosition-g.Player.GlobalPosition).Normalized())>.9f,
             "Yui is waving at the gate, and Mio turns to her");
         while(g.Mode==GameMode.Dialogue&&presses<400){await Tap(Key.E);presses++;}
+        g.GetTree().ProcessFrame-=Watch;
+        Check(leap<.2f&&turn<6,$"the waking scene and Yui's at the gate move their camera between shots and never cut (largest step {leap:F2} m, turn {turn:F1} degrees a frame)");
         Check(yui.Visual.Clip=="run"&&g.Objective=="Speak to Renji at the workshop","Yui races off to the workshop");
         var gate=yui.Body.GlobalPosition;await Frames(30);
         Check(yui.Body.GlobalPosition.X<gate.X-1,"she runs west along the footpath");
