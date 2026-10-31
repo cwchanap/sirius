@@ -344,6 +344,13 @@ The second batch of the owner's prop replacement, under a 145-credit cap set for
   - The ladder's model replaces only its box mesh inside the teahouse ladder's `AnimatableBody3D`. It is turned so its hinge brackets are at the hinge, stretched to the ladder's length, to 1.15 across so its rails meet the walk box's sides, and to 0.8 deep, with the treads 2 cm above the walk box. The collision shape, hinge, trestle and swing are unchanged.
 - **Free reuse in the same areas:** the batch 1 boulder for the boulders scattered over Cedar Pass and the six at the canyon's boulder choke, at their old sizes and from the same seeded draws (walk-through, as their spheres were, and culled beyond 80 m); the Tripo handcart as the quarry's stone sled; and the remedy pouch on a Blender barrel instead of a crate, with a cylinder collider.
 
+## Yui and Renji: user-provided Tripo Studio models — 2026-10-30
+
+- **Models:** the user made both in Tripo Studio and sent them as Studio downloads (FBX with packed maps; the DCC Bridge send failed). Each was opened in Blender, the maps packed, and saved alone as `assets/source/{yui,renji}-tripo-original.blend`, which are not committed.
+- **Import:** `tools/import_tripo_cast.py`, a preset of the shared background-Blender importer: the 65-bone Mixamo rig (prefix stripped), all triangles (Yui 19,326, Renji 19,258), scaled to Yui 1.60 m and Renji 1.78 m. The 4096 px base color and the normal, roughness and metallic maps are copied unchanged to `assets/art/{yui,renji}-import/` with content hashes in their filenames, and compressed in Godot like the other models. Reports: `artifacts/model-imports/{yui,renji}/build.json`.
+- **Clips:** Tripo supplied none. `tools/cast_clips.py` keys them with `tools/patrol_clips.py`'s pose solver, original authored keys: a four-second `idle`, `walk`, `give`, `point` and `read` for both; Yui's `run`, `wave` and `fold`; Renji's `work` at his bench. The same table keys Mio's six opening clips (`sleep`, `wake`, `sit`, `terminal_sit`, `rise`, `terminal`), which `tools/import_tripo_mio.py` adds to `mio.glb`.
+- They replace the shared villager rig for Yui and Renji. Their dialogue portraits are still the 2026-10-16 Codex ones; portraits drawn from the new models are a separate art task.
+
 ## Blender models
 
 Created and exported through the connected Blender MCP, using the human authoring pipeline in `tools/refine_humans.py` (and, until 2026-10-28, `tools/build_characters.py` for the patrol robot). Runtime export still in use: `villager.glb`; the authored `mio.glb` and `patrol.glb` were replaced by Tripo models. Since 2026-10-21 `refine_humans.py` builds only the villager and saves `assets/source/villager.blend`. `assets/source/characters.blend` keeps the authored Mio scene that `import_tripo_mio.py` takes the sword from. Meshes, materials, skinning and animation keys are original authored procedural Blender geometry. Human NPCs share the villager base with palette/scale variants; KOMA is a friendly recolor of the robot base. Each rig includes idle, walk, run, three attacks, guard, dodge, jump, skill, stagger and death clips.
@@ -361,6 +368,10 @@ Zero has no portrait by design: nobody in the valley has seen its body.
 ## HUD icons and title logo — 2026-10-24
 
 `assets/art/ui/` holds thirteen HUD icons and the title logo for the UI redesign, which trades on-screen text for pictures. Codex drew them with its built-in image tool (`codex exec`, no Tripo credits) as white shapes on black: one 4×4 sheet of solid, kamon-like icons and a logo of 星川 in brush strokes beside HOSHIKAWA and THE OFFLINE VALLEY. A line-drawn sheet and a horizontal logo were made alongside and not used. `tools/cut_ui_art.gd` turned each one's brightness into alpha, so every file is white and the HUD tints it, and cut the sheet into one 256 px icon per cell. [ui-art-generation.md](assets/art/ui/ui-art-generation.md) records the prompts, raw hashes, the cut commands and which cell is which icon.
+
+## Mio's room — 2026-10-30
+
+`assets/art/room/` holds the art for Mio's room, the opening's first map, made with `codex exec` and its built-in image tool after the owner found the flat-coloured room plain: five seamless textures (`tatami`, `plaster`, `cedar`, `shoji` paper and the indigo asanoha `futon` quilt), `view.png`, a painted backdrop of the rain-wet paddies and misty wooded hills seen through the open shoji on an early-summer morning, and `photo.png`, the old photograph of Shio with Mio as a child for the north wall. The futon is cropped to whole repeats of its pattern so it tiles; the rest are unedited. [room-art-generation.md](assets/art/room/room-art-generation.md) records every prompt, raw hash and the crop. `World.Room()` lays the textures triplanar, hangs the photograph on a quad and draws the view through `assets/shaders/view.gdshader`.
 
 ## Audio and fonts
 

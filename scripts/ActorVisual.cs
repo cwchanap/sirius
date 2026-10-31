@@ -4,6 +4,8 @@ namespace Hoshikawa;
 public partial class ActorVisual : Node
 {
     public AnimationPlayer? Animator { get; private set; }
+    // The clip last asked for, as Play() names it.
+    public string Clip { get; private set; } = "";
     private readonly Dictionary<string,string> clips=new();
     public static IEnumerable<Node> Descendants(Node root)
     {
@@ -18,12 +20,13 @@ public partial class ActorVisual : Node
             string key=name.Split('/').Last().Split('.').First();
             clips.TryAdd(key,name);
             var anim=Animator.GetAnimation(name);
-            anim.LoopMode=key is "idle" or "walk" or "run" or "guard" ? Animation.LoopModeEnum.Linear : Animation.LoopModeEnum.None;
+            anim.LoopMode=key is "idle" or "walk" or "run" or "guard" or "sleep" or "sit" or "fold" or "wave" or "work" ? Animation.LoopModeEnum.Linear : Animation.LoopModeEnum.None;
         }
     }
     public void Play(string clip,float speed=1,bool restart=false,float blend=.12f)
     {
         if(Animator==null||!clips.TryGetValue(clip,out var name))return;
+        Clip=clip;
         if(!restart&&Animator.CurrentAnimation==name&&Animator.IsPlaying())return;
         Animator.Play(name,blend,speed);
     }

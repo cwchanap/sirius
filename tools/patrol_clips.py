@@ -46,20 +46,23 @@ KNEEL = {**SLUMP, 'lift': (0, -.06, -.56), 'Spine': (-12, 0, 0), 'Head': (6, 0, 
          'RightLeg': 95, 'LeftLeg': 92, 'RightArm': (2, 30, 0), 'LeftArm': (2, 30, 0)}
 
 
-def gait(stride, load, swing, arm, elbow, lean, bob, sway):
-    """A walk or run cycle by phase (0 to 1): the right foot strikes at 0, the left at a half."""
+def gait(stride, load, swing, arm, elbow, lean, bob, sway, stance=None):
+    """A walk or run cycle by phase (0 to 1): the right foot strikes at 0, the left at a half. It swings about the stance's arms,
+    legs and hips."""
+    stance = stance or STANCE
     def at(p):
-        pose = dict(STANCE)
+        pose = dict(stance)
         for side, q in (('Right', p), ('Left', p + .5)):
             c, s = math.cos(math.tau * q), math.sin(math.tau * q)
-            pose[side + 'UpLeg'] = (stride * c + 4, 0, 0)
-            pose[side + 'Leg'] = 8 + (load * s if s > 0 else -swing * s)
-            pose[side + 'Arm'] = (-arm * c + 6, 26, 0)
+            arm_x, arm_y, arm_z = stance[side + 'Arm']
+            pose[side + 'UpLeg'] = (stride * c + stance[side + 'UpLeg'][0], 0, 0)
+            pose[side + 'Leg'] = stance[side + 'Leg'] + (load * s if s > 0 else -swing * s)
+            pose[side + 'Arm'] = (-arm * c + arm_x, arm_y, arm_z)
             pose[side + 'ForeArm'] = elbow + arm * .3 * max(0, -c)
-        pose['lift'] = (0, 0, -.02 - bob * math.cos(2 * math.tau * p))
+        pose['lift'] = (0, 0, stance['lift'][2] - bob * math.cos(2 * math.tau * p))
         pose['Hips'] = (0, 0, sway * math.cos(math.tau * p))
         pose['Spine'] = (-lean, 0, -sway * 1.6 * math.cos(math.tau * p))
-        pose['Head'] = (4 + lean * .6, 0, sway * .6 * math.cos(math.tau * p))
+        pose['Head'] = (stance['Head'][0] + lean * .6, 0, sway * .6 * math.cos(math.tau * p))
         return pose
     return at
 
@@ -128,24 +131,26 @@ class Rig:
         out['Hips'] = (out['Hips'][0], hips.inverted() @ FLIP @ Vector(pose['lift']) / self.unit)
         for side in ('Left', 'Right'):
             flex = pose[side + 'Leg']
-            out[side + 'Foot'] = (self.rotation(side + 'Foot', (flex - pose[side + 'UpLeg'][0] - pose['Hips'][0], 0, 0)), None)
+            # A pose's own foot angle adds to the one that keeps the sole level: a seated or lying foot points its toes up.
+            x, y, z = pose.get(side + 'Foot', (0, 0, 0))
+            out[side + 'Foot'] = (self.rotation(side + 'Foot', (flex - pose[side + 'UpLeg'][0] - pose['Hips'][0] + x, y, z)), None)
         for name in FINGERS:
             out[name] = (self.rotation(name, pose['curl']), None)
         return out
 
 
-def key(rig, unit):
+def key(rig, unit, clips=None, loops=LOOPS):
     """Key every clip on the armature as an action in its own muted NLA track, as the shared importer collects them."""
     import bpy
     solver = Rig(rig, unit)
     rig.animation_data_create()
-    for name, (length, at) in CLIPS.items():
+    for name, (length, at) in (clips or CLIPS).items():
         action = bpy.data.actions.new(name)
         action.use_fake_user = True
         rig.animation_data.action = action
         last = {}
         for f in range(round(length * FPS) + 1):
-            for bone, (q, loc) in solver.bases(at(f / FPS if name not in LOOPS or f < round(length * FPS) else 0)).items():
+            for bone, (q, loc) in solver.bases(at(f / FPS if name not in loops or f < round(length * FPS) else 0)).items():
                 pb = rig.pose.bones[bone]
                 pb.rotation_mode = 'QUATERNION'
                 if bone in last and last[bone].dot(q) < 0:
@@ -156,7 +161,9 @@ def key(rig, unit):
                 if loc is not None:
                     pb.location = loc
                     pb.keyframe_insert('location', frame=f)
-        for curve in action.fcurves:
+        # Blender 5 keeps an action's curves only in its layers' channel bags.
+        curves = action.fcurves if hasattr(action, 'fcurves') else [c for layer in action.layers for strip in layer.strips for bag in strip.channelbags for c in bag.fcurves]
+        for curve in curves:
             for point in curve.keyframe_points:
                 point.interpolation = 'LINEAR'
         track = rig.animation_data.nla_tracks.new()
@@ -177,16 +184,18 @@ def height(rig):
 VIEWS = {'front':(0, -1, .15), 'side': (-1, 0, .15), 'quarter': (-1, -1, .4)}
 
 
-def preview():
+def preview(model='patrol', clips=None, loops=LOOPS, size=HEIGHT):
+    """Contact sheets of the clips keyed on the committed model, or on a GLB of its Tripo source (--src) scaled to size."""
     import bpy
-    opts = {'out': str(ROOT / 'artifacts/patrol-clips'), 'only': ','.join(CLIPS), 'view': 'quarter'}
+    clips = clips or CLIPS
+    opts = {'out': str(ROOT / f'artifacts/{model}-clips'), 'only': ','.join(clips), 'view': 'quarter'}
     for a in sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []:
         k, _, v = a.lstrip('-').partition('=')
         opts[k] = v
     out = Path(opts['out'])
     out.mkdir(parents=True, exist_ok=True)
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.import_scene.gltf(filepath=opts.get('src', str(ROOT / 'assets/models/patrol.glb')))
+    bpy.ops.import_scene.gltf(filepath=opts.get('src', str(ROOT / f'assets/models/{model}.glb')))
     for obj in list(bpy.data.objects):
         if obj.type == 'MESH' and obj.parent is None:
             bpy.data.objects.remove(obj)
@@ -195,12 +204,12 @@ def preview():
     rig = next(o for o in bpy.data.objects if o.type == 'ARMATURE')
     rig.animation_data_clear()
     # The committed model carries the importer's scale on its root; the Tripo source (--src) is at its own size.
-    unit = HEIGHT / height(rig) if 'src' in opts else rig.matrix_world.to_scale()[0]
+    unit = size / height(rig) if 'src' in opts else rig.matrix_world.to_scale()[0]
     if 'src' in opts:
         rig.scale = (unit,) * 3
-    key(rig, unit)
+    key(rig, unit, clips, loops)
     if 'glb' in opts:
-        bpy.ops.export_scene.gltf(filepath=str(out / 'patrol.glb'), export_format='GLB', export_animations=True,
+        bpy.ops.export_scene.gltf(filepath=str(out / f'{model}.glb'), export_format='GLB', export_animations=True,
                                   export_animation_mode='ACTIONS', export_apply=False)
     scene = bpy.context.scene
     scene.render.engine = 'BLENDER_WORKBENCH'
@@ -216,7 +225,7 @@ def preview():
     camera.location = target + d * 8
     camera.rotation_euler = (-d).to_track_quat('-Z', 'Y').to_euler()
     for name in opts['only'].split(','):
-        length = CLIPS[name][0]
+        length = clips[name][0]
         rig.animation_data.action = bpy.data.actions[name]
         frames = sorted({round(i * length * FPS / 7) for i in range(8)})
         shots = []
@@ -228,7 +237,7 @@ def preview():
         subprocess.run(['montage', *shots, '-tile', f'{len(shots)}x1', '-geometry', '+2+2', '-title', name, str(out / f'{name}-{opts["view"]}.png')], check=True)
         for s in shots:
             Path(s).unlink()
-    print('PATROL_CLIPS_OK', out)
+    print('CLIPS_OK', out)
 
 
 if __name__ == '__main__':

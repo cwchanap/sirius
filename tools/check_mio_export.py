@@ -42,8 +42,9 @@ def main():
     assert bones == 65
     clips = [a['name'] for a in gltf['animations']]
     expected = {'idle', 'walk', 'run', 'attack1', 'attack2', 'attack3', 'guard',
-                'dodge', 'jump', 'skill', 'stagger', 'death'}
-    assert len(clips) == 12 and set(clips) == expected, clips
+                'dodge', 'jump', 'skill', 'stagger', 'death',
+                'sleep', 'wake', 'sit', 'terminal_sit', 'rise', 'terminal'}
+    assert len(clips) == 18 and set(clips) == expected, clips
     assert all(n.get('skin') == 0 for n in gltf['nodes'] if 'mesh' in n)
     vertices = triangles = 0
     maximum_error = 0.0

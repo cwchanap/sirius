@@ -26,10 +26,15 @@ static class Hoshikawa
     public static Task PressEnter(E2EGame game)=>Key(game,Enter,false);
     public static Task PressEscape(E2EGame game)=>Key(game,Escape,false);
     public static Task PressE(E2EGame game)=>Key(game,E,true);
-    // The title screen is skipped the way a player does it: Enter begins the journey, Escape skips the intro.
+    // The opening is skipped the way a player does it: Enter begins the journey, Escape skips the narration and then the waking scene,
+    // E at the door takes Mio out of her room (World.RoomAt + World.Door), and Escape skips Yui's scene at the gate.
     public static async Task StartPlaying(E2EGame game)
     {
         await PressEnter(game);await game.WaitForPropertyAsync(Root,"Mode",Dialogue);
+        await PressEscape(game);await Frames(game,2);
+        await PressEscape(game);await game.WaitForPropertyAsync(Root,"Mode",Playing);
+        await Place(game,Mio,32.6,300.05,8.15);await Frames(game,5);
+        await PressE(game);await game.WaitForPropertyAsync(Root,"Mode",Dialogue);
         await PressEscape(game);await game.WaitForPropertyAsync(Root,"Mode",Playing);
     }
     static async Task Key(E2EGame game,long keycode,bool physical)

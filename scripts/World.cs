@@ -8,9 +8,12 @@ public partial class World : Node3D
     // Residents with their own Tripo GLB: grounded model height (also the capsule) and name label height. The rest share villager.glb.
     public static readonly Dictionary<string, (string Asset, float Height, float Label)> TripoResidents = new()
     {
-        ["Chiyo"]=("chiyo",1.58f,1.9f), ["KOMA-7"]=("koma7",1.25f,1.55f), ["Sora"]=("sora",1.78f,2.1f), ["Nao"]=("nao",1.64f,1.96f), ["Toma"]=("toma",1.74f,2.06f),
+        ["Chiyo"]=("chiyo",1.58f,1.9f), ["KOMA-7"]=("koma7",1.25f,1.55f), ["Sota"]=("sora",1.78f,2.1f), ["Naomi"]=("nao",1.64f,1.96f), ["Toma"]=("toma",1.74f,2.06f),
+        ["Yui"]=("yui",1.6f,1.92f), ["Renji"]=("renji",1.78f,2.1f),
     };
     public const int NorthEdge = -300, SouthEdge = 80, HalfWidth = 64;
+    // Residents' name labels draw on a render layer of their own, which the scene camera leaves out.
+    public const uint NameLayer = 1u<<19;
     public static Vector3 KomorebiCenter => new(0, Height(0,-254), -254);
     public static float RoadX(float z)
     {
@@ -22,7 +25,10 @@ public partial class World : Node3D
     public static readonly (string Name,Vector2 At,Vector3 Size,float Yaw,string Style)[] Hamlet={
         ("Kisaragi Workshop",new(-10.37f,6.63f),new(9.2f,3.61f,7),75,"workshop"),("Seed & Grain",new(12.5f,6),new(6.2f,3.24f,3.67f),-95,"kura"),
         ("Village Assembly",new(-12.8f,21.78f),new(10.82f,3.6f,7.4f),82,"hall"),("The Copper Kettle",new(12,24),new(8,4.03f,7),-80,"teahouse"),
-        ("Hoshikawa Clinic",new(-11.05f,37.54f),new(10,3.62f,5.68f),98,"clinic"),("Mori Farmhouse",new(11.81f,42.27f),new(10.9f,2.9f,7.1f),-70,"farmhouse")};
+        ("Hoshikawa Clinic",new(-11.05f,37.54f),new(10,3.62f,5.68f),98,"clinic"),("Mori Farmhouse",new(11.81f,42.27f),new(10.9f,2.9f,7.1f),-70,"farmhouse"),
+        ("Minase House",new(31,7.5f),new(10.9f,2.9f,7.1f),0,"farmhouse")};
+    // Mio's own house, whose front door the room's leads out of, and the gate on the footpath where Yui finds her.
+    public static readonly Vector3 MioDoor=new(31,0,12.3f),YuiGate=new(31,0,14.4f);
     // Komorebi reuses the Hoshikawa styles and their sizes. Its ground is level within |x| < 29 and z -282…-232, so it needs no pads;
     // the hall faces down the road from its north end.
     public static readonly (string Name,Vector2 At,Vector3 Size,float Yaw,string Style)[] KomorebiHouses={
@@ -374,12 +380,16 @@ public partial class World : Node3D
     {
         foreach(var (name,at,size,yaw,style) in Hamlet) Minka(name,at,size,yaw,style);
         float Face(float x,float z)=>Mathf.Atan2(RoadX(z)-x,0);
-        Resident("Ren", "ENGINEER",new(-5.2f,0,11),0,Face(-5.2f,11));
+        Resident("Renji", "ENGINEER",new(-5.2f,0,11),0,Face(-5.2f,11));
         Resident("Chiyo", "VILLAGE ELDER",new(-6,0,20),1,Face(-6,20));
-        Resident("Aki", "MEDIC",new(-5.5f,0,37.5f),2,Face(-5.5f,37.5f));
-        Resident("Hana", "FARMER",new(6,0,37.5f),3,Face(6,37.5f));
-        Resident("Sora", "COURIER",new(6.8f,0,22),4,Face(6.8f,22));
+        Resident("Chiaki", "MEDIC",new(-5.5f,0,37.5f),2,Face(-5.5f,37.5f));
+        Resident("Haruka", "FARMER",new(6,0,37.5f),3,Face(6,37.5f));
+        Resident("Sota", "COURIER",new(6.8f,0,22),4,Face(6.8f,22));
         Resident("KOMA-7", "OFFLINE GARDENER",new(8.3f,0,11.5f),5,Face(8.3f,11.5f));
+        // Yui waits at Mio's gate until the opening sends her on to the workshop and the clinic (Game.YuiSpot).
+        Resident("Yui", "PASS COURIER",YuiGate,4,Mathf.Pi);
+        // Renji's workbench, which he hammers at between scenes.
+        Box(this,"Renji's workbench",new(-4.4f,Height(-4.4f,11)+.4f,11),new(.7f,.8f,1.4f),wood,true);
         Well("Village well",SavePoint);
         RiceFields();
         Fence(new(-24,0,0),new(-24,0,42));
@@ -401,7 +411,7 @@ public partial class World : Node3D
             if(!custom&&(m.Name.ToString().Contains("coat",StringComparison.OrdinalIgnoreCase)||m.Name.ToString().Contains("armor",StringComparison.OrdinalIgnoreCase))) m.MaterialOverride=Mat(colors[variant]);
         }
         // Only within about 10 m of Mio: the camera trails her by up to 7.5 m.
-        Label(n,name,new(0,custom?model.Label:2.35f,0),variant==0?Gold:new("ecedda"),29).VisibilityRangeEnd=17;
+        var nameLabel=Label(n,name,new(0,custom?model.Label:2.35f,0),variant==0?Gold:new("ecedda"),29);nameLabel.VisibilityRangeEnd=17;nameLabel.Layers=NameLayer;
         var collision=new StaticBody3D {CollisionLayer=1};n.AddChild(collision);
         float height=custom?model.Height:1.8f;
         collision.AddChild(new CollisionShape3D { Position=new(0,height/2,0),Shape=new CapsuleShape3D { Radius=.32f,Height=height } });
@@ -587,10 +597,9 @@ public partial class World : Node3D
     {
         foreach(var (name,at,size,yaw,style) in KomorebiHouses) Minka(name,at,size,yaw,style);
         float Face(float x,float z)=>Mathf.Atan2(RoadX(z)-x,0);
-        Resident("Nao","LODGE KEEPER",new(-5.6f,0,-237.8f),0,Face(-5.6f,-237.8f));
-        Resident("Emi","MOUNTAIN MEDIC",new(6,0,-245),2,Face(6,-245));
+        Resident("Naomi","LODGE KEEPER",new(-5.6f,0,-237.8f),0,Face(-5.6f,-237.8f));
+        Resident("Emiko","MOUNTAIN MEDIC",new(6,0,-245),2,Face(6,-245));
         Resident("Toma","ORCHARD KEEPER",new(16.2f,0,-256.7f),3,0);
-        Resident("Yui","PASS COURIER",new(-6,0,-260.2f),4,Face(-6,-260.2f));
         // Door paths: the lodge's and the clinic's from the road, and one across it from the weavers' door to the store's.
         Footpath(new(0,-239.8f),new(-7.3f,-239.8f),1.3f);Footpath(new(0,-246),new(7.7f,-246),1.3f);
         Footpath(new(-7.7f,-261.2f),new(10.4f,-261.2f),1.3f);Footpath(new(0,-254),new(22,-254),1.3f);

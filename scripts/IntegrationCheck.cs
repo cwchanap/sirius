@@ -27,8 +27,8 @@ public static class IntegrationCheck
         {Hold(action);await Frames(frames);Release(action);await Frames(2);}
         void Place(Player p,Vector3 pos){p.GlobalPosition=pos;p.Velocity=Vector3.Zero;}
         var regions=g.World.Buildings.GroupBy(b=>Hoshikawa.World.RegionAt(b.Position)).ToDictionary(r=>r.Key,r=>r.Count());
-        Check(regions.Count==3&&regions["Hoshikawa"]==6&&regions["Old Relay Road"]==1&&regions["Komorebi"]==5,
-            "six Hoshikawa buildings, the old teahouse on the relay road and five Komorebi buildings");
+        Check(regions.Count==3&&regions["Hoshikawa"]==7&&regions["Old Relay Road"]==1&&regions["Komorebi"]==5,
+            "seven Hoshikawa buildings, Mio's house among them, the old teahouse on the relay road and five Komorebi buildings");
         var houses=Hoshikawa.World.Hamlet.Concat(Hoshikawa.World.KomorebiHouses).Append(Hoshikawa.World.OldTeahouse).ToArray();
         foreach(var (name,at,size,yaw,_) in houses)
         {
@@ -200,7 +200,7 @@ public static class IntegrationCheck
             if(tripo)
             {
                 Check(model.GetChild<Node3D>(0).SceneFilePath==$"res://assets/models/{own.Asset}.glb",model.Name+" uses its own Tripo model");
-                var visual=model.GetChildren().OfType<ActorVisual>().Single();
+                var visual=model.GetChildren().OfType<ActorVisual>().Single();visual.Play("idle",1,true,0);
                 Check(visual.HasClip("idle")&&visual.Animator!.IsPlaying()&&visual.Animator.GetAnimation("idle").LoopMode==Animation.LoopModeEnum.Linear,model.Name+" idle plays and loops");
                 int joint=skeleton.FindBone(koma?"Head":chiyo?"Spine02":"Spine1"),foot=skeleton.FindBone(mixamo?"LeftFoot":"L_Foot");
                 visual.Animator!.Seek(0,true);
@@ -224,7 +224,7 @@ public static class IntegrationCheck
                     visual.Animator.Seek(f*length,true);
                     Check(skeleton.GetBoneGlobalPose(hip).IsEqualApprox(fixedHip)&&skeleton.GetBoneGlobalPose(right).IsEqualApprox(fixedFoot)&&skeleton.GetBoneGlobalPose(foot).Origin.DistanceTo(planted)<.001f,$"{model.Name} hips and feet stay fixed: {f*length:0.##}");
                 }
-                visual.Play("idle",1,true);
+                visual.Play(Game.RestClip(model.Name),1,true);
             }
         }
         var firstBoulder=g.World.GetNode<Node3D>("Weathered boulder").Position;
@@ -373,14 +373,13 @@ public static class IntegrationCheck
         await Frames(5);
         Check(g.Region=="Komorebi"&&g.Player.IsOnFloor(),"walk from the relay under the viaduct and over Cedar Bridge into Komorebi");
         Check(g.Music.Current=="valley"&&g.Music.Players["valley"].Playing&&g.Music.Players["relay"].StreamPaused,"past the relay road the valley's music comes back");
-        foreach(var (name,road,approach) in new[]{("Nao",new Vector2(0,-238),new Vector2(-3.8f,-238)),
-            ("Emi",new Vector2(0,-246),new Vector2(4.5f,-245)),("Yui",new Vector2(0,-260.2f),new Vector2(-4,-260.2f)),
-            ("Toma",new Vector2(0,-254),new Vector2(16.2f,-254.5f))})
+        foreach(var (name,road,approach) in new[]{("Naomi",new Vector2(0,-238),new Vector2(-3.8f,-238)),
+            ("Emiko",new Vector2(0,-246),new Vector2(4.5f,-245)),("Toma",new Vector2(0,-254),new Vector2(16.2f,-254.5f))})
         {
             await WalkTo(road);await WalkTo(approach);await Frames(5);
-            if(name=="Emi"){g.Player.Health=20;while(g.Player.Inventory.Take("remedy")){}g.Player.SkillCharges=0;}
+            if(name=="Emiko"){g.Player.Health=20;while(g.Player.Inventory.Take("remedy")){}g.Player.SkillCharges=0;}
             g.Interact();Check(g.Mode==GameMode.Dialogue&&g.Speaker==name,"walk from village street to service: "+name);
-            if(name=="Emi")Check(g.Player.Health==100&&g.Player.Inventory.Count("remedy")==g.Player.Inventory.Capacity("remedy")&&g.Player.SkillCharges==Player.MaxSkillCharges,"Komorebi medic restores health, remedies and Resonance Cut's charges");
+            if(name=="Emiko")Check(g.Player.Health==100&&g.Player.Inventory.Count("remedy")==g.Player.Inventory.Capacity("remedy")&&g.Player.SkillCharges==Player.MaxSkillCharges,"Komorebi medic restores health, remedies and Resonance Cut's charges");
             g.Mode=GameMode.Playing;await WalkTo(road);
         }
         await WalkTo(new(22,-254));await WalkTo(new(24,-251));await WalkTo(new(28,-251));await WalkTo(new(28,-245));
@@ -576,20 +575,71 @@ public static class IntegrationCheck
             Input.ParseInputEvent(new InputEventKey {Keycode=key,PhysicalKeycode=key,Pressed=false});await Frames(1);
         }
         g.Begin();
-        Check(g.Mode==GameMode.Dialogue&&g.Speaker=="Zero"&&g.Script.Count==Prologue.Intro.Length,"the journey opens on Zero's voice over the link");
+        Check(g.Mode==GameMode.Dialogue&&g.Speaker==""&&g.Script.SequenceEqual(Prologue.Opening)&&!g.Player.Visible&&g.Blackout>0&&g.GetViewport().GetCamera3D()!=g.Camera,
+            "the journey opens from black on narration, the scene camera over the valley");
         Check(g.Hud.Portrait("Mio")!=null&&g.World.Residents.All(r=>g.Hud.Portrait(r.Name)!=null)&&g.Hud.Portrait("Zero")==null,"Mio and every resident have a dialogue portrait; unseen Zero has none");
         Check(Hud.Icons.All(n=>Hud.Icon(n) is {} t&&t.GetWidth()==256&&t.GetHeight()==256)&&ResourceLoader.Exists("res://assets/art/ui/logo.png"),$"all {Hud.Icons.Length} HUD icons and the title logo load, the icons 256 px square");
-        Check(g.World.Residents.All(r=>r.Body.GetChildren().OfType<Label3D>().Single().VisibilityRangeEnd is >0 and <20),"residents' names float over them only near the camera");
-        var voiced=Prologue.SceneNames.Where(s=>!Prologue.Unvoiced.Contains(s.Value)).SelectMany(s=>s.Key.Select((b,i)=>(b.Speaker,Path:$"res://assets/audio/voice/ja/{b.Speaker}/{s.Value}.{i}.mp3"))).Where(b=>b.Speaker is "Mio" or "Zero").ToArray();
-        Check(voiced.Length>0&&voiced.All(b=>ResourceLoader.Load(b.Path) is AudioStreamMP3 mp3&&mp3.GetLength()>.5),$"each of Mio's and Zero's {voiced.Length} prologue lines has its Japanese voice at its beat");
+        Check(g.World.Residents.All(r=>r.Body.GetChildren().OfType<Label3D>().Single() is {VisibilityRangeEnd:>0 and <20} label&&label.Layers==Hoshikawa.World.NameLayer)&&(g.GetViewport().GetCamera3D().CullMask&Hoshikawa.World.NameLayer)==0,
+            "residents' names float over them only near the follow camera, never in a scene's shots");
+        var voiced=Prologue.SceneNames.Where(s=>!Prologue.Unvoiced.Contains(s.Value)).SelectMany(s=>s.Key.Select((b,i)=>(b.Speaker,Key:$"{s.Value}.{i}",Path:$"res://assets/audio/voice/ja/{b.Speaker}/{s.Value}.{i}.mp3")))
+            .Where(b=>b.Speaker is "Mio" or "Zero"&&!Prologue.Unrecorded.Contains(b.Key)).ToArray();
+        Check(voiced.Length>0&&voiced.All(b=>ResourceLoader.Load(b.Path) is AudioStreamMP3 mp3&&mp3.GetLength()>.5),$"each of Mio's and Zero's {voiced.Length} recorded prologue lines has its Japanese voice at its beat");
         Check(g.Sounds.Count==18&&g.Sounds.Values.All(s=>s!=null&&s.GetLength()>.1)&&new[]{"attack1","attack2","attack3","skill","hurt"}.All(b=>g.Sounds.ContainsKey("mio_"+b)),"every combat sound and each of Mio's five combat shouts loads");
         await Frames(10);Check(g.Reveal>0&&g.Reveal<g.Dialogue.Length,"dialogue text types out");
         await Tap(Key.E);Check(g.Beat==0&&g.Reveal==g.Dialogue.Length,"the first press completes the typing line instead of skipping it");
-        Check(g.Voice.Playing&&g.Voice.Stream?.ResourcePath=="res://assets/audio/voice/ja/Zero/Intro.0.mp3","Zero wakes Mio in Japanese over the link");
-        await Tap(Key.E);Check(g.Beat==1&&g.Voice.Playing&&g.Voice.Stream?.ResourcePath=="res://assets/audio/voice/ja/Mio/Intro.1.mp3","Mio's reply cuts Zero's voice off and plays her own");
-        await Tap(Key.E);Check(g.Reveal==g.Dialogue.Length&&g.Voice.Playing,"completing the typing line lets her voice play on");
-        int presses=3;while(g.Mode==GameMode.Dialogue&&presses<100){await Tap(Key.E);presses++;}
-        Check(g.Mode==GameMode.Playing&&presses==2*Prologue.Intro.Length,$"the opening scene plays every line, two presses each ({presses})");
+        int presses=1;
+        async Task To(int beat){while(g.Mode==GameMode.Dialogue&&g.Beat<beat&&presses<200){await Tap(Key.E);presses++;}}
+        while(g.Script.SequenceEqual(Prologue.Opening)&&presses<20){await Tap(Key.E);presses++;}
+        Check(presses==2*Prologue.Opening.Length&&g.InRoom&&!g.World.Visible&&g.Player.Visible&&g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Intro)&&g.Speaker=="Zero",
+            $"the narration ends in Mio's room, a map of its own, where Zero wakes her ({presses} presses)");
+        bool Sheathed()=>ActorVisual.Descendants(g.Player.Model).OfType<MeshInstance3D>().Where(m=>m.Name.ToString().StartsWith("Sword")).All(m=>!m.Visible);
+        Check(g.Player.Visual.Clip=="sleep"&&g.Player.GlobalPosition.DistanceTo(g.Room!.GlobalPosition+Hoshikawa.World.Bed)<.01f&&Sheathed()&&g.Voice.Stream==null,
+            "she sleeps on her futon, her sword left on its rack, and Zero's new line plays silent until it is recorded");
+        // The clip's blend is run out rather than waited for: a wait lets a short line finish typing in Chinese, saving a press.
+        g.Player.Visual.Animator!.Advance(.5f);var sleeper=ActorVisual.Descendants(g.Player.Model).OfType<Skeleton3D>().First();var blanket=g.Room!.GetNode<MeshInstance3D>("Blanket");var quilt=((BoxMesh)blanket.Mesh).Size;
+        Check(new[]{"LeftLeg","RightLeg","LeftToe_End","RightToe_End","LeftHand","RightHand"}.All(b=>new Aabb(blanket.Position-quilt/2,quilt).HasPoint(g.Room!.ToLocal(sleeper.GlobalTransform*sleeper.GetBoneGlobalPose(sleeper.FindBone(b)).Origin))),
+            "asleep, her knees, toes and hands lie under the blanket");
+        // From here to the end of Yui's scene at the gate, every frame's camera step and turn within a scene is measured: past a scene's
+        // first beat the camera only ever moves, never cuts, because the owner finds frequent complete view changes sickening.
+        float leap=0,turn=0;Transform3D? seen=null;
+        void Watch(){var c=g.GetViewport().GetCamera3D().GlobalTransform;if(g.Staged&&g.Beat>0&&seen is {} s){leap=Math.Max(leap,c.Origin.DistanceTo(s.Origin));turn=Math.Max(turn,Mathf.RadToDeg(c.Basis.Z.AngleTo(s.Basis.Z)));}seen=g.Staged?c:null;}
+        g.GetTree().ProcessFrame+=Watch;
+        presses=0;await To(2);Check(g.Player.Visual.Clip=="wake","at Zero's second call she sits up");
+        await To(3);Check(g.Player.Visual.Clip=="terminal_sit","sitting, she lifts the terminal on her wrist to answer");
+        await To(6);Check(g.Player.Visual.Clip=="rise","she gets up as Zero smells the paddies");
+        await To(7);await Tap(Key.E);presses++;Check(g.Voice.Playing&&g.Voice.Stream?.ResourcePath=="res://assets/audio/voice/ja/Mio/Intro.7.mp3","Mio answers in Japanese");
+        await Tap(Key.E);presses++;Check(g.Beat==8&&g.Voice.Playing&&g.Voice.Stream?.ResourcePath=="res://assets/audio/voice/ja/Zero/Intro.8.mp3","Zero's reply cuts her voice off and plays its own");
+        await Tap(Key.E);presses++;Check(g.Reveal==g.Dialogue.Length&&g.Voice.Playing,"completing the typing line lets its voice play on");
+        await To(9);var toShot=g.ShotTarget.Eye-g.Player.GlobalPosition;
+        Check(g.Player.Facing.Dot((toShot with {Y=0}).Normalized())>.8f&&toShot.Length()<2.2f,"for Zero's news of the train the camera moves round to her face");
+        await To(Prologue.Intro.Length);
+        Check(g.Mode==GameMode.Playing&&presses==2*Prologue.Intro.Length&&g.InRoom&&g.Objective=="Head outside"&&g.GetViewport().GetCamera3D()==g.Camera,
+            $"the waking scene plays every line, two presses each ({presses}), and leaves Mio to head outside");
+        await Frames(10);Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Y>Hoshikawa.World.RoomAt.Y-.1f,"she stands on the tatami");
+        string Art(string node)=>(g.Room!.GetNode<MeshInstance3D>(node).MaterialOverride as StandardMaterial3D)?.AlbedoTexture?.ResourcePath??"";
+        Check(new[]{"Tatami","North wall","Post","Engawa","Shoji","Blanket","Photo"}.All(n=>Art(n).StartsWith("res://assets/art/room/"))&&g.Room!.GetNode<MeshInstance3D>("View").CastShadow==GeometryInstance3D.ShadowCastingSetting.Off,
+            "her room is Codex's art, tatami to Shio's photograph, and the painted view out of the shoji casts no shadow over it");
+        void Indoors(Vector3 spot){Place(g.Player,g.Room!.GlobalPosition+spot+Vector3.Up*.05f);}
+        Indoors(Hoshikawa.World.Photo);await Frames(5);
+        Check(g.Interaction()==("",Localization.T("PHOTO")),"the photograph on the wall can be looked at");
+        g.Interact();Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Photo)&&g.Speaker=="Mio","Mio greets her mother's photograph, and Zero hurries her on");g.EndDialogue();
+        Indoors(Hoshikawa.World.Door);await Frames(5);
+        Check(g.Interaction()==("",Localization.T("DOOR"))&&g.Objective=="Head outside","the door out is her objective");
+        g.Interact();var yui=g.Actor("Yui");
+        Check(!g.InRoom&&g.World.Visible&&!Sheathed()&&g.Player.GlobalPosition.DistanceTo(new(Hoshikawa.World.MioDoor.X,Hoshikawa.World.Height(Hoshikawa.World.MioDoor.X,Hoshikawa.World.MioDoor.Z)+.1f,Hoshikawa.World.MioDoor.Z))<.01f,
+            "out of the door the valley comes back, Mio on her doorstep with her sword");
+        Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Gate)&&g.Speaker=="Yui"&&yui.Visual.Clip=="wave"&&g.Player.Facing.Dot((yui.Body.GlobalPosition-g.Player.GlobalPosition).Normalized())>.9f,
+            "Yui is waving at the gate, and Mio turns to her");
+        while(g.Mode==GameMode.Dialogue&&presses<400){await Tap(Key.E);presses++;}
+        g.GetTree().ProcessFrame-=Watch;
+        Check(leap<.2f&&turn<6,$"the waking scene and Yui's at the gate move their camera between shots and never cut (largest step {leap:F2} m, turn {turn:F1} degrees a frame)");
+        Check(yui.Visual.Clip=="run"&&g.Objective=="Speak to Renji at the workshop","Yui races off to the workshop");
+        var gate=yui.Body.GlobalPosition;await Frames(30);
+        Check(yui.Body.GlobalPosition.X<gate.X-1,"she runs west along the footpath");
+        g.FinishWalks();
+        Check(new Vector2(yui.Body.GlobalPosition.X-Game.YuiWorkshop.At.X,yui.Body.GlobalPosition.Z-Game.YuiWorkshop.At.Z).Length()<.01f&&yui.Visual.Clip=="idle","she waits by Renji's bench");
+        var waits=yui.Body.GlobalPosition+Vector3.Back*2;Place(g.Player,waits with {Y=Hoshikawa.World.Height(waits.X,waits.Z)+.1f});await Frames(5);
+        g.Interact();Check(g.Script.SequenceEqual(Prologue.YuiWaits),"before Renji has heard, Yui sends Mio to him");g.EndDialogue();
         g.CameraYaw=0;g.Player.Respawn();await Frames(5);
         foreach(var resident in g.World.Residents)
         {
@@ -599,11 +649,14 @@ public static class IntegrationCheck
             Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-talk.X,g.Player.GlobalPosition.Z-talk.Z).Length()<.2f,"talk spot is standable: "+resident.Name);
             g.Interact();
             Check(g.Mode==GameMode.Dialogue&&g.Speaker==resident.Name,"dialogue: "+resident.Name);
-            if(resident.Name=="Ren")Check(g.Voice.Stream==null,"Ren, who has no voice files, stays silent");
+            if(resident.Name=="Renji")Check(g.Voice.Stream==null&&g.Actor("Yui").Body.GlobalPosition.DistanceTo(resident.Body.GlobalPosition)<4,"Renji, who has no voice files, stays silent; Yui stands by");
             if(resident.Name=="Chiyo")Check(g.Script.Any(b=>b.Speaker=="Mio")&&g.Script.Any(b=>b.Text.Contains("Shio")),"Chiyo recognises Shio's terminal at the first meeting");
             g.Mode=GameMode.Playing;
         }
-        Check(g.QuestStage==1,"Ren starts the relay mission");
+        Check(g.QuestStage==1,"Renji starts the relay mission");
+        g.Play(Prologue.Briefing);g.EndDialogue();await Frames(20);
+        Check(yui.Visual.Clip=="walk"&&g.Actor("Renji").Visual.Clip=="work","after the briefing Yui walks to the clinic, and Renji goes back to his bench");
+        g.FinishWalks();Check(new Vector2(yui.Body.GlobalPosition.X-Game.YuiClinic.At.X,yui.Body.GlobalPosition.Z-Game.YuiClinic.At.Z).Length()<.01f,"Yui waits outside the clinic");
         Place(g.Player,g.World.Residents.Single(r=>r.Name=="Chiyo").Body.GlobalPosition+Vector3.Back*2);await Frames(5);g.Interact();
         Check(g.Speaker=="Chiyo"&&g.Script.Count==1,"a first-meeting scene plays once, then the resident's usual line");g.EndDialogue();
         var opponent=g.Enemies[0];
@@ -789,7 +842,7 @@ public static class IntegrationCheck
         Place(g.Player,g.World.RelayPosition+Vector3.Back*2);g.Interact();
         Check(g.QuestStage==3&&g.Speaker=="Zero","relay activation contacts remote Zero");g.Mode=GameMode.Playing;
         Place(g.Player,g.World.Residents[0].Body.GlobalPosition+Vector3.Back*2);await Frames(60);g.Interact();
-        Check(g.QuestStage==4,"returning to Ren completes the prologue");
+        Check(g.QuestStage==4,"returning to Renji completes the prologue");
         int mother=g.Script.FindIndex(b=>b.Speaker=="Mio"&&b.Text.Contains("mother"));
         Check(g.Script[^1].Speaker==""&&g.Script[g.NightFrom].Text.StartsWith("Night")&&mother>g.NightFrom&&g.Script[mother+1].Speaker=="Zero","the prologue closes on the lantern night, where Zero changes the subject from Mio's mother");
         for(int i=0;i<40&&g.Speaker!="Mio";i++)await Tap(Key.E);
@@ -798,15 +851,18 @@ public static class IntegrationCheck
         if(DisplayServer.GetName()!="headless"){g.SaveScreenshot("res://artifacts/mission-complete.png");await Frames(5);}
         var chaser=g.Enemies.First(e=>e.Kind==Enemy.Scout&&!e.Dead);chaser.SetPhysicsProcess(true);Place(g.Player,chaser.GlobalPosition+Vector3.Back*6);await Frames(30);
         Check(chaser.State=="PURSUE"&&g.Music.Current=="battle","a scout after Mio brings in the battle music");g.SetPaused(true);
-        g.Restart();Check(g.QuestStage==0&&g.Enemies.All(e=>!e.Dead)&&g.Player.Health==100,"restart restores a fresh playable mission");chaser.SetPhysicsProcess(false);
-        Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Intro),"restarting the prologue replays its opening scene");
-        await Frames(1);Check(g.Music.Current=="valley","restarting from the pause menu mid-fight leaves the battle music behind with the fight");g.EndDialogue();
+        g.Restart();Check(g.QuestStage==0&&g.Enemies.All(e=>!e.Dead)&&g.Player.Health==100&&yui.Body.GlobalPosition.DistanceTo(new(Hoshikawa.World.YuiGate.X,yui.Body.GlobalPosition.Y,Hoshikawa.World.YuiGate.Z))<.01f,
+            "restart restores a fresh playable mission, Yui back at Mio's gate");chaser.SetPhysicsProcess(false);
+        Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Opening),"restarting the prologue replays its opening");
+        // Through the narration, the waking, out of the door and past Yui at the gate.
+        void SkipOpening(){g.EndDialogue();g.EndDialogue();g.LeaveRoom();g.EndDialogue();}
+        await Frames(1);Check(g.Music.Current=="valley","restarting from the pause menu mid-fight leaves the battle music behind with the fight");SkipOpening();
         // The ladder's body takes its new turn on the next physics step.
         await Frames(2);
         Check(g.Opened.Count==0&&Turned(ladder.Closed)&&g.World.Pickups.All(p=>p.Node.Visible)&&bag.Held.Select(i=>i.Id).SequenceEqual(new[]{"remedy","terminal"})&&bag.Capacity("remedy")==3&&bag.Count("remedy")==3,
             "restart draws the ladder up again, puts the pouch and cells back and Mio's items back to what she set out with");
         Place(g.Player,new(lever.X,Hoshikawa.World.Height(lever.X,lever.Y)+.1f,lever.Y));await Frames(10);g.Interact();await Frames(20);
-        g.Restart();g.EndDialogue();await Frames(100);
+        g.Restart();SkipOpening();await Frames(100);
         Check(g.Opened.Count==0&&Turned(ladder.Closed),"a restart while the ladder is still swinging down leaves it drawn up");
         // The whole flow above also runs under --lang=ja and --lang=zh_TW. Here each language is also checked on its own: glyphs, fixed-width boxes,
         // line breaking, and the real language buttons.
@@ -828,7 +884,7 @@ public static class IntegrationCheck
                 ("CTRL / ALT  Dodge     TAB  Lock     Q  Skill",13,334),("E  Interact    H  Remedy    I  Items    ESC  Pause",12,334),
                 ("Items",17,278),("Settings",17,278),("Use",17,138),("Back",17,138),("Supplies",13,378),("Key items",13,378),("The train with no passengers",19,360),
                 ("Raise",15,68),("Buy",15,68),("Trade",13,340),("Level {0}",13,300),
-                ("Speak to Ren at the workshop",17,340),("Clear the old relay road",17,340),("Restart the manual relay",17,340),("Return to Ren in Hoshikawa",17,340),("Evacuation route secured",17,340)};
+                ("Head outside",17,340),("Speak to Renji at the workshop",17,340),("Clear the old relay road",17,340),("Restart the manual relay",17,340),("Return to Renji in Hoshikawa",17,340),("Signals restored",17,340)};
             var overflow=tight.Where(t=>Width(t.Text,t.Size)>t.Room).Select(t=>t.Text).ToArray();
             Check(overflow.Length==0,$"{name}: every menu, control and panel string fits its fixed box {string.Join(" | ",overflow)}");
             var stats=Stats.All.Where(s=>Width(s.Short,17)>56||Width(s.Name,15)>118).Select(s=>s.Name).ToArray();

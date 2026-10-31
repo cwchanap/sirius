@@ -1,4 +1,4 @@
-"""Presets of the shared character importer for Sora, Nao and Toma, sent from Tripo Studio over DCC Bridge.
+"""Presets of the shared character importer for Sota, Naomi and Toma (assets sora, nao, toma), sent from Tripo Studio over DCC Bridge.
 
 python3 tools/import_tripo_villagers.py [sora nao toma]
 """

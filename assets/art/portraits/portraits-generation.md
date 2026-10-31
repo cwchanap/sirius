@@ -2,6 +2,8 @@
 
 Generated 2026-10-15 (PDT) with `codex exec` (codex-cli 0.159.2) calling its built-in image-generation tool. The orchestration model never drew pixels with code: its only Python opened the result to check size and background colour, and each output was copied unchanged from `~/.codex/generated_images/`. Every output is a 1024×1536 opaque RGB PNG on white.
 
+On 2026-10-30 the files were renamed with the residents (the story's name table), unchanged: `ren.png` is now `renji.png`, `aki.png` `chiaki.png`, `hana.png` `haruka.png`, `sora.png` `sota.png`, `nao.png` `naomi.png` and `emi.png` `emiko.png`. The record below keeps the old names. Yui's and Renji's portraits predate their Tripo models and do not match them yet.
+
 They replace the earlier cuts from the character reference sheets, which stood front-on with arms at their sides. Each portrait is a three-quarter dialogue pose cut from mid-thigh up, KOMA-7 from the knees up. Mio faces the viewer's right, because she stands on the left of the dialogue scene. Every resident faces the viewer's left. Zero still has no portrait.
 
 Raw outputs, prompt files and Codex logs are in the gitignored `artifacts/portraits-v2/` (`<key>-<try>.png`, `prompts/<key>-<try>.txt`, `logs/<key>-<try>.log`), in the worktree that made them. `$A` below is the main checkout's `artifacts/` (`/Users/chanwaichan/workspace/sirius/artifacts`), where the residents' reference packs live on the user's machine only.
