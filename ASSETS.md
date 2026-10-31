@@ -371,7 +371,7 @@ Zero has no portrait by design: nobody in the valley has seen its body.
 
 ## Mio's room — 2026-10-30
 
-`assets/art/room/` holds the art for Mio's room, the opening's first map, made with `codex exec` and its built-in image tool after the owner found the flat-coloured room plain: five seamless textures (`tatami`, `plaster`, `cedar`, `shoji` paper and the indigo asanoha `futon` quilt), `view.png`, a painted backdrop of the rain-wet paddies and misty wooded hills seen through the open shoji on an early-summer morning, and `photo.png`, the old photograph of Shio with Mio as a child for the north wall. The futon is cropped to whole repeats of its pattern so it tiles; the rest are unedited. [room-art-generation.md](assets/art/room/room-art-generation.md) records every prompt, raw hash and the crop. `World.Room()` does not use them yet.
+`assets/art/room/` holds the art for Mio's room, the opening's first map, made with `codex exec` and its built-in image tool after the owner found the flat-coloured room plain: five seamless textures (`tatami`, `plaster`, `cedar`, `shoji` paper and the indigo asanoha `futon` quilt), `view.png`, a painted backdrop of the rain-wet paddies and misty wooded hills seen through the open shoji on an early-summer morning, and `photo.png`, the old photograph of Shio with Mio as a child for the north wall. The futon is cropped to whole repeats of its pattern so it tiles; the rest are unedited. [room-art-generation.md](assets/art/room/room-art-generation.md) records every prompt, raw hash and the crop. `World.Room()` lays the textures triplanar, hangs the photograph on a quad and draws the view through `assets/shaders/view.gdshader`.
 
 ## Audio and fonts
 

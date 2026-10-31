@@ -199,22 +199,22 @@ public static class Prologue
     // What the 3D scene does when a beat starts: a camera shot and the clips its actors play ("Mio clip, Yui clip"). A beat with no entry, or
     // an empty part, keeps what was there. Shots: "over A B" looks past A's shoulder at B, "two A B" frames both from the side, "face A"
     // is in front of A, and any other name is a fixed shot (Game.Shots). Every actor goes back to its resting clip when the scene ends.
+    // A scene cuts only where it starts: the owner finds frequent complete view changes sickening, so a shot holds through a stretch of
+    // lines and the camera moves, never cuts, to the next (Game.CameraMove).
     public static readonly Dictionary<string,(string Shot,string Acts)> Stage=new()
     {
         ["Opening.0"]=("city",""),["Opening.1"]=("valley",""),["Opening.2"]=("home",""),
-        ["Intro.0"]=("bed","Mio sleep"),["Intro.2"]=("futon","Mio wake"),["Intro.3"]=("face Mio","Mio terminal_sit"),["Intro.4"]=("floor","Mio sit"),
-        ["Intro.5"]=("face Mio",""),["Intro.6"]=("room","Mio rise"),["Intro.7"]=("shoji","Mio idle"),["Intro.8"]=("backlit",""),
-        ["Intro.9"]=("face Mio","Mio terminal"),["Intro.11"]=("shoji","Mio idle"),["Intro.13"]=("room",""),["Intro.14"]=("backlit",""),
-        ["Intro.15"]=("face Mio","Mio terminal"),["Intro.16"]=("","Mio idle"),
+        ["Intro.0"]=("bed","Mio sleep"),["Intro.2"]=("futon","Mio wake"),["Intro.3"]=("","Mio terminal_sit"),["Intro.4"]=("floor","Mio sit"),
+        ["Intro.6"]=("room","Mio rise"),["Intro.7"]=("shoji","Mio idle"),["Intro.9"]=("face Mio","Mio terminal"),["Intro.11"]=("","Mio idle"),
+        ["Intro.15"]=("","Mio terminal"),["Intro.16"]=("","Mio idle"),
         ["Photo.0"]=("photo",""),
-        ["Gate.0"]=("two Mio Yui","Yui wave"),["Gate.1"]=("over Mio Yui","Yui idle"),["Gate.2"]=("","Yui point"),["Gate.3"]=("two Mio Yui","Mio terminal, Yui idle"),
-        ["Gate.4"]=("over Mio Yui","Mio idle"),["Gate.5"]=("over Yui Mio",""),["Gate.6"]=("two Mio Yui","Mio terminal"),["Gate.7"]=("over Mio Yui","Mio idle, Yui give"),
-        ["Gate.8"]=("","Mio terminal, Yui idle"),["Gate.9"]=("over Yui Mio","Mio idle"),["Gate.10"]=("two Mio Yui",""),["Gate.11"]=("over Mio Yui","Yui wave"),
-        ["Gate.12"]=("over Yui Mio","Yui idle"),["Gate.13"]=("two Mio Yui","Yui point"),
-        ["Briefing.0"]=("over Mio Renji","Renji idle"),["Briefing.1"]=("face Yui","Yui wave"),["Briefing.2"]=("two Mio Renji","Mio terminal, Yui idle"),
-        ["Briefing.3"]=("face Yui","Mio idle, Yui give"),["Briefing.4"]=("over Mio Renji","Renji read, Yui idle"),["Briefing.5"]=("","Renji point"),
-        ["Briefing.6"]=("","Renji idle"),["Briefing.7"]=("two Mio Renji",""),["Briefing.8"]=("","Mio terminal"),["Briefing.9"]=("face Yui","Mio idle, Yui wave"),
-        ["Briefing.10"]=("over Mio Renji","Yui idle"),["Briefing.11"]=("face Yui","Yui fold"),["Briefing.12"]=("over Renji Mio",""),["Briefing.13"]=("over Mio Renji",""),
+        ["Gate.0"]=("two Mio Yui","Yui wave"),["Gate.1"]=("","Yui idle"),["Gate.2"]=("","Yui point"),["Gate.3"]=("","Mio terminal, Yui idle"),
+        ["Gate.4"]=("","Mio idle"),["Gate.6"]=("","Mio terminal"),["Gate.7"]=("over Mio Yui","Mio idle, Yui give"),["Gate.8"]=("","Mio terminal, Yui idle"),
+        ["Gate.9"]=("","Mio idle"),["Gate.11"]=("","Yui wave"),["Gate.12"]=("","Yui idle"),["Gate.13"]=("","Yui point"),
+        ["Briefing.0"]=("two Mio Renji","Renji idle"),["Briefing.1"]=("","Yui wave"),["Briefing.2"]=("","Mio terminal, Yui idle"),
+        ["Briefing.3"]=("","Mio idle, Yui give"),["Briefing.4"]=("","Renji read, Yui idle"),["Briefing.5"]=("","Renji point"),
+        ["Briefing.6"]=("","Renji idle"),["Briefing.8"]=("","Mio terminal"),["Briefing.9"]=("face Yui","Mio idle, Yui wave"),
+        ["Briefing.10"]=("","Yui idle"),["Briefing.11"]=("","Yui fold"),["Briefing.12"]=("two Mio Renji",""),
     };
     // What the Komorebi residents say every time: they have no first-meeting scene.
     public static readonly Dictionary<string,(string Speaker,string Text)[]> Komorebi=new()

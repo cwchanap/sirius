@@ -30,14 +30,16 @@ func capture():
 		if node is AudioStreamPlayer: node.stop()
 	game.set_process_unhandled_input(false)
 	game.call("Begin")
-	# The opening's camera glides for seconds; a few dozen frames into each shot shows it on its way.
+	# A scene's camera moves for two seconds from shot to shot; running the game five times faster lets each move settle in a few
+	# dozen frames, so a slow software renderer gets through. The opening's glides are seven seconds and are still on their way.
+	Engine.time_scale=5
 	for view in ["opening-city","opening-valley","opening-home"]:
 		await wait(30)
 		await shot(game,view)
 		advance(game,1)
 	await wait(10)
 	await shot(game,"intro-asleep")
-	for view in [["intro-waking",2,60],["intro-terminal",1,20],["intro-floor",1,10],["intro-rise",2,60],["intro-shoji",1,30],["intro-backlit",1,30]]:
+	for view in [["intro-waking",2,30],["intro-terminal",1,10],["intro-floor",1,30],["intro-rise",2,30],["intro-shoji",1,30],["intro-face-moving",2,8],["intro-face",0,30]]:
 		advance(game,view[1])
 		await wait(view[2])
 		await shot(game,view[0])
@@ -59,15 +61,15 @@ func capture():
 	game.call("LeaveRoom")
 	await wait(20)
 	await shot(game,"gate-wave")
-	for view in [["gate-point",2],["gate-zero",1],["gate-letter",4]]:
+	for view in [["gate-point",2,20],["gate-zero",1,20],["gate-letter-moving",4,8],["gate-letter",0,30]]:
 		advance(game,view[1])
-		await wait(20)
+		await wait(view[2])
 		await shot(game,view[0])
 	game.call("EndDialogue")
 	await wait(30)
 	await shot(game,"gate-race",false)
 	game.call("FinishWalks")
-	for scene in [["Renji",[["briefing-renji",0],["briefing-letter",3],["briefing-point",5],["briefing-zero",8],["briefing-fold",11]]],["Haruka",[["haruka-koma",1]]],["Chiyo",[["chiyo-narration",6]]]]:
+	for scene in [["Renji",[["briefing-renji",0],["briefing-letter",3],["briefing-point",5],["briefing-zero",8],["briefing-yui-moving",9],["briefing-fold",11],["briefing-cross",12]]],["Haruka",[["haruka-koma",1]]],["Chiyo",[["chiyo-narration",6]]]]:
 		game.call("EndDialogue")
 		var body=game.get("World").find_child(scene[0],false,false)
 		player.global_position=body.global_position+Vector3(0,.1,2)
@@ -76,7 +78,7 @@ func capture():
 		for view in scene[1]:
 			advance(game,view[1]-at)
 			at=view[1]
-			await wait(20)
+			await wait(8 if view[0].ends_with("-moving") else 30)
 			await shot(game,view[0])
 	game.call("EndDialogue")
 	await wait(60)
