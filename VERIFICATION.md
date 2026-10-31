@@ -1,5 +1,13 @@
 # MVP verification
 
+## Blender bedding in Mio's room — 2026-10-31
+
+The owner found the futon, pillow, quilt and the clutter on the floor primitive, and chose to have the bedding made in Blender here while she makes the telephone and tools in Tripo Studio, so the floor props are unchanged for now. `tools/build_bedding.py` builds the futon, pillow and cover; the cover is cloth dropped onto her own body, and its shape keys push it into her lap as she sits up (over the wake clip's 0.6–2.2 s) and fold it in half at the futon's foot as she gets up.
+
+- **Self-test:** **676 checks pass headless** in `en`, `ja` and `zh_TW` (cloud container, Godot 4.6.2 mono). Changed: asleep, her knees, feet and hands lie under the cover, at least 2 cm under its surface; the toe tips are no longer checked, since those bones float above her boots. New: after the waking scene the cover lies folded. Unit tests 57 and e2e 4 pass.
+- **Captures:** Blender workbench previews of the three states, and in-game captures under xvfb and software Vulkan from three fixed cameras with the HUD hidden, plus the staged shots. Shapes and placement only. The first tries simulated the cover over her moving through the wake clip: a decimated, deforming collider and her jacket's loose flaps flung the cloth off her. It now drops onto a still, voxel-remeshed body for each pose. Self-collision flung the folded cover's layers apart, so the fold is worked out instead.
+- **Not yet:** no Metal run; the telephone and tools are still primitives until the owner's Tripo models arrive.
+
 ## Codex art in Mio's room, and a calmer opening camera — 2026-10-31
 
 The owner found the flat-coloured room plain. Codex's art from `assets/art/room/` (made in its own pull request) is now wired into `World.Room()`: tatami, plaster, cedar, washi and quilt textures laid triplanar in each box's frame at the densities of a trial on the Mac the owner saw (tatami 2 repeats a metre, plaster 1, cedar 1.6, shoji 1.25, quilt 2), the cedar's grain turned along the beams, rail, engawa boards and shoji bars, Shio's photograph on a quad in its frame, and the view through the shoji, a painting `view.gdshader` draws on a box round the house by view direction, as a sky is. The flat garden, paddies, hills and trees are gone. The futon is longer and the blanket reaches past her toes, which stuck out of its end while she slept, and folds in half at the futon's foot when she gets up.

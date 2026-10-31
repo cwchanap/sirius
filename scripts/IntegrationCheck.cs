@@ -596,9 +596,11 @@ public static class IntegrationCheck
         Check(g.Player.Visual.Clip=="sleep"&&g.Player.GlobalPosition.DistanceTo(g.Room!.GlobalPosition+Hoshikawa.World.Bed)<.01f&&Sheathed()&&g.Voice.Stream==null,
             "she sleeps on her futon, her sword left on its rack, and Zero's new line plays silent until it is recorded");
         // The clip's blend is run out rather than waited for: a wait lets a short line finish typing in Chinese, saving a press.
-        g.Player.Visual.Animator!.Advance(.5f);var sleeper=ActorVisual.Descendants(g.Player.Model).OfType<Skeleton3D>().First();var blanket=g.Room!.GetNode<MeshInstance3D>("Blanket");var quilt=((BoxMesh)blanket.Mesh).Size;
-        Check(new[]{"LeftLeg","RightLeg","LeftToe_End","RightToe_End","LeftHand","RightHand"}.All(b=>new Aabb(blanket.Position-quilt/2,quilt).HasPoint(g.Room!.ToLocal(sleeper.GlobalTransform*sleeper.GetBoneGlobalPose(sleeper.FindBone(b)).Origin))),
-            "asleep, her knees, toes and hands lie under the blanket");
+        g.Player.Visual.Animator!.Advance(.5f);var sleeper=ActorVisual.Descendants(g.Player.Model).OfType<Skeleton3D>().First();var cover=g.Room!.GetNode<MeshInstance3D>("Blanket");
+        var quilt=((ArrayMesh)cover.Mesh).SurfaceGetArrays(0)[(int)Godot.Mesh.ArrayType.Vertex].AsVector3Array().Select(v=>v+cover.Position).ToArray();
+        bool Covered(Vector3 p)=>quilt.Where(v=>new Vector2(v.X-p.X,v.Z-p.Z).Length()<.04f).Select(v=>v.Y).DefaultIfEmpty(0).Max()>p.Y+.02f;
+        Check(new[]{"LeftLeg","RightLeg","LeftFoot","RightFoot","LeftHand","RightHand"}.All(b=>Covered(g.Room!.ToLocal(sleeper.GlobalTransform*sleeper.GetBoneGlobalPose(sleeper.FindBone(b)).Origin))),
+            "asleep, her knees, feet and hands lie under the cover draped over her");
         // From here to the end of Yui's scene at the gate, every frame's camera step and turn within a scene is measured: past a scene's
         // first beat the camera only ever moves, never cuts, because the owner finds frequent complete view changes sickening.
         float leap=0,turn=0;Transform3D? seen=null;
@@ -616,6 +618,7 @@ public static class IntegrationCheck
         Check(g.Mode==GameMode.Playing&&presses==2*Prologue.Intro.Length&&g.InRoom&&g.Objective=="Head outside"&&g.GetViewport().GetCamera3D()==g.Camera,
             $"the waking scene plays every line, two presses each ({presses}), and leaves Mio to head outside");
         await Frames(10);Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Y>Hoshikawa.World.RoomAt.Y-.1f,"she stands on the tatami");
+        Check((float)cover.Get("blend_shapes/sit")==0&&(float)cover.Get("blend_shapes/folded")==1,"and her cover lies folded at the futon's foot");
         string Art(string node)=>(g.Room!.GetNode<MeshInstance3D>(node).MaterialOverride as StandardMaterial3D)?.AlbedoTexture?.ResourcePath??"";
         Check(new[]{"Tatami","North wall","Post","Engawa","Shoji","Blanket","Photo"}.All(n=>Art(n).StartsWith("res://assets/art/room/"))&&g.Room!.GetNode<MeshInstance3D>("View").CastShadow==GeometryInstance3D.ShadowCastingSetting.Off,
             "her room is Codex's art, tatami to Shio's photograph, and the painted view out of the shoji casts no shadow over it");

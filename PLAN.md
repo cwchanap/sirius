@@ -235,6 +235,8 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [x] `Opening` narration over the city and the valley, then the `Intro` in Mio's room: Zero wakes her, the smell of the paddies, the freight train with medicine that will not stop at Hoshikawa Station.
 - [x] Mio's room as its own small map (`World.Room()`), with her mother's photograph and a door that loads the valley at the new Minase House.
 - [x] Dress the room in Codex art: tiling tatami, plaster, cedar, washi and quilt textures, Shio's photograph and the painted view through the shoji.
+- [x] Realistic bedding from Blender (`tools/build_bedding.py`): a quilted cover draped as cloth over her sleeping pose, pushed into her lap as she sits up and folded at the futon's foot when she rises; a rounded, tufted futon and a domed buckwheat pillow.
+- [ ] Tripo Studio models for the opened line telephone and the tools on the floor (the owner makes them; three models), imported static.
 - [x] Calm the staged camera: a scene cuts only where it starts and moves between its few held shots, with a self-test measuring every frame's step and turn.
 - [x] Yui, now happy, energetic and talkative, waits at the gate with Emiko's letter (`Gate`), races Mio to the workshop, joins Renji's briefing and walks on to the clinic; she lives in Hoshikawa now, not Komorebi.
 - [x] Staged scenes: a scene camera per beat and the characters acting each line (`Prologue.Stage`, `scripts/Cutscene.cs`).
