@@ -56,21 +56,13 @@ public partial class World
         foreach(var (part,look) in new[]{("Futon",Mat(new("dcd4c4"))),("Pillow",Mat(new("7f97a6"))),("Blanket",Look("futon",.5f,Colors.White,laid:true))})
             Mesh(room,part,((MeshInstance3D)bedding.FindChild(part)).Mesh,Bed,look);
         bedding.Free();
-        // The low desk by the west wall, and on the floor the six tools and Renji's line telephone, opened up.
+        // The low desk by the west wall with its lamp, and on the floor Renji's line telephone, opened up, among her tools: Hapadona's
+        // Tripo Studio models (assets/models/), placed whole.
         Box(room,"Desk",new(-1.67f,.32f,-.9f),new(.55f,.05f,1),cedar,true);
         foreach(float x in new[]{-1.9f,-1.44f})foreach(float z in new[]{-1.35f,-.45f})Box(room,"Desk leg",new(x,.15f,z),new(.05f,.3f,.05f),dark);
-        Cylinder(room,"Desk lamp",new(-1.75f,.45f,-1.2f),.05f,.22f,Mat(new("c8a35a"),.4f));
-        Box(room,"Telephone",new(.35f,.06f,.05f),new(.22f,.12f,.18f),Mat(new("2f4a3a")));
-        Box(room,"Telephone cover",new(.62f,.008f,-.12f),new(.22f,.012f,.18f),Mat(new("2f4a3a"))).Rotation=new(0,.5f,0);
-        Box(room,"Handset",new(.2f,.03f,.32f),new(.2f,.05f,.05f),Mat(new("1c1c1c"))).Rotation=new(0,-.4f,0);
-        Box(room,"Wire",new(.45f,.004f,.2f),new(.3f,.006f,.008f),Mat(new("b5452f"))).Rotation=new(0,.9f,0);
-        Box(room,"Wire",new(.5f,.004f,.15f),new(.26f,.006f,.008f),Mat(new("d8b23a"))).Rotation=new(0,.3f,0);
-        Cylinder(room,"Screwdriver",new(.05f,.012f,-.35f),.012f,.22f,Mat(new("b5452f"))).Rotation=new(0,.6f,Mathf.Pi/2);
-        Cylinder(room,"Soldering iron",new(.75f,.015f,.45f),.015f,.26f,Mat(new("6b6f72"))).Rotation=new(0,-.8f,Mathf.Pi/2);
-        Cylinder(room,"Wire spool",new(.85f,.02f,-.3f),.07f,.04f,Mat(new("b87333")));
-        Cylinder(room,"Screw tin",new(.15f,.025f,.55f),.05f,.05f,Mat(new("9aa3a6")));
-        Box(room,"Meter",new(.7f,.03f,.1f),new(.1f,.05f,.16f),Mat(new("d9b13a"))).Rotation=new(0,.2f,0);
-        Box(room,"Pliers",new(.3f,.01f,-.55f),new(.16f,.015f,.03f),Mat(new("4f6a8a"))).Rotation=new(0,-.5f,0);
+        foreach(var (name,model,p,yaw) in new[]{("Desk lamp","desk_lamp",new Vector3(-1.75f,.345f,-1.15f),0f),("Telephone","telephone",new Vector3(.4f,0,.05f),-25f),
+            ("Tools","tools",new Vector3(.45f,0,-.5f),0f),("Wire spool","spool",new Vector3(.78f,0,.32f),30f)})
+        {var n=GD.Load<PackedScene>($"res://assets/models/{model}.glb").Instantiate<Node3D>();n.Name=name;n.Position=p;n.RotationDegrees=new(0,yaw,0);room.AddChild(n);}
         Box(room,"Photo frame",new(Photo.X,1.45f,-1.79f),new(.32f,.4f,.03f),dark);
         Mesh(room,"Photo",new QuadMesh {Size=new(.22f,.33f)},new(Photo.X,1.45f,-1.772f),new StandardMaterial3D {AlbedoTexture=GD.Load<Texture2D>("res://assets/art/room/photo.png"),Roughness=.6f});
         // Outside, Codex's paddies after the rain on a box round the house, which the shader paints by direction; it must not shade the sun.

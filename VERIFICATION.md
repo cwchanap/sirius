@@ -1,12 +1,20 @@
 # MVP verification
 
+## Tripo props in Mio's room — 2026-10-31
+
+The owner made the telephone, the tools, the wire spool and screw tin, and the desk lamp in Tripo Studio and sent them to Blender on her Mac. They were saved from her Blender session there, imported static and pushed. In the cloud, `World.Room()` now places them where the boxes stood.
+
+- **Self-test:** **676 checks pass headless** in `en`, `ja` and `zh_TW` (cloud container, Godot 4.6.2 mono); no check named the boxes. Unit tests 57 and e2e 4 pass.
+- **Captures:** before and after, under xvfb and software Vulkan, from five fixed cameras with the HUD hidden and the staged shots. Shapes and placement only.
+- **Not yet:** no Metal run.
+
 ## Blender bedding in Mio's room — 2026-10-31
 
 The owner found the futon, pillow, quilt and the clutter on the floor primitive, and chose to have the bedding made in Blender here while she makes the telephone and tools in Tripo Studio, so the floor props are unchanged for now. `tools/build_bedding.py` builds the futon, pillow and cover; the cover is cloth dropped onto her own body, and its shape keys push it into her lap as she sits up (over the wake clip's 0.6–2.2 s) and fold it in half at the futon's foot as she gets up.
 
 - **Self-test:** **676 checks pass headless** in `en`, `ja` and `zh_TW` (cloud container, Godot 4.6.2 mono). Changed: asleep, her knees, feet and hands lie under the cover, at least 2 cm under its surface; the toe tips are no longer checked, since those bones float above her boots. New: after the waking scene the cover lies folded. Unit tests 57 and e2e 4 pass.
 - **Captures:** Blender workbench previews of the three states, and in-game captures under xvfb and software Vulkan from three fixed cameras with the HUD hidden, plus the staged shots. Shapes and placement only. The first tries simulated the cover over her moving through the wake clip: a decimated, deforming collider and her jacket's loose flaps flung the cloth off her. It now drops onto a still, voxel-remeshed body for each pose. Self-collision flung the folded cover's layers apart, so the fold is worked out instead.
-- **Not yet:** no Metal run; the telephone and tools are still primitives until the owner's Tripo models arrive.
+- **Not yet:** no Metal run.
 
 ## Codex art in Mio's room, and a calmer opening camera — 2026-10-31
 
