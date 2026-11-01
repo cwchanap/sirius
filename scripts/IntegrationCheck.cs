@@ -865,7 +865,10 @@ public static class IntegrationCheck
         Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Opening),"restarting the prologue replays its opening");
         // Through the narration, the waking, out of the door and past Yui at the gate.
         void SkipOpening(){g.EndDialogue();g.EndDialogue();g.LeaveRoom();g.EndDialogue();}
-        await Frames(1);Check(g.Music.Current=="valley","restarting from the pause menu mid-fight leaves the battle music behind with the fight");SkipOpening();
+        await Frames(1);Check(g.Music.Current=="valley","restarting from the pause menu mid-fight leaves the battle music behind with the fight");
+        g.EndDialogue();g.EndDialogue();var skipped=g.Room!.GetNode<MeshInstance3D>("Blanket");
+        Check(g.Mode==GameMode.Playing&&(float)skipped.Get("blend_shapes/sit")==0&&(float)skipped.Get("blend_shapes/folded")==1,"skipping the waking scene at its first line still leaves her cover folded");
+        g.LeaveRoom();g.EndDialogue();
         // The ladder's body takes its new turn on the next physics step.
         await Frames(2);
         Check(g.Opened.Count==0&&Turned(ladder.Closed)&&g.World.Pickups.All(p=>p.Node.Visible)&&bag.Held.Select(i=>i.Id).SequenceEqual(new[]{"remedy","terminal"})&&bag.Capacity("remedy")==3&&bag.Count("remedy")==3,

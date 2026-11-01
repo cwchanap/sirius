@@ -1,5 +1,12 @@
 # MVP verification
 
+## Review fixes on the opening — 2026-11-01
+
+Hapadona's review of PR #29 found two faults. Skipping the waking scene before Mio's rise left her cover in its sleeping shape, so the scene's end now lays it folded and stops any tween still running. `view.gdshader` blended its sky with `smoothstep(0.03, -0.03, …)`, whose reversed edges are undefined in GLSL, so it is now `1.0 - smoothstep(-0.03, 0.03, …)`.
+
+- **Self-test:** **679 checks pass headless** in `en`, `ja` and `zh_TW`. New: after a restart, skipping the waking scene at its first line leaves the cover folded. The check failed before the fix. Unit tests 57 and e2e 4 pass.
+- **Not yet:** the shader change is unseen under Metal.
+
 ## Japanese voice for the longer opening — 2026-11-01
 
 The 31 Mio and Zero lines the longer opening wrote or changed (`Prologue.Unrecorded`, now empty) were voiced through the ElevenLabs connector: Mio's fourteen with Yuki, Zero's seventeen with Koume, `eleven_v4`, one take each, about 958 credits. Each download was checked for an MPEG header and a length over half a second; nothing was auditioned or picked.

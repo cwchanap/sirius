@@ -13,5 +13,5 @@ void fragment(){
  vec3 dir=mat3(INV_VIEW_MATRIX)*VERTEX;
  vec2 uv=vec2(0.5-atan(dir.x,dir.z)/fov,horizon-dir.y/length(dir.xz)*1.5/fov);
  vec3 c=texture(view,vec2(abs(mod(uv.x+1.0,2.0)-1.0),clamp(uv.y,0.0,1.0))).rgb;
- ALBEDO=mix(mix(c,sky,smoothstep(0.03,-0.03,uv.y)),ground,smoothstep(0.97,1.03,uv.y));
+ ALBEDO=mix(mix(c,sky,1.0-smoothstep(-0.03,0.03,uv.y)),ground,smoothstep(0.97,1.03,uv.y));
 }
