@@ -1,16 +1,16 @@
 namespace Hoshikawa;
 
-// Short and Name are English keys into the ui tables, translated where they are drawn. A stat's value is Base plus PerPoint for each point Mio puts in it.
-public record Stat(string Id,string Short,string Name,float Base,float PerPoint);
-// Every number levelling, stardust and stamina run on, in one place. A new stat is a row here, its two keys in both ui tables, and whatever reads its value.
+// Short is an English key into the ui tables, translated where it is drawn, and Id names the stat's icon. A stat's value is Base plus PerPoint for each point Mio puts in it.
+public record Stat(string Id,string Short,float Base,float PerPoint);
+// Every number levelling, stardust and stamina run on, in one place. A new stat is a row here, its key in both ui tables, an icon named by its id, and whatever reads its value.
 public static class Stats
 {
     public static readonly Stat[] All={
-        new("hp","HP","Vitality",100,10),
-        new("sp","SP","Stamina",100,10),
+        new("hp","HP",100,10),
+        new("sp","SP",100,10),
         // The sword's damage and posture damage scale by ATK / 10; a strike's damage on Mio by 10 / DEF.
-        new("atk","ATK","Attack",10,1),
-        new("def","DEF","Defense",10,1),
+        new("atk","ATK",10,1),
+        new("def","DEF",10,1),
     };
     public static Stat Get(string id)=>All.Single(s=>s.Id==id);
     // Stardust a shut-down robot leaves Mio, and what the next level costs at each level.

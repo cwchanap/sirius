@@ -7,7 +7,7 @@ public partial class Hud : Control
     public Game Game=null!;
     private readonly Font font=ThemeDB.FallbackFont;
     private readonly SystemFont serif=new() {FontNames=new[]{"Georgia","Noto Serif","DejaVu Serif"}};
-    private Texture2D art=null!,logo=null!;
+    private Texture2D art=null!,logo=null!,lacquer=null!,starwell=null!,corner=null!,ring=null!,divider=null!;
     private GradientTexture2D titleShade=null!,sceneShade=null!,questShade=null!,vignette=null!;
     private readonly Dictionary<string,Texture2D?> portraits=new();
     // White on clear, tinted where they are drawn (assets/art/ui/ui-art-generation.md).
@@ -30,6 +30,8 @@ public partial class Hud : Control
     {
         SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);MouseFilter=MouseFilterEnum.Ignore;TextureFilter=TextureFilterEnum.LinearWithMipmaps;
         art=GD.Load<Texture2D>("res://assets/art/mio-keyart.png");logo=GD.Load<Texture2D>("res://assets/art/ui/logo.png");
+        Texture2D Ui(string name)=>GD.Load<Texture2D>($"res://assets/art/ui/{name}.png");
+        lacquer=Ui("lacquer");starwell=Ui("starwell");corner=Ui("corner");ring=Ui("crest");divider=Ui("divider");
         titleShade=new GradientTexture2D {Width=512,Height=1,FillFrom=Vector2.Zero,FillTo=Vector2.Right,
             Gradient=new Gradient {Colors=new[]{new Color(.028f,.068f,.076f,.86f),new Color(.028f,.068f,.076f,.30f),new Color(.028f,.068f,.076f,0)},Offsets=new[]{0f,.45f,1f}}};
         questShade=new GradientTexture2D {Width=512,Height=1,FillFrom=Vector2.Zero,FillTo=Vector2.Right,
@@ -62,6 +64,9 @@ public partial class Hud : Control
     // Where each portrait's face is, as fractions of its image (centre, and radius as a share of the width), for the circle crops.
     private static readonly Dictionary<string,(float X,float Y,float R)> Faces=new(){["Mio"]=(.485f,.167f,.213f),["Chiaki"]=(.47f,.14f,.21f),["Chiyo"]=(.52f,.12f,.21f),["Emiko"]=(.52f,.12f,.21f),
         ["Haruka"]=(.53f,.13f,.21f),["KOMA-7"]=(.57f,.12f,.22f),["Naomi"]=(.47f,.17f,.21f),["Renji"]=(.44f,.14f,.21f),["Sota"]=(.46f,.15f,.21f),["Toma"]=(.52f,.14f,.21f),["Yui"]=(.53f,.16f,.21f)};
+    // Each speaker's role is shown by its icon on their name ribbon; Zero's crest already holds its emblem.
+    private static readonly Dictionary<string,string> RoleIcons=new(){["OFFLINE RUNNER"]="runner",["ENGINEER"]="engineer",["VILLAGE ELDER"]="elder",["MEDIC"]="medic",["MOUNTAIN MEDIC"]="medic",
+        ["FARMER"]="farmer",["COURIER"]="courier",["PASS COURIER"]="courier",["OFFLINE GARDENER"]="gardener",["LODGE KEEPER"]="lodge",["ORCHARD KEEPER"]="orchard"};
     private void Face(string who,Vector2 c,float r)
     {
         if(Portrait(who) is not {} t)return;var (fx,fy,fr)=Faces.GetValueOrDefault(who,(.5f,.15f,.21f));float aspect=t.GetWidth()/(float)t.GetHeight();
@@ -71,28 +76,30 @@ public partial class Hud : Control
     }
     private static Vector2[] Octagon(Rect2 r,float cut)=>new Vector2[]{new(r.Position.X+cut,r.Position.Y),new(r.End.X-cut,r.Position.Y),new(r.End.X,r.Position.Y+cut),new(r.End.X,r.End.Y-cut),
         new(r.End.X-cut,r.End.Y),new(r.Position.X+cut,r.End.Y),new(r.Position.X,r.End.Y-cut),new(r.Position.X,r.Position.Y+cut)};
-    private static readonly Color GoldDark=new("a8893f"),GoldLight=new("fff2c0"),LacquerA=new("0c1a25"),LacquerB=new("12222f"),LacquerC=new("0a1119");
-    // A lacquered panel: a gold rim brightest at its middle round a dark chamfered box, a sheen across its top, a hairline inside and a diamond in each corner.
-    private void Lacquer(Rect2 rect,float cut)
+    private static readonly Color GoldDark=new("a8893f"),GoldLight=new("fff2c0"),LacquerC=new("0a1119");
+    // A lacquered panel: a gold rim brightest at its middle round a chamfered box filled with the lacquer art (or a painting) cropped to its shape,
+    // a sheen across its top, a hairline inside, and the gold maki-e ornament on two opposite corners, set a little out over the rim:
+    // top right and bottom left when rising, else top left and bottom right.
+    private void Lacquer(Rect2 rect,float cut,float ornament,bool rising,Texture2D? fill=null)
     {
         var rim=Octagon(rect,cut);DrawPolygon(rim,rim.Select(p=>{float t=1-Math.Abs(2*(p.X-rect.Position.X)/rect.Size.X-1);return GoldDark.Lerp(t<.6f?gold:GoldLight,t<.6f?t/.6f:(t-.6f)/.4f);}).ToArray());
-        var body=Octagon(rect.Grow(-1.5f),cut-1);DrawPolygon(body,body.Select(p=>{float t=((p.X-rect.Position.X)/rect.Size.X+(p.Y-rect.Position.Y)/rect.Size.Y)/2;return t<.45f?LacquerA.Lerp(LacquerB,t/.45f):LacquerB.Lerp(LacquerC,(t-.45f)/.55f);}).ToArray());
-        float sheen=rect.Size.Y*.35f;var glass=new Color(1,1,1,.07f);
+        fill??=lacquer;var body=Octagon(rect.Grow(-1.5f),cut-1);var size=fill.GetSize();var shown=rect.Size/(size*Math.Max(rect.Size.X/size.X,rect.Size.Y/size.Y));var from=(Vector2.One-shown)/2;
+        DrawPolygon(body,new[]{Colors.White},body.Select(p=>from+(p-rect.Position)/rect.Size*shown).ToArray(),fill);
+        float sheen=rect.Size.Y*.35f;var glass=new Color(1,1,1,.06f);
         DrawPolygon(new Vector2[]{new(rect.Position.X+cut,rect.Position.Y+2),new(rect.End.X-cut,rect.Position.Y+2),new(rect.End.X-2,rect.Position.Y+sheen),new(rect.Position.X+2,rect.Position.Y+sheen)},new[]{glass,glass,Colors.Transparent,Colors.Transparent});
         var line=Octagon(rect.Grow(-8),cut-7);DrawPolyline(line.Append(line[0]).ToArray(),new Color(gold,.32f),1);
-        foreach(var corner in new[]{rect.Position+new Vector2(10,10),new Vector2(rect.End.X-10,rect.Position.Y+10),new Vector2(rect.Position.X+10,rect.End.Y-10),rect.End-new Vector2(10,10)})
-            DrawColoredPolygon(new[]{corner+Vector2.Up*6,corner+Vector2.Right*6,corner+Vector2.Down*6,corner+Vector2.Left*6},gold);
+        var art=new Vector2(ornament*corner.GetWidth()/corner.GetHeight(),ornament);
+        foreach(var (at,flip) in rising?new[]{(new Vector2(rect.End.X+12,rect.Position.Y-12),new Vector2(-1,1)),(new Vector2(rect.Position.X-12,rect.End.Y+12),new Vector2(1,-1))}
+            :new[]{(rect.Position-new Vector2(12,12),Vector2.One),(rect.End+new Vector2(12,12),-Vector2.One)})
+        {DrawSetTransform(at*scale,0,flip*scale);DrawTextureRect(corner,new Rect2(Vector2.Zero,art),false);}
+        DrawSetTransform(Vector2.Zero,0,Vector2.One*scale);
     }
     // A card inside a lacquered panel: a dark box with its top-left and bottom-right corners cut, outlined in a gold hairline.
-    private Vector2[] Card(Rect2 r,float cut=10)
+    private Vector2[] Card(Rect2 r,float cut=10,float fill=.28f)
     {
         var points=new Vector2[]{new(r.Position.X+cut,r.Position.Y),new(r.End.X,r.Position.Y),new(r.End.X,r.End.Y-cut),new(r.End.X-cut,r.End.Y),new(r.Position.X,r.End.Y),new(r.Position.X,r.Position.Y+cut)};
-        DrawColoredPolygon(points,new Color(0,0,0,.28f));DrawPolyline(points.Append(points[0]).ToArray(),new Color(gold,.35f),1);return points;
+        DrawColoredPolygon(points,new Color(0,0,0,fill));DrawPolyline(points.Append(points[0]).ToArray(),new Color(gold,.35f),1);return points;
     }
-    // Text with a little air between its letters, for a role or a heading in small capitals.
-    private void Spaced(string text,Vector2 p,int size,Color c,float gap)
-    {foreach(char ch in text){string s=ch.ToString();Text(s,p,size,c);p.X+=font.GetStringSize(s,fontSize:size).X+gap;}}
-    private float SpacedWidth(string text,int size,float gap)=>text.Sum(ch=>font.GetStringSize(ch.ToString(),fontSize:size).X+gap)-gap;
     // Stardust has no icon art yet: it is a four-pointed star drawn here, which Mark() draws in place of an icon named StardustIcon.
     public const string StardustIcon="stardust";
     private void Star(Vector2 c,float r,Color color)
@@ -299,38 +306,40 @@ public partial class Hud : Control
         float y=o.Y+234;string text=T(shown.Text);
         foreach(var (start,end) in Wrap(text,358,15)){Text(text[start..end].TrimEnd(),new(o.X+470,y),15,cream);y+=24;}
     }
-    private Vector2 RestCorner=>new(w/2-490,h/2-280);
-    // The save point's stats are cards two abreast on the left, the priced items cards on the right; the Raise and Buy buttons sit in their top and bottom right corners.
-    private Rect2 StatCard(int i)=>new(RestCorner+new Vector2(48+i%2*256,170+i/2*142),238,122);
-    private Rect2 TradeCard(int i)=>new(RestCorner+new Vector2(600,170+i*138),332,122);
-    // The save point's screen, a lacquered panel: Mio's level and the next point's cost over a card per stat, each with its value now and after one
-    // more point; on the right, a card per priced item with how many she carries and its price. The buttons are RefreshMenu's.
+    private Vector2 RestCorner=>new(w/2-520,h/2-300);
+    private Rect2 StatCard(int i)=>new(RestCorner+new Vector2(420+i%2*298,186+i/2*120),282,106);
+    private Rect2 TradeCard(int i)=>new(RestCorner+new Vector2(420,428+i*120),580,106);
+    // The save point's screen: the Starwell's painting fills a lacquered panel, the well clear on the left under its name and darkening on the
+    // right under the cards. There, the stardust Mio carries; her level and what the next point costs; a card per stat, its icon, value now and
+    // after one more point; and a card per priced item with how many she carries and its price. The buttons are RefreshMenu's.
     private void SavePoint()
     {
-        var o=RestCorner;var growth=Game.Player.Growth;var bag=Game.Player.Inventory;Lacquer(new(o,980,560),24);
-        Star(o+new Vector2(760,190),170,new Color(gold,.05f));
-        Text(T(World.SavePointName),o+new Vector2(48,78),42,gold,true);Amount(growth.Stardust,o.X+932,o.Y+78,32,cream,glow:true);
-        var rule=new[]{o+new Vector2(48,118),o+new Vector2(226,118),o+new Vector2(754,118),o+new Vector2(932,118)};
-        DrawPolylineColors(rule,new[]{Colors.Transparent,gold,gold,Colors.Transparent},1);Star(o+new Vector2(490,118),7,gold);
+        var o=RestCorner;var growth=Game.Player.Growth;var bag=Game.Player.Inventory;Lacquer(new(o,1040,600),24,190,false,starwell);
+        Color shade=new(LacquerC,.86f),clear=new(LacquerC,0),dusk=new(LacquerC,.7f);
+        DrawPolygon(new Vector2[]{o+new Vector2(330,2),o+new Vector2(560,2),o+new Vector2(1015,2),o+new Vector2(1038,25),o+new Vector2(1038,575),o+new Vector2(1015,598),o+new Vector2(560,598),o+new Vector2(330,598)},
+            new[]{clear,shade,shade,shade,shade,shade,shade,clear});
+        DrawPolygon(new Vector2[]{o+new Vector2(25,2),o+new Vector2(400,2),o+new Vector2(400,150),o+new Vector2(2,150),o+new Vector2(2,25)},new[]{dusk,clear,clear,clear,dusk});
+        Text(T(World.SavePointName),o+new Vector2(66,90),44,gold,true);
+        Amount(growth.Stardust,o.X+1000,o.Y+82,34,cream,glow:true);DrawTextureRect(divider,new Rect2(o+new Vector2(410,104),600,50),false);
         bool afford=growth.Stardust>=growth.NextCost;
-        Text(F("Level {0}",growth.Level),o+new Vector2(48,146),13,muted);Amount(growth.NextCost,o.X+542,o.Y+146,15,afford?gold:red);
+        DrawIcon("level",o+new Vector2(438,164),30,gold);Text(growth.Level.ToString(),o+new Vector2(462,174),26,cream,true);
+        Amount(growth.NextCost,o.X+1000,o.Y+172,18,afford?gold:red);DrawIcon("raise",o+new Vector2(1000-serif.GetStringSize(growth.NextCost.ToString(),fontSize:18).X-40,165),16,afford?gold:red);
         for(int i=0;i<Stats.All.Length;i++)
         {
-            var stat=Stats.All[i];var card=StatCard(i);Card(card);var p=card.Position;
-            Text(T(stat.Short),p+new Vector2(20,38),26,gold,true);Text(T(stat.Name),p+new Vector2(20,66),12,muted);
-            string value=$"{growth.Value(stat.Id):0}";Text(value,p+new Vector2(20,106),28,cream,true);
-            Text($"→ {growth.Value(stat.Id)+stat.PerPoint:0}",p+new Vector2(28+serif.GetStringSize(value,fontSize:28).X,104),16,afford?cream:muted);
+            var stat=Stats.All[i];var card=StatCard(i);Card(card,10,.5f);var p=card.Position;
+            DrawCircle(p+new Vector2(48,53),31,new Color(gold,.1f));DrawIcon(stat.Id,p+new Vector2(48,53),44,GoldLight);
+            Text(T(stat.Short),p+new Vector2(94,38),17,gold,true);
+            string value=$"{growth.Value(stat.Id):0}";Text(value,p+new Vector2(94,84),30,cream,true);
+            Text($"→ {growth.Value(stat.Id)+stat.PerPoint:0}",p+new Vector2(102+serif.GetStringSize(value,fontSize:30).X,82),16,afford?cream:muted);
         }
-        DrawLine(o+new Vector2(566,140),o+new Vector2(566,470),new Color(gold,.25f));
-        Text(T("Trade"),o+new Vector2(600,146),13,muted);
         foreach(var (item,i) in Items.All.Where(it=>it.Price>0).Select((it,i)=>(it,i)))
         {
-            var card=TradeCard(i);Card(card);var p=card.Position;int n=bag.Count(item.Id);var ring=p+new Vector2(60,61);
-            DrawCircle(ring,50,new Color(gold,.08f));DrawCircle(ring,44,new Color(ink,.9f));DrawArc(ring,44,0,Mathf.Tau,48,new Color(gold,.7f),1.5f);DrawIcon(item.Icon,ring,64,cream);
-            Text(T(item.Name),p+new Vector2(122,36),16,cream);Text($"{n} / {bag.Capacity(item.Id)}",p+new Vector2(122,60),13,muted);
-            string price=item.Price.ToString();Amount(item.Price,p.X+122+22+serif.GetStringSize(price,fontSize:22).X,p.Y+94,22,item.Price<=growth.Stardust?gold:red);
+            var card=TradeCard(i);Card(card,10,.5f);var p=card.Position;int n=bag.Count(item.Id);var icon=p+new Vector2(54,53);
+            DrawCircle(icon,44,new Color(gold,.08f));DrawCircle(icon,38,new Color(ink,.9f));DrawArc(icon,38,0,Mathf.Tau,48,new Color(gold,.7f),1.5f);DrawIcon(item.Icon,icon,56,cream);
+            Text(T(item.Name),p+new Vector2(110,44),17,cream);Text($"{n} / {bag.Capacity(item.Id)}",p+new Vector2(110,72),13,muted);
+            Amount(item.Price,card.End.X-80,p.Y+64,24,item.Price<=growth.Stardust?gold:red);
         }
-        Keycap("ESC",o+new Vector2(48,503.6f));
+        Keycap("ESC",o+new Vector2(46,541.6f));
     }
     private void Minimap()
     {
@@ -379,23 +388,23 @@ public partial class Hud : Control
         if(partner!="")Figure(partner,true,who==partner);
         // A staged shot has its characters in the middle, so Zero's emblem moves up out of their way.
         if(script.Any(b=>b.Speaker=="Zero"))Link(new(w/2-44,Game.Staged?118:h-430),who=="Zero");
-        var box=new Rect2(w/2-560,h-266,1120,208);Lacquer(box,20);
-        // The speaker on a gold ribbon off the box's top-left corner, behind a crest holding their face (Zero's link emblem, having no face),
-        // with a few grains of stardust drifting off the ribbon's end; narration has neither.
+        var box=new Rect2(w/2-560,h-266,1120,208);Lacquer(box,20,128,true);
+        // The speaker on a gold ribbon off the box's top-left corner, their role as an icon after the name, behind the gold ring of a crest holding
+        // their face (Zero's link emblem, having no face), with a few grains of stardust drifting off the ribbon's end; narration has neither.
         if(who!="")
         {
-            float t=Time.GetTicksMsec()/1000f;int nameSize=26;string name=T(who),role=T(Game.SpeakerRole);
-            float nameWidth=serif.GetStringSize(name,fontSize:nameSize).X,roleWidth=SpacedWidth(role,11,2.5f),ribbon=28+nameWidth+16+roleWidth+26+14;
-            var rx=box.Position+new Vector2(110,-24);
+            float t=Time.GetTicksMsec()/1000f;int nameSize=26;string name=T(who);string? role=RoleIcons.GetValueOrDefault(Game.SpeakerRole);
+            float nameWidth=serif.GetStringSize(name,fontSize:nameSize).X,ribbon=40+nameWidth+(role!=null?14+26:0)+30;
+            var rx=box.Position+new Vector2(104,-26);
             DrawPolygon(new Vector2[]{rx,rx+new Vector2(ribbon,0),rx+new Vector2(ribbon-14,44),rx+new Vector2(0,44)},new[]{gold,new Color("f4dc93"),new Color("f4dc93"),gold});
-            Text(name,rx+new Vector2(28,32),nameSize,ink,true);Spaced(role,rx+new Vector2(28+nameWidth+16,27),11,ink,2.5f);
+            Text(name,rx+new Vector2(40,32),nameSize,ink,true);if(role!=null)DrawIcon(role,rx+new Vector2(40+nameWidth+14+13,22),26,ink);
             var tail=rx+new Vector2(ribbon,0);
             foreach(var (dx,dy,r,phase) in new[]{(14f,10f,2.5f,0f),(34f,-4f,1.5f,1.3f),(52f,14f,2f,2.1f),(74f,2f,1.5f,.7f),(96f,-10f,2f,2.9f),(118f,16f,1.5f,1.8f),(150f,6f,2f,.4f),(188f,-6f,1.5f,2.4f)})
             {var p=tail+new Vector2(dx,dy+Mathf.Sin(t*.8f+phase)*3);float a=.5f+.5f*Mathf.Sin(t*2.2f+phase);DrawCircle(p,r*2.6f,new Color(gold,.22f*a));DrawCircle(p,r,new Color(gold,.6f+.4f*a));}
-            var crest=box.Position+new Vector2(74,-6);
-            DrawCircle(crest,58,new Color(gold,.06f));DrawCircle(crest,52,new Color(gold,.1f));DrawCircle(crest,49.5f,new Color(ink,.92f));DrawCircle(crest,44,ink);
-            if(who=="Zero")DrawIcon("zero",crest,60,jade);else Face(who,crest,43);
-            DrawArc(crest,44,0,Mathf.Tau,64,gold,2.5f);
+            var crest=box.Position+new Vector2(70,-14);
+            DrawCircle(crest,62,new Color(gold,.08f));DrawCircle(crest,44,ink);
+            if(who=="Zero")DrawIcon("zero",crest,60,jade);else Face(who,crest,42);
+            DrawTextureRect(ring,new Rect2(crest-Vector2.One*58,Vector2.One*116),false);
         }
         int shown=(int)Game.Reveal;float y=box.Position.Y+66;string text=Game.Dialogue;
         foreach(var (start,end) in Wrap(text,1030,20))
@@ -496,15 +505,15 @@ public partial class Hud : Control
             var o=RestCorner;var growth=Game.Player.Growth;var bag=Game.Player.Inventory;var rows=new List<(string Id,Button Button)>();
             for(int i=0;i<Stats.All.Length;i++)
             {
-                string id=Stats.All[i].Id;var card=StatCard(i);var raise=Button("Raise",new(card.End.X-114,card.Position.Y+14),new(100,36),()=>{pressed=id;Game.Raise(id);},false,null,15,false);
+                string id=Stats.All[i].Id;var card=StatCard(i);var raise=IconButton($"Raise {id}","raise",new(card.End.X-58,card.Position.Y+12),()=>{pressed=id;Game.Raise(id);});
                 raise.Disabled=growth.Stardust<growth.NextCost;rows.Add((id,raise));
             }
             foreach(var (item,i) in Items.All.Where(it=>it.Price>0).Select((it,i)=>(it,i)))
             {
-                string id=item.Id;var card=TradeCard(i);var buy=Button("Buy",card.End-new Vector2(114,50),new(100,36),()=>{pressed=id;Game.Buy(id);},false,null,15,false);
+                string id=item.Id;var card=TradeCard(i);var buy=IconButton($"Buy {id}","buy",new(card.End.X-58,card.Position.Y+33),()=>{pressed=id;Game.Buy(id);});
                 buy.Disabled=item.Price>growth.Stardust||bag.Count(id)>=bag.Capacity(id);rows.Add((id,buy));
             }
-            var back=Button("Back",new(o.X+96,o.Y+492),new(170,46),Game.LeaveRest,false,grab:false);
+            var back=Button("Back",new(o.X+92,o.Y+530),new(170,46),Game.LeaveRest,false,grab:false);
             (rows.FirstOrDefault(r=>r.Id==pressed&&!r.Button.Disabled).Button??rows.FirstOrDefault(r=>!r.Button.Disabled).Button??back).GrabFocus();
         }
     }
@@ -533,5 +542,13 @@ public partial class Hud : Control
                 BorderColor=state=="disabled"?new Color(gold,.3f):gold,BorderWidthLeft=state=="focus"?2:1,BorderWidthRight=state=="focus"?2:1,BorderWidthTop=state=="focus"?2:1,BorderWidthBottom=state=="focus"?2:1,
                 ContentMarginLeft=16,ContentMarginRight=16,CornerRadiusTopLeft=2,CornerRadiusBottomRight=2});
         b.Pressed+=()=>action();menu.AddChild(b);if(primary&&grab)b.GrabFocus();return b;
+    }
+    // A button showing only an icon, named for what it does and to what (Raise hp) so tests and focus logs can tell it apart.
+    private Button IconButton(string name,string icon,Vector2 pos,Action action)
+    {
+        var b=Button("",pos,new(46,40),action,false,grab:false);b.Name=name;b.Icon=Icon(icon);b.ExpandIcon=true;b.IconAlignment=HorizontalAlignment.Center;
+        b.AddThemeConstantOverride("icon_max_width",22);foreach(var (state,c) in new[]{("normal",cream),("hover",gold),("pressed",gold),("focus",GoldLight),("disabled",new Color(cream,.3f))})b.AddThemeColorOverride($"icon_{state}_color",c);
+        foreach(string state in new[]{"normal","hover","pressed","focus","disabled"})((StyleBoxFlat)b.GetThemeStylebox(state)).ContentMarginLeft=((StyleBoxFlat)b.GetThemeStylebox(state)).ContentMarginRight=8;
+        return b;
     }
 }
