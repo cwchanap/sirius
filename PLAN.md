@@ -247,6 +247,8 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [x] Self-test (671 checks) in English, Japanese and Traditional Chinese, unit tests and e2e.
 - [x] Voice the 31 new or changed Mio and Zero lines in Japanese (ElevenLabs, Yuki and Koume, one take each); `Prologue.Unrecorded` is empty again.
 - [x] Give Yui and Renji Japanese voices: auditions, the owner's picks (kano for Yui, her own Sho for Renji), all 27 lines voiced and `Prologue.Cast` naming the voiced speakers.
+- [x] Keep Zero a secret: the villagers know the voice on Mio's wrist, but she passes the terminal off as an old line terminal and tells nobody, Renji included, that it is a robot in the city (the gate, the briefing, Renji's rest line, the homecoming, Chiyo, KOMA-7 and Sota rewritten); Sota, the AI's spy, gets a first hint: he asks who is on the other end and wants to know first when the train is due, and at the homecoming one signal by the village goes dark for a moment.
+- [ ] Voice the 11 rewritten cast lines in `Prologue.Unrecorded`.
 - [ ] Listen to the new takes (Mio's, Zero's, Yui's and Renji's) in the game and redo any that read wrong.
 - [ ] New dialogue portraits for Yui and Renji from their Tripo models, the photograph's image, door and photograph icons (Codex).
 - [ ] Graphical check under Metal on the Mac.

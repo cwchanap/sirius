@@ -9,7 +9,7 @@ Chinese is Taiwan usage (臺灣用語): 軟體, 網路, 資訊, 號誌, 影片, 
 | English | 日本語 | 繁體中文 | Note |
 |---|---|---|---|
 | Mio | ミオ | 澪 | 22, scavenger and repairer. Family name Minase: 水無瀬, 水無瀨 (Minase House: 水無瀬家, 水無瀨家) |
-| Zero | ゼロ | 零 **?** | The city's caring robot heard through the wrist terminal. 零 echoes the `0` link emblem |
+| Zero | ゼロ | 零 **?** | The city's caring robot heard through the wrist terminal. 零 echoes the `0` link emblem. The villagers know the voice as Zero but not where it is: Mio calls the terminal an old line terminal from the signal box (古い鉄道の端末, 舊的鐵道終端機) and never says Zero is in the city |
 | Renji | レンジ | 蓮司 | Engineer, Kisaragi Renji (如月蓮司). Mio and Yui call him レンジさん in Japanese |
 | Chiyo | チヨ | 千代 **?** | Village elder. Mio calls her チヨさん in Japanese and 千代奶奶 in Chinese **?** |
 | Chiaki | チアキ | 千秋 | Medic, Shiraishi Chiaki (白石千秋) |
