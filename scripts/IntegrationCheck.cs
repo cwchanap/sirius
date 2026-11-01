@@ -593,8 +593,8 @@ public static class IntegrationCheck
         Check(presses==2*Prologue.Opening.Length&&g.InRoom&&!g.World.Visible&&g.Player.Visible&&g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Intro)&&g.Speaker=="Zero",
             $"the narration ends in Mio's room, a map of its own, where Zero wakes her ({presses} presses)");
         bool Sheathed()=>ActorVisual.Descendants(g.Player.Model).OfType<MeshInstance3D>().Where(m=>m.Name.ToString().StartsWith("Sword")).All(m=>!m.Visible);
-        Check(g.Player.Visual.Clip=="sleep"&&g.Player.GlobalPosition.DistanceTo(g.Room!.GlobalPosition+Hoshikawa.World.Bed)<.01f&&Sheathed()&&g.Voice.Stream==null,
-            "she sleeps on her futon, her sword left on its rack, and Zero's new line plays silent until it is recorded");
+        Check(g.Player.Visual.Clip=="sleep"&&g.Player.GlobalPosition.DistanceTo(g.Room!.GlobalPosition+Hoshikawa.World.Bed)<.01f&&Sheathed()&&g.Voice.Playing&&g.Voice.Stream?.ResourcePath=="res://assets/audio/voice/ja/Zero/Intro.0.mp3",
+            "she sleeps on her futon, her sword left on its rack, and Zero's voice wakes her in Japanese");
         // The clip's blend is run out rather than waited for: a wait lets a short line finish typing in Chinese, saving a press.
         g.Player.Visual.Animator!.Advance(.5f);var sleeper=ActorVisual.Descendants(g.Player.Model).OfType<Skeleton3D>().First();var cover=g.Room!.GetNode<MeshInstance3D>("Blanket");
         var quilt=((ArrayMesh)cover.Mesh).SurfaceGetArrays(0)[(int)Godot.Mesh.ArrayType.Vertex].AsVector3Array().Select(v=>v+cover.Position).ToArray();

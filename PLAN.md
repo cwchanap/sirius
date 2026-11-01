@@ -245,6 +245,7 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [x] Staged scenes: a scene camera per beat and the characters acting each line (`Prologue.Stage`, `scripts/Cutscene.cs`).
 - [x] Import Hapadona's Tripo Studio Yui and Renji; key the opening's clips in Blender (`tools/cast_clips.py`): Mio's sleep, wake, sit, terminal and rise, rebuilt into `mio.glb` on the Mac; Yui's and Renji's idle, walk and gestures.
 - [x] Self-test (671 checks) in English, Japanese and Traditional Chinese, unit tests and e2e.
-- [ ] Voice the new Mio and Zero lines in Japanese (`Prologue.Unrecorded`, ElevenLabs).
+- [x] Voice the 31 new or changed Mio and Zero lines in Japanese (ElevenLabs, Yuki and Koume, one take each); `Prologue.Unrecorded` is empty again.
+- [ ] Listen to the new takes in the game and redo any that read wrong.
 - [ ] New dialogue portraits for Yui and Renji from their Tripo models, the photograph's image, door and photograph icons (Codex).
 - [ ] Graphical check under Metal on the Mac.

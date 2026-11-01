@@ -1,5 +1,12 @@
 # MVP verification
 
+## Japanese voice for the longer opening — 2026-11-01
+
+The 31 Mio and Zero lines the longer opening wrote or changed (`Prologue.Unrecorded`, now empty) were voiced through the ElevenLabs connector: Mio's fourteen with Yuki, Zero's seventeen with Koume, `eleven_v4`, one take each, about 958 credits. Each download was checked for an MPEG header and a length over half a second; nothing was auditioned or picked.
+
+- **Self-test:** passes headless in `en`, `ja` and `zh_TW` (cloud container, Godot 4.6.2 mono). All 52 Mio and Zero lines outside `Prologue.Unvoiced` now load their mp3 (21 before), and the waking scene opens on Zero's voice rather than silence. Unit tests 57, e2e 4 and `build_voice.py --check` (109 lines) pass.
+- **Not yet:** nobody has heard the new takes, in the game or on speakers, and there is no Metal run.
+
 ## The waking scene's ending, Zero's setting and the garden under the engawa — 2026-11-01
 
 The owner found the waking scene's end abrupt, the house floating in the sky from the engawa, and Zero described wrongly: it is a caring robot in the city whose knowledge the city limits to what its work needs, not the railway's AI. The scene now ends with Mio deciding to take the news to Renji, Zero minding her missed meal and her "Let's go"; the scene camera swings round her over 1.6 s to the follow camera, facing the door, instead of cutting; Zero packed the medicine onto the train rather than reading a timetable (Intro.9–19, Briefing.2, RenjiRest.0, KOMA-7's lines, both translations, the glossary). The house stands on posts and stones over a lawn with a step, stepping stones, an eave, hedged sides and a terrace's stone edge, past which the painted paddies lie.
