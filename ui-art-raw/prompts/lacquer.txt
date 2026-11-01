@@ -1,4 +1,0 @@
-Use your built-in image-generation tool to create a genuine AI raster. Do NOT draw it with Python/PIL/SVG/code; if you have no image tool print NO IMAGE TOOL and stop.
-Create one 1536x1024 landscape image: a flat, straight-on, evenly lit surface texture of polished Japanese urushi lacquer, to fill the background of a game interface window.
-Deep blue-black lacquer (between #0b1822 and #142636) with a faint soft sheen, very sparsely sprinkled with tiny flakes of gold leaf (kirigane) and fine gold dust (nashiji). The gold thins out toward the middle of the image so text laid over it stays readable, with a few slightly denser drifts of gold dust near the edges and corners.
-Fill the whole image edge to edge. No objects, no motifs, no pattern, no border, no frame, no vignette, no text, no perspective, no room reflections.
