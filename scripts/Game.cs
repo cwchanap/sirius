@@ -288,7 +288,7 @@ public partial class Game : Node3D
         Cue($"{scene}.{Beat}");
         SpeakerRole=Speaker switch {"Mio"=>"OFFLINE RUNNER","Zero"=>"SENSORY LINK · CITY SIDE",_=>World.Residents.FirstOrDefault(r=>r.Name==Speaker).Role??""};
     }
-    public void EndDialogue(){Voice.Stop();Mode=GameMode.Playing;Input.MouseMode=SelfTest?Input.MouseModeEnum.Visible:Input.MouseModeEnum.Captured;Release();After(scene);}
+    public void EndDialogue(){Voice.Stop();Mode=GameMode.Playing;Input.MouseMode=SelfTest?Input.MouseModeEnum.Visible:Input.MouseModeEnum.Captured;Release(true);After(scene);}
     public void OnEnemyDefeated(Enemy enemy)
     {
         Earn(enemy.Kind.Reward);

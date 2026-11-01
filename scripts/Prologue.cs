@@ -1,7 +1,8 @@
 namespace Hoshikawa;
 
-// Scene 1's visual-novel script. A blank speaker is narration. Zero talks through Mio's wrist terminal and has no portrait:
-// nobody in the valley has seen its body. It is curious like a child, counts things, and only knows railway words.
+// Scene 1's visual-novel script. A blank speaker is narration. Zero is a caring robot in the city that talks through Mio's wrist
+// terminal and has no portrait: nobody in the valley has seen its body. The city lets it know only what its work needs, so it is
+// curious like a child about everything else; it counts things and minds Mio's heartbeat, sleep and meals.
 // It asks about everything except Mio's mother; the epilogue's change of subject is the first hint of its secret.
 // Yui, the pass courier, is quick, bright and never short of words.
 public static class Prologue
@@ -13,26 +14,29 @@ public static class Prologue
         ("","Twelve years ago, the cities went dark to the valleys. Out in the Mikawa Highlands, Hoshikawa learned to live offline."),
         ("","A city freight line still crosses the highlands. Its trains never stop."),
     };
-    // In Mio's room, its own small map: she wakes, gets up, and Zero reads her the train's manifest.
+    // In Mio's room, its own small map: she wakes, gets up, hears of the medicine Zero packed onto the train, and sets out for Renji.
     public static readonly (string Speaker,string Text)[] Intro=
     {
         ("Zero","Mio? Mio. Are you awake?"),
         ("Mio","...Mm. No."),
-        ("Zero","Your heartbeat says you're awake. Seventy-one departures a minute."),
+        ("Zero","Your heartbeat says you're awake. Seventy-one beats a minute."),
         ("Mio","Good morning to you too, Zero. It's rude to count someone's heartbeat, you know."),
         ("Zero","Is it? Sorry. I'll count something else. Six tools on the floor. One telephone in pieces. You fell asleep fixing again."),
         ("Mio","It's Renji's old line telephone. The wiring is older than me."),
         ("Zero","...Wait. What is that smell? It's green, and wet, and a little bit sweet."),
         ("Mio","Rice paddies after the rain. Hoshikawa smells like this every morning in early summer."),
         ("Zero","Rice paddies after the rain. I'm keeping that one."),
-        ("Zero","Mio, I read the city timetable while you were asleep. A freight train crosses the valley in three days. Eleven carriages."),
-        ("Zero","Cargo: medicine, batteries, rice seed. Passengers listed: zero."),
-        ("Mio","Medicine... Chiaki's shelves have been empty since spring."),
-        ("Zero","Why doesn't the train stop? My map has a station in your valley. Hoshikawa Station, platform two."),
-        ("Mio","No train has stopped there since the cities went dark. Twelve years. They just pass through."),
+        ("Zero","Mio, guess what my work was last night. I packed medicine onto a freight train. Two hundred boxes, eleven carriages."),
+        ("Mio","Medicine? Where is it going?"),
+        ("Zero","I don't know. The city only tells me what my work needs. Pack the boxes, close the doors. It leaves in three days."),
+        ("Mio","There's only one line out of the city, Zero. It runs straight through this valley."),
+        ("Zero","Then it goes right past you! Does it stop?"),
+        ("Mio","Not anymore. No train has stopped at Hoshikawa Station since the cities went dark. Twelve years."),
         ("Zero","A station where no train stops is a very lonely station."),
-        ("Mio","How do you even read a city timetable, Zero?"),
-        ("Zero","I'm a railway system. Timetables are what I'm made of. The city never deleted me. It just forgot I was here."),
+        ("Mio","And Chiaki's shelves have been empty since spring. Two hundred boxes, and not one of them for us."),
+        ("Mio","Renji has to hear this. Come on, Zero. We're going to the workshop."),
+        ("Zero","Wait! You haven't eaten since yesterday noon. Nineteen hours. I counted."),
+        ("Mio","I'll grab a rice ball on the way. Let's go."),
     };
     // The old photograph on her wall. Zero, who asks about everything, does not ask about this.
     public static readonly (string Speaker,string Text)[] Photo=
@@ -62,7 +66,7 @@ public static class Prologue
     {
         ("Renji","Mio. And Yui? You're both up early."),
         ("Yui","Morning, Renji! I won. Don't ask what."),
-        ("Mio","Zero read the city timetable. A freight train comes through in three days, and it's carrying medicine."),
+        ("Mio","Zero packed medicine onto a city freight train last night. It comes through here in three days."),
         ("Yui","And Komorebi has a week left. So do you. Emiko wrote it all down. Here."),
         ("Renji","...Then we take that medicine off the train."),
         ("Renji","We can't stop a city train out on the line. But the old line's signals are still standing. Dead for twelve years, every one of them."),
@@ -90,7 +94,7 @@ public static class Prologue
     };
     public static readonly (string Speaker,string Text)[] RenjiRest=
     {
-        ("Renji","The signals are ready. Zero is still in the city, watching the timetable for us. Rest for a while. You have earned it."),
+        ("Renji","The signals are ready. Zero is still in the city, keeping an eye on that train for us. Rest for a while. You have earned it."),
     };
     public static readonly (string Speaker,string Text)[] Homecoming=
     {
@@ -169,8 +173,8 @@ public static class Prologue
         {
             ("KOMA-7","Morning diagnostic: tomatoes healthy. Humans worried. Zero is still in the city. This unit is KOMA. Different machine; equally excellent company."),
             ("Zero","Hello, KOMA! What do tomatoes feel like?"),
-            ("KOMA-7","Round. Warm in the afternoon. Unit Zero, you ask many questions for a railway system."),
-            ("Zero","I only ever had trains. Mio has everything else."),
+            ("KOMA-7","Round. Warm in the afternoon. Unit Zero, you ask many questions for a city care unit."),
+            ("Zero","I only know the city. Mio has everything else."),
         },
         ["Chiaki"]=new[]
         {
@@ -194,8 +198,8 @@ public static class Prologue
     public static readonly HashSet<string> Unvoiced=new(){"RelayAsleep","RelayGuardedNone","RelayGuardedOne","RelayGuardedTwo","RelayGuardedThree","RelaySteady"};
     // Mio's and Zero's lines written or changed since the last recording, which IntegrationCheck lets go without an mp3 until they are voiced.
     public static readonly HashSet<string> Unrecorded=new(){"Intro.0","Intro.1","Intro.2","Intro.4","Intro.5","Intro.6","Intro.9","Intro.10","Intro.11","Intro.12",
-        "Intro.13","Intro.14","Intro.15","Intro.16","Photo.0","Photo.1","Gate.1","Gate.3","Gate.5","Gate.6","Gate.9","Gate.10","Gate.12","Briefing.2","Briefing.8",
-        "RelayOnline.4","FirstMeeting.Yui.1"};
+        "Intro.13","Intro.14","Intro.15","Intro.16","Intro.17","Intro.18","Intro.19","Photo.0","Photo.1","Gate.1","Gate.3","Gate.5","Gate.6","Gate.9","Gate.10","Gate.12","Briefing.2","Briefing.8",
+        "RelayOnline.4","FirstMeeting.KOMA-7.3","FirstMeeting.Yui.1"};
     // What the 3D scene does when a beat starts: a camera shot and the clips its actors play ("Mio clip, Yui clip"). A beat with no entry, or
     // an empty part, keeps what was there. Shots: "over A B" looks past A's shoulder at B, "two A B" frames both from the side, "face A"
     // is in front of A, and any other name is a fixed shot (Game.Shots). Every actor goes back to its resting clip when the scene ends.
@@ -206,7 +210,7 @@ public static class Prologue
         ["Opening.0"]=("city",""),["Opening.1"]=("valley",""),["Opening.2"]=("home",""),
         ["Intro.0"]=("bed","Mio sleep"),["Intro.2"]=("futon","Mio wake"),["Intro.3"]=("","Mio terminal_sit"),["Intro.4"]=("floor","Mio sit"),
         ["Intro.6"]=("room","Mio rise"),["Intro.7"]=("shoji","Mio idle"),["Intro.9"]=("face Mio","Mio terminal"),["Intro.11"]=("","Mio idle"),
-        ["Intro.15"]=("","Mio terminal"),["Intro.16"]=("","Mio idle"),
+        ["Intro.15"]=("","Mio terminal"),["Intro.16"]=("","Mio idle"),["Intro.17"]=("","Mio terminal"),["Intro.19"]=("","Mio idle"),
         ["Photo.0"]=("photo",""),
         ["Gate.0"]=("two Mio Yui","Yui wave"),["Gate.1"]=("","Yui idle"),["Gate.2"]=("","Yui point"),["Gate.3"]=("","Mio terminal, Yui idle"),
         ["Gate.4"]=("","Mio idle"),["Gate.6"]=("","Mio terminal"),["Gate.7"]=("over Mio Yui","Mio idle, Yui give"),["Gate.8"]=("","Mio terminal, Yui idle"),

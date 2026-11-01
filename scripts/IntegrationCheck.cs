@@ -615,13 +615,19 @@ public static class IntegrationCheck
         await To(9);var toShot=g.ShotTarget.Eye-g.Player.GlobalPosition;
         Check(g.Player.Facing.Dot((toShot with {Y=0}).Normalized())>.8f&&toShot.Length()<2.2f,"for Zero's news of the train the camera moves round to her face");
         await To(Prologue.Intro.Length);
-        Check(g.Mode==GameMode.Playing&&presses==2*Prologue.Intro.Length&&g.InRoom&&g.Objective=="Head outside"&&g.GetViewport().GetCamera3D()==g.Camera,
-            $"the waking scene plays every line, two presses each ({presses}), and leaves Mio to head outside");
-        await Frames(10);Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Y>Hoshikawa.World.RoomAt.Y-.1f,"she stands on the tatami");
+        Check(g.Mode==GameMode.Playing&&presses==2*Prologue.Intro.Length&&g.InRoom&&g.Objective=="Head outside"&&g.Staged,
+            $"the waking scene plays every line, two presses each ({presses}), and leaves Mio to head outside while the camera swings back");
+        await Frames((int)(Game.CameraBack*60)+10);var ahead=-g.Camera.GlobalBasis.Z;var door=g.Room!.GlobalPosition+Hoshikawa.World.Door-g.Player.GlobalPosition;
+        Check(g.GetViewport().GetCamera3D()==g.Camera&&new Vector2(ahead.X,ahead.Z).Normalized().Dot(new Vector2(door.X,door.Z).Normalized())>.95f,
+            "the follow camera takes over behind her, looking at the door out");
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Y>Hoshikawa.World.RoomAt.Y-.1f,"she stands on the tatami");
         Check((float)cover.Get("blend_shapes/sit")==0&&(float)cover.Get("blend_shapes/folded")==1,"and her cover lies folded at the futon's foot");
         string Art(string node)=>(g.Room!.GetNode<MeshInstance3D>(node).MaterialOverride as StandardMaterial3D)?.AlbedoTexture?.ResourcePath??"";
         Check(new[]{"Tatami","North wall","Post","Engawa","Shoji","Blanket","Photo"}.All(n=>Art(n).StartsWith("res://assets/art/room/"))&&g.Room!.GetNode<MeshInstance3D>("View").CastShadow==GeometryInstance3D.ShadowCastingSetting.Off,
             "her room is Codex's art, tatami to Shio's photograph, and the painted view out of the shoji casts no shadow over it");
+        var yard=g.Room!.GetNode<MeshInstance3D>("Garden").GetAabb();
+        Check(yard.Position.Y<-.4f&&yard.Size.X>20&&g.Room!.GetChildren().Count(n=>n.Name.ToString().StartsWith("shrub"))>=12&&g.Room!.GetNodeOrNull("Underfloor")!=null&&g.Room!.GetNodeOrNull("Terrace edge")!=null,
+            "past the engawa her house stands on posts and stones in a hedged garden, whose terrace edge looks out over the painted paddies");
         void Indoors(Vector3 spot){Place(g.Player,g.Room!.GlobalPosition+spot+Vector3.Up*.05f);}
         Indoors(Hoshikawa.World.Photo);await Frames(5);
         Check(g.Interaction()==("",Localization.T("PHOTO")),"the photograph on the wall can be looked at");

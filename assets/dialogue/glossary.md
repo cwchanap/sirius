@@ -9,7 +9,7 @@ Chinese is Taiwan usage (臺灣用語): 軟體, 網路, 資訊, 號誌, 影片, 
 | English | 日本語 | 繁體中文 | Note |
 |---|---|---|---|
 | Mio | ミオ | 澪 | 22, scavenger and repairer. Family name Minase: 水無瀬, 水無瀨 (Minase House: 水無瀬家, 水無瀨家) |
-| Zero | ゼロ | 零 **?** | The AI heard through the wrist terminal. 零 echoes the `0` link emblem and the joke in "passengers listed: zero" |
+| Zero | ゼロ | 零 **?** | The city's caring robot heard through the wrist terminal. 零 echoes the `0` link emblem |
 | Renji | レンジ | 蓮司 | Engineer, Kisaragi Renji (如月蓮司). Mio and Yui call him レンジさん in Japanese |
 | Chiyo | チヨ | 千代 **?** | Village elder. Mio calls her チヨさん in Japanese and 千代奶奶 in Chinese **?** |
 | Chiaki | チアキ | 千秋 | Medic, Shiraishi Chiaki (白石千秋) |
@@ -40,6 +40,7 @@ Chinese is Taiwan usage (臺灣用語): 軟體, 網路, 資訊, 號誌, 影片, 
 | Mikawa Highlands | 三河高原 | 三河高原 |
 | Hoshikawa Station (on the old line, where no train has stopped for twelve years) | 星川駅 | 星川站 |
 | engawa (veranda) | 縁側 | 緣廊 |
+| Care unit (what KOMA-7 calls Zero: a caring robot in the city) | 介護機 | 照護機 | |
 
 ## Game terms
 
@@ -80,7 +81,7 @@ Chinese is Taiwan usage (臺灣用語): 軟體, 網路, 資訊, 號誌, 影片, 
 
 ## Tone
 
-- **Zero** is a railway system talking like a curious child. It counts things, reaches for railway words (departure, carriage, platform, level crossing, signal, siding) and says it will "keep" a smell. In Japanese it uses no first-person pronoun. In Chinese 我 is unavoidable; keep sentences short and plain.
+- **Zero** is a caring robot living in the city, talking like a curious child. The city lets it know only what its work needs, so everything outside the city is new to it. It counts things, minds Mio's heartbeat, sleep and meals, and says it will "keep" a smell. In Japanese it uses no first-person pronoun. In Chinese 我 is unavoidable; keep sentences short and plain.
 - **Mio** is practical, warm and a little dry. She talks plainly to friends and Zero, and politely (です/ます) to elders such as Chiyo. In Chinese she calls Chiyo 千代奶奶 **?**.
 - **KOMA-7** calls itself "this unit": 当機 in Japanese, 本機 in Chinese, and speaks in flat, report-like sentences. Zero is "Unit Zero" to it: ゼロ号機, 零號機.
 - **Renji** speaks like a plain-spoken older engineer (俺, お前), **Chiyo** like a gentle old woman, **Haruka**, **Chiaki**, **Sota** like people in their twenties, **Naomi**, **Emiko** and **Toma** warm and unhurried.

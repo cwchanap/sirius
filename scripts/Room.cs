@@ -2,14 +2,15 @@ using Godot;
 namespace Hoshikawa;
 
 // Mio's room, the prologue's first map: built when the opening takes her there and freed when she walks out of the door, while the
-// valley is hidden. Its own frame has the tatami's surface at y 0 and the open shoji to the south (+Z), where the rain-wet paddies she
-// smells are Codex's painting (view.gdshader); it stands high over her house so nothing of the valley's ground or colliders is near it.
+// valley is hidden. Its own frame has the tatami's surface at y 0 and the open shoji to the south (+Z), over a garden closed by a hedge,
+// past which the rain-wet paddies she smells are Codex's painting (view.gdshader); it stands high over her house so nothing of the
+// valley's ground or colliders is near it.
 public partial class World
 {
     public static readonly Vector3 RoomAt=new(31,300,7.5f);
     // Mio's hips on the futon, her feet toward the shoji; the door out in the east wall; the photograph of her mother on the north wall.
     public static readonly Vector3 Bed=new(-.6f,0,-.2f),Door=new(1.6f,0,.65f),Photo=new(.9f,0,-1.3f);
-    public static Node3D Room()
+    public Node3D Room()
     {
         var room=new Node3D {Name="Mio's room",Position=RoomAt};
         // Codex's tiling art (assets/art/room/), laid triplanar in each box's own frame so it keeps its size on every face and box,
@@ -65,7 +66,34 @@ public partial class World
         {var n=GD.Load<PackedScene>($"res://assets/models/{model}.glb").Instantiate<Node3D>();n.Name=name;n.Position=p;n.RotationDegrees=new(0,yaw,0);room.AddChild(n);}
         Box(room,"Photo frame",new(Photo.X,1.45f,-1.79f),new(.32f,.4f,.03f),dark);
         Mesh(room,"Photo",new QuadMesh {Size=new(.22f,.33f)},new(Photo.X,1.45f,-1.772f),new StandardMaterial3D {AlbedoTexture=GD.Load<Texture2D>("res://assets/art/room/photo.png"),Roughness=.6f});
-        // Outside, Codex's paddies after the rain on a box round the house, which the shader paints by direction; it must not shade the sun.
+        // The house stands on posts and stones half a metre over its garden: lawn on the valley's terrain shader, bare earth under the
+        // eaves and along a path from the step stone, hedged at the sides and ending in a terrace's stone edge, past which the painted
+        // paddies lie below it.
+        const float lawn=-.5f;
+        Material shade=Mat(new("2e2924")),granite=stone;
+        Box(room,"Underfloor",new(0,(lawn-.1f)/2,0),new(4.15f,-.1f-lawn,3.75f),shade);
+        foreach(float x in new[]{-2.15f,-.7f,.7f,2.15f})
+        {Box(room,"Engawa foot",new(x,(lawn-.12f)/2,2.7f),new(.08f,-.12f-lawn,.08f),dark);Box(room,"Foundation stone",new(x,lawn+.04f,2.7f),new(.22f,.08f,.22f),granite);}
+        Box(room,"Step stone",new(0,lawn+.09f,3.15f),new(.7f,.18f,.42f),granite);
+        foreach(var (x,z) in new[]{(.1f,4.05f),(-.08f,4.85f)})Box(room,"Stepping stone",new(x,lawn+.02f,z),new(.46f,.05f,.38f),granite);
+        foreach(float x in new[]{-6,6})Box(room,"Terrace edge",new(x,lawn-.08f,5.6f),new(11,.3f,.3f),granite);
+        var eave=Box(room,"Eave",new(0,2.47f,2.65f),new(4.9f,.06f,1.9f),cedar,true);eave.Rotation=new(.14f,0,0);
+        var st=new SurfaceTool();st.Begin(Godot.Mesh.PrimitiveType.Triangles);
+        // UV2.y is the shader's road gap, earth under 2 and lawn over 3.3.
+        void G(float x,float z)
+        {
+            float eaves=new Vector2(Math.Max(0,Math.Abs(x)-2.3f),Math.Max(0,Math.Max(-2-z,z-2.85f))).Length(),path=z>2.85f?Math.Max(0,Math.Abs(x)-.25f):9;
+            st.SetNormal(Vector3.Up);st.SetUV2(new(9,2+1.3f*Math.Min(1,Math.Min(eaves/.8f,path/.3f))));st.AddVertex(new(x,lawn,z));
+        }
+        for(float z=-6;z<5.5f;z+=.5f)for(float x=-11.5f;x<11.5f;x+=.5f){G(x+.5f,z);G(x+.5f,z+.5f);G(x,z);G(x,z);G(x+.5f,z+.5f);G(x,z+.5f);}
+        var earth=new ShaderMaterial{Shader=GD.Load<Shader>("res://assets/shaders/terrain.gdshader")};earth.SetShaderParameter("atlas",GD.Load<Texture2D>("res://assets/art/material-atlas.png"));
+        Mesh(room,"Garden",st.Commit(),Vector3.Zero,earth);
+        var leaves=new RandomNumberGenerator {Seed=4409};
+        void Plant(float x,float z,float scale,string species="shrub"){var t=Tree(new(x,lawn,z),scale*leaves.RandfRange(.85f,1.15f),species,leaves);RemoveChild(t);t.Name=$"{species} {room.GetChildCount()}";room.AddChild(t);}
+        foreach(float x in new[]{-10.6f,10.6f})for(float z=-1;z<5.2f;z+=1.2f)Plant(x,z,1.3f);
+        foreach(float x in new[]{-3.4f,3.4f})Plant(x,3.6f,.9f);
+        Plant(7.4f,3.6f,1,"kaki");
+        // Past the hedge, Codex's paddies after the rain on a box round the house, which the shader paints by direction; it must not shade the sun.
         var view=new ShaderMaterial {Shader=GD.Load<Shader>("res://assets/shaders/view.gdshader")};view.SetShaderParameter("view",GD.Load<Texture2D>("res://assets/art/room/view.png"));
         Mesh(room,"View",new BoxMesh {Size=new(24,20,26)},new(0,2,1),view).CastShadow=GeometryInstance3D.ShadowCastingSetting.Off;
         room.AddChild(new DirectionalLight3D {Name="Morning sun",RotationDegrees=new(-24,20,0),LightColor=new("ffe2b8"),LightEnergy=1.3f,ShadowEnabled=true,DirectionalShadowMaxDistance=30,ShadowBias=.04f});
