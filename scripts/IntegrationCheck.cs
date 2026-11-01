@@ -582,8 +582,8 @@ public static class IntegrationCheck
         Check(g.World.Residents.All(r=>r.Body.GetChildren().OfType<Label3D>().Single() is {VisibilityRangeEnd:>0 and <20} label&&label.Layers==Hoshikawa.World.NameLayer)&&(g.GetViewport().GetCamera3D().CullMask&Hoshikawa.World.NameLayer)==0,
             "residents' names float over them only near the follow camera, never in a scene's shots");
         var voiced=Prologue.SceneNames.Where(s=>!Prologue.Unvoiced.Contains(s.Value)).SelectMany(s=>s.Key.Select((b,i)=>(b.Speaker,Key:$"{s.Value}.{i}",Path:$"res://assets/audio/voice/ja/{b.Speaker}/{s.Value}.{i}.mp3")))
-            .Where(b=>b.Speaker is "Mio" or "Zero"&&!Prologue.Unrecorded.Contains(b.Key)).ToArray();
-        Check(voiced.Length>0&&voiced.All(b=>ResourceLoader.Load(b.Path) is AudioStreamMP3 mp3&&mp3.GetLength()>.5),$"each of Mio's and Zero's {voiced.Length} recorded prologue lines has its Japanese voice at its beat");
+            .Where(b=>Prologue.Cast.Contains(b.Speaker)&&!Prologue.Unrecorded.Contains(b.Key)).ToArray();
+        Check(voiced.Length>0&&voiced.All(b=>ResourceLoader.Load(b.Path) is AudioStreamMP3 mp3&&mp3.GetLength()>.5),$"each of the cast's {voiced.Length} recorded prologue lines has its Japanese voice at its beat");
         Check(g.Sounds.Count==18&&g.Sounds.Values.All(s=>s!=null&&s.GetLength()>.1)&&new[]{"attack1","attack2","attack3","skill","hurt"}.All(b=>g.Sounds.ContainsKey("mio_"+b)),"every combat sound and each of Mio's five combat shouts loads");
         await Frames(10);Check(g.Reveal>0&&g.Reveal<g.Dialogue.Length,"dialogue text types out");
         await Tap(Key.E);Check(g.Beat==0&&g.Reveal==g.Dialogue.Length,"the first press completes the typing line instead of skipping it");
@@ -658,8 +658,8 @@ public static class IntegrationCheck
             Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-talk.X,g.Player.GlobalPosition.Z-talk.Z).Length()<.2f,"talk spot is standable: "+resident.Name);
             g.Interact();
             Check(g.Mode==GameMode.Dialogue&&g.Speaker==resident.Name,"dialogue: "+resident.Name);
-            if(resident.Name=="Renji")Check(g.Voice.Stream==null&&g.Actor("Yui").Body.GlobalPosition.DistanceTo(resident.Body.GlobalPosition)<4,"Renji, who has no voice files, stays silent; Yui stands by");
-            if(resident.Name=="Chiyo")Check(g.Script.Any(b=>b.Speaker=="Mio")&&g.Script.Any(b=>b.Text.Contains("Shio")),"Chiyo recognises Shio's terminal at the first meeting");
+            if(resident.Name=="Renji")Check(g.Voice.Stream==null&&g.Actor("Yui").Body.GlobalPosition.DistanceTo(resident.Body.GlobalPosition)<4,"Renji, who has no voice files yet, stays silent; Yui stands by");
+            if(resident.Name=="Chiyo")Check(g.Speaker=="Chiyo"&&g.Voice.Stream==null&&g.Script.Any(b=>b.Speaker=="Mio")&&g.Script.Any(b=>b.Text.Contains("Shio")),"Chiyo, who is not in the cast, speaks silently and recognises Shio's terminal at the first meeting");
             g.Mode=GameMode.Playing;
         }
         Check(g.QuestStage==1,"Renji starts the relay mission");

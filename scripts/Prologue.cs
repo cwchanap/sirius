@@ -196,8 +196,10 @@ public static class Prologue
     };
     // Zero's relay reminders repeat on every visit, so they stay unvoiced and IntegrationCheck does not ask for their mp3s.
     public static readonly HashSet<string> Unvoiced=new(){"RelayAsleep","RelayGuardedNone","RelayGuardedOne","RelayGuardedTwo","RelayGuardedThree","RelaySteady"};
-    // Mio's and Zero's lines written or changed since the last recording, which IntegrationCheck lets go without an mp3 until they are voiced.
-    public static readonly HashSet<string> Unrecorded=new();
+    // The speakers with a Japanese voice; everyone else's lines play silent.
+    public static readonly HashSet<string> Cast=new(){"Mio","Zero","Yui","Renji"};
+    // The cast's lines written or changed since the last recording, which IntegrationCheck lets go without an mp3 until they are voiced.
+    public static readonly HashSet<string> Unrecorded=new(){"Gate.0","Gate.2","Gate.4","Gate.7","Gate.8","Gate.11","Gate.13","Briefing.0","Briefing.1","Briefing.3","Briefing.4","Briefing.5","Briefing.6","Briefing.7","Briefing.9","Briefing.10","Briefing.11","Briefing.13","YuiWaits.0","RenjiReminder.0","RenjiRoadClear.0","RenjiRest.0","Homecoming.0","Homecoming.1","Homecoming.3","FirstMeeting.Yui.0","FirstMeeting.Yui.2"};
     // What the 3D scene does when a beat starts: a camera shot and the clips its actors play ("Mio clip, Yui clip"). A beat with no entry, or
     // an empty part, keeps what was there. Shots: "over A B" looks past A's shoulder at B, "two A B" frames both from the side, "face A"
     // is in front of A, and any other name is a fixed shot (Game.Shots). Every actor goes back to its resting clip when the scene ends.
