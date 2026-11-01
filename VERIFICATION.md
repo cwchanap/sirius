@@ -1,5 +1,13 @@
 # MVP verification
 
+## The waking scene's ending, Zero's setting and the garden under the engawa — 2026-11-01
+
+The owner found the waking scene's end abrupt, the house floating in the sky from the engawa, and Zero described wrongly: it is a caring robot in the city whose knowledge the city limits to what its work needs, not the railway's AI. The scene now ends with Mio deciding to take the news to Renji, Zero minding her missed meal and her "Let's go"; the scene camera swings round her over 1.6 s to the follow camera, facing the door, instead of cutting; Zero packed the medicine onto the train rather than reading a timetable (Intro.9–19, Briefing.2, RenjiRest.0, KOMA-7's lines, both translations, the glossary). The house stands on posts and stones over a lawn with a step, stepping stones, an eave, hedged sides and a terrace's stone edge, past which the painted paddies lie.
+
+- **Self-test:** **678 checks pass headless** in `en`, `ja` and `zh_TW` (cloud container, Godot 4.6.2 mono). New: the follow camera takes over after the waking scene looking at the door; the garden, underfloor and terrace edge exist. The per-frame camera measurement now covers the swing back (largest step 0.05 m, turn 3.9° a frame). The CJK font subsets were rebuilt for the new characters. Unit tests 57, e2e 4 and `build_voice.py --check` (109 lines) pass.
+- **Captures:** the engawa and the staged shoji shots before and after, and the swing back frame by frame, under xvfb and software Vulkan. Shapes and placement only.
+- **Not yet:** no Metal run; Intro.17–19 and KOMA-7.3 are new unrecorded lines (31 in all), and KOMA-7.3's old take was removed.
+
 ## Tripo props in Mio's room — 2026-10-31
 
 The owner made the telephone, the tools, the wire spool and screw tin, and the desk lamp in Tripo Studio and sent them to Blender on her Mac. They were saved from her Blender session there, imported static and pushed. In the cloud, `World.Room()` now places them where the boxes stood.

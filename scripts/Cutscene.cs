@@ -8,6 +8,8 @@ public partial class Game
     // Fixed shots: the eye and what it looks at, in the world or (Room) in the room's own frame, and the seconds the camera glides there.
     // The seconds the camera moves from one shot to a character shot within a scene.
     public const float CameraMove=2;
+    // The seconds a scene's end takes to bring the camera round behind Mio, where the follow camera takes over.
+    public const float CameraBack=1.6f;
     public static readonly Dictionary<string,(Vector3 Eye,Vector3 At,float Glide,bool Room)> Shots=new()
     {
         ["sky"]=(new(40,44,24),new(160,100,-120),0,false),["city"]=(new(40,36,24),new(160,22,-120),7,false),
@@ -30,7 +32,8 @@ public partial class Game
     private Camera3D shot=null!;
     private Tween? tuck;
     private (Vector3 Eye,Vector3 At) shotFrom,shotTo,shotNow;
-    private float shotTime,shotLength;
+    private float shotTime,shotLength,back;
+    private (Vector3 Eye,Vector3 At) backFrom;
     // A shot on the characters, which follows them as their clips move their heads; a fixed shot stays put.
     private string? framed;
     private readonly List<(string Name,float Yaw)> staged=new();
@@ -78,7 +81,7 @@ public partial class Game
     }
     private void Aim(string name)
     {
-        shotTo=Frame(name);float glide=Shots.TryGetValue(name,out var s)?s.Glide:CameraMove;framed=Shots.ContainsKey(name)?null:name;
+        back=0;shotTo=Frame(name);float glide=Shots.TryGetValue(name,out var s)?s.Glide:CameraMove;framed=Shots.ContainsKey(name)?null:name;
         shotFrom=shot.Current&&glide>0?shotNow:shotTo;shotLength=shot.Current?glide:0;shotTime=0;shot.MakeCurrent();Look(shotFrom);
     }
     private void Look((Vector3 Eye,Vector3 At) view){shotNow=view;shot.GlobalPosition=view.Eye;shot.LookAt(view.At,Vector3.Up);}
@@ -112,9 +115,10 @@ public partial class Game
         }
         if(names.Count>0){var to=Actor(names[0]).Body.GlobalPosition-Player.GlobalPosition;Player.Model.Rotation=new(0,Mathf.Atan2(to.X,to.Z),0);}
     }
-    private void Release()
+    // A scene that ends in play glides back to the follow camera; one that gives way to another cuts, as the next one starts.
+    private void Release(bool glide=false)
     {
-        if(shot.Current)Camera.MakeCurrent();
+        back=glide&&shot.Current?CameraBack:0;backFrom=shotNow;if(back==0&&shot.Current)Camera.MakeCurrent();
         foreach(var (name,yaw) in staged){var actor=Actor(name);actor.Turn.Rotation=new(0,yaw,0);actor.Visual.Play(RestClip(name),1,true,.25f);}
         staged.Clear();
     }
@@ -122,6 +126,8 @@ public partial class Game
     private void After(string? ended)
     {
         if(ended=="Opening"){EnterRoom();Play(Prologue.Intro);}
+        // Up and talked into going, she is left with the door out ahead of the camera.
+        else if(ended=="Intro"&&Room!=null){var to=Room.GlobalPosition+Hoshikawa.World.Door-Player.GlobalPosition;CameraYaw=Mathf.Atan2(-to.X,-to.Z);}
         else if(ended=="Gate")Walk("Yui",new[]{new Vector3(30,0,15),new Vector3(.5f,0,15),YuiWorkshop.At},"run",4.2f,YuiWorkshop.Yaw);
         else if(ended=="Briefing")Walk("Yui",new[]{new Vector3(.5f,0,15),new Vector3(.5f,0,31),YuiClinic.At},"walk",1.4f,YuiClinic.Yaw);
     }
@@ -129,7 +135,7 @@ public partial class Game
     private void Opening(){ToastTime=0;Player.Visible=false;Blackout=1;Aim("sky");Play(Prologue.Opening);}
     private void EnterRoom()
     {
-        Room=Hoshikawa.World.Room();AddChild(Room);World.Visible=false;Player.Visible=true;Sword(false);
+        Room=World.Room();AddChild(Room);World.Visible=false;Player.Visible=true;Sword(false);
         Place(Room.GlobalPosition+Hoshikawa.World.Bed,0,Mathf.Pi*.8f);spring.SpringLength=2.2f;Blackout=1;
     }
     // Out of the door: the valley comes back with Mio on her doorstep, and Yui at the gate the first time.
@@ -187,7 +193,16 @@ public partial class Game
     {
         if(Mode!=GameMode.Paused)Blackout=Math.Max(0,Blackout-dt*.8f);
         if(Mode is GameMode.Playing or GameMode.Dialogue)Walking(dt);
-        if(shot.Current&&shotTime<shotLength){shotTime+=dt;float t=Mathf.SmoothStep(0,1,Math.Min(1,shotTime/shotLength));Look((shotFrom.Eye.Lerp(shotTo.Eye,t),shotFrom.At.Lerp(shotTo.At,t)));}
+        if(shot.Current&&back>0)
+        {
+            // Round Mio rather than through her: the eye's bearing, reach and height about the follow camera's pivot each ease to the
+            // follow camera's, held in front of a wall it would swing through.
+            back-=dt;float t=Mathf.SmoothStep(0,1,1-Math.Max(0,back)/CameraBack);var pivot=cameraRig.GlobalPosition;var a=backFrom.Eye-pivot;var b=Camera.GlobalPosition-pivot;
+            float yaw=Mathf.LerpAngle(Mathf.Atan2(a.X,a.Z),Mathf.Atan2(b.X,b.Z),t),reach=Mathf.Lerp(new Vector2(a.X,a.Z).Length(),new Vector2(b.X,b.Z).Length(),t);
+            var eye=Clear(pivot,pivot+new Vector3(Mathf.Sin(yaw)*reach,Mathf.Lerp(a.Y,b.Y,t),Mathf.Cos(yaw)*reach),World.Residents.Select(r=>r.Name).ToArray());
+            if(back<=0)Camera.MakeCurrent();else Look((eye,backFrom.At.Lerp(Camera.GlobalPosition-Camera.GlobalBasis.Z*4,t)));
+        }
+        else if(shot.Current&&shotTime<shotLength){shotTime+=dt;float t=Mathf.SmoothStep(0,1,Math.Min(1,shotTime/shotLength));Look((shotFrom.Eye.Lerp(shotTo.Eye,t),shotFrom.At.Lerp(shotTo.At,t)));}
         else if(shot.Current&&framed!=null){var to=Frame(framed);float k=1-Mathf.Exp(-5*dt);Look((shotNow.Eye.Lerp(to.Eye,k),shotNow.At.Lerp(to.At,k)));}
     }
 }

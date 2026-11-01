@@ -3,7 +3,7 @@
 Playable Godot C# countryside slice of the user's dual-protagonist JRPG concept.
 
 ## Story baseline
-Based on the latest revision of “Story Main line” (6a75647c-8d84-83e8-b467-45bf0fb6b41e): 22nd-century Japan; humans live in rural offline settlements while AI/robots inhabit cities and imprison humans. Mio is a 22-year-old scavenger/repairer. Zero has his own mechanical body in the city; their voluntary sensory link does not transfer bodily control. This slice follows Mio. Zero contributes remotely, not as a village resident.
+Based on the latest revision of “Story Main line” (6a75647c-8d84-83e8-b467-45bf0fb6b41e): 22nd-century Japan; humans live in rural offline settlements while AI/robots inhabit cities and imprison humans. Mio is a 22-year-old scavenger/repairer. Zero has his own mechanical body in the city: a caring robot, not the railway's AI, whom the city's master AI lets know only what his work needs; their voluntary sensory link does not transfer bodily control. This slice follows Mio. Zero contributes remotely, not as a village resident.
 
 ## Work and acceptance
 - [x] Generate original painted terrain/material atlas and Mio key art with imagegen; retain prompts/provenance.
@@ -238,6 +238,9 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [x] Realistic bedding from Blender (`tools/build_bedding.py`): a quilted cover draped as cloth over her sleeping pose, pushed into her lap as she sits up and folded at the futon's foot when she rises; a rounded, tufted futon and a domed buckwheat pillow.
 - [x] Tripo Studio models for the opened line telephone, the tools on the floor, the wire spool and screw tin, and the desk lamp (the owner made them), imported static.
 - [x] Calm the staged camera: a scene cuts only where it starts and moves between its few held shots, with a self-test measuring every frame's step and turn.
+- [x] End the waking scene on Mio deciding to take the news to Renji (Zero minds her missed meal), and swing the camera round her to the follow camera, facing the door, instead of cutting.
+- [x] Zero is a caring robot in the city that knows only what its work needs: it packed the medicine onto the train, rather than reading a timetable.
+- [x] A garden under the engawa: the house on posts and stones, lawn, a step and stepping stones, an eave, hedged sides and a terrace edge over the painted paddies.
 - [x] Yui, now happy, energetic and talkative, waits at the gate with Emiko's letter (`Gate`), races Mio to the workshop, joins Renji's briefing and walks on to the clinic; she lives in Hoshikawa now, not Komorebi.
 - [x] Staged scenes: a scene camera per beat and the characters acting each line (`Prologue.Stage`, `scripts/Cutscene.cs`).
 - [x] Import Hapadona's Tripo Studio Yui and Renji; key the opening's clips in Blender (`tools/cast_clips.py`): Mio's sleep, wake, sit, terminal and rise, rebuilt into `mio.glb` on the Mac; Yui's and Renji's idle, walk and gestures.
