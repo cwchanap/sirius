@@ -392,12 +392,12 @@ public partial class Hud : Control
             var tail=rx+new Vector2(ribbon,0);
             foreach(var (dx,dy,r,phase) in new[]{(14f,10f,2.5f,0f),(34f,-4f,1.5f,1.3f),(52f,14f,2f,2.1f),(74f,2f,1.5f,.7f),(96f,-10f,2f,2.9f),(118f,16f,1.5f,1.8f),(150f,6f,2f,.4f),(188f,-6f,1.5f,2.4f)})
             {var p=tail+new Vector2(dx,dy+Mathf.Sin(t*.8f+phase)*3);float a=.5f+.5f*Mathf.Sin(t*2.2f+phase);DrawCircle(p,r*2.6f,new Color(gold,.22f*a));DrawCircle(p,r,new Color(gold,.6f+.4f*a));}
-            var crest=box.Position+new Vector2(74,0);
+            var crest=box.Position+new Vector2(74,-6);
             DrawCircle(crest,58,new Color(gold,.06f));DrawCircle(crest,52,new Color(gold,.1f));DrawCircle(crest,49.5f,new Color(ink,.92f));DrawCircle(crest,44,ink);
             if(who=="Zero")DrawIcon("zero",crest,60,jade);else Face(who,crest,43);
             DrawArc(crest,44,0,Mathf.Tau,64,gold,2.5f);
         }
-        int shown=(int)Game.Reveal;float y=box.Position.Y+58;string text=Game.Dialogue;
+        int shown=(int)Game.Reveal;float y=box.Position.Y+66;string text=Game.Dialogue;
         foreach(var (start,end) in Wrap(text,1030,20))
         {
             if(shown<=start)break;string line=text[start..end].TrimEnd(),part=text[start..Math.Min(end,shown)];
