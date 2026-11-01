@@ -69,7 +69,7 @@ On 2026-11-01 the 31 lines that the longer opening wrote or changed (the room, t
 
 On 2026-11-01 Yui and Renji were cast. Their audition (three lines in each of three voices, about 830 credits) went to the owner as a published page; she chose kano for Yui and named Sho for Renji. Yui's three kano takes were copied over and the other 24 lines (Yui's eleven, all thirteen of Renji's) rendered one take each on one flow for about 1,135 credits.
 
-On 2026-11-01 the 27 cast lines that the dialogue rewrite changed (Zero kept a secret and answering only when asked, Sota's first hint, the train's food and platform two: 9 Mio, 8 Zero, 5 Yui, 5 Renji) were rendered the same way, one take each on one flow, for about 1,145 credits.
+On 2026-11-01 the 27 cast lines that the dialogue rewrite changed (Zero kept a secret and answering only when asked, Sota's first hint, the train's food and platform two: 9 Mio, 8 Zero, 5 Yui, 5 Renji) were rendered the same way, one take each on one flow, for about 1,145 credits. Two consistency passes then changed eight of the cast's lines, re-rendered the same way for about 400 credits.
 
 ## Common mistakes
 
