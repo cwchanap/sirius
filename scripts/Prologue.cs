@@ -197,9 +197,7 @@ public static class Prologue
     // Zero's relay reminders repeat on every visit, so they stay unvoiced and IntegrationCheck does not ask for their mp3s.
     public static readonly HashSet<string> Unvoiced=new(){"RelayAsleep","RelayGuardedNone","RelayGuardedOne","RelayGuardedTwo","RelayGuardedThree","RelaySteady"};
     // Mio's and Zero's lines written or changed since the last recording, which IntegrationCheck lets go without an mp3 until they are voiced.
-    public static readonly HashSet<string> Unrecorded=new(){"Intro.0","Intro.1","Intro.2","Intro.4","Intro.5","Intro.6","Intro.9","Intro.10","Intro.11","Intro.12",
-        "Intro.13","Intro.14","Intro.15","Intro.16","Intro.17","Intro.18","Intro.19","Photo.0","Photo.1","Gate.1","Gate.3","Gate.5","Gate.6","Gate.9","Gate.10","Gate.12","Briefing.2","Briefing.8",
-        "RelayOnline.4","FirstMeeting.KOMA-7.3","FirstMeeting.Yui.1"};
+    public static readonly HashSet<string> Unrecorded=new();
     // What the 3D scene does when a beat starts: a camera shot and the clips its actors play ("Mio clip, Yui clip"). A beat with no entry, or
     // an empty part, keeps what was there. Shots: "over A B" looks past A's shoulder at B, "two A B" frames both from the side, "face A"
     // is in front of A, and any other name is a fixed shot (Game.Shots). Every actor goes back to its resting clip when the scene ends.

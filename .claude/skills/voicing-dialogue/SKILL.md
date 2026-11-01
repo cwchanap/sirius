@@ -30,7 +30,7 @@ A key is `<Array>.<index>` into `Prologue.cs`: `Intro.1`, `Briefing.6`, `FirstMe
 - `en` must equal the current English beat; the script refuses to run otherwise, because a moved or edited line would voice the wrong text.
 - `ja` is what a player would read. No audio tags, no kana spelled out for pronunciation.
 - `tts` is optional, only when the spoken text differs: eleven_v4 audio tags (`[softly]`, `[sighs]`, `[warmly]`) or a kana reading for a misread kanji.
-- Style: names in katakana (ミオ, ゼロ, レン, チヨ), places in kanji (星川, 星川線). Mio talks plainly to friends and Zero, a little dry ("はいはい"), and uses です/ます with elders such as Chiyo. Zero is a railway system talking like a curious child: it uses no first-person pronoun, counts things, reaches for railway words (発車, 十一両編成, 進行信号, 停止信号, 側線) and says 「保存しておくね」 for a smell it keeps. Its `tts` spells 四番線 as よんばんせん and KOMA as コマ.
+- Style: names in katakana (ミオ, ゼロ, レンジ, チヨ), places in kanji (星川, 星川線). Mio talks plainly to friends and Zero, a little dry ("はいはい"), and uses です/ます with elders such as Chiyo. Zero is a caring robot in the city, talking like a curious child: it uses no first-person pronoun, counts things, knows only what its work there needs (it loads the freight, so it counts carriages and boxes: 十一両, 二百箱) and asks about the rest, and says 「保存しておくね」 for a smell it keeps. Its `tts` spells 四番線 as よんばんせん, 星川駅 as ほしかわえき and KOMA as コマ.
 
 ## Workflow
 
@@ -62,6 +62,8 @@ Add a row with the character brief before auditioning a new speaker.
 | Mio | 22, scavenger and repairer; practical, warm, a little dry | cast 2026-10-18: **Yuki** | Yuki (calm anime): `JTlYtJrcTzPC71hMLOxo`, chosen. Auditioned: Kurea (warm, expressive): `IgiTcMDSHJPIJjnlwIdM`; Haruno (calm, low): `b02kNc4YmZR6NvjjXr2a` |
 
 Mio's audition rendered Intro.1/3/6/8 and Homecoming.8 through the connector (eleven_v4, default settings, no seed) for about 450 credits. On 2026-10-18 all 13 of her lines landed in `assets/audio/voice/ja/Mio/` (1.1 MB): Yuki's five audition takes were copied over unchanged and the other eight were rendered the same way for 184 credits. Zero's audition rendered Intro.0/2, RelayOnline.0 and Homecoming.9/11 the same way for 759 credits; no Japanese library voice is tagged robotic, so its candidates span androgynous, childlike girl and boy. All 18 of Zero's lines then landed in `assets/audio/voice/ja/Zero/` (2.4 MB): Koume's five audition takes copied over and thirteen more for 453 credits.
+
+On 2026-11-01 the 31 lines that the longer opening wrote or changed (the room, the photograph, Yui at the gate, the briefing, the relay, KOMA-7 and Yui's first meetings; 14 Mio, 17 Zero) were rendered the same way, one take each (`generations_count: 1`) on one flow, for about 958 credits, and went in unauditioned.
 
 ## Common mistakes
 
