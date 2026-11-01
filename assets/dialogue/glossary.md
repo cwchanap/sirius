@@ -40,7 +40,6 @@ Chinese is Taiwan usage (臺灣用語): 軟體, 網路, 資訊, 號誌, 影片, 
 | Mikawa Highlands | 三河高原 | 三河高原 |
 | Hoshikawa Station (on the old line, where no train has stopped for twelve years) | 星川駅 | 星川站 |
 | engawa (veranda) | 縁側 | 緣廊 |
-| Care unit (what KOMA-7 calls Zero: a caring robot in the city) | 介護機 | 照護機 | |
 
 ## Game terms
 

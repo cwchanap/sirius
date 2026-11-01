@@ -65,14 +65,14 @@ public static class Prologue
     public static readonly (string Speaker,string Text)[] Briefing=
     {
         ("Renji","Mio. And Yui? You're both up early."),
-        ("Yui","Morning, Renji! I won. Don't ask what."),
+        ("Yui","Morning, Renji! We made it. Don't ask who won."),
         ("Mio","My terminal still reads the freight line's traffic over the old wires, so I asked it last night. A city train runs through on platform two in three days, with food and two hundred boxes of medicine."),
         ("Yui","And Komorebi has a week left. So do you. Emiko wrote it all down. Here."),
         ("Renji","...Then we take the medicine off that train. Only the medicine. Our paddies feed us; the food can go on to people who need it more."),
         ("Renji","We can't stop a city train out on the line. But the old line's signals are still standing. Dead for twelve years, every one of them."),
         ("Renji","The manual relay below the viaduct feeds them. Bring it back, and the line answers to us again."),
-        ("Renji","Three patrol units are camped on the relay road. Clear them and restart the relay. ...Terminal, are they still there?"),
-        ("Zero","Yes. Three patrols, amber eyes, no keepers. They have not moved since dawn."),
+        ("Renji","Yui saw patrol units camped on the relay road. Clear any still there and restart the relay. ...Terminal, can you keep count of them?"),
+        ("Zero","Yes. The patrols poll the relay over the old line. This terminal will count the ones still out there."),
         ("Yui","I'm coming too! I know that road. Well, I know around that road."),
         ("Renji","Not this time. You walked all night, and Emiko needs an answer. Go and see Chiaki at the clinic. She'll want to know what that train is carrying."),
         ("Yui","...Fine. But when that train comes, I'm going. That's a promise, not a question!"),
@@ -86,7 +86,7 @@ public static class Prologue
     };
     public static readonly (string Speaker,string Text)[] RenjiReminder=
     {
-        ("Renji","Cross the bridge and follow the lanterns uphill. Three patrol units are blocking the manual relay. Do not let them surround you."),
+        ("Renji","Cross the bridge and follow the lanterns uphill. Patrol units are still blocking the manual relay. Do not let them surround you."),
     };
     public static readonly (string Speaker,string Text)[] RenjiRoadClear=
     {
@@ -107,7 +107,7 @@ public static class Prologue
         ("Mio","Lanterns. Chiyo says every lantern means someone is waiting for you."),
         ("Zero","Who's waiting for you?"),
         ("Mio","Everyone here, I suppose. My mother used to light one on our porch every night, even after the cities went dark to us—"),
-        ("Zero","Mio! The station lights just changed. Something is moving on the loading platform. I have to go and look at the locks."),
+        ("Zero","Mio! The freight terminal's lights just changed. Something is moving on the loading platform. I have to go and look at the locks."),
         ("Mio","...Zero?"),
         ("Zero","Goodnight, Mio. Thank you for the rice paddies."),
         ("","The link goes quiet. Far beyond the viaduct, the city keeps shining."),
@@ -180,7 +180,7 @@ public static class Prologue
         ["Chiaki"]=new[]
         {
             ("Chiaki","Hold your guard against a strike, or tap it just before impact to deflect. A broken posture leaves you exposed. Let me patch you up."),
-            ("Chiaki","And Mio, my shelves are nearly bare. One week of medicine for the whole village. If that train is carrying any, bring it home."),
+            ("Chiaki","And Mio, my shelves are nearly bare. One week of medicine for the whole village. If you find any out there, bring it home."),
         },
         ["Sota"]=new[]
         {
@@ -204,7 +204,7 @@ public static class Prologue
     // The speakers with a Japanese voice; everyone else's lines play silent.
     public static readonly HashSet<string> Cast=new(){"Mio","Zero","Yui","Renji"};
     // The cast's lines written or changed since the last recording, which IntegrationCheck lets go without an mp3 until they are voiced.
-    public static readonly HashSet<string> Unrecorded=new(){"Intro.16","Briefing.13","FirstMeeting.Haruka.4","Homecoming.9"};
+    public static readonly HashSet<string> Unrecorded=new(){"Intro.16","Briefing.1","Briefing.7","Briefing.8","Briefing.13","RenjiReminder.0","FirstMeeting.Haruka.4","Homecoming.9"};
     // What the 3D scene does when a beat starts: a camera shot and the clips its actors play ("Mio clip, Yui clip"). A beat with no entry, or
     // an empty part, keeps what was there. Shots: "over A B" looks past A's shoulder at B, "two A B" frames both from the side, "face A"
     // is in front of A, and any other name is a fixed shot (Game.Shots). Every actor goes back to its resting clip when the scene ends.
