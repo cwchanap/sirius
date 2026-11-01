@@ -126,8 +126,12 @@ public partial class Game
     private void After(string? ended)
     {
         if(ended=="Opening"){EnterRoom();Play(Prologue.Intro);}
-        // Up and talked into going, she is left with the door out ahead of the camera.
-        else if(ended=="Intro"&&Room!=null){var to=Room.GlobalPosition+Hoshikawa.World.Door-Player.GlobalPosition;CameraYaw=Mathf.Atan2(-to.X,-to.Z);}
+        // Up and talked into going, she is left with the door out ahead of the camera, and her cover folded, even if a skip never cued her rise.
+        else if(ended=="Intro"&&Room!=null)
+        {
+            tuck?.Kill();tuck=null;if(Room.GetNodeOrNull<MeshInstance3D>("Blanket") is {} cover){cover.Set("blend_shapes/sit",0f);cover.Set("blend_shapes/folded",1f);}
+            var to=Room.GlobalPosition+Hoshikawa.World.Door-Player.GlobalPosition;CameraYaw=Mathf.Atan2(-to.X,-to.Z);
+        }
         else if(ended=="Gate")Walk("Yui",new[]{new Vector3(30,0,15),new Vector3(.5f,0,15),YuiWorkshop.At},"run",4.2f,YuiWorkshop.Yaw);
         else if(ended=="Briefing")Walk("Yui",new[]{new Vector3(.5f,0,15),new Vector3(.5f,0,31),YuiClinic.At},"walk",1.4f,YuiClinic.Yaw);
     }
