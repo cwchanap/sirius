@@ -9,7 +9,7 @@ Chinese is Taiwan usage (臺灣用語): 軟體, 網路, 資訊, 號誌, 影片, 
 | English | 日本語 | 繁體中文 | Note |
 |---|---|---|---|
 | Mio | ミオ | 澪 | 22, scavenger and repairer. Family name Minase: 水無瀬, 水無瀨 (Minase House: 水無瀬家, 水無瀨家) |
-| Zero | ゼロ | 零 **?** | The city's caring robot heard through the wrist terminal. 零 echoes the `0` link emblem. The villagers know the voice as Zero but not where it is: Mio calls the terminal an old line terminal from the signal box (古い鉄道の端末, 舊的鐵道終端機) and never says Zero is in the city |
+| Zero | ゼロ | 零 **?** | The city's caring robot heard through the wrist terminal. 零 echoes the `0` link emblem. The villagers know the voice as Zero but not where it is: Mio calls it an AI terminal from the signal box that only answers when asked (AI端末, AI 終端機) and never says Zero is in the city. With other people present Zero speaks only to answer, in polite terminal Japanese (です/ます); alone with Mio he is his childlike self |
 | Renji | レンジ | 蓮司 | Engineer, Kisaragi Renji (如月蓮司). Mio and Yui call him レンジさん in Japanese |
 | Chiyo | チヨ | 千代 **?** | Village elder. Mio calls her チヨさん in Japanese and 千代奶奶 in Chinese **?** |
 | Chiaki | チアキ | 千秋 | Medic, Shiraishi Chiaki (白石千秋) |
@@ -58,6 +58,7 @@ Chinese is Taiwan usage (臺灣用語): 軟體, 網路, 資訊, 號誌, 影片, 
 | Remedy pouch (one more remedy carried) | 薬袋 | 藥草袋 | |
 | Resonance cell (restores one charge of Resonance Cut) | 共鳴セル | 共鳴電池 | |
 | Wrist terminal (a key item) | 手首の端末 | 腕上終端機 | Renji's and Chiyo's "terminal on your wrist" |
+| Platform two (Hoshikawa Station, where the city freight runs through) | 二番線 (TTS にばんせん) | 第二月台 | Mio's and Renji's lines; the city station's platform four is Zero's |
 | Items (the items screen, its pause-menu button) | 持ち物 | 物品 | |
 | Supplies (the items screen's consumables) | 消耗品 | 消耗品 | |
 | Settings (the settings screen, its button) | 設定 | 設定 | |
