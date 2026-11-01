@@ -252,7 +252,7 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [x] Voice the 27 rewritten cast lines (9 Mio, 8 Zero, 5 Yui, 5 Renji).
 - [x] Consistency pass: Renji no longer knows the terminal reaches the city, the clinic has a week of medicine everywhere, KOMA-7 and Mio talk like old neighbours, Zero's city platform is the loading platform.
 - [x] Second pass: the patrol count is state-neutral in the briefing and reminder, Chiaki doesn't assume the train, Yui doesn't claim the race, Zero names the city's freight terminal.
-- [ ] Voice the eight lines those passes changed (`Prologue.Unrecorded`).
+- [x] Voice the eight lines those passes changed; `Prologue.Unrecorded` is empty.
 - [ ] Listen to the new takes (Mio's, Zero's, Yui's and Renji's) in the game and redo any that read wrong.
 - [ ] New dialogue portraits for Yui and Renji from their Tripo models, the photograph's image, door and photograph icons (Codex).
 - [ ] Graphical check under Metal on the Mac.
