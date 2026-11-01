@@ -1,5 +1,12 @@
 # MVP verification
 
+## Dialogue consistency pass — 2026-11-01
+
+A read through the whole prologue for logic against the new canon found six lines to fix. Renji's last briefing line called Mio's terminal "the only line we have into the city", which told the player he knows it reaches the city; it is now "the only ear we have on that line". Mio's waking line and Chiaki's said the clinic's shelves were empty while everyone else counts a week of medicine; they now run low and are nearly bare. KOMA-7 no longer introduces itself to Mio, who has always lived here, and her line in Haruka's scene teases it instead of learning why the patrols can't order it. Zero's homecoming line moves from the city station's "platform four" to its loading platform, so it is not confused with Hoshikawa's platform two. The four voiced lines among them (Intro.16, Briefing.13, FirstMeeting.Haruka.4, Homecoming.9) lost their takes and wait in `Prologue.Unrecorded`, by the owner's choice to voice them later.
+
+- **Self-test:** **679 checks pass headless** in `en`, `ja` and `zh_TW`; the voice-file check covers the cast's 78 recorded lines. Unit tests 57, e2e 4 and `build_voice.py --check` (114 lines) pass.
+- **Not yet:** the four changed cast lines have no voice.
+
 ## Voice for the rewritten lines — 2026-11-01
 
 The 27 cast lines that the secret-Zero rewrite changed (`Prologue.Unrecorded`, now empty) were voiced through the ElevenLabs connector with the cast's voices (Mio Yuki, Zero Koume, Yui kano, Renji Sho), `eleven_v4`, one take each, about 1,145 credits. Each download was checked for completion and its key; none was auditioned.

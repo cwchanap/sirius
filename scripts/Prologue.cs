@@ -33,7 +33,7 @@ public static class Prologue
         ("Zero","Then it goes right past you! Does it stop?"),
         ("Mio","Not anymore. City freight runs straight through on platform two and never slows down. No train has stopped at Hoshikawa Station in twelve years."),
         ("Zero","A station where no train stops is a very lonely station."),
-        ("Mio","And Chiaki's shelves have been empty since spring. Two hundred boxes, and not one of them for us."),
+        ("Mio","And Chiaki's shelves have been running low since spring. Two hundred boxes, and not one of them for us."),
         ("Mio","Renji has to hear this. Come on, Zero. And outside, you only answer when someone asks. Remember?"),
         ("Zero","I remember. ...But you haven't eaten since yesterday noon. Nineteen hours. I counted."),
         ("Mio","I'll grab a rice ball on the way. Let's go."),
@@ -77,7 +77,7 @@ public static class Prologue
         ("Renji","Not this time. You walked all night, and Emiko needs an answer. Go and see Chiaki at the clinic. She'll want to know what that train is carrying."),
         ("Yui","...Fine. But when that train comes, I'm going. That's a promise, not a question!"),
         ("Mio","Cross the bridge, follow the lanterns uphill. I know the way."),
-        ("Renji","Don't let them surround you. And Mio, come back in one piece. That terminal on your wrist is the only line we have into the city."),
+        ("Renji","Don't let them surround you. And Mio, come back in one piece. That terminal on your wrist is the only ear we have on that line."),
     };
     // Yui at the workshop door before Renji has heard the news.
     public static readonly (string Speaker,string Text)[] YuiWaits=
@@ -107,7 +107,7 @@ public static class Prologue
         ("Mio","Lanterns. Chiyo says every lantern means someone is waiting for you."),
         ("Zero","Who's waiting for you?"),
         ("Mio","Everyone here, I suppose. My mother used to light one on our porch every night, even after the cities went dark to us—"),
-        ("Zero","Mio! The station lights just changed. Something is moving on platform four. I have to go and look at the locks."),
+        ("Zero","Mio! The station lights just changed. Something is moving on the loading platform. I have to go and look at the locks."),
         ("Mio","...Zero?"),
         ("Zero","Goodnight, Mio. Thank you for the rice paddies."),
         ("","The link goes quiet. Far beyond the viaduct, the city keeps shining."),
@@ -166,12 +166,12 @@ public static class Prologue
             ("KOMA-7","Correction: this unit is the best neighbor."),
             ("Haruka","He's been like this since Grandpa Tetsu registered him. Forty years of the same jokes."),
             ("KOMA-7","Registered keeper: Mori Tetsuzo. Keeper status: napping on the engawa. This unit answers to its keeper, not to the network."),
-            ("Mio","So that's why the patrols can't give you orders."),
+            ("Mio","And that's why the patrols can't order you around. Lucky you."),
             ("KOMA-7","Correct. Patrols have no keepers. Very lonely machines."),
         },
         ["KOMA-7"]=new[]
         {
-            ("KOMA-7","Morning diagnostic: tomatoes healthy. Humans worried. This unit is KOMA. Different machine from Mio's terminal; far better company."),
+            ("KOMA-7","Morning diagnostic: tomatoes healthy. Humans worried. Reminder for Mio: this unit is still far better company than your terminal."),
             ("KOMA-7","Query for Mio's terminal: do you know what tomatoes feel like?"),
             ("Zero","No. This terminal has never touched one."),
             ("KOMA-7","Round. Warm in the afternoon. Query: terminal, where is your body?"),
@@ -180,7 +180,7 @@ public static class Prologue
         ["Chiaki"]=new[]
         {
             ("Chiaki","Hold your guard against a strike, or tap it just before impact to deflect. A broken posture leaves you exposed. Let me patch you up."),
-            ("Chiaki","And Mio, my shelves are bare. One week of medicine for the whole village. If that train is carrying any, bring it home."),
+            ("Chiaki","And Mio, my shelves are nearly bare. One week of medicine for the whole village. If that train is carrying any, bring it home."),
         },
         ["Sota"]=new[]
         {
@@ -204,7 +204,7 @@ public static class Prologue
     // The speakers with a Japanese voice; everyone else's lines play silent.
     public static readonly HashSet<string> Cast=new(){"Mio","Zero","Yui","Renji"};
     // The cast's lines written or changed since the last recording, which IntegrationCheck lets go without an mp3 until they are voiced.
-    public static readonly HashSet<string> Unrecorded=new(){};
+    public static readonly HashSet<string> Unrecorded=new(){"Intro.16","Briefing.13","FirstMeeting.Haruka.4","Homecoming.9"};
     // What the 3D scene does when a beat starts: a camera shot and the clips its actors play ("Mio clip, Yui clip"). A beat with no entry, or
     // an empty part, keeps what was there. Shots: "over A B" looks past A's shoulder at B, "two A B" frames both from the side, "face A"
     // is in front of A, and any other name is a fixed shot (Game.Shots). Every actor goes back to its resting clip when the scene ends.

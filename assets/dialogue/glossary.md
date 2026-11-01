@@ -58,7 +58,7 @@ Chinese is Taiwan usage (臺灣用語): 軟體, 網路, 資訊, 號誌, 影片, 
 | Remedy pouch (one more remedy carried) | 薬袋 | 藥草袋 | |
 | Resonance cell (restores one charge of Resonance Cut) | 共鳴セル | 共鳴電池 | |
 | Wrist terminal (a key item) | 手首の端末 | 腕上終端機 | Renji's and Chiyo's "terminal on your wrist" |
-| Platform two (Hoshikawa Station, where the city freight runs through) | 二番線 (TTS にばんせん) | 第二月台 | Mio's and Renji's lines; the city station's platform four is Zero's |
+| Platform two (Hoshikawa Station, where the city freight runs through) | 二番線 (TTS にばんせん) | 第二月台 | Mio's and Renji's lines; Zero calls the city station's own the loading platform (荷積みのホーム, 裝貨月台) |
 | Items (the items screen, its pause-menu button) | 持ち物 | 物品 | |
 | Supplies (the items screen's consumables) | 消耗品 | 消耗品 | |
 | Settings (the settings screen, its button) | 設定 | 設定 | |
