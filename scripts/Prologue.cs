@@ -26,16 +26,16 @@ public static class Prologue
         ("Zero","...Wait. What is that smell? It's green, and wet, and a little bit sweet."),
         ("Mio","Rice paddies after the rain. Hoshikawa smells like this every morning in early summer."),
         ("Zero","Rice paddies after the rain. I'm keeping that one."),
-        ("Zero","Mio, guess what my work was last night. I packed medicine onto a freight train. Two hundred boxes, eleven carriages."),
+        ("Zero","Mio, guess what my work was last night. I packed a freight train. Eleven carriages: rice, dried fish, tinned food, and two hundred boxes of medicine."),
         ("Mio","Medicine? Where is it going?"),
         ("Zero","I don't know. The city only tells me what my work needs. Pack the boxes, close the doors. It leaves in three days."),
         ("Mio","There's only one line out of the city, Zero. It runs straight through this valley."),
         ("Zero","Then it goes right past you! Does it stop?"),
-        ("Mio","Not anymore. No train has stopped at Hoshikawa Station since the cities went dark. Twelve years."),
+        ("Mio","Not anymore. City freight runs straight through on platform two and never slows down. No train has stopped at Hoshikawa Station in twelve years."),
         ("Zero","A station where no train stops is a very lonely station."),
         ("Mio","And Chiaki's shelves have been empty since spring. Two hundred boxes, and not one of them for us."),
-        ("Mio","Renji has to hear this. Come on, Zero. We're going to the workshop."),
-        ("Zero","Wait! You haven't eaten since yesterday noon. Nineteen hours. I counted."),
+        ("Mio","Renji has to hear this. Come on, Zero. And outside, you only answer when someone asks. Remember?"),
+        ("Zero","I remember. ...But you haven't eaten since yesterday noon. Nineteen hours. I counted."),
         ("Mio","I'll grab a rice ball on the way. Let's go."),
     };
     // The old photograph on her wall. Zero, who asks about everything, does not ask about this.
@@ -50,15 +50,15 @@ public static class Prologue
         ("Yui","Mio! Mio, Mio, Mio! Good, you're up!"),
         ("Mio","Yui? You came all the way down from Komorebi?"),
         ("Yui","Walked all night! Well, jogged some of it. I went around the relay road, because guess what's camped on it now? Patrols! Three of them, with those creepy amber eyes."),
-        ("Zero","One, two, three. I counted them too. ...Good morning, Yui! You still talk faster than an express train."),
-        ("Yui","Morning, Zero! Mio, when are you going to tell me who's really in that wrist of yours?"),
-        ("Mio","Nobody's in it. It's an old line terminal, and it talks too much. Like someone I know."),
-        ("Zero","Yui, what's in your bag today?"),
-        ("Yui","Letters, mostly. Other people's words. You ask me that every time, Zero! And this one's for Hoshikawa."),
+        ("Yui","Morning, Zero! ...Still nothing? Your wrist never says hello first, Mio."),
+        ("Mio","It's an AI terminal, Yui. It only answers when someone asks it something."),
+        ("Yui","Then I'm asking. Zero, what's in my bag?"),
+        ("Zero","Letters. Your bag always has letters."),
+        ("Yui","Ha! Letters, mostly. Other people's words. And this one's for Hoshikawa."),
         ("Yui","It's from Emiko. Komorebi has one week of medicine left. She's asking if you can spare any."),
         ("Mio","We can't. We're down to a week too. And Grandpa Tetsu's cough is getting worse."),
-        ("Zero","Mio. The train has medicine."),
-        ("Yui","Wait, what train? There's a train? Okay, now you have to tell me everything."),
+        ("Mio","...Maybe there's a way. Something's coming down the line."),
+        ("Yui","Down the line? You mean a train? Okay, now you have to tell me everything."),
         ("Mio","Come on. Renji needs to hear this."),
         ("Yui","Race you to the workshop!"),
     };
@@ -66,13 +66,13 @@ public static class Prologue
     {
         ("Renji","Mio. And Yui? You're both up early."),
         ("Yui","Morning, Renji! I won. Don't ask what."),
-        ("Mio","The freight line still talks over the old wires. My terminal caught it last night: a city train with two hundred boxes of medicine, through here in three days."),
+        ("Mio","My terminal still reads the freight line's traffic over the old wires, so I asked it last night. A city train runs through on platform two in three days, with food and two hundred boxes of medicine."),
         ("Yui","And Komorebi has a week left. So do you. Emiko wrote it all down. Here."),
-        ("Renji","...Then we take that medicine off the train."),
+        ("Renji","...Then we take the medicine off that train. Only the medicine. Our paddies feed us; the food can go on to people who need it more."),
         ("Renji","We can't stop a city train out on the line. But the old line's signals are still standing. Dead for twelve years, every one of them."),
         ("Renji","The manual relay below the viaduct feeds them. Bring it back, and the line answers to us again."),
-        ("Renji","Three patrol units are camped on the relay road. Clear them and restart the relay."),
-        ("Zero","Three patrols. Amber eyes, no keepers. I'll count them down for you."),
+        ("Renji","Three patrol units are camped on the relay road. Clear them and restart the relay. ...Terminal, are they still there?"),
+        ("Zero","Yes. Three patrols, amber eyes, no keepers. They have not moved since dawn."),
         ("Yui","I'm coming too! I know that road. Well, I know around that road."),
         ("Renji","Not this time. You walked all night, and Emiko needs an answer. Go and see Chiaki at the clinic. She'll want to know what that train is carrying."),
         ("Yui","...Fine. But when that train comes, I'm going. That's a promise, not a question!"),
@@ -94,15 +94,15 @@ public static class Prologue
     };
     public static readonly (string Speaker,string Text)[] RenjiRest=
     {
-        ("Renji","The signals are ready. Keep that terminal of yours listening for the train. Rest for a while. You have earned it."),
+        ("Renji","The signals are ready. Ask that terminal of yours about the train now and then. Rest for a while. You have earned it."),
     };
     public static readonly (string Speaker,string Text)[] Homecoming=
     {
         ("Renji","I can see the relay's lamp from the workshop roof. Green, for the first time since the line closed."),
-        ("Renji","Every signal down the line has power again. When that train comes, Hoshikawa Station can show it red, and for once it will have to stop."),
-        ("Zero","Every signal is green. ...Huh? The one by the village just went dark. ...Now it's green again."),
-        ("Renji","You woke the line up, Mio. Tonight, that is enough."),
-        ("","Night falls over Hoshikawa. One by one, the lanterns are lit."),
+        ("Renji","Every signal down the line has power again. Terminal, are they all green?"),
+        ("Zero","All green. ...One near the village just went dark. ...It is green again now."),
+        ("Renji","Good. When that train comes, platform two shows it red, and for once it will have to stop. You woke the line up, Mio."),
+        ("","Night falls over Hoshikawa. Mio walks home alone, and one by one the lanterns are lit."),
         ("Zero","Mio, what are the little lights for? There are twenty-three of them. Twenty-four now."),
         ("Mio","Lanterns. Chiyo says every lantern means someone is waiting for you."),
         ("Zero","Who's waiting for you?"),
@@ -171,9 +171,10 @@ public static class Prologue
         },
         ["KOMA-7"]=new[]
         {
-            ("KOMA-7","Morning diagnostic: tomatoes healthy. Humans worried. Mio's terminal: talkative. This unit is KOMA. Different machine; equally excellent company."),
-            ("Zero","Hello, KOMA! What do tomatoes feel like?"),
-            ("KOMA-7","Round. Warm in the afternoon. Query: Unit Zero, where is your body?"),
+            ("KOMA-7","Morning diagnostic: tomatoes healthy. Humans worried. This unit is KOMA. Different machine from Mio's terminal; far better company."),
+            ("KOMA-7","Query for Mio's terminal: do you know what tomatoes feel like?"),
+            ("Zero","No. This terminal has never touched one."),
+            ("KOMA-7","Round. Warm in the afternoon. Query: terminal, where is your body?"),
             ("Mio","It doesn't have one, KOMA. It's just a terminal. Come on, Zero."),
         },
         ["Chiaki"]=new[]
@@ -184,17 +185,18 @@ public static class Prologue
         ["Sota"]=new[]
         {
             ("Sota","Watch for the red diamond on a patrol: that sweeping attack cannot be blocked. Dodge through it or jump away."),
-            ("Zero","A red diamond. Like a stop signal! Stop signals keep everyone safe."),
-            ("Sota","...Mio, your wrist is talking again. Who's on the other end of that thing?"),
-            ("Mio","Nobody. It's old wiring from the signal box. It picks up all sorts of things."),
-            ("Sota","Huh. Then if it ever picks up when that train is due, tell me first. I'd want to be there."),
+            ("Sota","...Say, terminal. Who's on the other end of you?"),
+            ("Zero","This terminal answers queries about the old line."),
+            ("Mio","Told you, Sota. It's old wiring from the signal box. It only knows the line."),
+            ("Sota","Huh. Then if it ever knows when that train is due, tell me first. I'd want to be there."),
             ("","Sota keeps his eyes on your wrist a moment longer than he needs to."),
         },
         ["Yui"]=new[]
         {
             ("Yui","Chiaki is teaching me medicines! This one's for fevers, this one's for coughs, and this one tastes awful. I tried it."),
-            ("Zero","What does awful taste like?"),
-            ("Yui","Like the inside of an old boot! You're lucky you don't have a mouth, Zero."),
+            ("Mio","What did it taste like?"),
+            ("Yui","Like the inside of an old boot! Zero, remember that one: old boot."),
+            ("Zero","Saved. Old boot."),
         },
     };
     // Zero's relay reminders repeat on every visit, so they stay unvoiced and IntegrationCheck does not ask for their mp3s.
@@ -202,7 +204,7 @@ public static class Prologue
     // The speakers with a Japanese voice; everyone else's lines play silent.
     public static readonly HashSet<string> Cast=new(){"Mio","Zero","Yui","Renji"};
     // The cast's lines written or changed since the last recording, which IntegrationCheck lets go without an mp3 until they are voiced.
-    public static readonly HashSet<string> Unrecorded=new(){"Gate.3","Gate.4","Gate.5","Gate.6","Gate.7","Briefing.2","RenjiRest.0","Homecoming.2","FirstMeeting.Chiyo.2","FirstMeeting.KOMA-7.3","FirstMeeting.Sota.3"};
+    public static readonly HashSet<string> Unrecorded=new(){"Intro.9","Intro.14","Intro.17","Intro.18","Gate.3","Gate.4","Gate.5","Gate.6","Gate.7","Gate.10","Gate.11","Briefing.2","Briefing.4","Briefing.7","Briefing.8","RenjiRest.0","Homecoming.1","Homecoming.2","Homecoming.3","FirstMeeting.Chiyo.2","FirstMeeting.KOMA-7.2","FirstMeeting.KOMA-7.4","FirstMeeting.Sota.2","FirstMeeting.Sota.3","FirstMeeting.Yui.1","FirstMeeting.Yui.2","FirstMeeting.Yui.3"};
     // What the 3D scene does when a beat starts: a camera shot and the clips its actors play ("Mio clip, Yui clip"). A beat with no entry, or
     // an empty part, keeps what was there. Shots: "over A B" looks past A's shoulder at B, "two A B" frames both from the side, "face A"
     // is in front of A, and any other name is a fixed shot (Game.Shots). Every actor goes back to its resting clip when the scene ends.
