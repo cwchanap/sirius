@@ -1,5 +1,12 @@
 # MVP verification
 
+## Yui's and Renji's Japanese voices — 2026-11-01
+
+Yui and Renji joined Mio and Zero in the voice cast: `Prologue.Cast` names the four voiced speakers, and every other speaker stays silent. Yui speaks with kano and Renji with Sho, the owner's picks; her three audition takes went in unchanged and the other 24 lines were rendered through the ElevenLabs connector (`eleven_v4`, one take each). Each download was checked for an MPEG header and its key.
+
+- **Self-test:** **679 checks pass headless** in `en`, `ja` and `zh_TW`. The voice-file check now covers the cast's 80 lines (52 before), Renji opens the briefing on `Renji/Briefing.0.mp3` where he used to stay silent, and Chiyo, outside the cast, still speaks without a voice. Unit tests 57 (the voice test now fails on a voice folder for anyone outside the cast), e2e 4 and `build_voice.py --check` (109 lines) pass.
+- **Not yet:** nobody has heard Yui's or Renji's lines in the game or on speakers, Sho was never auditioned on these lines, and there is no Metal run.
+
 ## Review fixes on the opening — 2026-11-01
 
 Hapadona's review of PR #29 found two faults. Skipping the waking scene before Mio's rise left her cover in its sleeping shape, so the scene's end now lays it folded and stops any tween still running. `view.gdshader` blended its sky with `smoothstep(0.03, -0.03, …)`, whose reversed edges are undefined in GLSL, so it is now `1.0 - smoothstep(-0.03, 0.03, …)`.

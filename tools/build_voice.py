@@ -13,7 +13,7 @@ MODEL='eleven_v4'
 FORMAT='mp3_44100_128'
 SEED=2189
 # The chosen voice per speaker, from the voice record in .claude/skills/voicing-dialogue/SKILL.md.
-CAST={'Mio':'JTlYtJrcTzPC71hMLOxo','Zero':'nvAEN8lxUT4UJcAyxcCQ'}
+CAST={'Mio':'JTlYtJrcTzPC71hMLOxo','Zero':'nvAEN8lxUT4UJcAyxcCQ','Yui':'OSwaPSNdfituxkWcjlkR','Renji':'tGhb4uYSV8sWBI31DYU8'}
 # Candidates for a speaker still being auditioned, e.g. {'Renji':{'shortname':voice_id}} and {'Renji':['Briefing.0',...]}.
 AUDITION={}
 AUDITION_KEYS={}
