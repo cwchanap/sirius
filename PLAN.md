@@ -251,7 +251,8 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [x] Zero never speaks first when anyone but Mio is there: Mio calls him an AI terminal that only answers queries (she reminds him on the way out of her room), so Yui, Renji, KOMA-7 and Sota ask and he answers in polite terminal Japanese. The train carries food as well as medicine and runs through Hoshikawa Station on platform two; Renji decides to take only the medicine and leave the food for people who need it more.
 - [x] Voice the 27 rewritten cast lines (9 Mio, 8 Zero, 5 Yui, 5 Renji).
 - [x] Consistency pass: Renji no longer knows the terminal reaches the city, the clinic has a week of medicine everywhere, KOMA-7 and Mio talk like old neighbours, Zero's city platform is the loading platform.
-- [ ] Voice the four lines that pass changed (`Prologue.Unrecorded`).
+- [x] Second pass: the patrol count is state-neutral in the briefing and reminder, Chiaki doesn't assume the train, Yui doesn't claim the race, Zero names the city's freight terminal.
+- [ ] Voice the eight lines those passes changed (`Prologue.Unrecorded`).
 - [ ] Listen to the new takes (Mio's, Zero's, Yui's and Renji's) in the game and redo any that read wrong.
 - [ ] New dialogue portraits for Yui and Renji from their Tripo models, the photograph's image, door and photograph icons (Codex).
 - [ ] Graphical check under Metal on the Mac.
