@@ -192,7 +192,8 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [x] Art: thirteen solid kamon-style HUD icons and the 星川 title logo, drawn by Codex and cut by `tools/cut_ui_art.gd` into white images the HUD tints (`assets/art/ui/`).
 - [x] Code: the HUD, combat markers, toasts, title, pause, defeated and dialogue screens use the icons and keycaps instead of text; the always-on controls panel moves to the pause screen; the translation tables go from 134 interface strings to 80. 534 checks pass headless and in native Metal in all three languages.
 - [x] Dialogue box and Starwell screen as lacquer and stardust (the owner's pick of three mocked directions): a chamfered gold-rimmed panel with a hairline and corner diamonds; the speaker's face on a crest before a gold ribbon with their name and role, stardust drifting off its end; the Starwell as a card per stat and per priced item, a vignette behind it. No new art; every string unchanged.
-- [ ] Metal check of the lacquer panels on the Mac; maki-e corner ornaments and a stardust icon (Codex) if the drawn ones read too plain.
+- [x] Owner found it still plain: Codex art on her Mac (the Starwell painting, an urushi lacquer surface, a gold maki-e corner, a gold crest ring, a divider, sixteen icons). The dialogue box is lacquer with two maki-e corners and the face in the gold ring, the role an icon on the ribbon; the Starwell screen is its painting with the cards over its darkened right side, the stats and Mio's level as icons, Raise and Buy as icon buttons. Dropped the Level, Trade, Raise, Buy and long stat-name strings. The crest no longer covers the dialogue's first line.
+- [ ] Metal check of both screens on the Mac.
 
 ## Items
 

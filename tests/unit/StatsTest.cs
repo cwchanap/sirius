@@ -13,13 +13,13 @@ public class StatsTest
         AssertThat(new[]{"hp","sp","atk","def"}.Where(id=>Stats.All.All(s=>s.Id!=id))).IsEmpty();
         AssertThat(Stats.All.Where(s=>s.Base<=0||s.PerPoint<=0).Select(s=>s.Id)).IsEmpty();
     }
-    // Like the items, the stats' names are table data, not literals in a T() call.
+    // Like the items, the stats' short names are table data, not literals in a T() call.
     [TestCase("ja")]
     [TestCase("zh_TW")]
     public void EveryStatIsTranslated(string lang)
     {
         var ui=Localization.ParseStrings(File.ReadAllText(Repo.Path($"assets/dialogue/ui.{lang}.json")));
-        AssertThat(Stats.All.SelectMany(s=>new[]{s.Short,s.Name}).Where(s=>!ui.ContainsKey(s))).IsEmpty();
+        AssertThat(Stats.All.Select(s=>s.Short).Where(s=>!ui.ContainsKey(s))).IsEmpty();
     }
     [TestCase]
     public void EachLevelCostsMoreThanTheLast()

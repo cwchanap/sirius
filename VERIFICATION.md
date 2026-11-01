@@ -1,5 +1,13 @@
 # MVP verification
 
+## Dialogue box and Starwell screen: Codex art and icons — 2026-11-01
+
+Hapadona found the lacquer version still too plain and asked for more image art and less text; she also saw the speaker's crest covering the first characters of a line. Codex made six images on her Mac (`assets/art/ui/ui-art-generation.md`, second section): the Starwell at night, an urushi lacquer surface, a gold maki-e corner, a gold crest ring, a divider and a sheet of sixteen icons. The dialogue box is now that lacquer with the maki-e on two corners and the face inside the gold ring, the role an icon on the name ribbon; the Starwell screen is the painting, the cards over its darkened right side, with stat, level, raise and buy icons in place of the words Vitality, Stamina, Attack, Defense, Level, Trade, Raise and Buy, whose ui keys are gone.
+
+- **Self-test:** **679 checks pass headless** in `en`, `ja` and `zh_TW` (cloud container); the Starwell checks find the icon buttons by name. Unit tests 57 pass.
+- **Captures:** `tools/review_ui_mock.gd` under xvfb and lavapipe, in English and Japanese: the crest's ring clears the first line in every captured scene.
+- **Not yet:** no Metal run; the art was judged under software Vulkan only.
+
 ## Dialogue box and Starwell screen: lacquer and stardust — 2026-11-01
 
 Hapadona found the dialogue box and the save point's screen too plain: both were the same flat ink panel over an already darkened scene. Three directions were mocked in HTML over real captures (washi and ink, lacquer and stardust, sensory-link glass) and she picked lacquer and stardust. The dialogue box is now a chamfered panel with a gold rim brightest at its middle, a sheen across its top, a hairline inside and a diamond in each corner; the speaker's name and role sit on a gold ribbon off its top-left corner behind a crest holding their face (the same circle crop as the vitals, centred by a per-portrait table; Zero's crest holds its link emblem), and a few grains of stardust drift and twinkle off the ribbon's end; narration keeps the panel alone, and the next-line cue is a four-pointed star. The Starwell screen is the same panel, larger, behind a radial vignette: the title in gold over a rule with a star, the purse glowing, a card per stat with its short name, name and value large and the next value beside it, and a card per priced item with its icon in a gold ring; the Raise and Buy buttons sit in the cards' corners, and a focused button now shows a 2 px gold border. No image was added and no string changed, so the translation tables and the fixed-width checks are untouched.

@@ -822,7 +822,7 @@ public static class IntegrationCheck
             &&!drone.Dead&&drone.GlobalPosition.DistanceTo(drone.Home)<.5f&&drone.Model.Position.Y==Enemy.Lift&&drone.Model.Rotation.X==0,
             "E at the save point rests Mio and opens its screen; the scout and the drone she shut down are back home, the drone aloft, the patrols stay down");
         still=g.Player.GlobalPosition;Hold("forward");await Frames(10);Release("forward");Check(g.Player.GlobalPosition==still,"play stays frozen under the save point's screen");
-        Button[] Pressable(string text)=>g.Hud.FindChildren("*","Button",true,false).OfType<Button>().Where(b=>b.Text==text).ToArray();
+        Button[] Pressable(string text)=>g.Hud.FindChildren("*","Button",true,false).OfType<Button>().Where(b=>b.Text==text||b.Name.ToString().StartsWith(text+" ")).ToArray();
         var raise=Pressable("Raise");int levelBefore=growth.Level,cost=growth.NextCost,carried=growth.Stardust;float vitality=g.Player.MaxHealth;
         Check(raise.Length==Stats.All.Length&&carried>=cost&&Focused()==raise[0]&&raise.All(b=>!b.Disabled),$"a Raise button for each of the {Stats.All.Length} stats, the first focused, with {carried} stardust for a level costing {cost}");
         await Tap(Key.Enter);
@@ -895,13 +895,12 @@ public static class IntegrationCheck
                 ("Quit game",17,278),("Quit",17,78),("WASD  Move      SHIFT  Run      SPACE  Jump",13,334),("LMB / J  Attack     RMB / K  Guard & deflect",13,334),
                 ("CTRL / ALT  Dodge     TAB  Lock     Q  Skill",13,334),("E  Interact    H  Remedy    I  Items    ESC  Pause",12,334),
                 ("Items",17,278),("Settings",17,278),("Use",17,138),("Back",17,138),("Supplies",13,378),("Key items",13,378),("The train with no passengers",19,360),
-                ("Raise",15,68),("Buy",15,68),("Trade",13,340),("Level {0}",13,300),
                 ("Head outside",17,340),("Speak to Renji at the workshop",17,340),("Clear the old relay road",17,340),("Restart the manual relay",17,340),("Return to Renji in Hoshikawa",17,340),("Signals restored",17,340)};
             var overflow=tight.Where(t=>Width(t.Text,t.Size)>t.Room).Select(t=>t.Text).ToArray();
             Check(overflow.Length==0,$"{name}: every menu, control and panel string fits its fixed box {string.Join(" | ",overflow)}");
-            var stats=Stats.All.Where(s=>Width(s.Short,17)>56||Width(s.Name,15)>118).Select(s=>s.Name).ToArray();
+            var stats=Stats.All.Where(s=>Width(s.Short,17,serif)>120).Select(s=>s.Short).ToArray();
             Check(stats.Length==0,$"{name}: every stat's name fits its row on the save point's screen {string.Join(" | ",stats)}");
-            var items=Items.All.Where(i=>Width(i.Name,26,serif)>236||g.Hud.Wrap(Localization.T(i.Text),358,15).Count>5||i.Price>0&&Width(i.Name,15)>180).Select(i=>i.Name).ToArray();
+            var items=Items.All.Where(i=>Width(i.Name,26,serif)>236||g.Hud.Wrap(Localization.T(i.Text),358,15).Count>5||i.Price>0&&Width(i.Name,17)>300).Select(i=>i.Name).ToArray();
             Check(items.Length==0,$"{name}: every item's name fits beside its icon and its text in five lines {string.Join(" | ",items)}");
             var wide=ui.Keys.Where(k=>Width(k,14)>540).ToArray();Check(wide.Length==0,$"{name}: no string is wider than the toast panel {string.Join(" | ",wide)}");
             int Wrapped(string text,out bool badStart)
