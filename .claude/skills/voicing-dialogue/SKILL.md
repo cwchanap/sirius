@@ -30,7 +30,7 @@ A key is `<Array>.<index>` into `Prologue.cs`: `Intro.1`, `Briefing.6`, `FirstMe
 - `en` must equal the current English beat; the script refuses to run otherwise, because a moved or edited line would voice the wrong text.
 - `ja` is what a player would read. No audio tags, no kana spelled out for pronunciation.
 - `tts` is optional, only when the spoken text differs: eleven_v4 audio tags (`[softly]`, `[sighs]`, `[warmly]`) or a kana reading for a misread kanji.
-- Style: names in katakana (ミオ, ゼロ, レンジ, チヨ), places in kanji (星川, 星川線). Mio talks plainly to friends and Zero, a little dry ("はいはい"), and uses です/ます with elders such as Chiyo. Zero is a caring robot in the city, talking like a curious child: it uses no first-person pronoun, counts things, knows only what its work there needs (it loads the freight, so it counts carriages and boxes: 十一両, 二百箱) and asks about the rest, and says 「保存しておくね」 for a smell it keeps. Its `tts` spells 四番線 as よんばんせん, 星川駅 as ほしかわえき and KOMA as コマ. Yui's `tts` opens most lines with a tag (`[excited]`, `[cheerful]`, `[curious]`) to keep her bright; Renji's is mostly plain text, and 星川 is spelled ほしかわ in theirs too.
+- Style: names in katakana (ミオ, ゼロ, レンジ, チヨ), places in kanji (星川, 星川線). Mio talks plainly to friends and Zero, a little dry ("はいはい"), and uses です/ます with elders such as Chiyo. Zero is a caring robot in the city, talking like a curious child: it uses no first-person pronoun, counts things, knows only what its work there needs (it loads the freight, so it counts carriages and boxes: 十一両, 二百箱) and asks about the rest, and says 「保存しておくね」 for a smell it keeps. Around anyone but Mio it answers only when asked, in polite terminal Japanese (です/ます). Its `tts` spells 二番線 as にばんせん, 星川駅 as ほしかわえき and KOMA as コマ. Yui's `tts` opens most lines with a tag (`[excited]`, `[cheerful]`, `[curious]`) to keep her bright; Renji's is mostly plain text, and 星川 is spelled ほしかわ in theirs too.
 
 ## Workflow
 
@@ -68,6 +68,8 @@ Mio's audition rendered Intro.1/3/6/8 and Homecoming.8 through the connector (el
 On 2026-11-01 the 31 lines that the longer opening wrote or changed (the room, the photograph, Yui at the gate, the briefing, the relay, KOMA-7 and Yui's first meetings; 14 Mio, 17 Zero) were rendered the same way, one take each (`generations_count: 1`) on one flow, for about 958 credits, and went in unauditioned.
 
 On 2026-11-01 Yui and Renji were cast. Their audition (three lines in each of three voices, about 830 credits) went to the owner as a published page; she chose kano for Yui and named Sho for Renji. Yui's three kano takes were copied over and the other 24 lines (Yui's eleven, all thirteen of Renji's) rendered one take each on one flow for about 1,135 credits.
+
+On 2026-11-01 the 27 cast lines that the dialogue rewrite changed (Zero kept a secret and answering only when asked, Sota's first hint, the train's food and platform two: 9 Mio, 8 Zero, 5 Yui, 5 Renji) were rendered the same way, one take each on one flow, for about 1,145 credits.
 
 ## Common mistakes
 

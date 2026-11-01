@@ -1,5 +1,12 @@
 # MVP verification
 
+## Voice for the rewritten lines — 2026-11-01
+
+The 27 cast lines that the secret-Zero rewrite changed (`Prologue.Unrecorded`, now empty) were voiced through the ElevenLabs connector with the cast's voices (Mio Yuki, Zero Koume, Yui kano, Renji Sho), `eleven_v4`, one take each, about 1,145 credits. Each download was checked for completion and its key; none was auditioned.
+
+- **Self-test:** **679 checks pass headless** in `en`, `ja` and `zh_TW`; the voice-file check now covers the cast's 82 recorded lines (55 before). Unit tests 57, e2e 4 and `build_voice.py --check` (114 lines) pass.
+- **Not yet:** nobody has listened to the new takes, in the game or on their own.
+
 ## Zero kept a secret, and a first hint about Sota — 2026-11-01
 
 Hapadona pointed out that Mio has always lived in Hoshikawa, so nobody there should meet Zero for the first time; everyone knows the voice on her wrist, but Mio slides away whenever someone asks, and nobody, Renji included (her pick), knows it is a robot in the city. The gate scene now has Zero greet Yui as an old friend and Mio pass the terminal off as an old line terminal that talks too much; she tells Renji the train's news came over the old wires; Renji's rest line, the homecoming, Chiyo's and KOMA-7's first meetings lose every line that said Zero is in the city. Sota, the city AI's spy, gets his first hint: he asks who is on the other end of the terminal and wants to hear first when the train is due, and at the homecoming Zero sees one signal by the village go dark for a moment. Seventeen lines changed or were added (three new Sota beats at the end of his first meeting, so no key shifted), with their Japanese and Chinese; ten stale takes were removed and the eleven rewritten cast lines are in `Prologue.Unrecorded` until they are voiced. `tools/build_fonts.py` rebuilt the four subset fonts for two new kanji (拾, 逃).

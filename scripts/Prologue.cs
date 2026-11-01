@@ -204,7 +204,7 @@ public static class Prologue
     // The speakers with a Japanese voice; everyone else's lines play silent.
     public static readonly HashSet<string> Cast=new(){"Mio","Zero","Yui","Renji"};
     // The cast's lines written or changed since the last recording, which IntegrationCheck lets go without an mp3 until they are voiced.
-    public static readonly HashSet<string> Unrecorded=new(){"Intro.9","Intro.14","Intro.17","Intro.18","Gate.3","Gate.4","Gate.5","Gate.6","Gate.7","Gate.10","Gate.11","Briefing.2","Briefing.4","Briefing.7","Briefing.8","RenjiRest.0","Homecoming.1","Homecoming.2","Homecoming.3","FirstMeeting.Chiyo.2","FirstMeeting.KOMA-7.2","FirstMeeting.KOMA-7.4","FirstMeeting.Sota.2","FirstMeeting.Sota.3","FirstMeeting.Yui.1","FirstMeeting.Yui.2","FirstMeeting.Yui.3"};
+    public static readonly HashSet<string> Unrecorded=new(){};
     // What the 3D scene does when a beat starts: a camera shot and the clips its actors play ("Mio clip, Yui clip"). A beat with no entry, or
     // an empty part, keeps what was there. Shots: "over A B" looks past A's shoulder at B, "two A B" frames both from the side, "face A"
     // is in front of A, and any other name is a fixed shot (Game.Shots). Every actor goes back to its resting clip when the scene ends.

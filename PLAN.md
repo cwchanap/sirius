@@ -249,7 +249,7 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [x] Give Yui and Renji Japanese voices: auditions, the owner's picks (kano for Yui, her own Sho for Renji), all 27 lines voiced and `Prologue.Cast` naming the voiced speakers.
 - [x] Keep Zero a secret: the villagers know the voice on Mio's wrist, but she passes the terminal off as an old line terminal and tells nobody, Renji included, that it is a robot in the city (the gate, the briefing, Renji's rest line, the homecoming, Chiyo, KOMA-7 and Sota rewritten); Sota, the AI's spy, gets a first hint: he asks who is on the other end and wants to know first when the train is due, and at the homecoming one signal by the village goes dark for a moment.
 - [x] Zero never speaks first when anyone but Mio is there: Mio calls him an AI terminal that only answers queries (she reminds him on the way out of her room), so Yui, Renji, KOMA-7 and Sota ask and he answers in polite terminal Japanese. The train carries food as well as medicine and runs through Hoshikawa Station on platform two; Renji decides to take only the medicine and leave the food for people who need it more.
-- [ ] Voice the 27 rewritten cast lines in `Prologue.Unrecorded`.
+- [x] Voice the 27 rewritten cast lines (9 Mio, 8 Zero, 5 Yui, 5 Renji); `Prologue.Unrecorded` is empty again.
 - [ ] Listen to the new takes (Mio's, Zero's, Yui's and Renji's) in the game and redo any that read wrong.
 - [ ] New dialogue portraits for Yui and Renji from their Tripo models, the photograph's image, door and photograph icons (Codex).
 - [ ] Graphical check under Metal on the Mac.
