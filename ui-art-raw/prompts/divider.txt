@@ -1,0 +1,4 @@
+Use your built-in image-generation tool to create a genuine AI raster. Do NOT draw it with Python/PIL/SVG/code; if you have no image tool print NO IMAGE TOOL and stop.
+Create one 1536x1024 landscape image: one ornamental horizontal divider for a game interface, gold maki-e on a flat pure black (#000000) background.
+A thin double gold rule runs across 90% of the image width along its exact vertical centre, tapering to fine points at both ends, with fine gold dust along it. At its centre a small ornament: a four-pointed star flanked on each side by a curling seigaiha wave scroll. The whole divider, ornament included, is no taller than 12% of the image height.
+Warm metallic gold (midtones around #e7c873, pale highlights around #fff2c0, deep shadows around #8a6a2a). Everything else strictly flat pure black #000000: no texture, no glow, no shadow, no text.
