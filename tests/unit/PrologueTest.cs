@@ -21,14 +21,16 @@ public class PrologueTest
         AssertThat(files.Select(f=>(Speaker:System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(f))!,Key:System.IO.Path.GetFileNameWithoutExtension(f)))
             .Where(f=>!beats.TryGetValue(f.Key,out var beat)||beat.Speaker!=f.Speaker).Select(f=>$"{f.Speaker}/{f.Key}.mp3")).IsEmpty();
     }
-    // Mio's and Zero's lines are voiced, except Unvoiced scenes and the Unrecorded lines still waiting for a take, which must have no file.
+    // The cast's lines are voiced, except Unvoiced scenes and the Unrecorded lines still waiting for a take, which must have no file;
+    // a speaker outside the cast has no voice folder.
     [TestCase]
-    public void MiosAndZerosLinesAreVoicedOrListedAsUnrecorded()
+    public void TheCastsLinesAreVoicedOrListedAsUnrecorded()
     {
-        var spoken=Beats().Where(b=>b.Value.Speaker is "Mio" or "Zero"&&!Prologue.Unvoiced.Contains(b.Key[..b.Key.LastIndexOf('.')])).ToList();
+        var spoken=Beats().Where(b=>Prologue.Cast.Contains(b.Value.Speaker)&&!Prologue.Unvoiced.Contains(b.Key[..b.Key.LastIndexOf('.')])).ToList();
         bool Voiced(KeyValuePair<string,(string Speaker,string Text)> b)=>File.Exists(Repo.Path($"assets/audio/voice/ja/{b.Value.Speaker}/{b.Key}.mp3"));
         AssertThat(spoken.Where(b=>Voiced(b)==Prologue.Unrecorded.Contains(b.Key)).Select(b=>b.Key)).IsEmpty();
         AssertThat(Prologue.Unrecorded.Where(k=>!spoken.Any(b=>b.Key==k))).IsEmpty();
+        AssertThat(Directory.GetDirectories(Repo.Path("assets/audio/voice/ja")).Select(Path.GetFileName).Where(s=>!Prologue.Cast.Contains(s!))).IsEmpty();
     }
     [TestCase]
     public void EverySpeakerWithAFaceHasAPortrait()
