@@ -658,7 +658,7 @@ public static class IntegrationCheck
             Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-talk.X,g.Player.GlobalPosition.Z-talk.Z).Length()<.2f,"talk spot is standable: "+resident.Name);
             g.Interact();
             Check(g.Mode==GameMode.Dialogue&&g.Speaker==resident.Name,"dialogue: "+resident.Name);
-            if(resident.Name=="Renji")Check(g.Voice.Stream==null&&g.Actor("Yui").Body.GlobalPosition.DistanceTo(resident.Body.GlobalPosition)<4,"Renji, who has no voice files yet, stays silent; Yui stands by");
+            if(resident.Name=="Renji")Check(g.Voice.Playing&&g.Voice.Stream?.ResourcePath=="res://assets/audio/voice/ja/Renji/Briefing.0.mp3"&&g.Actor("Yui").Body.GlobalPosition.DistanceTo(resident.Body.GlobalPosition)<4,"Renji opens the briefing in his Japanese voice; Yui stands by");
             if(resident.Name=="Chiyo")Check(g.Speaker=="Chiyo"&&g.Voice.Stream==null&&g.Script.Any(b=>b.Speaker=="Mio")&&g.Script.Any(b=>b.Text.Contains("Shio")),"Chiyo, who is not in the cast, speaks silently and recognises Shio's terminal at the first meeting");
             g.Mode=GameMode.Playing;
         }
