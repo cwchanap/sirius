@@ -824,7 +824,8 @@ public static class IntegrationCheck
         still=g.Player.GlobalPosition;Hold("forward");await Frames(10);Release("forward");Check(g.Player.GlobalPosition==still,"play stays frozen under the save point's screen");
         Button[] Pressable(string text)=>g.Hud.FindChildren("*","Button",true,false).OfType<Button>().Where(b=>b.Text==text||b.Name.ToString().StartsWith(text+" ")).ToArray();
         var raise=Pressable("Raise");int levelBefore=growth.Level,cost=growth.NextCost,carried=growth.Stardust;float vitality=g.Player.MaxHealth;
-        Check(raise.Length==Stats.All.Length&&carried>=cost&&Focused()==raise[0]&&raise.All(b=>!b.Disabled&&b.TooltipText==Localization.T("Raise")&&b.AccessibilityName==Localization.T("Raise")),$"a Raise button for each of the {Stats.All.Length} stats, the first focused, each with its verb ({Localization.T("Raise")}) as tooltip and accessible name, with {carried} stardust for a level costing {cost}");
+        Check(raise.Length==Stats.All.Length&&carried>=cost&&Focused()==raise[0]&&raise.Select((b,i)=>!b.Disabled&&b.TooltipText==b.AccessibilityName&&b.AccessibilityName==Localization.F("Raise {0}",Localization.T(Stats.All[i].Short))).All(ok=>ok)&&raise.Select(b=>b.AccessibilityName).Distinct().Count()==raise.Length,
+            $"a Raise button for each of the {Stats.All.Length} stats, the first focused, each named for its stat as tooltip and accessible name ({string.Join(", ",raise.Select(b=>b.AccessibilityName))}), with {carried} stardust for a level costing {cost}");
         await Tap(Key.Enter);
         Check(growth.Level==levelBefore+1&&growth.Points("hp")==1&&growth.Stardust==carried-cost&&g.Player.MaxHealth==vitality+Stats.Get("hp").PerPoint&&g.Player.Health==g.Player.MaxHealth&&growth.NextCost>cost&&Focused()==Pressable("Raise")[0],
             $"Enter on HP's Raise spends {cost} stardust on {Stats.Get("hp").PerPoint} more vitality, filled at once; the next level costs {growth.NextCost}");
