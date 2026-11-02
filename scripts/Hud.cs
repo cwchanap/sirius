@@ -505,12 +505,12 @@ public partial class Hud : Control
             var o=RestCorner;var growth=Game.Player.Growth;var bag=Game.Player.Inventory;var rows=new List<(string Id,Button Button)>();
             for(int i=0;i<Stats.All.Length;i++)
             {
-                string id=Stats.All[i].Id;var card=StatCard(i);var raise=IconButton($"Raise {id}","raise",new(card.End.X-58,card.Position.Y+12),()=>{pressed=id;Game.Raise(id);});
+                string id=Stats.All[i].Id;var card=StatCard(i);var raise=IconButton("Raise",id,new(card.End.X-58,card.Position.Y+12),()=>{pressed=id;Game.Raise(id);});
                 raise.Disabled=growth.Stardust<growth.NextCost;rows.Add((id,raise));
             }
             foreach(var (item,i) in Items.All.Where(it=>it.Price>0).Select((it,i)=>(it,i)))
             {
-                string id=item.Id;var card=TradeCard(i);var buy=IconButton($"Buy {id}","buy",new(card.End.X-58,card.Position.Y+33),()=>{pressed=id;Game.Buy(id);});
+                string id=item.Id;var card=TradeCard(i);var buy=IconButton("Buy",id,new(card.End.X-58,card.Position.Y+33),()=>{pressed=id;Game.Buy(id);});
                 buy.Disabled=item.Price>growth.Stardust||bag.Count(id)>=bag.Capacity(id);rows.Add((id,buy));
             }
             var back=Button("Back",new(o.X+92,o.Y+530),new(170,46),Game.LeaveRest,false,grab:false);
@@ -543,10 +543,10 @@ public partial class Hud : Control
                 ContentMarginLeft=16,ContentMarginRight=16,CornerRadiusTopLeft=2,CornerRadiusBottomRight=2});
         b.Pressed+=()=>action();menu.AddChild(b);if(primary&&grab)b.GrabFocus();return b;
     }
-    // A button showing only an icon, named for what it does and to what (Raise hp) so tests and focus logs can tell it apart.
-    private Button IconButton(string name,string icon,Vector2 pos,Action action)
+    // A button showing only its verb's icon, named for the verb and its object (Raise hp) so tests and focus logs can tell it apart; the translated verb is its tooltip and accessible name.
+    private Button IconButton(string verb,string id,Vector2 pos,Action action)
     {
-        var b=Button("",pos,new(46,40),action,false,grab:false);b.Name=name;b.Icon=Icon(icon);b.ExpandIcon=true;b.IconAlignment=HorizontalAlignment.Center;
+        var b=Button("",pos,new(46,40),action,false,grab:false);b.Name=$"{verb} {id}";b.TooltipText=b.AccessibilityName=T(verb);b.Icon=Icon(verb.ToLowerInvariant());b.ExpandIcon=true;b.IconAlignment=HorizontalAlignment.Center;
         b.AddThemeConstantOverride("icon_max_width",22);foreach(var (state,c) in new[]{("normal",cream),("hover",gold),("pressed",gold),("focus",GoldLight),("disabled",new Color(cream,.3f))})b.AddThemeColorOverride($"icon_{state}_color",c);
         foreach(string state in new[]{"normal","hover","pressed","focus","disabled"})((StyleBoxFlat)b.GetThemeStylebox(state)).ContentMarginLeft=((StyleBoxFlat)b.GetThemeStylebox(state)).ContentMarginRight=8;
         return b;
