@@ -663,7 +663,29 @@ public static class IntegrationCheck
             g.Mode=GameMode.Playing;
         }
         Check(g.QuestStage==1,"Renji starts the relay mission");
-        g.Play(Prologue.Briefing);g.EndDialogue();await Frames(20);
+        // The history logs each line as a scene shows it and opens over the scene, which holds still under it; held CTRL fast-forwards.
+        async Task Wheel(MouseButton button)
+        {
+            Input.ParseInputEvent(new InputEventMouseButton {ButtonIndex=button,Pressed=true});await Frames(1);
+            Input.ParseInputEvent(new InputEventMouseButton {ButtonIndex=button,Pressed=false});await Frames(1);
+        }
+        g.Play(Prologue.Briefing);await Frames(5);
+        Check(g.Log[^1]==("Briefing",0,"Renji",Prologue.Briefing[0].Text)&&g.Log.Count(l=>l.Scene=="Intro")==Prologue.Intro.Length&&g.Voice.Playing,
+            $"the history holds every line heard so far ({g.Log.Count}), the waking scene's among them, and ends on the line on screen");
+        await Tap(Key.L);float typed=g.Reveal;await Frames(10);
+        Check(g.Mode==GameMode.History&&g.Voice.StreamPaused&&g.LogScroll==0&&g.Reveal==typed&&typed<g.Dialogue.Length,"L opens the history over the scene, which stops typing and pauses its voice");
+        await Tap(Key.Up);await Tap(Key.Up);await Wheel(MouseButton.WheelUp);await Wheel(MouseButton.WheelDown);
+        Check(g.LogScroll==2,"up and the wheel step back through the history, down and the wheel forward");
+        for(int i=0;i<4;i++)await Tap(Key.Down);Check(g.LogScroll==0,"and no further than the newest line");
+        await Tap(Key.L);Check(g.Mode==GameMode.Dialogue&&!g.Voice.StreamPaused&&g.Voice.Playing&&g.Beat==0,"L closes it to the same line, its voice playing on");
+        await Wheel(MouseButton.WheelUp);Check(g.Mode==GameMode.History,"the wheel opens the history too");
+        await Tap(Key.Escape);Check(g.Mode==GameMode.Dialogue&&g.Beat==0,"and escape closes the history, not the scene");
+        Hold("skip");await Frames(1);
+        Check(g.Beat==1&&!g.Voice.Playing&&g.Reveal==g.Dialogue.Length,"holding CTRL moves on at once, cutting Renji's voice, and shows the next line whole");
+        bool silent=true;int fast=1;while(g.Mode==GameMode.Dialogue&&fast<600){await Frames(1);fast++;silent&=!g.Voice.Playing;}Release("skip");
+        Check(g.Mode==GameMode.Playing&&silent&&g.Log.TakeLast(Prologue.Briefing.Length).Select(l=>(l.Speaker,l.Text)).SequenceEqual(Prologue.Briefing)&&fast<=Prologue.Briefing.Length*6,
+            $"held, fast-forward runs the briefing out unvoiced in {fast} frames, every line into the history");
+        await Frames(20);
         Check(yui.Visual.Clip=="walk"&&g.Actor("Renji").Visual.Clip=="work","after the briefing Yui walks to the clinic, and Renji goes back to his bench");
         g.FinishWalks();Check(new Vector2(yui.Body.GlobalPosition.X-Game.YuiClinic.At.X,yui.Body.GlobalPosition.Z-Game.YuiClinic.At.Z).Length()<.01f,"Yui waits outside the clinic");
         Place(g.Player,g.World.Residents.Single(r=>r.Name=="Chiyo").Body.GlobalPosition+Vector3.Back*2);await Frames(5);g.Interact();
@@ -863,7 +885,7 @@ public static class IntegrationCheck
         Check(chaser.State=="PURSUE"&&g.Music.Current=="battle","a scout after Mio brings in the battle music");g.SetPaused(true);
         g.Restart();Check(g.QuestStage==0&&g.Enemies.All(e=>!e.Dead)&&g.Player.Health==100&&yui.Body.GlobalPosition.DistanceTo(new(Hoshikawa.World.YuiGate.X,yui.Body.GlobalPosition.Y,Hoshikawa.World.YuiGate.Z))<.01f,
             "restart restores a fresh playable mission, Yui back at Mio's gate");chaser.SetPhysicsProcess(false);
-        Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Opening),"restarting the prologue replays its opening");
+        Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Opening)&&g.Log.Count==1,"restarting the prologue replays its opening, with a fresh history");
         // Through the narration, the waking, out of the door and past Yui at the gate.
         void SkipOpening(){g.EndDialogue();g.EndDialogue();g.LeaveRoom();g.EndDialogue();}
         await Frames(1);Check(g.Music.Current=="valley","restarting from the pause menu mid-fight leaves the battle music behind with the fight");
@@ -924,7 +946,7 @@ public static class IntegrationCheck
             Check(Localization.Current==code&&TranslationServer.GetLocale()==code,$"the title screen's {name} button switches the game to it");
             foreach(var (mode,action) in new[]{(GameMode.Title,"BEGIN JOURNEY     →"),(GameMode.Paused,"Resume journey")})
             {g.Mode=mode;g.Hud.RefreshMenu();await Frames(2);Check((g.Hud.GetViewport().GuiGetFocusOwner() as Button)?.Text==action,$"{name}: on the {mode} screen the main button, not a language button, holds focus, so Enter does what it says");}
-            foreach(var mode in new[]{GameMode.Title,GameMode.Paused,GameMode.Defeated,GameMode.Inventory,GameMode.Settings,GameMode.Rest,GameMode.Playing})
+            foreach(var mode in new[]{GameMode.Title,GameMode.Paused,GameMode.Defeated,GameMode.Inventory,GameMode.Settings,GameMode.Rest,GameMode.History,GameMode.Playing})
             {int drawn=g.Hud.Redraws;g.Mode=mode;g.Hud.RefreshMenu();await Frames(3);Check(g.Hud.Redraws>drawn,$"{name}: the HUD draws its {mode} screen");}
         }
         g.SetLanguage(startLanguage);g.Mode=GameMode.Playing;g.Hud.RefreshMenu();
