@@ -424,19 +424,27 @@ public partial class Hud : Control
         for(int i=-1;i<2;i++)DrawLine(new(x-14,mid+i*5),new(x,mid+i*5),dim,2);Cap("L",14);
         bool ready=Game.Reveal>=Game.Dialogue.Length;Star(new(x-7,mid),7,ready&&(Time.GetTicksMsec()/450)%2==0?gold:new Color(gold,.35f));Cap("E",14);
     }
+    // The history's lines as last drawn, by their index in Game.Log, each in screen pixels, for clicks to replay.
+    private readonly List<(int Line,Rect2 Rect)> shown=new();
+    public IReadOnlyList<(int Line,Rect2 Rect)> Shown=>shown;
+    public int? LineAt(Vector2 screen){foreach(var (line,rect) in shown)if(rect.HasPoint(screen))return line;return null;}
+    private void Play(Vector2 c,Color color)=>DrawColoredPolygon(new[]{c+new Vector2(-4,-6),c+new Vector2(6,0),c+new Vector2(-4,6)},color);
     // The history over the dimmed scene: a lacquered panel of the lines heard, newest at the bottom, each speaker's face on a small crest and
     // their name in gold beside what they said, narration with neither, a hairline where a scene began. Chevrons show there is more above or below.
+    // A voiced line has a play mark, ringed and lit while it replays; the bottom line, which E replays, sits on a card.
     private void History()
     {
-        DrawTextureRect(vignette,new(0,0,w,h),false);
+        DrawTextureRect(vignette,new(0,0,w,h),false);shown.Clear();
         var o=new Vector2(w/2-520,h/2-330);Lacquer(new(o,1040,660),24,150,false);
         Text(T("History"),o+new Vector2(60,70),30,gold,true);DrawTextureRect(divider,new Rect2(o+new Vector2(400,40),600,50),false);
         float top=o.Y+108,y=o.Y+590;var log=Game.Log;int i=log.Count-1-Game.LogScroll;
         for(;i>=0;i--)
         {
-            var (scene,beat,speaker,english)=log[i];string text=Line(scene,beat,english);var lines=Wrap(text,750,18);float height=lines.Count*28;
+            var (scene,beat,speaker,english,voice)=log[i];string text=Line(scene,beat,english);var lines=Wrap(text,750,18);float height=lines.Count*28;
             if(y-height<top)break;
-            float at=y-height;
+            float at=y-height;var box=new Rect2(o.X+44,at-9,952,height+7);shown.Add((i,new Rect2(box.Position*scale,box.Size*scale)));
+            if(i==log.Count-1-Game.LogScroll)Card(box,8,.3f);
+            if(voice!=null){var c=new Vector2(o.X+198,at+13);bool playing=Game.Replaying==i;if(playing)DrawArc(c,11,0,Mathf.Tau,24,GoldLight,1.5f);Play(c,playing?GoldLight:new Color(gold,.55f));}
             if(speaker!="")
             {
                 var c=new Vector2(o.X+78,at+12);DrawCircle(c,17,ink);
@@ -455,6 +463,8 @@ public partial class Hud : Control
         if(i>=0)DrawColoredPolygon(new[]{new Vector2(o.X+990,top-14),new Vector2(o.X+998,top-4),new Vector2(o.X+982,top-4)},more);
         if(Game.LogScroll>0)DrawColoredPolygon(new[]{new Vector2(o.X+990,o.Y+632),new Vector2(o.X+998,o.Y+622),new Vector2(o.X+982,o.Y+622)},more);
         Keycap("ESC",o+new Vector2(60,618.6f),11);
+        float ex=o.X+78+KeyWidth("ESC",11);Keycap("E",new(ex,o.Y+618.6f),11);
+        Play(new(ex+KeyWidth("E",11)+14,o.Y+629),log.Count>0&&log[log.Count-1-Game.LogScroll].Voice!=null?new Color(gold,.8f):new Color(gold,.25f));
     }
     private void Figure(string who,bool right,bool speaking)
     {

@@ -92,7 +92,7 @@ C# build succeeded. The final graphical integration run passed 57 checks with `S
 - [x] Cut first portraits from the existing turnaround and reference sheets with `tools/cut_portrait.gd`; their front-on stance read as unnatural in dialogue.
 - [x] Generate all eleven portraits with Codex as three-quarter dialogue poses from each character's reference art, and fit the scene layout to their head-to-thigh framing.
 - [x] 282 checks pass headless; the graphical run used xvfb and OpenGL, not native Metal.
-- [x] Fast-forward and history: holding Ctrl runs a scene on a line every 0.08 s with no voice; L or the wheel opens a lacquered history of every line heard (`Game.Log`, kept in English and translated as drawn), over the scene, which stops typing and pauses its voice until it closes. The dialogue box shows the four keys as keycaps. Gamepad bindings wait for the gamepad pass (`skip` is an input action so it only needs an event). Not yet seen under Metal.
+- [x] Fast-forward and history: holding Ctrl runs a scene on a line every 0.08 s with no voice; L or the wheel opens a lacquered history of every line heard (`Game.Log`, kept in English and translated as drawn), over the scene, which stops typing and pauses its voice until it closes. The dialogue box shows the four keys as keycaps. In the history, E (the bottom line) or a click replays a voiced line on its own player; closing stops it. Gamepad bindings wait for the gamepad pass (`skip` is an input action so it only needs an event). Not yet seen under Metal.
 
 ## Low-poly Mio
 
