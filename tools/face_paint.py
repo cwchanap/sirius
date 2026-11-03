@@ -15,7 +15,7 @@ surface is skin where its colour mostly is or inside the entry's core, hair othe
 over the mesh so a lone smeared triangle follows its neighbours. Each texel then takes its triangle's side: a hair-coloured texel on skin
 becomes the skin round it and a skin-coloured texel on hair the hair round it, each averaged from the nearest clean texels in 3D. The eyes,
 nose and mouth are kept as painted; the brows, which the smears broke, are drawn again as tapered curves. Only what lies within 75
-degrees of the front changes: the ears, the back of the head and its ornaments stay as baked.
+degrees of the front changes on the skin, 95 on the hair: the ears, the back of the head and its ornaments stay as baked.
 """
 import sys
 import tempfile
@@ -226,21 +226,23 @@ def repaint(g, pixels, face):
         if (step == is_skin[face_tris]).all():
             break
         is_skin[face_tris] = step
-    # The layers over it are hair, unless skin-coloured triangles join them to the face's skin where skin stands off it: the ears, out at
-    # the sides, and the nose, under the eyes.
+    # The layers over it are hair, but for the skin that stands off the face: the ears, skin-coloured out at the sides, and the nose,
+    # skin-coloured triangles joined to the face under the eyes.
     turn = np.degrees(np.abs(np.arctan2(mid[:, 0] - centre[0], centre[1] - mid[:, 1])))
-    side = turn > 55
+    is_skin[tris] |= outer[tris] & (turn[tris] > 55) & (frac[tris] >= .5)
     queue = [i for i in tris if is_skin[i]]
     while queue:
         for j in near[queue.pop()]:
-            if j >= 0 and outer[j] and not is_skin[j] and frac[j] >= .5 and (side[j] or qz[j] < .1):
+            if j >= 0 and outer[j] and not is_skin[j] and frac[j] >= .5 and qz[j] < .1:
                 is_skin[j] = True
                 queue.append(j)
     on_skin = is_skin[owner]
     keep = np.where(front[owner], np.max([1 - smoothstep(1, 1.1, ellipse(x, z, e)) for e in face['keep']], 0), 0)
-    # Only the face and the hair round it, within 75 degrees of the front: the ears, the back of the head and its ornaments stay as baked.
+    # Only the face and the hair round it change: the skin within 75 degrees of the front, the hair within 95, so the ears, the back of
+    # the head and its ornaments stay as baked.
+    zone = turn[owner] < np.where(on_skin, 75, 95)
     weight = np.where(on_skin, (1 - smoothstep(.78, .95, t)) * (1 - keep), np.maximum(smoothstep(6, 12, hue), smoothstep(.55, .75, t)) * (1 - smoothstep(22, 30, off)))
-    weight *= turn[owner] < 75
+    weight *= zone
     # Widen each repaint by a texel within its side, so a smear's soft rim goes with it.
     canvas = np.zeros(size * size, np.float32)
     canvas[keys] = weight
@@ -253,7 +255,7 @@ def repaint(g, pixels, face):
             if dx or dy:
                 moved = np.roll(np.roll(grid, dy, 0), dx, 1) * (np.roll(np.roll(sides, dy, 0), dx, 1) == sides)
                 np.maximum(grown, .8 * moved, out=grown)
-    weight = np.maximum(weight, grown.ravel()[keys] * (1 - keep) * (turn[owner] < 75))
+    weight = np.maximum(weight, grown.ravel()[keys] * (1 - keep) * zone)
     fix = weight > .01
     clean_skin = on_skin & (weight < .02) & (t > .9) & (delta < 15)
     clean_hair = ~on_skin & (t < .3) & (hue < 6)
