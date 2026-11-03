@@ -71,6 +71,8 @@ On 2026-11-01 Yui and Renji were cast. Their audition (three lines in each of th
 
 On 2026-11-01 the 27 cast lines that the dialogue rewrite changed (Zero kept a secret and answering only when asked, Sota's first hint, the train's food and platform two: 9 Mio, 8 Zero, 5 Yui, 5 Renji) were rendered the same way, one take each on one flow, for about 1,145 credits. Two consistency passes then changed eight of the cast's lines, re-rendered the same way for about 400 credits.
 
+On 2026-11-03 five lines changed so that nobody but Mio names Zero (3 Yui, 1 Mio, 1 Renji) and were re-rendered the same way for 239 credits. The cloud container could not reach `elevenlabsusercontent.com` that day, so a Remote Control session on the Mac downloaded the `master_url`s and pushed them.
+
 ## Common mistakes
 
 - Writing tags or kana readings into `ja`: they belong in `tts`.

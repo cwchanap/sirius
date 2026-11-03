@@ -6,8 +6,8 @@ Hapadona found Yui calling Zero by name: nobody knows it but Mio and Chiyo, and 
 
 - **Unit tests:** 58 pass, among them `PrologueTest.NobodyButMioCallsZeroByName`: no speaker but Mio or Zero names Zero (English, ゼロ, 零 but not 零件), and they only where nobody else speaks in that stretch (the homecoming splits at nightfall). It fails on the old lines. `build_voice.py --check`: 114 lines match.
 - **Self-test:** 697 checks pass headless in `en`, `ja` and `zh_TW` (cloud container, Godot 4.6.2 mono); the closing glyph check finds the three new characters in the rebuilt fonts, and the five lines without a take pass as `Unrecorded`.
-- **Not yet:** no Metal run, and the five lines are silent until voiced.
-- **Voice:** the five stale takes were deleted and their keys are in `Prologue.Unrecorded` until they are voiced (about 240 characters, one take each).
+- **Not yet:** no Metal run, and nobody has listened to the five new takes.
+- **Voice:** the five lines were re-voiced through the ElevenLabs connector with the cast's voices (Yui kano, Mio Yuki, Renji Sho), `eleven_v4`, one take each, 239 credits; Yui's `tts` spells 端末ちゃん as たんまつちゃん. The cloud container and the desktop VM can't reach elevenlabsusercontent.com, so the takes were downloaded on the Mac and pushed as their own commit; each is an ID3 mp3 of 92–173 KB. None was auditioned. `Prologue.Unrecorded` is empty again.
 
 ## Dialogue fast-forward and history — 2026-11-03
 

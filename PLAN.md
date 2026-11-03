@@ -258,7 +258,7 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [x] Second pass: the patrol count is state-neutral in the briefing and reminder, Chiaki doesn't assume the train, Yui doesn't claim the race, Zero names the city's freight terminal.
 - [x] Voice the eight lines those passes changed; `Prologue.Unrecorded` is empty.
 - [x] Nobody but Mio says Zero's name (Chiyo knows it too, and Mio and Zero don't know she does): Yui calls it the terminal at the gate and the clinic, Mio stops naming it in front of KOMA-7, and `PrologueTest` checks all three languages. Renji tells Mio that he and Sota will keep watch over the village, since they fight as well as she does.
-- [ ] Voice the five lines that changed (`Gate.3`, `Gate.5`, `Briefing.13`, `FirstMeeting.KOMA-7.4`, `FirstMeeting.Yui.2`), now in `Prologue.Unrecorded`.
+- [x] Voice the five lines that changed (`Gate.3`, `Gate.5`, `Briefing.13`, `FirstMeeting.KOMA-7.4`, `FirstMeeting.Yui.2`); `Prologue.Unrecorded` is empty.
 - [ ] Listen to the new takes (Mio's, Zero's, Yui's and Renji's) in the game and redo any that read wrong.
 - [ ] New dialogue portraits for Yui and Renji from their Tripo models, the photograph's image, door and photograph icons (Codex).
 - [ ] Graphical check under Metal on the Mac.
