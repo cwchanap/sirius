@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b5r85v278jp35"
-path.s3tc="res://.godot/imported/anime_character_3d_model_basecolor-bf7e540b57aa.jpg-151900643b127899bfd763baf1f455c9.s3tc.ctex"
+uid="uid://dc873v0652b84"
+path.s3tc="res://.godot/imported/anime_character_3d_model_basecolor-5d67ddb791b2.jpg-8f676cd06a8f230b9b17d7fb8d3aae75.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://assets/art/yui-import/anime_character_3d_model_basecolor-bf7e540b57aa.jpg"
-dest_files=["res://.godot/imported/anime_character_3d_model_basecolor-bf7e540b57aa.jpg-151900643b127899bfd763baf1f455c9.s3tc.ctex"]
+source_file="res://assets/art/yui-import/anime_character_3d_model_basecolor-5d67ddb791b2.jpg"
+dest_files=["res://.godot/imported/anime_character_3d_model_basecolor-5d67ddb791b2.jpg-8f676cd06a8f230b9b17d7fb8d3aae75.s3tc.ctex"]
 
 [params]
 

@@ -118,8 +118,11 @@ def main():
     rig.name, body.name = 'Mio', 'Mio Tripo body'
     # The same mesh as the repaired source: take its hair-colour and normal-map repairs.
     with bpy.data.libraries.load(str(ROOT / FIXED)) as (src, dst):
-        dst.images = ['3d_fantasy_character_model_basecolor', '3d_fantasy_character_model_normal']
+        dst.images = ['3d_fantasy_character_model_normal']
     fixed = {i.name.rsplit('_', 1)[-1].split('.')[0]: i for i in dst.images}
+    # The committed base colour is the repaired source's with its face repainted by tools/face_paint.py.
+    fixed['basecolor'] = bpy.data.images.load(str(ROOT / 'assets/art/mio-lowpoly-basecolor.jpg'))
+    fixed['basecolor'].pack()
     tree = body.data.materials[0].node_tree
     bsdf = next(n for n in tree.nodes if n.type == 'BSDF_PRINCIPLED')
     # Tripo's roughness and metallic bakes carry the same projection errors; keep Mio matte.
@@ -287,7 +290,7 @@ def main():
                 pose.update({pb.name: pb.matrix_basis.copy() for pb in rig.pose.bones})
         clips[name] = poses
     clips.update(mio_combat.clips(rig, ready, (blade, edge), grip))
-    clips.update(cast_clips.poses(rig, scale, cast_clips.MIO, cast_clips.MIO_LOOPS, grip))
+    clips.update(cast_clips.poses(rig, scale, cast_clips.MIO, cast_clips.LOOPS['mio'], grip))
     actions = []
     for name, poses in clips.items():
         action = bpy.data.actions.new(name)
