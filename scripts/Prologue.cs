@@ -216,15 +216,15 @@ public static class Prologue
     {
         ["Opening.0"]=("city",""),["Opening.1"]=("valley",""),["Opening.2"]=("home",""),
         ["Intro.0"]=("bed","Mio sleep"),["Intro.2"]=("futon","Mio wake"),["Intro.3"]=("","Mio terminal_sit"),["Intro.4"]=("floor","Mio sit"),
-        ["Intro.6"]=("room","Mio rise"),["Intro.7"]=("shoji","Mio idle"),["Intro.9"]=("face Mio","Mio terminal"),["Intro.11"]=("","Mio idle"),
-        ["Intro.15"]=("","Mio terminal"),["Intro.16"]=("","Mio idle"),["Intro.17"]=("","Mio terminal"),["Intro.19"]=("","Mio idle"),
+        ["Intro.6"]=("room","Mio rise"),["Intro.7"]=("shoji","Mio stand"),["Intro.9"]=("face Mio","Mio terminal"),["Intro.11"]=("","Mio stand"),
+        ["Intro.15"]=("","Mio terminal"),["Intro.16"]=("","Mio stand"),["Intro.17"]=("","Mio terminal"),["Intro.19"]=("","Mio stand"),
         ["Photo.0"]=("photo",""),
         ["Gate.0"]=("two Mio Yui","Yui wave"),["Gate.1"]=("","Yui idle"),["Gate.2"]=("","Yui point"),["Gate.3"]=("","Mio terminal, Yui idle"),
-        ["Gate.4"]=("","Mio idle"),["Gate.6"]=("","Mio terminal"),["Gate.7"]=("over Mio Yui","Mio idle, Yui give"),["Gate.8"]=("","Mio terminal, Yui idle"),
-        ["Gate.9"]=("","Mio idle"),["Gate.11"]=("","Yui wave"),["Gate.12"]=("","Yui idle"),["Gate.13"]=("","Yui point"),
+        ["Gate.4"]=("","Mio stand"),["Gate.6"]=("","Mio terminal"),["Gate.7"]=("over Mio Yui","Mio stand, Yui give"),["Gate.8"]=("","Mio terminal, Yui idle"),
+        ["Gate.9"]=("","Mio stand"),["Gate.11"]=("","Yui wave"),["Gate.12"]=("","Yui idle"),["Gate.13"]=("","Yui point"),
         ["Briefing.0"]=("two Mio Renji","Renji idle"),["Briefing.1"]=("","Yui wave"),["Briefing.2"]=("","Mio terminal, Yui idle"),
-        ["Briefing.3"]=("","Mio idle, Yui give"),["Briefing.4"]=("","Renji read, Yui idle"),["Briefing.5"]=("","Renji point"),
-        ["Briefing.6"]=("","Renji idle"),["Briefing.8"]=("","Mio terminal"),["Briefing.9"]=("face Yui","Mio idle, Yui wave"),
+        ["Briefing.3"]=("","Mio stand, Yui give"),["Briefing.4"]=("","Renji read, Yui idle"),["Briefing.5"]=("","Renji point"),
+        ["Briefing.6"]=("","Renji idle"),["Briefing.8"]=("","Mio terminal"),["Briefing.9"]=("face Yui","Mio stand, Yui wave"),
         ["Briefing.10"]=("","Yui idle"),["Briefing.11"]=("","Yui fold"),["Briefing.12"]=("two Mio Renji",""),
     };
     // What the Komorebi residents say every time: they have no first-meeting scene.

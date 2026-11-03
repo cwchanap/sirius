@@ -106,6 +106,8 @@ public partial class Game
     private void Gather()
     {
         if(scene==null)return;
+        // Mio talks at ease, the sword lowered, in the stance her terminal and rise share, rather than her guarded idle.
+        Player.Visual.Play("stand",1,false,.35f);
         var names=Prologue.Stage.Where(c=>c.Key.StartsWith(scene+".")).SelectMany(c=>(c.Value.Shot+" "+c.Value.Acts).Replace(","," ").Split(' '))
             .Where(n=>n!="Mio"&&World.Residents.Any(r=>r.Name==n)).Distinct().ToList();
         foreach(var name in names)
