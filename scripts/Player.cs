@@ -141,7 +141,7 @@ public partial class Player : CharacterBody3D
             {
                 // Played this fast, the walk and run feet slide least at 2 and 7.8 m/s (measured in game: 0.36 and 1.9 m/s).
                 string clip=Guarding?"guard":dir.Length()>.1f?(speed>5?"run":"walk"):"idle";
-                Visual.Play(clip,clip=="walk"?speed/1.26f:clip=="run"?2:1);
+                Visual.Play(clip,clip=="walk"?speed/1.26f:clip=="run"?2:1,false,Visual.Clip is "stand" or "terminal"?.4f:.12f);
             }
         }
     }

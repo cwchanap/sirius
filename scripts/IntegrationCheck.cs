@@ -243,6 +243,8 @@ public static class IntegrationCheck
             "Tripo player rig imported with 65 bones");
         foreach(var clip in new[]{"idle","walk","run","jump","dodge","attack1","attack2","attack3","guard","skill","stagger","death"})
             Check(g.Player.Visual.HasClip(clip),"Blender animation imported: "+clip);
+        var acts=Prologue.Stage.Values.SelectMany(c=>c.Acts.Split(',',StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries)).Distinct().ToArray();
+        Check(acts.All(a=>a.Split(' ') is [var who,var clip]&&g.Actor(who).Visual.HasClip(clip))&&g.Player.Visual.HasClip("stand"),$"every staged act names a clip its actor has ({acts.Length} acts)");
         var animator=g.Player.Visual.Animator!;
         foreach(string clip in new[]{"idle","walk","run","jump"})
         {

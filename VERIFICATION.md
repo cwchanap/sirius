@@ -1,5 +1,14 @@
 # MVP verification
 
+## Posture review of Yui and Mio — 2026-11-03
+
+Hapadona asked for their posture to be reviewed again. Yui stood in the rig's rest pose under every clip: knees locked, feet parallel at the rest width, weight even, arms out in a slight A, and her gestures moved only her arms. Mio's terminal stood in that same rest stance while her Tripo idle stands with her feet 10 cm apart, the right turned out on its ball, so every cue between them (six in the waking scene alone) slid her feet, and in conversation she held her sword out level. `tools/cast_clips.py` now plants feet by leg IK (`Step`) with the hips riding as high as the weight-bearing leg reaches (`Weight`); Yui and Renji stand at ease (`STAND`: weight on the left leg, the right knee eased, feet closer and turned out, arms close) and gesture from it, and Mio has `stand`, her idle's own feet measured off its first frame with the sword lowered, which `Game.Gather()` starts every scene with and the stage cues in place of her idle; her terminal and the end of her rise share it.
+
+- **Measured:** Mio's `stand` and `terminal_hold` put her ankles where her idle's first frame does, to the millimetre, her hips within 1 mm and her toes within 2°; Yui's feet don't move between `idle` and `give_hold`; Yui's standing knee bends 5°, the free one 27°. Every other clip in `mio.glb` and Yui's walk and run are unchanged to the value.
+- **Self-test:** **698 checks pass headless** in `en`, `ja` and `zh_TW` (cloud container), a new one among them: every staged act names a clip its actor has. Yui's and Renji's idles still hold their hips and feet fixed. Unit 57 and e2e 4 pass. `check_mio_export.py`: 21 clips.
+- **Captures:** Blender workbench renders of the shipped clips from the committed GLBs, front, side and three-quarter, before and after; `tools/review_dialogue.gd` under xvfb and lavapipe.
+- **Not yet:** no Metal run; the importers' new leg IK ran only on the committed models (the sources are on the Mac); the blade's clearance from Mio's leg in `stand` was judged on renders, not by a collision check.
+
 ## Mio's and Yui's faces and dialogue acting — 2026-11-03
 
 Hapadona found the front of Mio's and Yui's heads still messy and their dialogue acting puppet-like, the hands most. Tripo's bake had painted hair strands across their brows, eyelids, forehead and temples and skin along the edges of their bangs; `tools/face_paint.py` repaints both maps by geometry (see CLAUDE.md), and `tools/cast_clips.py` now flows its keys through a spline with each joint trailing its parent, places gesturing hands by IK, spreads the fingers and holds every gesture in a breathing `_hold` loop that `ActorVisual` queues.

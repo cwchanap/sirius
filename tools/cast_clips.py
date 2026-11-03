@@ -8,7 +8,10 @@ most, unless a side gives its own (RightCurl, LeftCurl: one angle, or four from 
 A pose may place a hand instead of turning the arm: RightReach (or LeftReach) is the wrist from the shoulder in the chest's frame, in
 character heights, x away from the body, and two-bone IK bends the elbow toward RightElbow; RightRoll turns the hand about the forearm,
 palm up for positive, shared with the forearm so the skin twists along it. Between a key with a Reach and one without, the
-wrist travels in a line from where the angles put it.
+wrist travels in a line from where the angles put it. Feet are planted the same way: RightStep (or LeftStep) is (out, forward, heel
+lift, toe-out degrees) from the foot's rest place, in metres; the knee bends forward to it and the foot stays flat or rises onto its
+ball. 'Weight' names the leg taking it: the hips ride as high as that leg reaches, so it stands straight and the other eases, and
+'lift' and a roll of the Hips then shift them over it. People stand at ease (STAND), not to attention (STANCE, the rest pose).
 
 People don't move like a machine stopping at every key. A clip runs each channel through its keys on one smooth curve, at rest only where
 it turns back or holds, and each joint trails the one it hangs from (LAG): the chest after the hips, the head after the chest, the
@@ -59,6 +62,8 @@ def sample(keys, t, loop=None):
         keys = [(keys[-2][0] - loop, keys[-2][1])] + keys + [(keys[1][0] + loop, keys[1][1])] if len(keys) > 2 else keys
     if t <= keys[0][0] or len(keys) == 1:
         return keys[0][1]
+    if isinstance(keys[0][1], str):
+        return max((k for k in keys if k[0] <= t), key=lambda k: k[0])[1]
     if t >= keys[-1][0]:
         return keys[-1][1]
     i = max(k for k in range(len(keys) - 1) if keys[k][0] <= t)
@@ -121,8 +126,9 @@ def act(keys, loop=None, life=None):
         for c in p:
             tracks.setdefault(c, [(t, q[c]) for t, q in keys if c in q])
     for side in ('Right', 'Left'):
-        if side + 'Reach' in tracks:
-            tracks[side + 'IK'] = [(t, float(side + 'Reach' in q)) for t, q in keys]
+        for given, weight in (('Reach', 'IK'), ('Step', 'Plant')):
+            if side + given in tracks:
+                tracks[side + weight] = [(t, float(side + given in q)) for t, q in keys]
     if loop:
         tracks = {c: k + [(loop, k[0][1])] if k[-1][0] < loop else k for c, k in tracks.items()}
     length = loop or keys[-1][0] + max(lag(c) for c in tracks)
@@ -142,7 +148,7 @@ def held(gesture, keys, life=HOLD, length=4):
 
 
 class Cast(Rig):
-    """patrol_clips.Rig's angles, then two-bone IK for each arm a pose places by its Reach."""
+    """patrol_clips.Rig's angles, then two-bone IK for each arm a pose places by its Reach and each leg it plants by its Step."""
     def __init__(self, rig, unit, height):
         super().__init__(rig, unit)
         from mathutils import Matrix
@@ -155,13 +161,14 @@ class Cast(Rig):
         for name in self.order:
             self.order += [c.name for c in bones[name].children]
         self.identity = Matrix.Identity(4)
-        # Each elbow's hinge in its upper arm's and forearm's own frames, read off the arm bent by its forearm angle.
+        # Each elbow's and knee's hinge in its two bones' own frames, read off the limb bent by its angle.
         self.hinge = {}
         for side in ('Right', 'Left'):
-            bent = self.fk(self.matrices(Rig.bases(self, hands(pose(STANCE, **{side + 'ForeArm': 90})))))
-            axis = bent[side + 'Arm'].col[1].to_3d().cross(bent[side + 'ForeArm'].col[1].to_3d()).normalized()
-            for name in (side + 'Arm', side + 'ForeArm'):
-                self.hinge[name] = bent[name].to_3x3().inverted() @ axis
+            for upper, lower in ((side + 'Arm', side + 'ForeArm'), (side + 'UpLeg', side + 'Leg')):
+                bent = self.fk(self.matrices(Rig.bases(self, hands(pose(STANCE, **{lower: 90})))))
+                axis = bent[upper].col[1].to_3d().cross(bent[lower].col[1].to_3d()).normalized()
+                for name in (upper, lower):
+                    self.hinge[name] = bent[name].to_3x3().inverted() @ axis
 
     def matrices(self, bases):
         from mathutils import Matrix, Vector
@@ -182,46 +189,86 @@ class Cast(Rig):
         x = (axis - axis.dot(y) * y).normalized()
         return Matrix((x, y, x.cross(y))).transposed()
 
+    def place(self, basis, posed, name, matrix):
+        above = posed[self.parent[name]]
+        basis[name] = self.rel[name].inverted() @ above.inverted() @ matrix
+        posed[name] = above @ self.rel[name] @ basis[name]
+
+    def limb(self, basis, posed, upper, lower, end, target, pole, roll=0):
+        """Turn upper and lower so end's joint reaches target, bending toward pole; roll turns lower about its own length."""
+        from mathutils import Matrix, Quaternion, Vector
+        s, joint0, end0 = posed[upper].translation, posed[lower].translation, posed[end].translation
+        a, b = (joint0 - s).length, (end0 - joint0).length
+        to = target - s
+        d = min(max(to.length, abs(a - b) + 1e-4), (a + b) * .999)
+        u = to.normalized()
+        v = pole - pole.dot(u) * u
+        v = v.normalized() if v.length > 1e-6 else Vector((0, 0, -1)).cross(u).normalized()
+        cos = (a * a + d * d - b * b) / (2 * a * d)
+        joint = s + a * (cos * u + math.sqrt(max(0, 1 - cos * cos)) * v)
+        axis = (joint - s).cross(s + d * u - joint)
+        axis = axis.normalized() if axis.length > 1e-9 else u.cross(v).normalized()
+        for name, start, stop, turn in ((upper, s, joint, 0), (lower, joint, s + d * u, roll)):
+            rot = self.frame(stop - start, axis) @ self.frame(Vector((0, 1, 0)), self.hinge[name]).transposed()
+            rot = Quaternion((stop - start).normalized(), turn).to_matrix() @ rot
+            self.place(basis, posed, name, Matrix.Translation(start) @ rot.to_4x4())
+        posed[end] = posed[lower] @ self.rel[end] @ basis[end]
+
     def bases(self, p):
         from mathutils import Matrix, Quaternion, Vector
         out = super().bases(p)
-        sides = [s for s in ('Right', 'Left') if p.get(s + 'IK', 0) > 1e-4]
-        if not sides:
+        arms = [s for s in ('Right', 'Left') if p.get(s + 'IK', 0) > 1e-4]
+        legs = [s for s in ('Right', 'Left') if p.get(s + 'Plant', 0) > 1e-4]
+        if not arms and not legs:
             return out
         basis = self.matrices(out)
         posed = self.fk(basis)
+
+        def planted(side):
+            x, y, lift, _ = p[side + 'Step']
+            return self.rest[side + 'Foot'].translation + ((FLIP @ MIRROR) if side == 'Left' else FLIP) @ Vector((x, y, lift)) / self.unit
+        # The hips ride as high as the leg taking the weight reaches, so that leg stands straight and the other eases.
+        stand = p.get('Weight')
+        if stand in legs:
+            thigh, shin, foot = stand + 'UpLeg', stand + 'Leg', stand + 'Foot'
+            reach = .999 * ((posed[shin].translation - posed[thigh].translation).length + (posed[foot].translation - posed[shin].translation).length)
+            d = posed[thigh].translation - planted(stand)
+            rise = (math.sqrt(max(0, d.z ** 2 + reach ** 2 - d.length_squared)) - d.z) * p[stand + 'Plant']
+            basis['Hips'].translation += self.rest['Hips'].to_3x3().inverted() @ Vector((0, 0, rise))
+            out['Hips'] = (out['Hips'][0], basis['Hips'].translation.copy())
+            posed = self.fk(basis)
         chest = posed['Spine2'].to_3x3() @ self.rest['Spine2'].to_3x3().inverted()
-        scale = self.height / self.unit
-        for side in sides:
+        for side in arms:
             w = p[side + 'IK']
             arm, fore, hand = side + 'Arm', side + 'ForeArm', side + 'Hand'
             out_of = (FLIP @ MIRROR) if side == 'Left' else FLIP
-            s, elbow0, wrist0 = posed[arm].translation, posed[fore].translation, posed[hand].translation
-            target = wrist0.lerp(s + chest @ out_of @ Vector(p[side + 'Reach']) * scale, w)
-            pole = (elbow0 - s).normalized().lerp((chest @ out_of @ Vector(p.get(side + 'Elbow', ELBOW))).normalized(), w)
-            a, b = (elbow0 - s).length, (wrist0 - elbow0).length
-            to = target - s
-            d = min(max(to.length, abs(a - b) + 1e-4), (a + b) * .999)
-            u = to.normalized()
-            v = pole - pole.dot(u) * u
-            v = v.normalized() if v.length > 1e-6 else Vector((0, 0, -1)).cross(u).normalized()
-            cos = (a * a + d * d - b * b) / (2 * a * d)
-            elbow = s + a * (cos * u + math.sqrt(max(0, 1 - cos * cos)) * v)
-            wrist = s + d * u
-            axis = (elbow - s).cross(wrist - elbow)
-            axis = axis.normalized() if axis.length > 1e-9 else u.cross(v).normalized()
+            s = posed[arm].translation
+            target = posed[hand].translation.lerp(s + chest @ out_of @ Vector(p[side + 'Reach']) * self.height / self.unit, w)
+            pole = (posed[fore].translation - s).normalized().lerp((chest @ out_of @ Vector(p.get(side + 'Elbow', ELBOW))).normalized(), w)
             # Mirrored bones roll the other way about their own length.
             roll = math.radians(p.get(side + 'Roll', 0)) * w * (-1 if side == 'Left' else 1)
-            for name, start, end, share in ((arm, s, elbow, 0), (fore, elbow, wrist, .6)):
-                rot = self.frame(end - start, axis) @ self.frame(Vector((0, 1, 0)), self.hinge[name]).transposed()
-                rot = Quaternion((end - start).normalized(), roll * share).to_matrix() @ rot
-                above = posed[self.parent[name]]
-                basis[name] = self.rel[name].inverted() @ above.inverted() @ (Matrix.Translation(start) @ rot.to_4x4())
-                posed[name] = above @ self.rel[name] @ basis[name]
+            self.limb(basis, posed, arm, fore, hand, target, pole, roll * .6)
             basis[hand] = Quaternion((0, 1, 0), roll * .4).to_matrix().to_4x4() @ basis[hand]
-            for name in (arm, fore, hand):
+        for side in legs:
+            w = p[side + 'Plant']
+            thigh, shin, foot = side + 'UpLeg', side + 'Leg', side + 'Foot'
+            out_of = (FLIP @ MIRROR) if side == 'Left' else FLIP
+            _, _, lift, toe = p[side + 'Step']
+            target = posed[foot].translation.lerp(planted(side), w)
+            knee = (posed[shin].translation - posed[thigh].translation).normalized().lerp(out_of @ Vector((.15, 1, 0)), w)
+            self.limb(basis, posed, thigh, shin, foot, target, knee)
+            # The foot keeps its rest orientation, turned out by toe and up onto its ball by the heel's lift.
+            length = (self.rest[side + 'ToeBase'].translation - self.rest[foot].translation).length * self.unit
+            tip = Matrix.Rotation(math.radians(toe) * (-1 if side == 'Right' else 1), 3, 'Z') @ Matrix.Rotation(-math.asin(min(1, lift / length)), 3, 'X')
+            flat = (FLIP @ tip @ FLIP @ self.rest[foot].to_3x3()).to_quaternion()
+            rot = posed[foot].to_3x3().to_quaternion().slerp(flat, w).to_matrix()
+            self.place(basis, posed, foot, Matrix.Translation(posed[foot].translation) @ rot.to_4x4())
+        for side in arms:
+            for name in (side + 'Arm', side + 'ForeArm', side + 'Hand'):
                 out[name] = (basis[name].to_quaternion(), None)
-            posed = self.fk(basis)
+        for side in legs:
+            for name in (side + 'UpLeg', side + 'Leg', side + 'Foot'):
+                out[name] = (basis[name].to_quaternion(), None)
         return out
 
 
@@ -248,49 +295,61 @@ CROUCH = pose(STANCE, lift=(0, .05, .62 - MIO_HIP), RightUpLeg=(96, 0, 0), LeftU
               Spine1=(-10, 0, 0), Head=(14, 0, 0), RightArm=(48, 6, 0), LeftArm=(48, 6, 0), RightForeArm=24, LeftForeArm=24)
 STRETCH = pose(STANCE, lift=(0, 0, .02), Spine=(8, 0, 0), Spine1=(6, 0, 0), Head=(16, 0, 0), RightArm=(168, -6, 0), LeftArm=(168, -6, 0),
                RightForeArm=18, LeftForeArm=18, curl=8)
+# Mio talking (Game.Gather() and the stage's 'Mio stand'): the stance of her Tripo idle's first frame, measured off mio.glb (the weight on
+# her left leg, the feet close, the right turned out on its ball), so going between it, her terminal and her idle doesn't slide her feet;
+# the sword carried low at her side instead of held out. Her rise ends in it.
+FEET = dict(lift=(.004, -.04, 0), Hips=(2.6, 1.7, 1), LeftStep=(-.112, -.031, 0, 7), RightStep=(-.073, -.047, .036, 22), Weight='Left')
+MIO_STAND = pose(STANCE, **FEET, Spine=(-1.5, -1.5, 0), Spine1=(-1.5, -1.5, 0), Spine2=(-1, -1, 0), Head=(2, -2, 2), RightArm=(2, 8, 0),
+                 RightForeArm=20, RightHand=(-60, 0, 0), LeftArm=(2, 13, 0), LeftForeArm=16)
 MIO = {
     'sleep': act([(0, LIE)], loop=4, life=dict(breath=2, sway=0)),
     'wake': act([(0, LIE), (.6, pose(LIE, Head=(-6, 0, -10), Spine=(4, 0, 0))), (1.5, PROP), (2.2, SIT), (2.6, RUB),
                  (2.9, pose(RUB, RightArm=(60, -6, 30), Head=(-12, 0, -4))), (3.2, RUB), (3.7, SIT)]),
     'sit': act([(0, SIT)], loop=4, life=dict(breath=1.5, sway=.5)),
     **held('terminal_sit', [(0, SIT), (.3, pose(SIT, **RAISE)), (.7, pose(SIT, **WRIST))]),
-    'rise': act([(0, SIT), (.6, KNEES), (1.2, CROUCH), (1.9, STANCE), (2.5, STRETCH), (3, pose(STRETCH, Spine=(10, 0, 4), RightArm=(172, -4, 0))),
-                 (3.6, STANCE)]),
-    **held('terminal', [(0, STANCE), (.3, pose(STANCE, **RAISE)), (.7, pose(STANCE, **WRIST))]),
+    'rise': act([(0, SIT), (.6, KNEES), (1.2, CROUCH), (1.9, pose(STANCE, **FEET)), (2.5, pose(STRETCH, **FEET)),
+                 (3, pose(STRETCH, **FEET, Spine=(10, 0, 4), RightArm=(172, -4, 0))), (3.6, MIO_STAND)]),
+    **held('terminal', [(0, MIO_STAND), (.3, pose(MIO_STAND, **RAISE)), (.7, pose(MIO_STAND, **WRIST))]),
+    'stand': act([(0, MIO_STAND)], loop=4, life=IDLE),
 }
+
+# Standing at ease rather than to attention: the weight on the left leg, its hip pushed out and up, the right knee eased forward and the
+# feet a little closer and turned out; the chest tilts back over the hips so the shoulders stay level, and the arms hang close.
+STAND = pose(STANCE, lift=(-.04, 0, 0), Hips=(0, 7, 2), Spine=(0, -4, -1), Spine1=(0, -3, 0), Spine2=(0, -1, 0), Head=(2, 3, 3), RightArm=(2, 12, 0),
+             LeftArm=(3, 17, 0), RightForeArm=16, LeftForeArm=14, LeftStep=(-.04, 0, 0, 8), RightStep=(-.04, .06, 0, 16), Weight='Left')
 
 # Yui and Renji. Yui is quick and bright: a bouncing walk, a run, a wave, arms folded to sulk; Renji leans over his bench.
 # Giving: the hand comes up and out, palm up, a little past where it stops; pointing: the index out along the arm, the others closed.
-GIVE = pose(STANCE, lift=(0, .03, 0), Spine=(-5, 0, -3), Head=(-8, 0, 0), RightReach=(-.02, .25, -.11), RightElbow=(.3, -.4, -1), RightRoll=50,
+GIVE = pose(STAND, lift=(-.04, .03, 0), Spine=(-5, -4, -3), Head=(-8, 3, 2), RightReach=(-.02, .25, -.11), RightElbow=(.3, -.4, -1), RightRoll=50,
             RightHand=(-8, 0, 0), RightCurl=(16, 24, 30, 38))
-POINT = pose(STANCE, Spine=(2, 0, -8), Head=(6, 0, -6), RightReach=(.1, .26, -.02), RightElbow=(.6, -.3, -.8), RightRoll=-10,
+POINT = pose(STAND, lift=(-.04, .02, 0), Spine=(2, -4, -8), Head=(6, 2, -6), RightReach=(.1, .26, -.02), RightElbow=(.6, -.3, -.8), RightRoll=-10,
              RightHand=(4, 0, 0), RightCurl=(0, 80, 88, 96))
-READ = pose(STANCE, Head=(-24, 0, 0), Spine1=(-4, 0, 0), RightReach=(-.07, .2, -.12), LeftReach=(-.07, .2, -.12), RightRoll=-55, LeftRoll=-55,
+READ = pose(STAND, Head=(-24, 2, 0), Spine1=(-4, -3, 0), RightReach=(-.07, .2, -.12), LeftReach=(-.07, .2, -.12), RightRoll=-55, LeftRoll=-55,
             RightHand=(-12, 0, 0), LeftHand=(-12, 0, 0), curl=34)
-# Arms folded, the elbows bending before the arms cross so the hands don't reach out first.
-FOLD = pose(STANCE, Hips=(0, 0, 5), Spine=(4, 0, 0), Head=(4, 0, -8), RightArm=(18, 4, 36), RightForeArm=94, LeftArm=(16, 4, 38), LeftForeArm=92,
-            LeftUpLeg=(4, 0, 0), curl=66)
-BEND = pose(STANCE, RightArm=(8, 8, 18), LeftArm=(8, 8, 16), RightForeArm=80, LeftForeArm=78, curl=30)
+# Arms folded to sulk, the hip cocked further and the head turned away; the elbows bend before the arms cross, so the hands don't reach out first.
+FOLD = pose(STAND, lift=(-.05, 0, 0), Hips=(0, 9, 6), Spine=(4, -5, 0), Head=(4, 5, -10), RightArm=(18, 4, 36), RightForeArm=94, LeftArm=(16, 4, 38),
+            LeftForeArm=92, curl=66)
+BEND = pose(STAND, RightArm=(8, 8, 18), LeftArm=(8, 8, 16), RightForeArm=80, LeftForeArm=78, curl=30)
 # Waving: the elbow out at the shoulder's height, the forearm up, swinging from the elbow with the open hand trailing it.
-WAVE = pose(STANCE, Head=(4, 0, -5), Spine=(2, 0, -4), RightReach=(.14, .05, .12), RightElbow=(1, -.1, -.3), RightRoll=0, RightHand=(0, 0, 0), RightCurl=5)
+WAVE = pose(STAND, Head=(4, 4, -5), Spine=(2, -4, -4), RightReach=(.14, .05, .12), RightElbow=(1, -.1, -.3), RightRoll=0, RightHand=(0, 0, 0), RightCurl=5)
 STRIKE = dict(RightArm=(48, 0, 16), RightForeArm=40)
 BENCH = pose(STANCE, lift=(0, 0, -.04), Spine=(-18, 0, 0), Spine1=(-8, 0, 0), Head=(-20, 0, 0), LeftArm=(42, 0, 26), LeftForeArm=62,
              RightArm=(96, -10, 16), RightForeArm=100, RightUpLeg=(6, 0, 0), RightLeg=10, LeftLeg=8, curl=45)
 PEOPLE = {
-    'idle': act([(0, STANCE)], loop=4, life=IDLE),
-    **held('give', [(0, STANCE), (.3, pose(GIVE, RightReach=(0, .14, -.2), RightRoll=20, lift=(0, .01, 0))),
+    'idle': act([(0, STAND)], loop=4, life=IDLE),
+    **held('give', [(0, STAND), (.3, pose(GIVE, RightReach=(0, .14, -.2), RightRoll=20, lift=(0, .01, 0))),
                     (.6, pose(GIVE, RightReach=(-.02, .27, -.1))), (.85, GIVE)]),
-    **held('point', [(0, STANCE), (.25, pose(STANCE, RightReach=(.03, .12, -.17), RightCurl=(30, 50, 55, 60), Head=(2, 0, -3))),
+    **held('point', [(0, STAND), (.25, pose(STAND, RightReach=(.03, .12, -.17), RightCurl=(30, 50, 55, 60), Head=(2, 0, -3))),
                      (.55, pose(POINT, RightReach=(.11, .28, -.01))), (.8, POINT)]),
-    **held('read', [(0, STANCE), (.55, READ)]),
+    **held('read', [(0, STAND), (.55, READ)]),
 }
 SWING = [(i * .3, pose(WAVE, RightReach=(.19 if i % 2 else .1, .05, .12), RightHand=(0, 0, 16 if i % 2 else -16))) for i in range(9)]
 YUI = {
     **PEOPLE,
     'walk': (.9, lambda t: hands(gait(stride=26, load=10, swing=52, arm=20, elbow=16, lean=2, bob=.04, sway=5, stance=STANCE)(t / .9))),
     'run': (.7, lambda t: hands(gait(stride=34, load=20, swing=90, arm=32, elbow=70, lean=12, bob=.05, sway=6, stance=STANCE)(t / .7))),
-    **held('fold', [(0, STANCE), (.3, BEND), (.65, FOLD)], life=dict(breath=2, sway=.5), length=3),
-    'wave': act([(0, STANCE), (.25, pose(STANCE, RightReach=(.2, .04, -.14), RightElbow=(1, -.1, -.6), RightCurl=12)), (.5, SWING[0][1])]),
+    **held('fold', [(0, STAND), (.3, BEND), (.65, FOLD)], life=dict(breath=2, sway=.5), length=3),
+    'wave': act([(0, STAND), (.25, pose(STAND, RightReach=(.2, .04, -.14), RightElbow=(1, -.1, -.6), RightCurl=12)), (.5, SWING[0][1])]),
     'wave_hold': act(SWING[:-1], loop=2.4, life=dict(breath=1, sway=.3)),
 }
 RENJI = {
@@ -299,7 +358,7 @@ RENJI = {
     'work': act([(0, BENCH), (.3, pose(BENCH, **STRIKE)), (.43, pose(BENCH, RightArm=(56, 0, 16), RightForeArm=48))], loop=1.2),
 }
 CLIPS = {'mio': MIO, 'yui': YUI, 'renji': RENJI}
-LOOPS = {'mio': ('sleep', 'sit', 'terminal_sit_hold', 'terminal_hold'), 'yui': ('idle', 'walk', 'run', 'fold_hold', 'wave_hold', 'give_hold', 'point_hold', 'read_hold'),
+LOOPS = {'mio': ('sleep', 'sit', 'terminal_sit_hold', 'terminal_hold', 'stand'), 'yui': ('idle', 'walk', 'run', 'fold_hold', 'wave_hold', 'give_hold', 'point_hold', 'read_hold'),
          'renji': ('idle', 'walk', 'work', 'give_hold', 'point_hold', 'read_hold')}
 
 
