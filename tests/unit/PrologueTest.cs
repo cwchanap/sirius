@@ -44,6 +44,29 @@ public class PrologueTest
         var (speaker,text)=Prologue.Homecoming[Prologue.NightFalls];
         AssertThat(speaker).IsEmpty();AssertThat(text).StartsWith("Night falls");
     }
+    // Only Mio knows Zero's name (Chiyo does too, and never lets on): everyone else calls it her terminal, and Mio says it only with nobody
+    // else in the stretch. The homecoming's night falls before she walks home alone. 零件 is "parts" in Chinese, not the name.
+    [TestCase]
+    public void NobodyButMioCallsZeroByName()
+    {
+        var ja=Localization.ParseLines(File.ReadAllText(Repo.Path("assets/dialogue/ja.json")),"ja");var zh=Localization.ParseLines(File.ReadAllText(Repo.Path("assets/dialogue/zh_TW.json")),"zh_TW");
+        var named=new List<string>();
+        foreach(var (scene,name) in Prologue.SceneNames)
+        {
+            int cut=name=="Homecoming"?Prologue.NightFalls:scene.Length;
+            foreach(var (from,to) in new[]{(0,cut),(cut,scene.Length)})
+            {
+                bool company=scene[from..to].Any(b=>b.Speaker is not ("" or "Mio" or "Zero"));
+                for(int i=from;i<to;i++)
+                {
+                    string key=$"{name}.{i}";
+                    bool says=scene[i].Text.Contains("Zero")||ja.GetValueOrDefault(key,"").Contains("ゼロ")||System.Text.RegularExpressions.Regex.IsMatch(zh.GetValueOrDefault(key,""),"零(?!件)");
+                    if(says&&(company||scene[i].Speaker is not ("Mio" or "Zero")))named.Add(key);
+                }
+            }
+        }
+        AssertThat(named).IsEmpty();
+    }
     [TestCase(3,"three")]
     [TestCase(1,"one")]
     [TestCase(0,"none")]
