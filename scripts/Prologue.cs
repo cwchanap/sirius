@@ -3,8 +3,10 @@ namespace Hoshikawa;
 // Scene 1's visual-novel script. A blank speaker is narration. Zero is a caring robot in the city that talks through Mio's wrist
 // terminal and has no portrait: nobody in the valley has seen its body. The city lets it know only what its work needs, so it is
 // curious like a child about everything else; it counts things and minds Mio's heartbeat, sleep and meals.
-// It asks about everything except Mio's mother; the epilogue's change of subject is the first hint of its secret.
-// Yui, the pass courier, is quick, bright and never short of words.
+// It asks about everything except Mio's mother; the epilogue's change of subject is the first hint of its secret. Its other job, loading
+// freight at the city's freight terminal by night, is how it knows the train. Only Mio calls it Zero, and only with nobody else there:
+// to everyone else it is her terminal (Chiyo knows its name too and never lets on). Yui, the pass courier, is quick, bright and never
+// short of words; she, Sota and Renji fight as well as Mio, and keeping the robots out of their villages is their work beside their trades.
 public static class Prologue
 {
     // Over the valley before Mio wakes: Game.Begin() flies the camera from the city on the eastern ridge to her house.
@@ -50,9 +52,9 @@ public static class Prologue
         ("Yui","Mio! Mio, Mio, Mio! Good, you're up!"),
         ("Mio","Yui? You came all the way down from Komorebi?"),
         ("Yui","Walked all night! Well, jogged some of it. I went around the relay road, because guess what's camped on it now? Patrols! Three of them, with those creepy amber eyes."),
-        ("Yui","Morning, Zero! ...Still nothing? Your wrist never says hello first, Mio."),
+        ("Yui","Morning, little terminal! ...Still nothing? Your wrist never says hello first, Mio."),
         ("Mio","It's an AI terminal, Yui. It only answers when someone asks it something."),
-        ("Yui","Then I'm asking. Zero, what's in my bag?"),
+        ("Yui","Then I'm asking. Terminal, what's in my bag?"),
         ("Zero","Letters. Your bag always has letters."),
         ("Yui","Ha! Letters, mostly. Other people's words. And this one's for Hoshikawa."),
         ("Yui","It's from Emiko. Komorebi has one week of medicine left. She's asking if you can spare any."),
@@ -77,7 +79,7 @@ public static class Prologue
         ("Renji","Not this time. You walked all night, and Emiko needs an answer. Go and see Chiaki at the clinic. She'll want to know what that train is carrying."),
         ("Yui","...Fine. But when that train comes, I'm going. That's a promise, not a question!"),
         ("Mio","Cross the bridge, follow the lanterns uphill. I know the way."),
-        ("Renji","Don't let them surround you. And Mio, come back in one piece. That terminal on your wrist is the only ear we have on that line."),
+        ("Renji","Sota and I will keep watch over the village. Mio, come back in one piece. That terminal on your wrist is the only ear we have on that line."),
     };
     // Yui at the workshop door before Renji has heard the news.
     public static readonly (string Speaker,string Text)[] YuiWaits=
@@ -175,7 +177,7 @@ public static class Prologue
             ("KOMA-7","Query for Mio's terminal: do you know what tomatoes feel like?"),
             ("Zero","No. This terminal has never touched one."),
             ("KOMA-7","Round. Warm in the afternoon. Query: terminal, where is your body?"),
-            ("Mio","It doesn't have one, KOMA. It's just a terminal. Come on, Zero."),
+            ("Mio","It doesn't have one, KOMA. It's just a terminal. Go and look after your tomatoes."),
         },
         ["Chiaki"]=new[]
         {
@@ -195,7 +197,7 @@ public static class Prologue
         {
             ("Yui","Chiaki is teaching me medicines! This one's for fevers, this one's for coughs, and this one tastes awful. I tried it."),
             ("Mio","What did it taste like?"),
-            ("Yui","Like the inside of an old boot! Zero, remember that one: old boot."),
+            ("Yui","Like the inside of an old boot! Terminal, remember that one: old boot."),
             ("Zero","Saved. Old boot."),
         },
     };
@@ -204,7 +206,7 @@ public static class Prologue
     // The speakers with a Japanese voice; everyone else's lines play silent.
     public static readonly HashSet<string> Cast=new(){"Mio","Zero","Yui","Renji"};
     // The cast's lines written or changed since the last recording, which IntegrationCheck lets go without an mp3 until they are voiced.
-    public static readonly HashSet<string> Unrecorded=new(){};
+    public static readonly HashSet<string> Unrecorded=new(){"Gate.3","Gate.5","Briefing.13","FirstMeeting.KOMA-7.4","FirstMeeting.Yui.2"};
     // What the 3D scene does when a beat starts: a camera shot and the clips its actors play ("Mio clip, Yui clip"). A beat with no entry, or
     // an empty part, keeps what was there. Shots: "over A B" looks past A's shoulder at B, "two A B" frames both from the side, "face A"
     // is in front of A, and any other name is a fixed shot (Game.Shots). Every actor goes back to its resting clip when the scene ends.
