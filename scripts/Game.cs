@@ -21,8 +21,8 @@ public partial class Game : Node3D
     public string Speaker="",SpeakerRole="",Dialogue="",ToastTitle="",ToastBody="",ToastIcon="",FeedbackText="",FlashIcon="";
     public readonly List<(string Speaker,string Text)> Script=new();
     public readonly HashSet<string> Heard=new();
-    // Every line a scene has shown since the prologue began, oldest first, kept in English and translated as the history draws it.
-    public readonly List<(string? Scene,int Beat,string Speaker,string Text)> Log=new();
+    // Every line a scene has shown since the prologue began, oldest first, kept in English and translated as the history draws it, with its voice file if it has one.
+    public readonly List<(string? Scene,int Beat,string Speaker,string Text,string? Voice)> Log=new();
     public const int LogLength=300;
     // How many lines the history is scrolled back from the newest.
     public int LogScroll;
@@ -43,7 +43,8 @@ public partial class Game : Node3D
     public readonly Dictionary<string,AudioStreamWav> Sounds=new();
     public Music Music=null!;
     public AudioStreamPlayer Voice=null!;
-    private AudioStreamPlayer bark=null!;
+    private AudioStreamPlayer bark=null!,replay=null!;
+    private int replayed=-1;
     private string? scene;
     private double elapsed;
     private bool captured;
@@ -73,7 +74,7 @@ public partial class Game : Node3D
         foreach(string name in new[]{"swing","impact","guard","deflect","break","skill","slam","stun","hurt","jump","dodge","heal","warning","mio_attack1","mio_attack2","mio_attack3","mio_skill","mio_hurt"})
             Sounds[name]=GD.Load<AudioStreamWav>("res://assets/audio/"+name+".wav");
         Music=new Music();AddChild(Music);
-        Voice=new AudioStreamPlayer {Bus="Voice"};AddChild(Voice);bark=new AudioStreamPlayer {VolumeDb=-10,Bus="Voice"};AddChild(bark);
+        Voice=new AudioStreamPlayer {Bus="Voice"};AddChild(Voice);bark=new AudioStreamPlayer {VolumeDb=-10,Bus="Voice"};AddChild(bark);replay=new AudioStreamPlayer {Bus="Voice"};AddChild(replay);
         var args=OS.GetCmdlineUserArgs();SelfTest=args.Contains("--self-test");
         var capture=args.FirstOrDefault(a=>a.StartsWith("--capture="));if(capture!=null)capturePath=capture[10..];
         if(SelfTest||args.Contains("--play")||(capturePath!=""&&!args.Contains("--title-view")))Start();
@@ -98,15 +99,18 @@ public partial class Game : Node3D
     public void Begin(){Start();Opening();}
     public override void _UnhandledInput(InputEvent e)
     {
-        // The history takes every key and the wheel while it is open: up and down step through it, L or Esc closes it to the scene.
+        // The history takes every key and the mouse while it is open: up and down step through it, E or Enter replays the voice of the line
+        // at the bottom, a click the voice of the line clicked, and L or Esc closes it to the scene.
         if(Mode==GameMode.History)
         {
             if(e is InputEventKey {Pressed:true} k)
             {
                 if(!k.Echo&&(k.PhysicalKeycode==Key.L||k.Keycode==Key.Escape))ShowHistory(false);
+                else if(!k.Echo&&(k.PhysicalKeycode==Key.E||k.Keycode==Key.Enter))Replay(Log.Count-1-LogScroll);
                 else if(k.Keycode==Key.Up||k.PhysicalKeycode==Key.W)ScrollLog(1);else if(k.Keycode==Key.Down||k.PhysicalKeycode==Key.S)ScrollLog(-1);
             }
-            if(e is InputEventMouseButton {Pressed:true} wheel)ScrollLog(wheel.ButtonIndex==MouseButton.WheelUp?1:wheel.ButtonIndex==MouseButton.WheelDown?-1:0);
+            if(e is InputEventMouseButton {Pressed:true} m)
+            {if(m.ButtonIndex==MouseButton.Left&&Hud.LineAt(m.Position) is int line)Replay(line);else ScrollLog(m.ButtonIndex==MouseButton.WheelUp?1:m.ButtonIndex==MouseButton.WheelDown?-1:0);}
             GetViewport().SetInputAsHandled();return;
         }
         if(Mode==GameMode.Dialogue&&(e is InputEventKey {Pressed:true,Echo:false,PhysicalKeycode:Key.L}||e is InputEventMouseButton {Pressed:true,ButtonIndex:MouseButton.WheelUp}))
@@ -310,14 +314,22 @@ public partial class Game : Node3D
         if(Beat>=0&&Reveal<Dialogue.Length){Reveal=Dialogue.Length;return;}
         if(++Beat>=Script.Count){EndDialogue();return;}
         Speaker=Script[Beat].Speaker;Dialogue=Line(scene,Beat,Script[Beat].Text);Reveal=0;
-        Log.Add((scene,Beat,Speaker,Script[Beat].Text));if(Log.Count>LogLength)Log.RemoveAt(0);
-        var line=$"res://assets/audio/voice/ja/{Speaker}/{scene}.{Beat}.mp3";
-        Voice.Stop();Voice.Stream=scene!=null&&ResourceLoader.Exists(line)?GD.Load<AudioStream>(line):null;if(Voice.Stream!=null&&!Fast)Voice.Play();
+        var line=$"res://assets/audio/voice/ja/{Speaker}/{scene}.{Beat}.mp3";var voice=scene!=null&&ResourceLoader.Exists(line)?line:null;
+        Log.Add((scene,Beat,Speaker,Script[Beat].Text,voice));if(Log.Count>LogLength)Log.RemoveAt(0);
+        Voice.Stop();Voice.Stream=voice!=null?GD.Load<AudioStream>(voice):null;if(Voice.Stream!=null&&!Fast)Voice.Play();
         Cue($"{scene}.{Beat}");
         SpeakerRole=Speaker switch {"Mio"=>"OFFLINE RUNNER","Zero"=>"SENSORY LINK · CITY SIDE",_=>World.Residents.FirstOrDefault(r=>r.Name==Speaker).Role??""};
     }
-    // The history opens over a scene, which holds still under it, its voice paused, until it closes back to the same line.
-    public void ShowHistory(bool show){Mode=show?GameMode.History:GameMode.Dialogue;LogScroll=0;Voice.StreamPaused=show;FreezeAnimations(show);}
+    // The history opens over a scene, which holds still under it, its voice paused, until it closes back to the same line; a voice replayed there stops.
+    public void ShowHistory(bool show){Mode=show?GameMode.History:GameMode.Dialogue;LogScroll=0;Voice.StreamPaused=show;FreezeAnimations(show);replay.Stop();}
+    // A logged line's voice plays again on a player of its own, so the paused line on screen resumes where it was when the history closes.
+    public bool Replay(int line)
+    {
+        if(line<0||line>=Log.Count||Log[line].Voice is not {} voice)return false;
+        replay.Stream=GD.Load<AudioStream>(voice);replay.Play();replayed=line;return true;
+    }
+    // The logged line whose voice is replaying, or -1.
+    public int Replaying=>replay.Playing?replayed:-1;
     public void ScrollLog(int lines)=>LogScroll=Math.Clamp(LogScroll+lines,0,Math.Max(0,Log.Count-1));
     public void EndDialogue(){Voice.Stop();Mode=GameMode.Playing;Input.MouseMode=SelfTest?Input.MouseModeEnum.Visible:Input.MouseModeEnum.Captured;Release(true);After(scene);}
     public void OnEnemyDefeated(Enemy enemy)

@@ -670,14 +670,20 @@ public static class IntegrationCheck
             Input.ParseInputEvent(new InputEventMouseButton {ButtonIndex=button,Pressed=false});await Frames(1);
         }
         g.Play(Prologue.Briefing);await Frames(5);
-        Check(g.Log[^1]==("Briefing",0,"Renji",Prologue.Briefing[0].Text)&&g.Log.Count(l=>l.Scene=="Intro")==Prologue.Intro.Length&&g.Voice.Playing,
+        Check(g.Log[^1]==("Briefing",0,"Renji",Prologue.Briefing[0].Text,"res://assets/audio/voice/ja/Renji/Briefing.0.mp3")&&g.Log.Count(l=>l.Scene=="Intro")==Prologue.Intro.Length&&g.Voice.Playing,
             $"the history holds every line heard so far ({g.Log.Count}), the waking scene's among them, and ends on the line on screen");
         await Tap(Key.L);float typed=g.Reveal;await Frames(10);
         Check(g.Mode==GameMode.History&&g.Voice.StreamPaused&&g.LogScroll==0&&g.Reveal==typed&&typed<g.Dialogue.Length,"L opens the history over the scene, which stops typing and pauses its voice");
         await Tap(Key.Up);await Tap(Key.Up);await Wheel(MouseButton.WheelUp);await Wheel(MouseButton.WheelDown);
         Check(g.LogScroll==2,"up and the wheel step back through the history, down and the wheel forward");
         for(int i=0;i<4;i++)await Tap(Key.Down);Check(g.LogScroll==0,"and no further than the newest line");
-        await Tap(Key.L);Check(g.Mode==GameMode.Dialogue&&!g.Voice.StreamPaused&&g.Voice.Playing&&g.Beat==0,"L closes it to the same line, its voice playing on");
+        await Tap(Key.E);Check(g.Replaying==g.Log.Count-1&&g.Voice.StreamPaused&&g.Mode==GameMode.History,"E replays the voice of the line at the bottom, Renji's, while the scene's own stays paused");
+        int waking=g.Log.FindLastIndex(l=>l.Scene=="Intro"&&l.Speaker=="Zero");g.LogScroll=g.Log.Count-1-waking;await Frames(2);
+        g.GetViewport().PushInput(new InputEventMouseButton {ButtonIndex=MouseButton.Left,Pressed=true,Position=g.Hud.Shown.Single(l=>l.Line==waking).Rect.GetCenter()},true);await Frames(1);
+        Check(g.Replaying==waking&&g.Mode==GameMode.History,"a click on a line replays its voice, here Zero's in the waking scene");
+        int mute=g.Log.FindLastIndex(l=>l.Voice==null&&l.Speaker!="");Check(mute>=0&&!g.Replay(mute)&&g.Replaying==waking,$"a silent resident's line, {g.Log[mute].Speaker}'s, has no voice to replay");
+        g.LogScroll=0;await Tap(Key.L);
+        Check(g.Mode==GameMode.Dialogue&&!g.Voice.StreamPaused&&g.Voice.Playing&&g.Beat==0&&g.Replaying==-1,"L closes it to the same line, the replay stopped and the line's own voice playing on");
         await Wheel(MouseButton.WheelUp);Check(g.Mode==GameMode.History,"the wheel opens the history too");
         await Tap(Key.Escape);Check(g.Mode==GameMode.Dialogue&&g.Beat==0,"and escape closes the history, not the scene");
         Hold("skip");await Frames(1);
