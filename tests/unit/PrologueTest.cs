@@ -44,7 +44,7 @@ public class PrologueTest
         var (speaker,text)=Prologue.Homecoming[Prologue.NightFalls];
         AssertThat(speaker).IsEmpty();AssertThat(text).StartsWith("Night falls");
     }
-    // Only Mio knows Zero's name (Chiyo does too, and never lets on): everyone else calls it her terminal, and Mio says it only with nobody
+    // Only Mio and Chiyo know Zero's name, and Chiyo never lets on: everyone else calls it her terminal, and Mio says it only with nobody
     // else in the stretch. The homecoming's night falls before she walks home alone. 零件 is "parts" in Chinese, not the name.
     [TestCase]
     public void NobodyButMioCallsZeroByName()
