@@ -2,7 +2,7 @@ using Godot;
 using static Hoshikawa.Localization;
 namespace Hoshikawa;
 
-public enum GameMode { Title, Playing, Dialogue, Paused, Defeated, Inventory, Settings, Rest }
+public enum GameMode { Title, Playing, Dialogue, Paused, Defeated, Inventory, Settings, Rest, History }
 public partial class Game : Node3D
 {
     public World World=null!;
@@ -21,6 +21,15 @@ public partial class Game : Node3D
     public string Speaker="",SpeakerRole="",Dialogue="",ToastTitle="",ToastBody="",ToastIcon="",FeedbackText="",FlashIcon="";
     public readonly List<(string Speaker,string Text)> Script=new();
     public readonly HashSet<string> Heard=new();
+    // Every line a scene has shown since the prologue began, oldest first, kept in English and translated as the history draws it.
+    public readonly List<(string? Scene,int Beat,string Speaker,string Text)> Log=new();
+    public const int LogLength=300;
+    // How many lines the history is scrolled back from the newest.
+    public int LogScroll;
+    // Held, CTRL fast-forwards a scene: each line is shown whole, silent, for FastBeat seconds before the next.
+    public const float FastBeat=.08f;
+    public bool Fast=>Mode==GameMode.Dialogue&&Input.IsActionPressed("skip");
+    private float fastClock;
     public int Beat,NightFrom=-1;
     public float Reveal;
     public Color FeedbackColor=Hoshikawa.World.Gold,FlashColor=Hoshikawa.World.Gold;
@@ -89,6 +98,19 @@ public partial class Game : Node3D
     public void Begin(){Start();Opening();}
     public override void _UnhandledInput(InputEvent e)
     {
+        // The history takes every key and the wheel while it is open: up and down step through it, L or Esc closes it to the scene.
+        if(Mode==GameMode.History)
+        {
+            if(e is InputEventKey {Pressed:true} k)
+            {
+                if(!k.Echo&&(k.PhysicalKeycode==Key.L||k.Keycode==Key.Escape))ShowHistory(false);
+                else if(k.Keycode==Key.Up||k.PhysicalKeycode==Key.W)ScrollLog(1);else if(k.Keycode==Key.Down||k.PhysicalKeycode==Key.S)ScrollLog(-1);
+            }
+            if(e is InputEventMouseButton {Pressed:true} wheel)ScrollLog(wheel.ButtonIndex==MouseButton.WheelUp?1:wheel.ButtonIndex==MouseButton.WheelDown?-1:0);
+            GetViewport().SetInputAsHandled();return;
+        }
+        if(Mode==GameMode.Dialogue&&(e is InputEventKey {Pressed:true,Echo:false,PhysicalKeycode:Key.L}||e is InputEventMouseButton {Pressed:true,ButtonIndex:MouseButton.WheelUp}))
+        {ShowHistory(true);GetViewport().SetInputAsHandled();return;}
         if(e is InputEventKey key&&key.Pressed&&!key.Echo)
         {
             if(key.Keycode==Key.F8){SaveScreenshot("res://artifacts/gameplay.png");return;}
@@ -121,7 +143,12 @@ public partial class Game : Node3D
     public override void _Process(double delta)
     {
         float dt=(float)delta;elapsed+=delta;
-        if(Mode==GameMode.Dialogue)Reveal=Math.Min(Dialogue.Length,Reveal+dt*RevealSpeed);
+        if(Mode==GameMode.Dialogue)
+        {
+            // The first held frame moves on at once, cutting the voice; Advance() may end the scene, or start the next.
+            if(Fast){if((fastClock-=dt)<=0){fastClock=FastBeat;Reveal=Dialogue.Length;Advance();}Reveal=Dialogue.Length;}else fastClock=0;
+            Reveal=Math.Min(Dialogue.Length,Reveal+dt*RevealSpeed);
+        }
         if(Mode==GameMode.Playing)
         {
             ToastTime=Math.Max(0,ToastTime-dt);FeedbackTime=Math.Max(0,FeedbackTime-dt);FlashTime=Math.Max(0,FlashTime-dt);GainTime=Math.Max(0,GainTime-dt);
@@ -178,7 +205,7 @@ public partial class Game : Node3D
     }
     public void Restart()
     {
-        QuestStage=0;Heard.Clear();foreach(var e in Enemies)e.Reset();
+        QuestStage=0;Heard.Clear();Log.Clear();foreach(var e in Enemies)e.Reset();
         opening?.Kill();Opened.Clear();foreach(var s in World.Shortcuts)s.Swing(s.Closed);
         foreach(var pickup in World.Pickups)pickup.Node.Visible=true;Player.Inventory.Reset();
         Player.Growth.Reset();
@@ -283,11 +310,15 @@ public partial class Game : Node3D
         if(Beat>=0&&Reveal<Dialogue.Length){Reveal=Dialogue.Length;return;}
         if(++Beat>=Script.Count){EndDialogue();return;}
         Speaker=Script[Beat].Speaker;Dialogue=Line(scene,Beat,Script[Beat].Text);Reveal=0;
+        Log.Add((scene,Beat,Speaker,Script[Beat].Text));if(Log.Count>LogLength)Log.RemoveAt(0);
         var line=$"res://assets/audio/voice/ja/{Speaker}/{scene}.{Beat}.mp3";
-        Voice.Stop();Voice.Stream=scene!=null&&ResourceLoader.Exists(line)?GD.Load<AudioStream>(line):null;if(Voice.Stream!=null)Voice.Play();
+        Voice.Stop();Voice.Stream=scene!=null&&ResourceLoader.Exists(line)?GD.Load<AudioStream>(line):null;if(Voice.Stream!=null&&!Fast)Voice.Play();
         Cue($"{scene}.{Beat}");
         SpeakerRole=Speaker switch {"Mio"=>"OFFLINE RUNNER","Zero"=>"SENSORY LINK · CITY SIDE",_=>World.Residents.FirstOrDefault(r=>r.Name==Speaker).Role??""};
     }
+    // The history opens over a scene, which holds still under it, its voice paused, until it closes back to the same line.
+    public void ShowHistory(bool show){Mode=show?GameMode.History:GameMode.Dialogue;LogScroll=0;Voice.StreamPaused=show;FreezeAnimations(show);}
+    public void ScrollLog(int lines)=>LogScroll=Math.Clamp(LogScroll+lines,0,Math.Max(0,Log.Count-1));
     public void EndDialogue(){Voice.Stop();Mode=GameMode.Playing;Input.MouseMode=SelfTest?Input.MouseModeEnum.Visible:Input.MouseModeEnum.Captured;Release(true);After(scene);}
     public void OnEnemyDefeated(Enemy enemy)
     {
@@ -337,7 +368,7 @@ public partial class Game : Node3D
         {if(!InputMap.HasAction(name))InputMap.AddAction(name);InputMap.ActionAddEvent(name,new InputEventKey {PhysicalKeycode=key});}
         KeyAction("forward",Key.W);KeyAction("back",Key.S);KeyAction("left",Key.A);KeyAction("right",Key.D);
         KeyAction("run",Key.Shift);KeyAction("jump",Key.Space);KeyAction("dodge",Key.Ctrl);KeyAction("dodge",Key.Alt);
-        KeyAction("skill",Key.Q);KeyAction("heal",Key.H);KeyAction("lock",Key.Tab);KeyAction("attack",Key.J);KeyAction("guard",Key.K);
+        KeyAction("skill",Key.Q);KeyAction("heal",Key.H);KeyAction("lock",Key.Tab);KeyAction("attack",Key.J);KeyAction("guard",Key.K);KeyAction("skip",Key.Ctrl);
         InputMap.ActionAddEvent("attack",new InputEventMouseButton {ButtonIndex=MouseButton.Left});
         InputMap.ActionAddEvent("guard",new InputEventMouseButton {ButtonIndex=MouseButton.Right});
     }

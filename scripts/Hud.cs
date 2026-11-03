@@ -42,7 +42,7 @@ public partial class Hud : Control
             Gradient=new Gradient {Colors=new[]{new Color(.012f,.03f,.035f,.6f),new Color(.012f,.03f,.035f,.92f)},Offsets=new[]{0f,1f}}};
         menu=new Control {MouseFilter=MouseFilterEnum.Ignore};AddChild(menu);Resized+=RefreshMenu;serif.Fallbacks=SerifFallbacks();
     }
-    public void ApplyLanguage(){serif.Fallbacks=SerifFallbacks();wrapped=("",0,0,"",new());RefreshMenu();}
+    public void ApplyLanguage(){serif.Fallbacks=SerifFallbacks();wrapped.Clear();RefreshMenu();}
     public override void _ExitTree() { serif.Dispose(); titleShade.Dispose(); sceneShade.Dispose(); questShade.Dispose(); vignette.Dispose(); }
     // Portraits are looked up by speaker (KOMA-7 -> koma7.png); a speaker without one is shown by name plate alone.
     public Texture2D? Portrait(string who)
@@ -134,7 +134,7 @@ public partial class Hud : Control
         DrawSetTransform(Vector2.Zero,0,Vector2.One*scale);menu.Scale=Vector2.One*scale;
         bool settings=Game.Mode==GameMode.Settings;
         if(Game.Mode==GameMode.Title||settings&&Game.SettingsFrom==GameMode.Title){Title();if(settings){DrawRect(new(0,0,w,h),new Color(.025f,.055f,.067f,.77f));Settings();}return;}
-        if(Game.Mode==GameMode.Dialogue){Dialogue();return;}
+        if(Game.Mode is GameMode.Dialogue or GameMode.History){Dialogue();if(Game.Mode==GameMode.History)History();return;}
         if(Game.Blackout>0)DrawRect(new(0,0,w,h),new Color(0,0,0,Game.Blackout));
         if(Game.TintTime>0)DrawRect(new Rect2(0,0,w,h),new Color(Game.TintColor,Game.TintColor.A*Game.TintTime/Game.TintLength));
         Quest();if(!Game.InRoom)Minimap();Vitals();Wallet();
@@ -414,13 +414,47 @@ public partial class Hud : Control
             else Text(part,new(box.Position.X+52,y),20,cream);
             y+=32;
         }
-        // Next is E and a star that blinks once the line has typed out; skip is ESC and a double chevron.
-        float kx=box.End.X-34,ky=box.End.Y-40;var dim=new Color(gold,.8f);
-        foreach(float dx in new[]{-12f,-3f}){var v=new Vector2(kx+dx,ky+10.5f);DrawColoredPolygon(new[]{v+new Vector2(-4,-6),v+new Vector2(4,0),v+new Vector2(-4,6)},dim);}
-        kx-=26+KeyWidth("ESC",11);Keycap("ESC",new(kx,ky),11);
-        var c=new Vector2(kx-20,ky+10.5f);bool ready=Game.Reveal>=Game.Dialogue.Length;
-        Star(c,7,ready&&(Time.GetTicksMsec()/450)%2==0?gold:new Color(gold,.35f));
-        Keycap("E",new(c.X-14-KeyWidth("E",11),ky),11);
+        // Each key a scene takes before what it does, right to left from the box's corner: ESC skips the scene (chevrons to a bar), CTRL held
+        // fast-forwards (chevrons, lit while held), L opens the history (ruled lines), and E goes on (a star that blinks once the line has typed out).
+        float x=box.End.X-33,ky=box.End.Y-40,mid=ky+10.5f;var dim=new Color(gold,.8f);
+        void Chevron(float cx,Color c)=>DrawColoredPolygon(new[]{new Vector2(cx-4,mid-6),new Vector2(cx+4,mid),new Vector2(cx-4,mid+6)},c);
+        void Cap(string key,float glyph){x-=glyph+8+KeyWidth(key,11);Keycap(key,new(x,ky),11);x-=18;}
+        Chevron(x-15,dim);Chevron(x-7,dim);DrawRect(new(x-2.5f,mid-6,2.5f,12),dim);Cap("ESC",20);
+        var fast=Game.Fast?GoldLight:dim;Chevron(x-13,fast);Chevron(x-4,fast);Cap("CTRL",17);
+        for(int i=-1;i<2;i++)DrawLine(new(x-14,mid+i*5),new(x,mid+i*5),dim,2);Cap("L",14);
+        bool ready=Game.Reveal>=Game.Dialogue.Length;Star(new(x-7,mid),7,ready&&(Time.GetTicksMsec()/450)%2==0?gold:new Color(gold,.35f));Cap("E",14);
+    }
+    // The history over the dimmed scene: a lacquered panel of the lines heard, newest at the bottom, each speaker's face on a small crest and
+    // their name in gold beside what they said, narration with neither, a hairline where a scene began. Chevrons show there is more above or below.
+    private void History()
+    {
+        DrawTextureRect(vignette,new(0,0,w,h),false);
+        var o=new Vector2(w/2-520,h/2-330);Lacquer(new(o,1040,660),24,150,false);
+        Text(T("History"),o+new Vector2(60,70),30,gold,true);DrawTextureRect(divider,new Rect2(o+new Vector2(400,40),600,50),false);
+        float top=o.Y+108,y=o.Y+590;var log=Game.Log;int i=log.Count-1-Game.LogScroll;
+        for(;i>=0;i--)
+        {
+            var (scene,beat,speaker,english)=log[i];string text=Line(scene,beat,english);var lines=Wrap(text,750,18);float height=lines.Count*28;
+            if(y-height<top)break;
+            float at=y-height;
+            if(speaker!="")
+            {
+                var c=new Vector2(o.X+78,at+12);DrawCircle(c,17,ink);
+                if(speaker=="Zero")DrawIcon("zero",c,26,jade);else Face(speaker,c,16);
+                DrawArc(c,17,0,Mathf.Tau,32,new Color(gold,.7f),1.5f);Text(T(speaker),new(o.X+104,at+20),18,gold,true);
+            }
+            for(int k=0;k<lines.Count;k++)
+            {
+                string part=text[lines[k].Start..lines[k].End].TrimEnd();var p=new Vector2(o.X+220,at+20+k*28);
+                if(speaker=="")Text(part,p,18,new Color(cream,.7f),true);else Text(part,p,18,cream);
+            }
+            y=at-(beat==0?28:14);
+            if(beat==0&&i>0&&y>top)DrawLine(new(o.X+60,y+14),new(o.X+980,y+14),new Color(gold,.22f),1);
+        }
+        var more=new Color(gold,.8f);
+        if(i>=0)DrawColoredPolygon(new[]{new Vector2(o.X+990,top-14),new Vector2(o.X+998,top-4),new Vector2(o.X+982,top-4)},more);
+        if(Game.LogScroll>0)DrawColoredPolygon(new[]{new Vector2(o.X+990,o.Y+632),new Vector2(o.X+998,o.Y+622),new Vector2(o.X+982,o.Y+622)},more);
+        Keycap("ESC",o+new Vector2(60,618.6f),11);
     }
     private void Figure(string who,bool right,bool speaking)
     {
@@ -443,14 +477,13 @@ public partial class Hud : Control
             DrawRect(new Rect2(c.X+72+i*9,c.Y-level*22,4,level*44),new Color(jade,.4f+.6f*glow));
         }
     }
-    private (string Text,int Size,float Width,string Language,List<(int Start,int End)> Lines) wrapped=("",0,0,"",new());
-    // Line breaks come from the text server, which knows where CJK text may break; the ranges index into text.
+    private readonly Dictionary<(string Text,int Size,float Width,string Language),List<(int Start,int End)>> wrapped=new();
+    // Line breaks come from the text server, which knows where CJK text may break; the ranges index into text. Kept per text, as the history wraps many.
     public List<(int Start,int End)> Wrap(string text,float width,int size)
     {
-        if(wrapped.Text==text&&wrapped.Size==size&&wrapped.Width==width&&wrapped.Language==Current)return wrapped.Lines;
+        if(wrapped.TryGetValue((text,size,width,Current),out var cached))return cached;
         var paragraph=new TextParagraph {Width=width};paragraph.AddString(text,font,size,Current);
-        var lines=Enumerable.Range(0,paragraph.GetLineCount()).Select(i=>{var r=paragraph.GetLineRange(i);return (r.X,r.Y);}).ToList();
-        wrapped=(text,size,width,Current,lines);return lines;
+        return wrapped[(text,size,width,Current)]=Enumerable.Range(0,paragraph.GetLineCount()).Select(i=>{var r=paragraph.GetLineRange(i);return (r.X,r.Y);}).ToList();
     }
     public void RefreshMenu()
     {
