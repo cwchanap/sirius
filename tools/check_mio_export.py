@@ -43,8 +43,8 @@ def main():
     clips = [a['name'] for a in gltf['animations']]
     expected = {'idle', 'walk', 'run', 'attack1', 'attack2', 'attack3', 'guard',
                 'dodge', 'jump', 'skill', 'stagger', 'death',
-                'sleep', 'wake', 'sit', 'terminal_sit', 'rise', 'terminal'}
-    assert len(clips) == 18 and set(clips) == expected, clips
+                'sleep', 'wake', 'sit', 'terminal_sit', 'terminal_sit_hold', 'rise', 'terminal', 'terminal_hold'}
+    assert len(clips) == 20 and set(clips) == expected, clips
     assert all(n.get('skin') == 0 for n in gltf['nodes'] if 'mesh' in n)
     vertices = triangles = 0
     maximum_error = 0.0

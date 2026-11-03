@@ -91,7 +91,7 @@ public partial class Game
         if(!Prologue.Stage.TryGetValue(key,out var cue))return;
         foreach(var act in cue.Acts.Split(',',StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries))
         {
-            var words=act.Split(' ');Actor(words[0]).Visual.Play(words[1],1,true,.25f);
+            var words=act.Split(' ');Actor(words[0]).Visual.Play(words[1],1,true,.35f);
             // The cover follows her: sitting up she pushes it into her lap, getting up she folds it in half at the futon's foot.
             if(act is "Mio wake" or "Mio rise"&&Room?.GetNodeOrNull<MeshInstance3D>("Blanket") is {} cover)
             {
@@ -119,7 +119,7 @@ public partial class Game
     private void Release(bool glide=false)
     {
         back=glide&&shot.Current?CameraBack:0;backFrom=shotNow;if(back==0&&shot.Current)Camera.MakeCurrent();
-        foreach(var (name,yaw) in staged){var actor=Actor(name);actor.Turn.Rotation=new(0,yaw,0);actor.Visual.Play(RestClip(name),1,true,.25f);}
+        foreach(var (name,yaw) in staged){var actor=Actor(name);actor.Turn.Rotation=new(0,yaw,0);actor.Visual.Play(RestClip(name),1,true,.35f);}
         staged.Clear();
     }
     // What a scene's end sets going.
