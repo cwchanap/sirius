@@ -688,9 +688,16 @@ public static class IntegrationCheck
         await Tap(Key.Escape);Check(g.Mode==GameMode.Dialogue&&g.Beat==0,"and escape closes the history, not the scene");
         Hold("skip");await Frames(1);
         Check(g.Beat==1&&!g.Voice.Playing&&g.Reveal==g.Dialogue.Length,"holding CTRL moves on at once, cutting Renji's voice, and shows the next line whole");
+        Release("skip");await Frames(1);
+        Check(g.Beat==1&&g.Voice.Playing&&g.Voice.Stream?.ResourcePath=="res://assets/audio/voice/ja/Yui/Briefing.1.mp3","let go, the line it stopped on speaks, Yui's");
+        Hold("skip");while(g.Beat<9&&g.Mode==GameMode.Dialogue)await Frames(1);Release("skip");await Tap(Key.L);
+        var camera=g.GetViewport().GetCamera3D();var view=camera.GlobalTransform;await Frames(10);
+        Check(g.Mode==GameMode.History&&camera.GlobalTransform.IsEqualApprox(view),"the scene's camera holds still in its move to Yui while the history is open");
+        await Tap(Key.L);await Frames(5);Check(g.Beat==9&&!camera.GlobalTransform.IsEqualApprox(view),"and carries on with it once the history closes");
+        Hold("skip");await Frames(1);
         bool silent=true;int fast=1;while(g.Mode==GameMode.Dialogue&&fast<600){await Frames(1);fast++;silent&=!g.Voice.Playing;}Release("skip");
         Check(g.Mode==GameMode.Playing&&silent&&g.Log.TakeLast(Prologue.Briefing.Length).Select(l=>(l.Speaker,l.Text)).SequenceEqual(Prologue.Briefing)&&fast<=Prologue.Briefing.Length*6,
-            $"held, fast-forward runs the briefing out unvoiced in {fast} frames, every line into the history");
+            $"held, fast-forward runs the rest of the briefing out unvoiced in {fast} frames, every line into the history");
         await Frames(20);
         Check(yui.Visual.Clip=="walk"&&g.Actor("Renji").Visual.Clip=="work","after the briefing Yui walks to the clinic, and Renji goes back to his bench");
         g.FinishWalks();Check(new Vector2(yui.Body.GlobalPosition.X-Game.YuiClinic.At.X,yui.Body.GlobalPosition.Z-Game.YuiClinic.At.Z).Length()<.01f,"Yui waits outside the clinic");

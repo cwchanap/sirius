@@ -30,6 +30,7 @@ public partial class Game : Node3D
     public const float FastBeat=.08f;
     public bool Fast=>Mode==GameMode.Dialogue&&Input.IsActionPressed("skip");
     private float fastClock;
+    private bool hushed;
     public int Beat,NightFrom=-1;
     public float Reveal;
     public Color FeedbackColor=Hoshikawa.World.Gold,FlashColor=Hoshikawa.World.Gold;
@@ -149,8 +150,8 @@ public partial class Game : Node3D
         float dt=(float)delta;elapsed+=delta;
         if(Mode==GameMode.Dialogue)
         {
-            // The first held frame moves on at once, cutting the voice; Advance() may end the scene, or start the next.
-            if(Fast){if((fastClock-=dt)<=0){fastClock=FastBeat;Reveal=Dialogue.Length;Advance();}Reveal=Dialogue.Length;}else fastClock=0;
+            // The first held frame moves on at once, cutting the voice; Advance() may end the scene, or start the next. Let go, the line it stopped on speaks.
+            if(Fast){if((fastClock-=dt)<=0){fastClock=FastBeat;Reveal=Dialogue.Length;Advance();}Reveal=Dialogue.Length;}else{fastClock=0;if(hushed){hushed=false;Voice.Play();}}
             Reveal=Math.Min(Dialogue.Length,Reveal+dt*RevealSpeed);
         }
         if(Mode==GameMode.Playing)
@@ -175,7 +176,7 @@ public partial class Game : Node3D
         Camera.VOffset=CameraShake>0?Mathf.Cos((float)elapsed*86)*CameraShake*.15f:0;
         CameraPunch=Math.Max(0,CameraPunch-dt*3);Camera.Fov=fov-CameraPunch*CameraPunch*7;
         savePointGlow.Scale=Vector3.One*(1.6f+.15f*Mathf.Sin((float)elapsed*1.7f));
-        TintTime=Math.Max(0,TintTime-dt);Staging(dt);
+        TintTime=Math.Max(0,TintTime-dt);Staging(Mode==GameMode.History?0:dt);
         Hud.QueueRedraw();
         if(capturePath!=""&&!captured&&elapsed>6){captured=true;SaveScreenshot(capturePath);}
     }
@@ -316,12 +317,16 @@ public partial class Game : Node3D
         Speaker=Script[Beat].Speaker;Dialogue=Line(scene,Beat,Script[Beat].Text);Reveal=0;
         var line=$"res://assets/audio/voice/ja/{Speaker}/{scene}.{Beat}.mp3";var voice=scene!=null&&ResourceLoader.Exists(line)?line:null;
         Log.Add((scene,Beat,Speaker,Script[Beat].Text,voice));if(Log.Count>LogLength)Log.RemoveAt(0);
-        Voice.Stop();Voice.Stream=voice!=null?GD.Load<AudioStream>(voice):null;if(Voice.Stream!=null&&!Fast)Voice.Play();
+        Voice.Stop();Voice.Stream=voice!=null?GD.Load<AudioStream>(voice):null;hushed=Voice.Stream!=null&&Fast;if(Voice.Stream!=null&&!Fast)Voice.Play();
         Cue($"{scene}.{Beat}");
         SpeakerRole=Speaker switch {"Mio"=>"OFFLINE RUNNER","Zero"=>"SENSORY LINK · CITY SIDE",_=>World.Residents.FirstOrDefault(r=>r.Name==Speaker).Role??""};
     }
-    // The history opens over a scene, which holds still under it, its voice paused, until it closes back to the same line; a voice replayed there stops.
-    public void ShowHistory(bool show){Mode=show?GameMode.History:GameMode.Dialogue;LogScroll=0;Voice.StreamPaused=show;FreezeAnimations(show);replay.Stop();}
+    // The history opens over a scene, which holds still under it (its camera, clips, the cover and its voice), until it closes back to the same line; a voice replayed there stops.
+    public void ShowHistory(bool show)
+    {
+        Mode=show?GameMode.History:GameMode.Dialogue;LogScroll=0;Voice.StreamPaused=show;FreezeAnimations(show);replay.Stop();
+        if(tuck?.IsValid()==true){if(show)tuck.Pause();else tuck.Play();}
+    }
     // A logged line's voice plays again on a player of its own, so the paused line on screen resumes where it was when the history closes.
     public bool Replay(int line)
     {
