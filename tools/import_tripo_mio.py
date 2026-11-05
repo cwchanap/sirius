@@ -19,6 +19,7 @@ from mathutils import Matrix, Quaternion, Vector
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 import cast_clips  # noqa: E402
+import hand_weights  # noqa: E402
 import mio_combat  # noqa: E402
 OUT = ROOT / 'artifacts/mio-tripo-animation'
 SOURCE = 'assets/source/tripo-bridge-20261016-mio-anim.blend'
@@ -185,6 +186,9 @@ def main():
     root.scale = (scale,) * 3
     root.location.z = -zmin * scale
     rig.parent = root
+    bpy.context.view_layer.update()
+    # Tripo's skinning gives her thighs and coat a third of their weight on the hanging pinky; free them from the hands.
+    assert hand_weights.unbind_blender(body, rig) > 1000
     source_actions = {a.name.removeprefix('Armature|'): a for a in bpy.data.actions}
     hip = rig.pose.bones['Hips']
     basis = hip.bone.matrix_local.to_3x3().inverted()

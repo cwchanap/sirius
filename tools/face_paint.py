@@ -1,4 +1,4 @@
-"""Repaint a Tripo character's face where its multi-view bake put one surface's colour on another: hair strands painted over the
+"""Repaint a Tripo character's face and hands where its multi-view bake put one surface's colour on another: hair strands painted over the
 brows, eyelids, forehead and temples, and skin painted along the edges of the bangs and side locks.
 
 blender --background --factory-startup --python tools/face_paint.py -- [mio] [yui] [--source=MAP] [--map]
@@ -15,7 +15,8 @@ surface is skin where its colour mostly is or inside the entry's core, hair othe
 over the mesh so a lone smeared triangle follows its neighbours. Each texel then takes its triangle's side: a hair-coloured texel on skin
 becomes the skin round it and a skin-coloured texel on hair the hair round it, each averaged from the nearest clean texels in 3D. The eyes,
 nose and mouth are kept as painted; the brows, which the smears broke, are drawn again as tapered curves. Only what lies within 75
-degrees of the front changes on the skin, 95 on the hair: the ears, the back of the head and its ornaments stay as baked.
+degrees of the front changes on the skin, 95 on the hair: the ears, the back of the head and its ornaments stay as baked. The hands get
+a pass of their own (repaint_hands): the bake's dark fingertips and the brown smears between the fingers and on the palms become clean skin.
 """
 import sys
 import tempfile
@@ -53,7 +54,8 @@ def lab(rgb):
 
 
 def geometry(body, rig):
-    """The rest mesh in world space: triangle vertices, their UVs, each vertex's weight on the head, the Head bone's ends."""
+    """The rest mesh in world space: triangle vertices, their UVs, each vertex's weight on the head, the hands and the fingers, the Head
+    bone's ends."""
     me = body.data
     if hasattr(me, 'calc_loop_triangles'):
         me.calc_loop_triangles()
@@ -67,13 +69,17 @@ def geometry(body, rig):
     co = co.reshape(-1, 3) @ m[:3, :3].T + m[:3, 3]
     uv = np.zeros(len(me.loops) * 2)
     me.uv_layers.active.data.foreach_get('uv', uv)
-    groups = {g.index for g in body.vertex_groups if g.name.endswith(('Head', 'HeadTop_End'))}
-    head = np.array([sum(g.weight for g in v.groups if g.group in groups) for v in me.vertices])
+    def weight(names):
+        groups = {g.index for g in body.vertex_groups if names(g.name)}
+        return np.array([sum(g.weight for g in v.groups if g.group in groups) for v in me.vertices])
+    head = weight(lambda n: n.endswith(('Head', 'HeadTop_End')))
+    hand = weight(lambda n: n.removeprefix('mixamorig:').startswith(('RightHand', 'LeftHand')))
+    finger = weight(lambda n: any(f in n for f in ('Index', 'Middle', 'Ring', 'Pinky', 'Thumb')))
     bones = rig.data.bones
     at = lambda name: np.array(rig.matrix_world @ next(b for b in bones if b.name.endswith(name)).head_local)
     # The rigs face -Y: their toes are forward of their ankles.
     assert at('LeftToeBase')[1] < at('LeftFoot')[1]
-    return dict(tv=tv.reshape(n, 3), uv=uv.reshape(-1, 2)[tl.reshape(n, 3)], co=co, head=head, H=at('Head'), T=at('HeadTop_End'))
+    return dict(tv=tv.reshape(n, 3), uv=uv.reshape(-1, 2)[tl.reshape(n, 3)], co=co, head=head, hand=hand, finger=finger, H=at('Head'), T=at('HeadTop_End'))
 
 
 def innermost(g, tris, centre):
@@ -294,17 +300,50 @@ def repaint(g, pixels, face):
         out[sel] = out[sel] * (1 - alpha) + brow_rgb * alpha
     result = flat.copy()
     result[keys] = np.clip(out, 0, 1)
-    # Texture filtering reads the gutter round each chart: carry the head's texels into the unused texels up to four away.
-    moved = keys
+    bleed(g, result, keys, size)
+    return result.reshape(pixels.shape), dict(inner=inner, skin=is_skin, tris=tris, changed=int((np.abs(out - rgb).max(1) > 2 / 255).sum()))
+
+
+def bleed(g, flat, keys, size):
+    """Texture filtering reads the gutter round each chart: carry these texels into the unused texels up to four away."""
     done = coverage(g, size)
     for dy, dx in sorted(((dy, dx) for dy in range(-4, 5) for dx in range(-4, 5) if dy or dx), key=lambda d: d[0] ** 2 + d[1] ** 2):
-        y, x0 = np.divmod(moved, size)
-        ok = (y + dy >= 0) & (y + dy < size) & (x0 + dx >= 0) & (x0 + dx < size)
-        src, dst = moved[ok], ((y + dy) * size + x0 + dx)[ok]
+        y, x = np.divmod(keys, size)
+        ok = (y + dy >= 0) & (y + dy < size) & (x + dx >= 0) & (x + dx < size)
+        src, dst = keys[ok], ((y + dy) * size + x + dx)[ok]
         free = ~done[dst]
-        result[dst[free]] = result[src[free]]
+        flat[dst[free]] = flat[src[free]]
         done[dst[free]] = True
-    return result.reshape(pixels.shape), dict(inner=inner, skin=is_skin, tris=tris, changed=int((np.abs(out - rgb).max(1) > 2 / 255).sum()))
+
+
+def repaint_hands(g, pixels):
+    """The hands' skin: the bake's dark fingertips and the brown smears between the fingers and on the palms become the clean skin
+    round them. The cast's hands are bare, so every triangle on the fingers is skin, and one on the palm if half of it is skin-coloured,
+    so the sleeve's cuff and Mio's bracer stay as they are; shading within 10 of the skin's colour (Lab) is kept."""
+    size = pixels.shape[0]
+    n = len(g['tv'])
+    tris = np.where(g['hand'][g['tv']].mean(1) > .5)[0]
+    keys, owner, bary = raster(g, tris, size)
+    flat = pixels.reshape(-1, 3).copy()
+    rgb = flat[keys]
+    col = lab(rgb)
+    pos = np.einsum('nk,nkj->nj', bary, g['co'][g['tv'][owner]])
+    like = (col[:, 0] > 55) & (col[:, 1] > 2) & (col[:, 2] > 4)
+    frac = np.bincount(owner, like, n) / np.maximum(np.bincount(owner, minlength=n), 1)
+    finger = g['finger'][g['tv']].mean(1) > .5
+    skin_tri = finger | (frac >= .5)
+    on = skin_tri[owner]
+    skin = np.median(col[on & like], 0)
+    delta = np.linalg.norm(col - skin, axis=1)
+    weight = smoothstep(10, 22, delta) * on
+    fix = np.where(weight > .01)[0]
+    donor = np.where(on & (delta < 8))[0][::2]
+    if len(fix):
+        target = nearest(pos[donor], rgb[donor], pos[fix], 16)
+        rgb[fix] += (target - rgb[fix]) * weight[fix, None]
+    flat[keys] = np.clip(rgb, 0, 1)
+    bleed(g, flat, keys[on], size)
+    return flat.reshape(pixels.shape), len(fix)
 
 
 def face_map(g, pixels, path, keep_tris):
@@ -380,7 +419,9 @@ def repaint_blend(name):
     body, rig = character(bpy.data.objects)
     node = base_colour(body)
     old = node.image
-    pixels, report = repaint(geometry(body, rig), read(old), FACES[name])
+    g = geometry(body, rig)
+    pixels, report = repaint(g, read(old), FACES[name])
+    pixels, hands = repaint_hands(g, pixels)
     path = Path(tempfile.mkdtemp()) / f'{name}-basecolor.jpg'
     write(pixels, path)
     image = bpy.data.images.load(str(path))
@@ -410,6 +451,8 @@ def main():
             image = bpy.data.images.load(str(Path(opts['source']).resolve()))
         before = read(image)
         after, report = repaint(g, before, FACES[name])
+        after, hands = repaint_hands(g, after)
+        print('FACE_PAINT', name, hands, 'hand texels', flush=True)
         print('FACE_PAINT', name, report['changed'], 'texels', flush=True)
         if 'map' in opts:
             out = ROOT / 'artifacts/face-paint'

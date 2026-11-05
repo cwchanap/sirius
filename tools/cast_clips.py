@@ -3,7 +3,8 @@ Mio's waking in her room and her wrist terminal, Yui's and Renji's gestures. A p
 the character's own axes as it stands in the rest pose, x to its right, y forward, z up; +x swings a hanging limb forward and tips an
 upright bone back, +y lowers an arm toward the body, +z turns to the character's left, left bones mirrored. 'lift' moves the hips in
 metres at game scale; a 'Foot' angle adds to the one that keeps the sole level. 'curl' bends the fingers, the index least and the pinky
-most, unless a side gives its own (RightCurl, LeftCurl: one angle, or four from index to pinky).
+most, unless a side gives its own (RightCurl, LeftCurl: one angle, or four from index to pinky), each joint toward the palm; 'thumb'
+(or RightThumb, LeftThumb) tucks the thumb from its rest (0) to in front of the index and middle fingers (1), .35 when not given.
 
 A pose may place a hand instead of turning the arm: RightReach (or LeftReach) is the wrist from the shoulder in the chest's frame, in
 character heights, x away from the body, and two-bone IK bends the elbow toward RightElbow; RightRoll turns the hand about the forearm,
@@ -36,8 +37,11 @@ MIO_HIP = 1.075
 STANCE = {
     'lift': (0, 0, 0), 'Hips': (0, 0, 0), 'Spine': (0, 0, 0), 'Spine1': (0, 0, 0), 'Spine2': (0, 0, 0), 'Neck': (0, 0, 0), 'Head': (0, 0, 0),
     'RightArm': (2, 10, 0), 'LeftArm': (2, 10, 0), 'RightForeArm': 14, 'LeftForeArm': 14, 'RightHand': (0, 0, 0), 'LeftHand': (0, 0, 0),
-    'RightUpLeg': (0, 0, 0), 'LeftUpLeg': (0, 0, 0), 'RightLeg': 2, 'LeftLeg': 2, 'RightFoot': (0, 0, 0), 'LeftFoot': (0, 0, 0), 'curl': 22,
+    'RightUpLeg': (0, 0, 0), 'LeftUpLeg': (0, 0, 0), 'RightLeg': 2, 'LeftLeg': 2, 'RightFoot': (0, 0, 0), 'LeftFoot': (0, 0, 0), 'curl': 6,
 }
+DIGITS = ('Index', 'Middle', 'Ring', 'Pinky')
+# A fully tucked thumb's bend at its middle and last joints, in degrees.
+THUMB = (30, 35)
 # The elbow's pull, as RightElbow: out, back and down.
 ELBOW = (.4, -.3, -1)
 # Seconds each channel trails its keys.
@@ -48,7 +52,7 @@ HOLD = dict(breath=1.2, sway=.6)
 
 
 def lag(channel):
-    return LAG.get(channel, .05 if channel.endswith('ForeArm') else .1 if channel.endswith(('Hand', 'Roll')) else .14 if channel.endswith(('curl', 'Curl')) else 0)
+    return LAG.get(channel, .05 if channel.endswith('ForeArm') else .1 if channel.endswith(('Hand', 'Roll')) else .14 if channel.endswith(('curl', 'Curl', 'thumb', 'Thumb')) else 0)
 
 
 def pose(base, **bones):
@@ -111,10 +115,11 @@ def alive(p, t, length, breath, sway):
 
 
 def hands(p):
-    """Each side's curl as four fingers, the index least and the pinky most, as a relaxed hand falls."""
+    """Each side's curl as four fingers, the index least and the pinky most, as a relaxed hand falls, and its thumb's tuck."""
     for side in ('Right', 'Left'):
         c = p.get(side + 'Curl', p['curl'])
         p[side + 'Curl'] = c if isinstance(c, tuple) else (c * .75, c * .95, c * 1.1, c * 1.25)
+        p.setdefault(side + 'Thumb', p.get('thumb', .35))
     return p
 
 
@@ -169,6 +174,26 @@ class Cast(Rig):
                 axis = bent[upper].col[1].to_3d().cross(bent[lower].col[1].to_3d()).normalized()
                 for name in (upper, lower):
                     self.hinge[name] = bent[name].to_3x3().inverted() @ axis
+        # Fingers curl toward the palm, about their own length crossed with it; the palm faces the way the rest pose's fingers already
+        # bend. patrol_clips.Rig's axis, the bone crossed with straight down, vanishes for a finger hanging down and swings it sideways.
+        from mathutils import Vector
+        self.curl, self.tuck = {}, {}
+        for side in ('Right', 'Left'):
+            b = lambda n: bones[f'{side}Hand{n}']
+            line = lambda bone: (bone.tail_local - bone.head_local).normalized()
+            palm = sum((line(b(f + '2')) - line(b(f + '1')) for f in DIGITS), Vector())
+            assert palm.length > .05, f'{side} fingers lie straight at rest: no palm to curl toward'
+            for name in [f'{f}{j}' for f in DIGITS for j in (1, 2, 3)] + ['Thumb2', 'Thumb3']:
+                d = line(b(name))
+                toward = (b('Middle1').head_local + bones[side + 'Hand'].head_local) / 2 - b(name).head_local if name.startswith('Thumb') else palm
+                n = (toward - toward.dot(d) * d).normalized()
+                self.curl[side + 'Hand' + name] = (self.rest[side + 'Hand' + name].to_3x3().inverted() @ d.cross(n)).normalized()
+            # The tucked thumb's tip aims in front of the index and middle fingers' middle joints, on the palm's side.
+            base, tip = b('Thumb1').head_local, b('Thumb3').tail_local
+            palm = palm.normalized()
+            aim = b('Index2').head_local.lerp(b('Middle2').head_local, .3) + palm * .4 * (b('Index2').head_local - b('Index1').head_local).length
+            frame = self.rest[side + 'HandThumb1'].to_3x3()
+            self.tuck[side] = (frame.inverted() @ (tip - base)).rotation_difference(frame.inverted() @ (aim - base))
 
     def matrices(self, bases):
         from mathutils import Matrix, Vector
@@ -217,6 +242,12 @@ class Cast(Rig):
     def bases(self, p):
         from mathutils import Matrix, Quaternion, Vector
         out = super().bases(p)
+        for name, axis in self.curl.items():
+            side, finger = name[:name.index('Hand')], name[name.index('Hand') + 4:-1]
+            angle = p[side + 'Curl'][DIGITS.index(finger)] if finger in DIGITS else p[side + 'Thumb'] * THUMB[int(name[-1]) - 2]
+            out[name] = (Quaternion(axis, math.radians(angle)), None)
+        for side in ('Right', 'Left'):
+            out[side + 'HandThumb1'] = (Quaternion().slerp(self.tuck[side], p[side + 'Thumb']), None)
         arms = [s for s in ('Right', 'Left') if p.get(s + 'IK', 0) > 1e-4]
         legs = [s for s in ('Right', 'Left') if p.get(s + 'Plant', 0) > 1e-4]
         if not arms and not legs:
@@ -278,15 +309,15 @@ def make(height):
 
 # Mio. Lying on her back on the futon, then sitting up with her legs under the cover; the hips stay over the clip's origin.
 LIE = pose(STANCE, lift=(0, 0, .13 - MIO_HIP), Hips=(90, 0, 0), Neck=(-16, 0, 0), Head=(-6, 0, 14), RightArm=(0, 14, 0), LeftArm=(0, 14, 0),
-           LeftForeArm=12, RightForeArm=12, RightLeg=4, LeftLeg=4, RightFoot=(70, 0, 0), LeftFoot=(70, 0, 0), curl=30)
+           LeftForeArm=12, RightForeArm=12, RightLeg=4, LeftLeg=4, RightFoot=(70, 0, 0), LeftFoot=(70, 0, 0), curl=14)
 PROP = pose(LIE, lift=(0, 0, .16 - MIO_HIP), Hips=(50, 0, 0), RightUpLeg=(40, 0, 0), LeftUpLeg=(40, 0, 0), Spine=(-6, 0, 0), Neck=(-20, 0, 0),
             Head=(-14, 0, -6), RightArm=(-38, 4, 0), RightForeArm=30, LeftArm=(-30, 4, 0), LeftForeArm=24, RightFoot=(70, 0, 0), LeftFoot=(70, 0, 0))
 SIT = pose(STANCE, lift=(0, 0, .2 - MIO_HIP), RightUpLeg=(88, 0, 0), LeftUpLeg=(88, 0, 0), RightLeg=6, LeftLeg=6, RightFoot=(70, 0, 0), LeftFoot=(70, 0, 0),
-           Spine=(-8, 0, 0), Spine1=(-4, 0, 0), Head=(-6, 0, 0), RightArm=(26, 2, 10), LeftArm=(26, 2, 10), RightForeArm=40, LeftForeArm=40, curl=30)
-RUB = pose(SIT, RightArm=(62, -6, 26), RightForeArm=138, Head=(-14, 0, -8), Spine1=(-8, 0, 0), curl=45)
+           Spine=(-8, 0, 0), Spine1=(-4, 0, 0), Head=(-6, 0, 0), RightArm=(26, 2, 10), LeftArm=(26, 2, 10), RightForeArm=40, LeftForeArm=40, curl=12)
+RUB = pose(SIT, RightArm=(62, -6, 26), RightForeArm=138, Head=(-14, 0, -8), Spine1=(-8, 0, 0), curl=34, thumb=.6)
 # The left wrist's terminal brought up before her face, the elbow kept in by her ribs, the face of it turned to her eyes; she looks down
 # at it. RAISE is the way up, the hand still low and turning.
-WRIST = dict(LeftReach=(-.06, .17, -.05), LeftElbow=(.3, -.2, -1), LeftRoll=-60, LeftHand=(-6, 0, 0), LeftCurl=(28, 36, 44, 52), Head=(-22, 0, 10),
+WRIST = dict(LeftReach=(-.06, .17, -.05), LeftElbow=(.3, -.2, -1), LeftRoll=-60, LeftHand=(-6, 0, 0), LeftCurl=(8, 12, 16, 20), LeftThumb=.4, Head=(-22, 0, 10),
              Neck=(-6, 0, 4), Spine1=(-3, 0, 4))
 RAISE = dict(LeftReach=(.01, .1, -.22), LeftElbow=(.3, -.2, -1), LeftRoll=-25, LeftHand=(10, 0, 0), Head=(-10, 0, 5), Neck=(-2, 0, 2))
 KNEES = pose(SIT, RightUpLeg=(125, 0, 0), LeftUpLeg=(118, 0, 0), RightLeg=118, LeftLeg=112, RightFoot=(0, 0, 0), LeftFoot=(0, 0, 0),
@@ -294,13 +325,14 @@ KNEES = pose(SIT, RightUpLeg=(125, 0, 0), LeftUpLeg=(118, 0, 0), RightLeg=118, L
 CROUCH = pose(STANCE, lift=(0, .05, .62 - MIO_HIP), RightUpLeg=(96, 0, 0), LeftUpLeg=(84, 0, 0), RightLeg=100, LeftLeg=88, Spine=(-34, 0, 0),
               Spine1=(-10, 0, 0), Head=(14, 0, 0), RightArm=(48, 6, 0), LeftArm=(48, 6, 0), RightForeArm=24, LeftForeArm=24)
 STRETCH = pose(STANCE, lift=(0, 0, .02), Spine=(8, 0, 0), Spine1=(6, 0, 0), Head=(16, 0, 0), RightArm=(168, -6, 0), LeftArm=(168, -6, 0),
-               RightForeArm=18, LeftForeArm=18, curl=8)
+               RightForeArm=18, LeftForeArm=18, curl=-10, thumb=0)
 # Mio talking (Game.Gather() and the stage's 'Mio stand'): the stance of her Tripo idle's first frame, measured off mio.glb (the weight on
 # her left leg, the feet close, the right turned out on its ball), so going between it, her terminal and her idle doesn't slide her feet;
-# the sword carried low at her side instead of held out. Her rise ends in it.
+# the sword carried low at her side instead of held out, lowered by the arm drawn back and the elbow as much as the wrist, which
+# bent alone kinks. Her rise ends in it.
 FEET = dict(lift=(.004, -.04, 0), Hips=(2.6, 1.7, 1), LeftStep=(-.112, -.031, 0, 7), RightStep=(-.073, -.047, .036, 22), Weight='Left')
-MIO_STAND = pose(STANCE, **FEET, Spine=(-1.5, -1.5, 0), Spine1=(-1.5, -1.5, 0), Spine2=(-1, -1, 0), Head=(2, -2, 2), RightArm=(2, 8, 0),
-                 RightForeArm=20, RightHand=(-60, 0, 0), LeftArm=(2, 13, 0), LeftForeArm=16)
+MIO_STAND = pose(STANCE, **FEET, Spine=(-1.5, -1.5, 0), Spine1=(-1.5, -1.5, 0), Spine2=(-1, -1, 0), Head=(2, -2, 2), RightArm=(-8, 8, 0),
+                 RightForeArm=34, RightHand=(-34, 0, 0), LeftArm=(2, 13, 0), LeftForeArm=16)
 MIO = {
     'sleep': act([(0, LIE)], loop=4, life=dict(breath=2, sway=0)),
     'wake': act([(0, LIE), (.6, pose(LIE, Head=(-6, 0, -10), Spine=(4, 0, 0))), (1.5, PROP), (2.2, SIT), (2.6, RUB),
@@ -321,25 +353,25 @@ STAND = pose(STANCE, lift=(-.04, 0, 0), Hips=(0, 7, 2), Spine=(0, -4, -1), Spine
 # Yui and Renji. Yui is quick and bright: a bouncing walk, a run, a wave, arms folded to sulk; Renji leans over his bench.
 # Giving: the hand comes up and out, palm up, a little past where it stops; pointing: the index out along the arm, the others closed.
 GIVE = pose(STAND, lift=(-.04, .03, 0), Spine=(-5, -4, -3), Head=(-8, 3, 2), RightReach=(-.02, .25, -.11), RightElbow=(.3, -.4, -1), RightRoll=50,
-            RightHand=(-8, 0, 0), RightCurl=(16, 24, 30, 38))
+            RightHand=(-8, 0, 0), RightCurl=(0, 2, 4, 6), RightThumb=.1)
 POINT = pose(STAND, lift=(-.04, .02, 0), Spine=(2, -4, -8), Head=(6, 2, -6), RightReach=(.1, .26, -.02), RightElbow=(.6, -.3, -.8), RightRoll=-10,
-             RightHand=(4, 0, 0), RightCurl=(0, 80, 88, 96))
+             RightHand=(4, 0, 0), RightCurl=(0, 80, 88, 96), RightThumb=.9)
 READ = pose(STAND, Head=(-24, 2, 0), Spine1=(-4, -3, 0), RightReach=(-.07, .2, -.12), LeftReach=(-.07, .2, -.12), RightRoll=-55, LeftRoll=-55,
-            RightHand=(-12, 0, 0), LeftHand=(-12, 0, 0), curl=34)
+            RightHand=(-12, 0, 0), LeftHand=(-12, 0, 0), curl=14, thumb=.25)
 # Arms folded to sulk, the hip cocked further and the head turned away; the elbows bend before the arms cross, so the hands don't reach out first.
 FOLD = pose(STAND, lift=(-.05, 0, 0), Hips=(0, 9, 6), Spine=(4, -5, 0), Head=(4, 5, -10), RightArm=(18, 4, 36), RightForeArm=94, LeftArm=(16, 4, 38),
-            LeftForeArm=92, curl=66)
-BEND = pose(STAND, RightArm=(8, 8, 18), LeftArm=(8, 8, 16), RightForeArm=80, LeftForeArm=78, curl=30)
+            LeftForeArm=92, curl=26, thumb=.3)
+BEND = pose(STAND, RightArm=(8, 8, 18), LeftArm=(8, 8, 16), RightForeArm=80, LeftForeArm=78, curl=14)
 # Waving: the elbow out at the shoulder's height, the forearm up, swinging from the elbow with the open hand trailing it.
-WAVE = pose(STAND, Head=(4, 4, -5), Spine=(2, -4, -4), RightReach=(.14, .05, .12), RightElbow=(1, -.1, -.3), RightRoll=0, RightHand=(0, 0, 0), RightCurl=5)
+WAVE = pose(STAND, Head=(4, 4, -5), Spine=(2, -4, -4), RightReach=(.14, .05, .12), RightElbow=(1, -.1, -.3), RightRoll=0, RightHand=(0, 0, 0), RightCurl=-12, RightThumb=0)
 STRIKE = dict(RightArm=(48, 0, 16), RightForeArm=40)
 BENCH = pose(STANCE, lift=(0, 0, -.04), Spine=(-18, 0, 0), Spine1=(-8, 0, 0), Head=(-20, 0, 0), LeftArm=(42, 0, 26), LeftForeArm=62,
-             RightArm=(96, -10, 16), RightForeArm=100, RightUpLeg=(6, 0, 0), RightLeg=10, LeftLeg=8, curl=45)
+             RightArm=(96, -10, 16), RightForeArm=100, RightUpLeg=(6, 0, 0), RightLeg=10, LeftLeg=8, curl=42, thumb=.8)
 PEOPLE = {
     'idle': act([(0, STAND)], loop=4, life=IDLE),
     **held('give', [(0, STAND), (.3, pose(GIVE, RightReach=(0, .14, -.2), RightRoll=20, lift=(0, .01, 0))),
                     (.6, pose(GIVE, RightReach=(-.02, .27, -.1))), (.85, GIVE)]),
-    **held('point', [(0, STAND), (.25, pose(STAND, RightReach=(.03, .12, -.17), RightCurl=(30, 50, 55, 60), Head=(2, 0, -3))),
+    **held('point', [(0, STAND), (.25, pose(STAND, RightReach=(.03, .12, -.17), RightCurl=(20, 40, 45, 50), Head=(2, 0, -3))),
                      (.55, pose(POINT, RightReach=(.11, .28, -.01))), (.8, POINT)]),
     **held('read', [(0, STAND), (.55, READ)]),
 }
@@ -349,7 +381,7 @@ YUI = {
     'walk': (.9, lambda t: hands(gait(stride=26, load=10, swing=52, arm=20, elbow=16, lean=2, bob=.04, sway=5, stance=STANCE)(t / .9))),
     'run': (.7, lambda t: hands(gait(stride=34, load=20, swing=90, arm=32, elbow=70, lean=12, bob=.05, sway=6, stance=STANCE)(t / .7))),
     **held('fold', [(0, STAND), (.3, BEND), (.65, FOLD)], life=dict(breath=2, sway=.5), length=3),
-    'wave': act([(0, STAND), (.25, pose(STAND, RightReach=(.2, .04, -.14), RightElbow=(1, -.1, -.6), RightCurl=12)), (.5, SWING[0][1])]),
+    'wave': act([(0, STAND), (.25, pose(STAND, RightReach=(.2, .04, -.14), RightElbow=(1, -.1, -.6), RightCurl=0)), (.5, SWING[0][1])]),
     'wave_hold': act(SWING[:-1], loop=2.4, life=dict(breath=1, sway=.3)),
 }
 RENJI = {
