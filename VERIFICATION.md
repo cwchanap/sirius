@@ -1,5 +1,24 @@
 # MVP verification
 
+## Mio's and Yui's hands — 2026-11-05
+
+Hapadona found the hands still messy. Close-ups of both models' hands, at rest and in every dialogue clip, showed three faults:
+- **Finger curls:** `patrol_clips.Rig` curls a finger about the bone crossed with straight down, an axis that vanishes for a finger hanging down: measured 70–160° off the knuckle line at the first knuckles, so a big curl swung fingers sideways or backward into claws (Yui's point and folded arms, Mio's terminal hand).
+- **Thumbs:** they were never posed.
+- **Texture:** the bake left dark fingertips, black slivers between Mio's fingers and reddish smears on Yui's palms.
+
+A fourth fault was in the rig itself. Tripo bound about 2,500 vertices of each of Mio's thighs and coat panels, 8–44 cm from her hands, a third of their weight to the last joint of the pinky: bending that joint alone moved 2,640 of them by up to 16 cm, and they were the dark shards that tore off her coat beside her hips whenever her hands moved.
+
+- **Fixed:**
+  - `tools/cast_clips.py` curls each finger joint toward the palm, about its length crossed with the palm's direction, read off the rest pose's finger bend.
+  - It tucks each thumb by a per-pose amount and has retuned the curls; Mio's sword wrist is straight in `stand`, the blade lowered by the arm and elbow instead.
+  - `tools/hand_weights.py` dropped hand-bone weight from 7,005 of Mio's vertices beyond 7 cm of her hands (hand vertices are all within 5 cm, nothing lies between 5 and 8 cm). After it, bending the pinky moves only the six vertices of its tip.
+  - `face_paint.repaint_hands()` repainted both characters' hand skin.
+- **Measured:** `check_mio_export.py` now also fails on any vertex bound to a hand from beyond 7 cm (0 now, 7,005 on the previous commit's model); every other clip of `mio.glb` is unchanged to the value; the face repaint reproduces its earlier texel counts exactly. Yui's and Renji's skin weights have no hand weight beyond 5 cm of a hand and were left as they were.
+- **Self-test:** 698 checks pass headless in `en`, `ja` and `zh_TW`; unit 57 and e2e 4 pass.
+- **Captures:** Blender workbench close-ups of every hand pose before and after, lit and unlit; Mio's thighs and coat in her terminal, attack, idle and stand before and after the weight fix; `tools/review_dialogue.gd` under xvfb and lavapipe.
+- **Not yet:** no Metal run. The importers' new steps (`unbind_blender()` in Mio's, the hand repaint in Yui's) ran only on the committed models, since the sources are on the Mac. The fingertips still shade darker than the hand where they hang down away from the light; that is lighting on Tripo's low-poly tips, not texture.
+
 ## Posture review of Yui and Mio — 2026-11-03
 
 Hapadona asked for their posture to be reviewed again. Yui stood in the rig's rest pose under every clip: knees locked, feet parallel at the rest width, weight even, arms out in a slight A, and her gestures moved only her arms. Mio's terminal stood in that same rest stance while her Tripo idle stands with her feet 10 cm apart, the right turned out on its ball, so every cue between them (six in the waking scene alone) slid her feet, and in conversation she held her sword out level. `tools/cast_clips.py` now plants feet by leg IK (`Step`) with the hips riding as high as the weight-bearing leg reaches (`Weight`); Yui and Renji stand at ease (`STAND`: weight on the left leg, the right knee eased, feet closer and turned out, arms close) and gesture from it, and Mio has `stand`, her idle's own feet measured off its first frame with the sword lowered, which `Game.Gather()` starts every scene with and the stage cues in place of her idle; her terminal and the end of her rise share it.

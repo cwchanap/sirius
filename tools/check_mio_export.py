@@ -45,6 +45,11 @@ def main():
                 'dodge', 'jump', 'skill', 'stagger', 'death',
                 'sleep', 'wake', 'sit', 'terminal_sit', 'terminal_sit_hold', 'rise', 'terminal', 'terminal_hold', 'stand'}
     assert len(clips) == 21 and set(clips) == expected, clips
+    # Tripo bound her thighs and coat to her pinkies; tools/hand_weights.py frees them.
+    import sys
+    sys.path.insert(0, str(ROOT / 'tools'))
+    import hand_weights
+    assert hand_weights.patch_glb(ROOT / 'assets/models/mio.glb', write=False) == 0, 'vertices bound to a hand from beyond hand_weights.RADIUS'
     assert all(n.get('skin') == 0 for n in gltf['nodes'] if 'mesh' in n)
     vertices = triangles = 0
     maximum_error = 0.0
