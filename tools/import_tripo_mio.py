@@ -252,7 +252,7 @@ def main():
     bpy.data.scenes.remove(old_scene)
     # mio_combat.py points the seated blade, hilt to tip, with its edge leading.
     steel = scene.objects['Sword blade steel']
-    blade, edge, _, _ = mio_combat.sword(rig, [steel.matrix_basis @ v.co for v in steel.data.vertices])
+    blade, edge, hilt, _ = mio_combat.sword(rig, [steel.matrix_basis @ v.co for v in steel.data.vertices])
     clips = {}
     for name, (source, first, last, frames) in CLIPS.items():
         activate(rig, source_actions[source])
@@ -294,10 +294,10 @@ def main():
                     hip.location -= basis @ Vector((0, 0, min(f.head.z for f in feet) - foot_floor))
                 pose.update({pb.name: pb.matrix_basis.copy() for pb in rig.pose.bones})
         clips[name] = poses
-    clips.update(mio_combat.clips(rig, ready, (blade, edge), grip))
+    clips.update(mio_combat.clips(rig, ready, (blade, edge, hilt), grip))
     rig.animation_data.action = None
     # Her Tripo clips swing her forearms through her satchel and hips and the blade through her legs; the cast clips are kept out by
-    # poses(). The roll is left alone (one frame), and the combat clips, whose left hand holds the hilt.
+    # poses(), the combat clips by their own keys (an arm turned here would leave the hilt). The roll is left alone (one frame).
     for name in ('idle', 'walk', 'run', 'jump', 'guard', 'stagger', 'death'):
         self_contact.clear(body, rig, clips[name])
     clips.update(cast_clips.poses(rig, scale, cast_clips.MIO, cast_clips.LOOPS['mio'], grip, cast_clips.HEIGHTS['mio'], body))
