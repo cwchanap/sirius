@@ -1,5 +1,33 @@
 # MVP verification
 
+## The rest of the cast's self-contact — 2026-11-06
+
+Hapadona asked whether the satchel and Yui's hands were the only such places. A per-frame audit of every clip of every model (each forearm and hand, each shin and foot, and Mio's sword against the rest of the body) found more.
+- **Clean:** Chiyo, KOMA-7, Sota, Naomi, Toma and the shared villager in every clip. No leg passes through a leg anywhere.
+- **Found:**
+  - Mio's sword: her run swung the blade through her thighs on 16 of its 31 frames (132 vertices inside at worst), her stagger on one (135), her jump on two (29). Her death's held end lies on it through her right thigh (241, with her right forearm 187 inside the thigh).
+  - Her eye rub in the waking scene buried the fist in her cheek (171 vertices inside the head). Sitting under the cover, her terminal came up through her thigh and pouch (331).
+  - The patrol robot's staggered sag and kneeling death held its arm armour inside its thigh armour (586 and 520), and its run swung the arm through the raised thigh (430).
+- **Fixed:**
+  - `tools/self_contact.py` counts the blade against all of Mio's body but the gripping hand and turns her wrist out of it.
+  - Each turn now eases in and out over three frames either side. Solved one frame at a time, a run frame's 16-degree wrist turn had flicked the blade for a single frame. A frame keeps its own turn where a neighbour's would leave more inside.
+  - `--fix` reran it on Mio's idle, walk, guard and jump, starting from their uncleared clips, and on run, stagger and death (`import_tripo_mio.py` now clears all seven).
+  - `cast_clips.py --swap` rekeyed every cast clip of Mio, Yui and Renji.
+  - The eye rub's fist now sits at her eye (`RUB`), and her seated terminal comes up over her thigh (`RAISE_SAT`). Both clips play under the futon's cover, so they are keyed by hand.
+  - `patrol_clips.key()` clears the robot's arms when given its body, and `--fix=run,stagger,death` did so on the committed GLB. A 4–10 degree turn was enough.
+- **Measured, every frame:**
+  - Mio's run, stagger, jump and death have 8 or fewer vertices inside on either arm and on the sword.
+  - The eye rub has 13 inside at worst, the knuckles against her brow, and her seated terminal 14.
+  - Her other clips are 11 or under; `self_contact.py --max=30` passes for Mio and Yui.
+  - Yui's clips are 32 or under (her right hand resting on her folded left sleeve), Renji's 15, and the robot's 9.
+  - `check_mio_export.py` passes. Before-and-after sheets are in `artifacts/self-contact/`.
+- **Self-test:** 698 checks pass headless in `en`, `ja` and `zh_TW`; unit 57 and e2e 4 pass.
+- **Left alone:**
+  - Mio's combat clips: attack3's overhead windup puts both arms through the side hair for about 11 frames, Resonance Cut's two-handed grip crosses the forearms (346 on one frame), and attack1's and attack2's links put 42–94 into a thigh for a frame or two. Her left hand holds the hilt there, so turning an arm would pull it off; fixing them means rechoreographing `mio_combat.py`.
+  - The roll: 146 on a single frame.
+  - Her arms lying under the quilt in `sleep` and the start of `wake` (146, hidden by the cover the cloth solver laid over that pose).
+- **Not yet:** no Metal run. The importers' new steps ran only on the committed models.
+
 ## Hands out of the body — 2026-11-06
 
 Hapadona saw Mio's hand go through her satchel and Yui's two hands through each other. Godot skins a mesh without self-collision, so only the clips can keep a hand out. `tools/self_contact.py` counts the hand and forearm vertices of each side lying inside the rest of the body: the nearest triangle within 3.5 cm faces away. At first it searched 10 cm, which flagged a cuff near the satchel's far panel as inside, so it was narrowed.
