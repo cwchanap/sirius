@@ -1,5 +1,6 @@
-"""Keep a character's hands and forearms out of the rest of its own body. Godot skins a mesh without self-collision, so a hand that a clip
-swings into a satchel, a hip or the other arm goes straight through it, and only the clip can keep it out.
+"""Keep a character's hands and forearms, and Mio's sword, out of the rest of its own body. Godot skins a mesh without self-collision, so a
+hand that a clip swings into a satchel, a hip or the other arm, or a blade it swings through a thigh, goes straight through it, and only
+the clip can keep it out.
 
 blender --background --factory-startup --python tools/self_contact.py -- --model=mio [--clips=idle,stand] [--gen | --cleared]
 Reports, per clip and side, the most vertices of a hand and forearm inside the body in any sampled frame and what they are inside, for the
@@ -10,7 +11,9 @@ committed clips and swaps them back into the GLB (tools/glb_swap.py), for clips 
 A vertex of one side's forearm or hand is inside when the nearest triangle of the rest of the body, within REACH, faces away from it. The
 rest leaves out that side's own arm, which the elbow and wrist fold into themselves. clear() turns the upper arm, a degree at a time, the
 way the surfaces it is inside face, until fewer than ALLOWED vertices are; resting a hand on an arm or a hip is contact, not passing
-through. tools/cast_clips.py runs it on every clip it keys, and import_tripo_mio.py on her idle.
+through. A model with a sword (meshes named Sword under the rig) has a third side: the blade against all of the body but the hand
+gripping it, turned at the wrist. tools/cast_clips.py runs it on every clip it keys, tools/patrol_clips.py on the robot's, and
+import_tripo_mio.py on her Tripo clips.
 """
 import math
 import sys
@@ -25,6 +28,10 @@ REACH = .035
 TOLERANCE = .006
 # Vertices that may be inside: a sleeve resting on a sleeve, a palm on a hip.
 ALLOWED = 12
+# The bone each side turns.
+JOINT = {'Right': 'RightArm', 'Left': 'LeftArm', 'Sword': 'RightHand'}
+# Frames a turn eases in and out over (an eighth of a second at 24 fps).
+SPREAD = 3
 
 
 class Body:
@@ -51,17 +58,29 @@ class Body:
             own = weight(side, ('Shoulder', 'Arm', 'ForeArm', 'Hand')) > .2
             self.others[side] = np.where(~own[self.tv].any(1))[0]
             self.faces[side] = self.tv[self.others[side]].tolist()
+        self.swords = [o for o in rig.children if o.type == 'MESH' and o.name.startswith('Sword')]
+        if self.swords:
+            grip = weight('Right', ('Hand',)) > .3
+            self.others['Sword'] = np.where(~grip[self.tv].any(1))[0]
+            self.faces['Sword'] = self.tv[self.others['Sword']].tolist()
 
-    def points(self):
+    def sides(self):
+        return ('Right', 'Left', 'Sword') if self.swords else ('Right', 'Left')
+
+    def points(self, obj=None):
         import bpy
+        obj = obj or self.body
         depsgraph = bpy.context.evaluated_depsgraph_get()
-        evaluated = self.body.evaluated_get(depsgraph)
+        evaluated = obj.evaluated_get(depsgraph)
         mesh = evaluated.to_mesh()
         co = np.zeros(len(mesh.vertices) * 3)
         mesh.vertices.foreach_get('co', co)
         evaluated.to_mesh_clear()
-        m = np.array(self.body.matrix_world)
+        m = np.array(obj.matrix_world)
         return (co.reshape(-1, 3) @ m[:3, :3].T + m[:3, 3]) * self.metres
+
+    def blade(self):
+        return np.concatenate([self.points(o) for o in self.swords])
 
     def contact(self, side, co=None):
         """(vertices inside, the way out summed over them, the parts they are inside by count) for one side in the current pose."""
@@ -71,7 +90,7 @@ class Body:
         tris = self.others[side]
         tree = BVHTree.FromPolygons(co.tolist(), self.faces[side], all_triangles=True)
         count, push, parts = 0, np.zeros(3), {}
-        for p in co[self.movers[side]].tolist():
+        for p in (self.blade() if side == 'Sword' else co[self.movers[side]]).tolist():
             loc, normal, index, dist = tree.find_nearest(p, REACH)
             if loc is not None and dist > TOLERANCE and (Vector(p) - loc).dot(normal) < 0:
                 count += 1
@@ -89,20 +108,26 @@ def pose(rig, basis):
     bpy.context.view_layer.update()
 
 
-def clear(body, rig, frames, step=1, limit=40, metres=1):
-    """Turn each frame's upper arms out of the body, at most limit degrees, keeping the turn that left the fewest vertices inside (where an
-    arm lies between the chest and the other arm, the way out swings from side to side). Every step-th frame is solved and the turns in
-    between eased. frames: a clip's per-frame {bone: basis matrix}, changed in place. Returns the largest turn in degrees."""
+def clear(body, rig, frames, limit=40, metres=1):
+    """Turn each frame's upper arms (and the sword's wrist) out of the body, at most limit steps, keeping the turn that left the fewest
+    vertices inside (where an arm lies between the chest and the other arm, the way out swings from side to side). frames: a clip's
+    per-frame {bone: basis matrix}, changed in place. Returns the largest turn in degrees."""
     import bpy
     from mathutils import Quaternion, Vector
     measure = Body(body, rig, metres)
-    keys = sorted(set(range(0, len(frames), step)) | {len(frames) - 1})
-    turns = {side: [] for side in ('Right', 'Left')}
-    to_armature = rig.matrix_world.inverted().to_3x3()
-    for f in keys:
+    n = len(frames)
+    solved = {side: [] for side in measure.sides()}
+    to_armature = rig.matrix_world.inverted()
+
+    def lever(side, joint):
+        """From the turning joint to what it swings: the hand, or the middle of the blade."""
+        if side == 'Sword':
+            return to_armature @ Vector(measure.blade().mean(0) / metres) - joint.head
+        return rig.pose.bones[side + 'Hand'].head - joint.head
+    for f in range(n):
         pose(rig, frames[f])
-        for side in turns:
-            arm = rig.pose.bones[side + 'Arm']
+        for side in solved:
+            arm = rig.pose.bones[JOINT[side]]
             start = arm.rotation_quaternion.copy()
             total, best, way = Quaternion(), None, None
             for _ in range(limit):
@@ -111,9 +136,9 @@ def clear(body, rig, frames, step=1, limit=40, metres=1):
                     best = (count, total.copy())
                 if count < ALLOWED or not push.any():
                     break
-                out = (to_armature @ Vector(push)).normalized()
+                out = (to_armature.to_3x3() @ Vector(push)).normalized()
                 way = out if way is None else (way + out).normalized()
-                axis = (rig.pose.bones[side + 'Hand'].head - arm.head).cross(way)
+                axis = lever(side, arm).cross(way)
                 if axis.length < 1e-6:
                     break
                 # About an armature-space axis through the shoulder: basis @ q, with q's axis in the bone's own frame.
@@ -127,10 +152,10 @@ def clear(body, rig, frames, step=1, limit=40, metres=1):
                 arm.rotation_quaternion = start
                 bpy.context.view_layer.update()
                 hips = rig.pose.bones['Hips'].head
-                hand = rig.pose.bones[side + 'Hand'].head
-                up = to_armature @ Vector((0, 0, 1))
+                hand = arm.head + lever(side, arm)
+                up = to_armature.to_3x3() @ Vector((0, 0, 1))
                 away = (hand - hips) - (hand - hips).project(up)
-                axis = (hand - arm.head).cross(away)
+                axis = lever(side, arm).cross(away)
                 if axis.length > 1e-6:
                     local = (arm.matrix.to_3x3().inverted() @ axis).normalized()
                     for degrees in range(2, 32, 2):
@@ -144,15 +169,30 @@ def clear(body, rig, frames, step=1, limit=40, metres=1):
                             break
             arm.rotation_quaternion = start @ best[1]
             bpy.context.view_layer.update()
-            turns[side].append(best[1])
+            solved[side].append(best)
+    # A clip whose last frame is its first loops: a turn near its end spreads over its start.
+    loop = n > 2 and all(frames[0][b].to_quaternion().rotation_difference(frames[-1][b].to_quaternion()).angle < 1e-3 and
+                         (frames[0][b].translation - frames[-1][b].translation).length < 1e-4 for b in frames[0])
     worst = 0
-    for side, made in turns.items():
-        for k, (f, g) in enumerate(zip(keys, keys[1:] + keys[-1:])):
-            for h in range(f, g if g > f else f + 1):
-                u = (h - f) / (g - f) if g > f else 0
-                q = made[k].slerp(made[min(k + 1, len(made) - 1)], u * u * (3 - 2 * u))
-                frames[h][side + 'Arm'] = frames[h][side + 'Arm'] @ q.to_matrix().to_4x4()
-                worst = max(worst, math.degrees(q.angle))
+    for h in range(n):
+        for side, made in solved.items():
+            # A turn solved on one frame alone would flick the arm or blade for that frame: each eases in and out over SPREAD frames
+            # either side, and a frame takes the largest that reaches it, unless that leaves more inside than its own.
+            base, best = frames[h][JOINT[side]], Quaternion()
+            for f in range(h - SPREAD, h + SPREAD + 1):
+                if loop or 0 <= f < n:
+                    u = 1 - abs(h - f) / (SPREAD + 1)
+                    q = Quaternion().slerp(made[f % (n - 1) if loop else f][1], u * u * (3 - 2 * u))
+                    if q.angle > best.angle:
+                        best = q
+            frames[h][JOINT[side]] = base @ best.to_matrix().to_4x4()
+            if best.rotation_difference(made[h][1]).angle > 1e-4:
+                pose(rig, frames[h])
+                count = measure.contact(side)[0]
+                if count >= ALLOWED and count > made[h][0]:
+                    best = made[h][1]
+                    frames[h][JOINT[side]] = base @ best.to_matrix().to_4x4()
+            worst = max(worst, math.degrees(best.angle))
     return worst
 
 
@@ -186,8 +226,9 @@ def load(model):
 
 
 def action(name):
+    """The imported clip: the glTF importer names it after the armature too (terminal_Mio), and terminal_hold_Mio is not terminal."""
     import bpy
-    return next(a for a in bpy.data.actions if a.name == name or a.name.startswith(name + '_'))
+    return next(a for a in bpy.data.actions if name in (a.name, a.name.rsplit('_', 1)[0]))
 
 
 def fix(model, names):
@@ -244,7 +285,7 @@ def report(model, names, mode):
         for f in range(0, len(frames), max(1, len(frames) // 12)):
             pose(rig, frames[f])
             co = measure.points()
-            for side in ('Left', 'Right'):
+            for side in measure.sides():
                 count, _, parts = measure.contact(side, co)
                 if count > worst.get(side, (0,))[0]:
                     worst[side] = (count, f, parts)

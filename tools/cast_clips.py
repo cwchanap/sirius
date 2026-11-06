@@ -314,12 +314,14 @@ PROP = pose(LIE, lift=(0, 0, .16 - MIO_HIP), Hips=(50, 0, 0), RightUpLeg=(40, 0,
             Head=(-14, 0, -6), RightArm=(-38, 4, 0), RightForeArm=30, LeftArm=(-30, 4, 0), LeftForeArm=24, RightFoot=(70, 0, 0), LeftFoot=(70, 0, 0))
 SIT = pose(STANCE, lift=(0, 0, .2 - MIO_HIP), RightUpLeg=(88, 0, 0), LeftUpLeg=(88, 0, 0), RightLeg=6, LeftLeg=6, RightFoot=(70, 0, 0), LeftFoot=(70, 0, 0),
            Spine=(-8, 0, 0), Spine1=(-4, 0, 0), Head=(-6, 0, 0), RightArm=(26, 2, 10), LeftArm=(26, 2, 10), RightForeArm=40, LeftForeArm=40, curl=12)
-RUB = pose(SIT, RightArm=(62, -6, 26), RightForeArm=138, Head=(-14, 0, -8), Spine1=(-8, 0, 0), curl=34, thumb=.6)
+# Her fist at her right eye, in front of her cheek rather than in it.
+RUB = pose(SIT, RightArm=(58, -2, 20), RightForeArm=122, Head=(-14, 0, -8), Spine1=(-8, 0, 0), curl=34, thumb=.6)
 # The left wrist's terminal brought up before her face, the elbow kept in by her ribs, the face of it turned to her eyes; she looks down
-# at it. RAISE is the way up, the hand still low and turning.
+# at it. RAISE is the way up, the hand still low and turning; sitting, it comes up over her thigh (RAISE_SAT) rather than through it.
 WRIST = dict(LeftReach=(-.06, .17, -.05), LeftElbow=(.3, -.2, -1), LeftRoll=-60, LeftHand=(-6, 0, 0), LeftCurl=(8, 12, 16, 20), LeftThumb=.4, Head=(-22, 0, 10),
              Neck=(-6, 0, 4), Spine1=(-3, 0, 4))
 RAISE = dict(LeftReach=(.01, .1, -.22), LeftElbow=(.3, -.2, -1), LeftRoll=-25, LeftHand=(10, 0, 0), Head=(-10, 0, 5), Neck=(-2, 0, 2))
+RAISE_SAT = dict(RAISE, LeftReach=(.05, .14, -.14))
 KNEES = pose(SIT, RightUpLeg=(125, 0, 0), LeftUpLeg=(118, 0, 0), RightLeg=118, LeftLeg=112, RightFoot=(0, 0, 0), LeftFoot=(0, 0, 0),
              Spine=(-24, 0, 0), Spine1=(-8, 0, 0), RightArm=(46, 4, 6), LeftArm=(46, 4, 6), RightForeArm=30, LeftForeArm=30)
 CROUCH = pose(STANCE, lift=(0, .05, .62 - MIO_HIP), RightUpLeg=(96, 0, 0), LeftUpLeg=(84, 0, 0), RightLeg=100, LeftLeg=88, Spine=(-34, 0, 0),
@@ -336,9 +338,9 @@ MIO_STAND = pose(STANCE, **FEET, Spine=(-1.5, -1.5, 0), Spine1=(-1.5, -1.5, 0), 
 MIO = {
     'sleep': act([(0, LIE)], loop=4, life=dict(breath=2, sway=0)),
     'wake': act([(0, LIE), (.6, pose(LIE, Head=(-6, 0, -10), Spine=(4, 0, 0))), (1.5, PROP), (2.2, SIT), (2.6, RUB),
-                 (2.9, pose(RUB, RightArm=(60, -6, 30), Head=(-12, 0, -4))), (3.2, RUB), (3.7, SIT)]),
+                 (2.9, pose(RUB, RightArm=(56, -2, 24), Head=(-12, 0, -4))), (3.2, RUB), (3.7, SIT)]),
     'sit': act([(0, SIT)], loop=4, life=dict(breath=1.5, sway=.5)),
-    **held('terminal_sit', [(0, SIT), (.3, pose(SIT, **RAISE)), (.7, pose(SIT, **WRIST))]),
+    **held('terminal_sit', [(0, SIT), (.3, pose(SIT, **RAISE_SAT)), (.7, pose(SIT, **WRIST))]),
     'rise': act([(0, SIT), (.6, KNEES), (1.2, CROUCH), (1.9, pose(STANCE, **FEET)), (2.5, pose(STRETCH, **FEET)),
                  (3, pose(STRETCH, **FEET, Spine=(10, 0, 4), RightArm=(172, -4, 0))), (3.6, MIO_STAND)]),
     **held('terminal', [(0, MIO_STAND), (.3, pose(MIO_STAND, **RAISE)), (.7, pose(MIO_STAND, **WRIST))]),

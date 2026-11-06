@@ -296,8 +296,9 @@ def main():
         clips[name] = poses
     clips.update(mio_combat.clips(rig, ready, (blade, edge), grip))
     rig.animation_data.action = None
-    # Her Tripo idle, walk and guard swing her forearms through her satchel and hips; the cast clips are kept out by poses().
-    for name in ('idle', 'walk', 'guard'):
+    # Her Tripo clips swing her forearms through her satchel and hips and the blade through her legs; the cast clips are kept out by
+    # poses(). The roll is left alone (one frame), and the combat clips, whose left hand holds the hilt.
+    for name in ('idle', 'walk', 'run', 'jump', 'guard', 'stagger', 'death'):
         self_contact.clear(body, rig, clips[name])
     clips.update(cast_clips.poses(rig, scale, cast_clips.MIO, cast_clips.LOOPS['mio'], grip, cast_clips.HEIGHTS['mio'], body))
     actions = []

@@ -143,18 +143,29 @@ class Rig:
         return out
 
 
-def key(rig, unit, clips=None, loops=LOOPS, solver=None):
-    """Key every clip on the armature as an action in its own muted NLA track, as the shared importer collects them."""
+def key(rig, unit, clips=None, loops=LOOPS, solver=None, body=None, metres=1):
+    """Key every clip on the armature as an action in its own muted NLA track, as the shared importer collects them. Given the skinned
+    body, the arms are turned out of it first (tools/self_contact.py; metres: game metres per world unit)."""
     import bpy
+    import self_contact
     solver = solver or Rig(rig, unit)
     rig.animation_data_create()
     for name, (length, at) in (clips or CLIPS).items():
+        poses = [solver.bases(at(f / FPS if name not in loops or f < round(length * FPS) else 0)) for f in range(round(length * FPS) + 1)]
+        if body is not None:
+            frames = [{pb.name: Matrix.Identity(4) for pb in rig.pose.bones} for _ in poses]
+            for basis, bases in zip(frames, poses):
+                for bone, (q, loc) in bases.items():
+                    basis[bone] = Matrix.LocRotScale(loc, q, None)
+            self_contact.clear(body, rig, frames, metres=metres)
+            poses = [{bone: (basis[bone].to_quaternion(), loc if loc is None else basis[bone].translation) for bone, (_, loc) in bases.items()}
+                     for basis, bases in zip(frames, poses)]
         action = bpy.data.actions.new(name)
         action.use_fake_user = True
         rig.animation_data.action = action
         last = {}
-        for f in range(round(length * FPS) + 1):
-            for bone, (q, loc) in solver.bases(at(f / FPS if name not in loops or f < round(length * FPS) else 0)).items():
+        for f, bases in enumerate(poses):
+            for bone, (q, loc) in bases.items():
                 pb = rig.pose.bones[bone]
                 pb.rotation_mode = 'QUATERNION'
                 if bone in last and last[bone].dot(q) < 0:
