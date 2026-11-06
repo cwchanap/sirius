@@ -18,10 +18,13 @@ FPS = 24
 LUNGE = {'attack1': (.55, .45, .04, .2), 'attack2': (.55, .5, .02, .15), 'attack3': (.85, 1.2, .06, .3), 'skill': (1.3, 0, 0, 0)}
 STANCE = {
     'hips': (0, 0, .03), 'yaw': -15, 'pitch': 4, 'roll': 0, 'twist': 10, 'bend': 0, 'side': 0, 'spin': 0,
-    'hand': (.24, .3, 1.02), 'blade': (-.15, .85, .5), 'lhand': (-.24, .08, .98),
-    'lfoot': (-.2, .14, 0), 'rfoot': (.2, -.12, 0), 'lheel': 0, 'rheel': 0,
+    'hand': (.24, .3, 1.02), 'blade': (-.15, .85, .5), 'lhand': (-.32, .12, 1.0),
+    'lfoot': (-.2, .14, 0), 'rfoot': (.2, -.12, 0), 'lheel': 0, 'rheel': 0, 'grip': 0,
 }
-UPPER = ('hand', 'blade', 'lhand', 'yaw', 'twist', 'hips', 'pitch')
+UPPER = ('hand', 'blade', 'lhand', 'grip', 'yaw', 'twist', 'hips', 'pitch')
+# 'grip' carries the left hand from lhand onto the hilt (1): a fist mirroring the right one across the sword's plane, FIST metres
+# further down. The hilt is a one-hander's, so the left fist closes round the pommel and the air below it.
+FIST = .09
 # Each clip: (time, channels keyed then) from its start pose. A channel eases between its own keys;
 # 'hold' keys every channel where it stands.
 CLIPS = {
@@ -31,7 +34,7 @@ CLIPS = {
         (.13, {'rfoot': (.19, .2, .1)}),
         (.17, {'hand': (.06, .52, 1.24), 'blade': (-.4, .85, .1), 'yaw': 0, 'twist': 12, 'hips': (0, .04, -.05), 'pitch': 12,
                'rfoot': (.19, .55, 0)}),
-        (.26, {'hand': (-.3, .26, .8), 'blade': (-.55, -.15, -.6), 'lhand': (-.3, -.16, 1.0), 'yaw': 35, 'twist': 25,
+        (.26, {'hand': (-.3, .26, .8), 'blade': (-.55, -.15, -.6), 'lhand': (-.42, -.12, 1.05), 'yaw': 35, 'twist': 25,
                'hips': (0, .02, -.07), 'pitch': 15}),
         (.3, 'hold'),
         (.55, {k: STANCE[k] for k in UPPER}),
@@ -47,15 +50,15 @@ CLIPS = {
         (.55, {k: STANCE[k] for k in UPPER}),
     ],
     'attack3': [
-        (.08, {'hips': (0, 0, -.1), 'hand': (.2, 0, 1.85), 'lhand': 'hilt', 'pitch': 6}),
+        (.08, {'hips': (0, 0, -.1), 'hand': (.25, .5, 1.85), 'grip': 1, 'pitch': 6}),
         (.12, {'lfoot': (-.18, .3, .1), 'rfoot': (.2, -.1, .15)}),
-        (.2, {'hips': (0, .05, .3), 'hand': (.12, -.08, 2.1), 'blade': (0, -.85, .3), 'yaw': 0, 'twist': 0, 'pitch': -15,
+        (.2, {'hips': (0, .05, .3), 'hand': (.1, .3, 2.2), 'blade': (0, -.85, .3), 'yaw': 0, 'twist': 0, 'pitch': -15,
               'lfoot': (-.18, .9, .3), 'rfoot': (.2, .8, .38)}),
-        (.25, {'hand': (.06, .3, 1.95), 'blade': (0, .35, .94)}),
+        (.25, {'hand': (.06, .6, 1.95), 'blade': (0, .35, .94)}),
         (.3, {'hips': (0, .08, -.24), 'hand': (.02, .55, .55), 'blade': (0, .75, -.66), 'pitch': 25,
               'lfoot': (-.2, .7, 0), 'rfoot': (.2, 1.45, 0), 'lheel': 40}),
-        (.36, {'hips': (0, .08, -.28)}),
-        (.45, {'hips': (0, .06, -.25)}),
+        (.36, {'hips': (0, .08, -.28), 'grip': 1}),
+        (.45, {'hips': (0, .06, -.25), 'grip': 0, 'lhand': (-.4, .35, .95)}),
         (.85, {**{k: STANCE[k] for k in UPPER}, 'lheel': 0}),
     ],
     'skill': [
@@ -63,15 +66,16 @@ CLIPS = {
               'lhand': (-.3, .45, 1.25), 'lfoot': (-.32, .2, 0), 'rfoot': (.3, -.25, 0)}),
         (.36, {'hips': (0, -.05, -.22)}),
         (.38, {'spin': 0}),
-        (.44, {'hand': (.62, .15, 1.3), 'blade': (.95, .25, 0), 'lhand': (-.1, .2, 1.3), 'yaw': -10, 'twist': 0, 'pitch': 0}),
+        (.44, {'hand': (.62, .15, 1.3), 'blade': (.95, .25, 0), 'lhand': (-.5, .15, 1.3), 'yaw': -10, 'twist': 0, 'pitch': 0}),
         (.52, {'hips': (0, 0, .42), 'lfoot': (-.12, .05, .35), 'rfoot': (.12, -.1, .4)}),
         (.62, {'hips': (0, 0, .4)}),
-        (.66, {'hand': (.62, .15, 1.3), 'blade': (.95, .25, 0)}),
-        (.7, {'spin': 720, 'yaw': 0, 'hand': (.1, .1, 2.0), 'blade': (0, -.5, .85), 'lhand': 'hilt', 'hips': (0, 0, .1)}),
-        (.74, {'hand': (.05, .4, 1.75), 'blade': (0, .6, .8)}),
-        (.78, {'hips': (0, .05, -.34), 'pitch': 20, 'hand': (0, .55, .5), 'blade': (0, .42, -.91),
+        (.66, {'hand': (.62, .15, 1.3), 'blade': (.95, .25, 0), 'grip': 0}),
+        (.7, {'spin': 720, 'yaw': 0, 'hand': (.06, .6, 1.85), 'blade': (0, -.5, .85), 'grip': 1, 'hips': (0, 0, .1)}),
+        (.74, {'hand': (.05, .7, 1.65), 'blade': (0, .6, .8)}),
+        (.78, {'hips': (0, .05, -.34), 'pitch': 20, 'hand': (0, .65, .62), 'blade': (0, .42, -.91),
                'lfoot': (-.18, .3, 0), 'rfoot': (.18, -.45, .06), 'rheel': 50}),
-        (1.0, {'hips': (0, .05, -.32)}),
+        (1.0, {'hips': (0, .05, -.32), 'grip': 1}),
+        (1.08, {'grip': 0, 'lhand': (-.4, .3, .95)}),
         (1.3, {**{k: STANCE[k] for k in UPPER + ('lfoot', 'rfoot')}, 'rheel': 0}),
     ],
 }
@@ -99,8 +103,6 @@ def sample(keys, t):
         return keys[-1][1]
     i = max(k for k in range(len(keys) - 1) if keys[k][0] <= t)
     (t0, a), (t1, b) = keys[i], keys[i + 1]
-    if isinstance(a, str) or isinstance(b, str):
-        return a if t - t0 < t1 - t else b
     vec = isinstance(a, tuple)
 
     def value(j):
@@ -109,7 +111,7 @@ def sample(keys, t):
 
     def tangent(j):
         p = value(j)
-        if j <= 0 or j >= len(keys) - 1 or isinstance(keys[j - 1][1], str) or isinstance(keys[j + 1][1], str):
+        if j <= 0 or j >= len(keys) - 1:
             return [0] * len(p)
         prev, nxt = value(j - 1), value(j + 1)
         span = keys[j + 1][0] - keys[j - 1][0]
@@ -146,7 +148,8 @@ class Rig:
         self.right, self.forward, self.up = Vector((-1, 0, 0)), Vector((0, -1, 0)), Vector((0, 0, 1))
         pose = self.fk(ready)
         self.ready_pose = pose
-        self.blade = blade
+        self.blade = blade[:2]
+        self.hilt = self.rest['RightHand'].inverted() @ blade[2]
         self.length = {n: (self.rest[n].translation - self.rest[self.bones[n].parent.name].translation).length for n in self.bones if self.bones[n].parent}
         # The elbow and knee bend about these axes in each bone's own frame, read from the ready pose.
         self.hinge = {}
@@ -232,6 +235,11 @@ class Rig:
             parent = child.parent.name
             pose[child.name] = pose[parent] @ self.rel[child.name] @ basis[child.name]
 
+    def flip(self, name):
+        """D in Left's rest = S Right's rest D, S mirroring her left and right: a right bone's armature-space rotation R mirrors onto its left
+        twin as S R D, and a local basis B as Dt B D (the rig is not quite symmetric, so D is not only signs)."""
+        return self.rest[name].to_3x3().transposed() @ Matrix.Diagonal((-1, 1, 1)) @ self.rest[name.replace('Right', 'Left')].to_3x3()
+
     def grip(self, blade, edge):
         """The hand rotation that points the sword along blade with its edge toward edge."""
         b_local, e_local = self.blade
@@ -269,14 +277,24 @@ class Rig:
         blade = spun(c['blade'])
         hand = self.grip(blade, edge)
         wrist = at(c['hand'])
-        pole = spun((.6, -.4, -.6))
+        # Hands raised over the shoulders bring the elbows forward, so the forearms pass before her hair rather than through it.
+        high = min(max((c['hand'][2] - c['hips'][2] - 1.45) / .35, 0), 1)
+        pole = spun((.6, -.4 + .8 * high, -.6))
         self.reach(basis, pose, 'RightArm', 'RightForeArm', 'RightHand', wrist, pole, hand)
-        if c['lhand'] == 'hilt':
-            left = wrist - blade * .1 * self.unit
-        else:
-            left = at(c['lhand'])
+        held = min(max(c['grip'], 0), 1)
+        left = at(c['lhand'])
+        if held:
+            # Reflected across the plane of the blade and its edge, which holds the hilt's axis.
+            n = blade.cross(edge - edge.dot(blade) * blade).normalized()
+            mirror = Matrix.Identity(3) - 2 * Matrix((n * n.x, n * n.y, n * n.z))
+            axis = wrist + hand @ self.hilt
+            left = left.lerp(axis + mirror @ (wrist - axis) - blade * FIST * self.unit, held)
         basis['LeftHand'] = Matrix.Identity(4)
-        self.reach(basis, pose, 'LeftArm', 'LeftForeArm', 'LeftHand', left, spun((-.6, -.4, -.6)), None)
+        lpole = spun((-.6, -.4 + .8 * high, -.6))
+        self.reach(basis, pose, 'LeftArm', 'LeftForeArm', 'LeftHand', left, lpole, None)
+        if held:
+            fist = (mirror @ hand @ self.flip('RightHand')).to_quaternion()
+            self.reach(basis, pose, 'LeftArm', 'LeftForeArm', 'LeftHand', left, lpole, pose['LeftHand'].to_quaternion().slerp(fist, held).to_matrix())
         for side, foot, heel in (('Left', c['lfoot'], c['lheel']), ('Right', c['rfoot'], c['rheel'])):
             # A raised heel pivots the foot on its ball, which lifts the ankle.
             ankle = at((foot[0], foot[1], 0)) + self.up * (self.ankle[side] + (foot[2] + .13 * math.sin(math.radians(heel))) * self.unit)
@@ -293,11 +311,14 @@ def channels(name, t, start):
 
 
 def sword(rig, steel):
-    """The blade, hilt to tip, and its edge toward the knuckles, both in the hand's frame, then the hilt and tip,
-    from the blade's vertices in armature space with the hand at rest."""
+    """The blade, hilt to tip, and its edge toward the knuckles, both in the hand's frame, then the hilt (the middle of the blade's
+    root) and tip, from the blade's vertices in armature space with the hand at rest."""
     hand = rig.data.bones['RightHand'].matrix_local
     tip = max(steel, key=lambda p: (p - hand.translation).length)
-    hilt = max(steel, key=lambda p: (p - tip).length)
+    end = max(steel, key=lambda p: (p - tip).length)
+    # The hilt end of the blade's axis: the middle of its root.
+    root = [p for p in steel if (p - end).dot(tip - end) < .02 * (tip - end).length_squared]
+    hilt = sum(root, Vector()) / len(root)
     centre = sum(steel, Vector()) / len(steel)
     rot = hand.to_3x3().inverted()
     blade = (rot @ (tip - hilt)).normalized()
@@ -312,8 +333,13 @@ def time(f):
 
 
 def clips(rig, ready, blade, grip):
-    """name -> per-frame bone bases, from the ready pose's bases, the hand-local blade and edge axes and the grip."""
+    """name -> per-frame bone bases, from the ready pose's bases, the hand-local blade and edge axes with the hilt in armature space
+    (sword()'s), and the grip, which the left hand's fingers mirror while it holds the hilt."""
     solver = Rig(rig, ready, blade)
+    fingers = {}
+    for n, m in grip.items():
+        d = solver.flip(n)
+        fingers[n.replace('Right', 'Left')] = (d.transposed() @ m.to_3x3() @ d).to_quaternion()
     out = {}
     starts = {'attack1': dict(STANCE), 'skill': dict(STANCE)}
     for name in ('attack1', 'attack2', 'attack3', 'skill'):
@@ -341,6 +367,9 @@ def clips(rig, ready, blade, grip):
                 edge = solver.forward.copy()
             basis = solver.solve(v, edge)
             basis.update({n: m.copy() for n, m in grip.items()})
+            if v['grip'] > 0:
+                for n, q in fingers.items():
+                    basis[n] = basis[n].to_quaternion().slerp(q, min(v['grip'], 1)).to_matrix().to_4x4()
             poses.append(basis)
         out[name] = poses
         for a, b in CHAIN:

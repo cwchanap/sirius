@@ -1,5 +1,27 @@
 # MVP verification
 
+## Mio's combat clips out of her body — 2026-11-06
+
+Hapadona agreed to rechoreograph the swings the last pass left alone. The same per-frame count of each forearm and hand, and the blade, against the rest of her body ran on `tools/mio_combat.py`'s clips as keyed, about seven seconds a run, while the keys were tuned.
+- **Found:**
+  - Her left hand jumped onto the hilt in a single frame and hung open beside it, its fingers through her right fist.
+  - In Resonance Cut it jumped there mid-spin, while the sword was still out to her right, so her left forearm swept across her chest and through her right arm (343 vertices inside).
+  - The third slash's windup and Resonance Cut's raise held her hands just over and behind her head: her forearms lay in the top of her hair (178 and 116).
+  - The stance's left hand sat on her thigh, which the first two cuts' follow-throughs and Resonance Cut's end raised into it (43, 100, 119).
+- **Changed:**
+  - A `grip` channel replaces the jump: it eases the left hand onto the hilt and off again. Held, the hand is a fist mirroring the right one across the sword's plane, a fist's width down the hilt, its fingers mirroring the right grip's. The rig's left and right rests differ by up to 15 degrees, so the mirror is read off them (`Rig.flip()`).
+  - During the spin the left hand is held out to her left, and after each two-handed cut it lets go outward instead of sliding back through her.
+  - The windup and the raise go up before her face. Raised hands bring the elbows forward; without that, the first cut's windup put the blade 69 vertices into her forearm.
+  - The stance's left hand is a few centimetres further out.
+  - Timing, lunges, link poses' times and trail windows are unchanged.
+- **Measured, every frame:**
+  - Not counting her two hands touching on the hilt: attack1 15, attack2 7, attack3 12, Resonance Cut 57 (the forearms meeting at the low two-handed grip).
+  - Counting them: attack3 42, and in Resonance Cut 57, with the hilt 71 into her left fist where it closes round the pommel.
+  - The blade still lies against her right forearm in the stance (27, as before).
+  - The committed clips match the keyer exactly. `check_mio_export.py` passes; contact sheets are in `artifacts/mio-combat/`.
+- **Self-test:** 698 checks pass headless in `en`, `ja` and `zh_TW`; unit 57 and e2e 4 pass.
+- **Not yet:** no Metal run. The importer's change ran only on the committed model.
+
 ## The rest of the cast's self-contact — 2026-11-06
 
 Hapadona asked whether the satchel and Yui's hands were the only such places. A per-frame audit of every clip of every model (each forearm and hand, each shin and foot, and Mio's sword against the rest of the body) found more.
