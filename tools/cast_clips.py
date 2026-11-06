@@ -332,7 +332,7 @@ STRETCH = pose(STANCE, lift=(0, 0, .02), Spine=(8, 0, 0), Spine1=(6, 0, 0), Head
 # bent alone kinks. Her rise ends in it.
 FEET = dict(lift=(.004, -.04, 0), Hips=(2.6, 1.7, 1), LeftStep=(-.112, -.031, 0, 7), RightStep=(-.073, -.047, .036, 22), Weight='Left')
 MIO_STAND = pose(STANCE, **FEET, Spine=(-1.5, -1.5, 0), Spine1=(-1.5, -1.5, 0), Spine2=(-1, -1, 0), Head=(2, -2, 2), RightArm=(-8, 8, 0),
-                 RightForeArm=34, RightHand=(-34, 0, 0), LeftArm=(2, 13, 0), LeftForeArm=16)
+                 RightForeArm=34, RightHand=(-34, 0, 0), LeftArm=(6, 4, 0), LeftForeArm=20)
 MIO = {
     'sleep': act([(0, LIE)], loop=4, life=dict(breath=2, sway=0)),
     'wake': act([(0, LIE), (.6, pose(LIE, Head=(-6, 0, -10), Spine=(4, 0, 0))), (1.5, PROP), (2.2, SIT), (2.6, RUB),
@@ -346,22 +346,29 @@ MIO = {
 }
 
 # Standing at ease rather than to attention: the weight on the left leg, its hip pushed out and up, the right knee eased forward and the
-# feet a little closer and turned out; the chest tilts back over the hips so the shoulders stay level, and the arms hang close.
-STAND = pose(STANCE, lift=(-.04, 0, 0), Hips=(0, 7, 2), Spine=(0, -4, -1), Spine1=(0, -3, 0), Spine2=(0, -1, 0), Head=(2, 3, 3), RightArm=(2, 12, 0),
-             LeftArm=(3, 17, 0), RightForeArm=16, LeftForeArm=14, LeftStep=(-.04, 0, 0, 8), RightStep=(-.04, .06, 0, 16), Weight='Left')
+# feet a little closer and turned out; the chest tilts back over the hips so the shoulders stay level. The arms hang just clear of the
+# hips, the left furthest, since the hip pushed out under it would take a closer arm inside it (tools/self_contact.py measures this).
+STAND = pose(STANCE, lift=(-.04, 0, 0), Hips=(0, 7, 2), Spine=(0, -4, -1), Spine1=(0, -3, 0), Spine2=(0, -1, 0), Head=(2, 3, 3), RightArm=(3, 6, 0),
+             LeftArm=(6, 3, 0), RightForeArm=18, LeftForeArm=20, LeftStep=(-.04, 0, 0, 8), RightStep=(-.04, .06, 0, 16), Weight='Left')
 
 # Yui and Renji. Yui is quick and bright: a bouncing walk, a run, a wave, arms folded to sulk; Renji leans over his bench.
-# Giving: the hand comes up and out, palm up, a little past where it stops; pointing: the index out along the arm, the others closed.
+# Giving: the hand comes up and out, palm up, a little past where it stops; pointing: the index out along the arm, the others closed;
+# reading: a letter held in both hands a hand's width apart, so the forearms don't meet.
 GIVE = pose(STAND, lift=(-.04, .03, 0), Spine=(-5, -4, -3), Head=(-8, 3, 2), RightReach=(-.02, .25, -.11), RightElbow=(.3, -.4, -1), RightRoll=50,
             RightHand=(-8, 0, 0), RightCurl=(0, 2, 4, 6), RightThumb=.1)
 POINT = pose(STAND, lift=(-.04, .02, 0), Spine=(2, -4, -8), Head=(6, 2, -6), RightReach=(.1, .26, -.02), RightElbow=(.6, -.3, -.8), RightRoll=-10,
              RightHand=(4, 0, 0), RightCurl=(0, 80, 88, 96), RightThumb=.9)
-READ = pose(STAND, Head=(-24, 2, 0), Spine1=(-4, -3, 0), RightReach=(-.07, .2, -.12), LeftReach=(-.07, .2, -.12), RightRoll=-55, LeftRoll=-55,
+READ = pose(STAND, Head=(-24, 2, 0), Spine1=(-4, -3, 0), RightReach=(-.015, .2, -.12), LeftReach=(-.03, .2, -.12), RightRoll=-55, LeftRoll=-55,
             RightHand=(-12, 0, 0), LeftHand=(-12, 0, 0), curl=14, thumb=.25)
-# Arms folded to sulk, the hip cocked further and the head turned away; the elbows bend before the arms cross, so the hands don't reach out first.
-FOLD = pose(STAND, lift=(-.05, 0, 0), Hips=(0, 9, 6), Spine=(4, -5, 0), Head=(4, 5, -10), RightArm=(18, 4, 36), RightForeArm=94, LeftArm=(16, 4, 38),
-            LeftForeArm=92, curl=26, thumb=.3)
-BEND = pose(STAND, RightArm=(8, 8, 18), LeftArm=(8, 8, 16), RightForeArm=80, LeftForeArm=78, curl=14)
+# Arms folded to sulk, the hip cocked further and the head turned away. The forearms stack rather than cross through each other: the left
+# low across the waist, far enough out that its sleeve clears the jacket, the right above it, each sleeve's thickness apart; the right hand
+# curls over the left upper arm and the left fist tucks under the right elbow. BEND brings both forearms up in front, the right higher,
+# before they cross, so neither passes through the other on the way.
+FOLD = pose(STAND, lift=(-.05, 0, 0), Hips=(0, 9, 6), Spine=(4, -5, 0), Head=(4, 5, -10), curl=35, thumb=.4,
+            RightReach=(-.083, .155, -.047), RightElbow=(.34, .77, -.54), RightRoll=-60, RightHand=(0, 30, 0),
+            LeftReach=(-.108, .149, -.141), LeftElbow=(.05, .73, -.68), LeftRoll=30, LeftHand=(0, -50, 0))
+BEND = pose(STAND, lift=(-.045, 0, 0), Hips=(0, 8, 4), Spine=(2, -5, 0), curl=20, RightReach=(.02, .17, -.06), RightElbow=(.5, .5, -1),
+            LeftReach=(.0, .17, -.15), LeftElbow=(.5, .5, -1))
 # Waving: the elbow out at the shoulder's height, the forearm up, swinging from the elbow with the open hand trailing it.
 WAVE = pose(STAND, Head=(4, 4, -5), Spine=(2, -4, -4), RightReach=(.14, .05, .12), RightElbow=(1, -.1, -.3), RightRoll=0, RightHand=(0, 0, 0), RightCurl=-12, RightThumb=0)
 STRIKE = dict(RightArm=(48, 0, 16), RightForeArm=40)
@@ -390,13 +397,27 @@ RENJI = {
     'work': act([(0, BENCH), (.3, pose(BENCH, **STRIKE)), (.43, pose(BENCH, RightArm=(56, 0, 16), RightForeArm=48))], loop=1.2),
 }
 CLIPS = {'mio': MIO, 'yui': YUI, 'renji': RENJI}
+# Clips played under the futon's cover, which tools/build_bedding.py draped over her arms as these clips place them: they keep them.
+UNDER_COVER = ('sleep', 'wake', 'sit', 'terminal_sit', 'terminal_sit_hold')
 LOOPS = {'mio': ('sleep', 'sit', 'terminal_sit_hold', 'terminal_hold', 'stand'), 'yui': ('idle', 'walk', 'run', 'fold_hold', 'wave_hold', 'give_hold', 'point_hold', 'read_hold'),
          'renji': ('idle', 'walk', 'work', 'give_hold', 'point_hold', 'read_hold')}
 
 
-def poses(rig, unit, clips, loops, extra, height=HEIGHTS['mio']):
-    """name -> per-frame bases of every bone, as import_tripo_mio.py keys her clips; extra bases (her grip) override the pose's."""
+def grip(model):
+    """Mio's right-hand grip on the sword, as import_tripo_mio.py keys every clip with it; nobody else holds anything."""
+    if model != 'mio':
+        return {}
+    import json
     from mathutils import Matrix
+    ready = json.loads((ROOT / 'tools/mio_ready.json').read_text())
+    return {n: Matrix([m[i:i + 4] for i in range(0, 16, 4)]) for n, m in ready.items() if n.startswith('RightHand') and n != 'RightHand'}
+
+
+def poses(rig, unit, clips, loops, extra, height=HEIGHTS['mio'], body=None, metres=1):
+    """name -> per-frame bases of every bone; extra bases (her grip) override the pose's. Given the skinned body, each clip's arms are
+    then turned out of it by tools/self_contact.py (metres: game metres per world unit, 1 on a model at game scale)."""
+    from mathutils import Matrix
+    import self_contact
     solver = Cast(rig, unit, height)
     out = {}
     for name, (length, at) in clips.items():
@@ -410,52 +431,61 @@ def poses(rig, unit, clips, loops, extra, height=HEIGHTS['mio']):
                     basis[bone].translation = loc
             basis.update({n: m.copy() for n, m in extra.items()})
             out[name].append(basis)
+        if body is not None and name not in UNDER_COVER:
+            self_contact.clear(body, rig, out[name], metres=metres)
     return out
 
 
-def swap(model):
-    """Key the clips on the committed model as its importer would, Mio's at frame 1 on with her sword grip, and swap them into its GLB."""
+def bake(rig, clips, start):
+    """Key per-frame bases as one action per clip from frame start, each in its own muted NLA track, as the importers collect them."""
     import bpy
-    import json
-    import tempfile
+    rig.animation_data_create()
+    for name, frames in clips.items():
+        action = bpy.data.actions.new(name)
+        action.use_fake_user = True
+        rig.animation_data.action = action
+        last = {}
+        for t, basis in enumerate(frames, start):
+            for pb in rig.pose.bones:
+                pb.rotation_mode = 'QUATERNION'
+                pb.matrix_basis = basis[pb.name]
+                if pb.name in last and last[pb.name].dot(pb.rotation_quaternion) < 0:
+                    pb.rotation_quaternion = -pb.rotation_quaternion
+                last[pb.name] = pb.rotation_quaternion.copy()
+                for channel in ('rotation_quaternion', 'location', 'scale'):
+                    pb.keyframe_insert(channel, frame=t)
+        rig.animation_data.action = None
+        track = rig.animation_data.nla_tracks.new()
+        track.name = name
+        track.strips.new(name, start, action)
+        track.mute = True
     from mathutils import Matrix
+    for pb in rig.pose.bones:
+        pb.matrix_basis = Matrix.Identity(4)
+
+
+def swap(model):
+    """Key the clips on the committed model as its importer would (Mio's from frame 1 with her sword grip, the others from 0), arms cleared
+    of the body, and swap them into its GLB."""
+    import bpy
+    import tempfile
     import glb_swap
-    from patrol_clips import key
     path = ROOT / f'assets/models/{model}.glb'
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=str(path))
     for action in list(bpy.data.actions):
         bpy.data.actions.remove(action)
     rig = next(o for o in bpy.data.objects if o.type == 'ARMATURE')
+    body = max((o for o in bpy.data.objects if o.type == 'MESH' and o.find_armature() == rig), key=lambda o: len(o.data.polygons))
     rig.animation_data_clear()
     unit = rig.matrix_world.to_scale()[0]
-    if model == 'mio':
-        ready = json.loads((ROOT / 'tools/mio_ready.json').read_text())
-        grip = {n: Matrix([m[i:i + 4] for i in range(0, 16, 4)]) for n, m in ready.items() if n.startswith('RightHand') and n != 'RightHand'}
-        rig.animation_data_create()
-        for name, frames in poses(rig, unit, CLIPS[model], LOOPS[model], grip).items():
-            action = bpy.data.actions.new(name)
-            rig.animation_data.action = action
-            for t, basis in enumerate(frames, 1):
-                for pb in rig.pose.bones:
-                    pb.rotation_mode = 'QUATERNION'
-                    pb.matrix_basis = basis[pb.name]
-                    for channel in ('rotation_quaternion', 'location', 'scale'):
-                        pb.keyframe_insert(channel, frame=t)
-            rig.animation_data.action = None
-            track = rig.animation_data.nla_tracks.new()
-            track.name = name
-            track.strips.new(name, 1, action)
-            track.mute = True
-        mode = 'NLA_TRACKS'
-    else:
-        key(rig, unit, CLIPS[model], LOOPS[model], Cast(rig, unit, HEIGHTS[model]))
-        mode = 'ACTIONS'
+    bake(rig, poses(rig, unit, CLIPS[model], LOOPS[model], grip(model), HEIGHTS[model], body), 1 if model == 'mio' else 0)
     donor = Path(tempfile.mkdtemp()) / f'{model}.glb'
     bpy.ops.object.select_all(action='SELECT')
     bpy.context.view_layer.objects.active = rig
     bpy.ops.export_scene.gltf(filepath=str(donor), export_format='GLB', use_selection=True, export_animations=True,
-                              export_animation_mode=mode, export_anim_single_armature=False, export_apply=False)
+                              export_animation_mode='NLA_TRACKS' if model == 'mio' else 'ACTIONS', export_anim_single_armature=False,
+                              export_apply=False)
     path.write_bytes(glb_swap.swap_animations(path.read_bytes(), donor.read_bytes(), list(CLIPS[model])))
     print('CAST_SWAP', model, sorted(CLIPS[model]), flush=True)
 

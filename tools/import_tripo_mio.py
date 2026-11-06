@@ -21,6 +21,7 @@ sys.path.insert(0, str(ROOT / 'tools'))
 import cast_clips  # noqa: E402
 import hand_weights  # noqa: E402
 import mio_combat  # noqa: E402
+import self_contact  # noqa: E402
 OUT = ROOT / 'artifacts/mio-tripo-animation'
 SOURCE = 'assets/source/tripo-bridge-20261016-mio-anim.blend'
 FIXED = 'assets/source/mio-lowpoly-fixed-face2.blend'
@@ -294,7 +295,11 @@ def main():
                 pose.update({pb.name: pb.matrix_basis.copy() for pb in rig.pose.bones})
         clips[name] = poses
     clips.update(mio_combat.clips(rig, ready, (blade, edge), grip))
-    clips.update(cast_clips.poses(rig, scale, cast_clips.MIO, cast_clips.LOOPS['mio'], grip))
+    rig.animation_data.action = None
+    # Her Tripo idle, walk and guard swing her forearms through her satchel and hips; the cast clips are kept out by poses().
+    for name in ('idle', 'walk', 'guard'):
+        self_contact.clear(body, rig, clips[name])
+    clips.update(cast_clips.poses(rig, scale, cast_clips.MIO, cast_clips.LOOPS['mio'], grip, cast_clips.HEIGHTS['mio'], body))
     actions = []
     for name, poses in clips.items():
         action = bpy.data.actions.new(name)

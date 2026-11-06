@@ -1,5 +1,21 @@
 # MVP verification
 
+## Hands out of the body — 2026-11-06
+
+Hapadona saw Mio's hand go through her satchel and Yui's two hands through each other. Godot skins a mesh without self-collision, so only the clips can keep a hand out. `tools/self_contact.py` counts the hand and forearm vertices of each side lying inside the rest of the body: the nearest triangle within 3.5 cm faces away. At first it searched 10 cm, which flagged a cuff near the satchel's far panel as inside, so it was narrowed.
+- **Found:**
+  - Mio's idle, walk, guard and jump put up to 311 vertices of her left forearm inside the satchel, and her dialogue stance 149.
+  - Last round's relaxed stance pushed Yui's hip into her left arm (about 900 vertices) in every gesture; Renji had the same.
+  - Yui's folded forearms passed through each other and the chest (244 at worst), and her reading hands overlapped (about 200).
+- **Fixed:**
+  - The relaxed stance hangs the arms clear of the hips; Mio's dialogue stance turns her left upper arm out past the satchel.
+  - Folded arms were rebuilt from measurements (jacket front about 10 cm forward of the spine, sleeves 5 cm in radius): the left forearm crosses low and forward, the right a sleeve's thickness above it, the right hand curls over the left upper arm and the left fist tucks under the right elbow.
+  - Reading holds the hands apart.
+  - `clear()` turns the upper arm out of whatever is left, frame by frame; `cast_clips.py` runs it on every cast clip but the five under the futon's cover. `--fix` ran it on Mio's committed idle, walk, guard and jump (12–16 degrees at most, timing unchanged).
+- **Measured (`self_contact.py --max=30` passes):** Mio's idle 11, walk 11, guard 11, jump 13, dialogue stance 8 and terminal 7; every Yui clip 29 or under, folded arms 9 and 29 (the right hand resting on the left sleeve); every Renji clip 16 or under. Every other Mio clip is unchanged to the value; `check_mio_export.py` passes.
+- **Self-test:** 698 checks pass headless in `en`, `ja` and `zh_TW`; unit 57 and e2e 4 pass.
+- **Not yet:** no Metal run. The importers' new step ran only on the committed models, since the sources are on the Mac. Mio's combat swings, roll and death still pass a forearm through the satchel or her head for a few frames (`attack3` 179 at worst); they were left alone, since her left hand is placed on the hilt in some of them.
+
 ## Mio's and Yui's hands — 2026-11-05
 
 Hapadona found the hands still messy. Close-ups of both models' hands, at rest and in every dialogue clip, showed three faults:
