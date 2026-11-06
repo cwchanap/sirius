@@ -1,5 +1,6 @@
 """Build yui.glb and renji.glb from Hapadona's Tripo Studio models: the mixamorig: prefix stripped, the clips in
-tools/cast_clips.py keyed on each rig, a face in tools/face_paint.py's FACES repainted, then the shared importer at cast_clips.HEIGHTS.
+tools/cast_clips.py keyed on each rig with the arms kept out of the body (tools/self_contact.py), a face in tools/face_paint.py's FACES
+repainted, then the shared importer at cast_clips.HEIGHTS.
 
 blender --background --factory-startup --python tools/import_tripo_cast.py -- [yui renji]
 The sources, assets/source/NAME-tripo-original.blend, are her FBX downloads saved with their maps packed.
@@ -25,7 +26,13 @@ if __name__ == '__main__':
         if name in face_paint.FACES:
             face_paint.repaint_blend(name)
         unit = cast_clips.HEIGHTS[name] / patrol_clips.height(rig)
-        patrol_clips.key(rig, unit, cast_clips.CLIPS[name], cast_clips.LOOPS[name], cast_clips.Cast(rig, unit, cast_clips.HEIGHTS[name]))
+        body = max((o for o in rig.children if o.type == 'MESH'), key=lambda o: len(o.data.polygons))
+        if rig.animation_data:
+            rig.animation_data.action = None
+        # The source is at Tripo's own scale: tools/self_contact.py measures in game metres.
+        clips = cast_clips.poses(rig, unit, cast_clips.CLIPS[name], cast_clips.LOOPS[name], {}, cast_clips.HEIGHTS[name], body,
+                                 unit / rig.matrix_world.to_scale()[0])
+        cast_clips.bake(rig, clips, 0)
         keyed = Path(tempfile.mkdtemp()) / f'{name}-keyed.blend'
         bpy.ops.wm.save_as_mainfile(filepath=str(keyed))
         if code := main([str(keyed), '--name', name, '--height', str(cast_clips.HEIGHTS[name]), '--force']):
