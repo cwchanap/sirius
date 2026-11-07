@@ -367,7 +367,7 @@ READ = pose(STAND, Head=(-24, 2, 0), Spine1=(-4, -3, 0), RightReach=(-.015, .2, 
 # curls over the left upper arm and the left fist tucks under the right elbow. BEND brings both forearms up in front, the right higher,
 # before they cross, so neither passes through the other on the way.
 FOLD = pose(STAND, lift=(-.05, 0, 0), Hips=(0, 9, 6), Spine=(4, -5, 0), Head=(4, 5, -10), curl=35, thumb=.4,
-            RightReach=(-.083, .155, -.047), RightElbow=(.34, .77, -.54), RightRoll=-60, RightHand=(0, 30, 0),
+            RightReach=(-.083, .155, -.032), RightElbow=(.34, .77, -.54), RightRoll=-60, RightHand=(0, 30, 0),
             LeftReach=(-.108, .149, -.141), LeftElbow=(.05, .73, -.68), LeftRoll=30, LeftHand=(0, -50, 0))
 BEND = pose(STAND, lift=(-.045, 0, 0), Hips=(0, 8, 4), Spine=(2, -5, 0), curl=20, RightReach=(.02, .17, -.06), RightElbow=(.5, .5, -1),
             LeftReach=(.0, .17, -.15), LeftElbow=(.5, .5, -1))

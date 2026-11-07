@@ -111,7 +111,8 @@ def pose(rig, basis):
 def clear(body, rig, frames, limit=40, metres=1):
     """Turn each frame's upper arms (and the sword's wrist) out of the body, at most limit steps, keeping the turn that left the fewest
     vertices inside (where an arm lies between the chest and the other arm, the way out swings from side to side). frames: a clip's
-    per-frame {bone: basis matrix}, changed in place. Returns the largest turn in degrees."""
+    per-frame {bone: basis matrix}, changed in place. Returns the largest turn in degrees. The arms are solved one after the other, so turning
+    the second out of the body can put it into the hand the first had cleared: a pose resting a hand on the other arm is kept clear by its key."""
     import bpy
     from mathutils import Quaternion, Vector
     measure = Body(body, rig, metres)
@@ -269,7 +270,8 @@ def fix(model, names):
 
 
 def report(model, names, mode):
-    """Print each clip's worst sampled frame per side; returns the most vertices inside in any of them."""
+    """Print each clip's worst frame per side, every frame measured (a hand through the body for one or two frames is the flicker this guards
+    against); returns the most vertices inside in any of them."""
     rig, body = load(model)
     measure = Body(body, rig)
     if mode:
@@ -282,7 +284,7 @@ def report(model, names, mode):
     for name in names:
         frames = clips[name]
         worst = {}
-        for f in range(0, len(frames), max(1, len(frames) // 12)):
+        for f in range(len(frames)):
             pose(rig, frames[f])
             co = measure.points()
             for side in measure.sides():
