@@ -856,8 +856,8 @@ public static class IntegrationCheck
         // counts; its screen raises a stat a point for each level's cost and trades stardust for resonance cells.
         var downed=g.Enemies.First(e=>e.Kind==Enemy.Scout);purse=growth.Stardust;downed.Execute();
         Check(downed.Dead&&growth.Stardust==purse+Stats.ScoutReward,$"a shut-down scout leaves Mio {Stats.ScoutReward} stardust");
-        var savePoint=Hoshikawa.World.SavePoint;Place(g.Player,new(savePoint.X+2,Hoshikawa.World.Height(savePoint.X+2,savePoint.Y)+.1f,savePoint.Y));await Frames(10);
-        Check(g.Player.IsOnFloor()&&g.Interaction()==(Hud.StardustIcon,Localization.T(Hoshikawa.World.SavePointName).ToUpperInvariant())&&g.GetNode<OmniLight3D>("Save point light").GlobalPosition.DistanceTo(new(savePoint.X,g.Player.GlobalPosition.Y,savePoint.Y))<1.5f,
+        var savePoint=Hoshikawa.World.SavePoints[0].At;Place(g.Player,new(savePoint.X+2,Hoshikawa.World.Height(savePoint.X+2,savePoint.Y)+.1f,savePoint.Y));await Frames(10);
+        Check(g.Player.IsOnFloor()&&g.Interaction()==(Hud.StardustIcon,Localization.T(Hoshikawa.World.SavePointName).ToUpperInvariant())&&g.GetNode<OmniLight3D>("Save point light Hoshikawa").GlobalPosition.DistanceTo(new(savePoint.X,g.Player.GlobalPosition.Y,savePoint.Y))<1.5f,
             "Hoshikawa's well is the save point, lit, its name on the prompt");
         g.Player.Health=20;g.Player.SkillCharges=0;g.Player.Stamina=0;await Tap(Key.E);
         Check(g.Mode==GameMode.Rest&&g.Player.Health==g.Player.MaxHealth&&g.Player.SkillCharges==Player.MaxSkillCharges&&!downed.Dead&&downed.GlobalPosition.DistanceTo(downed.Home)<.5f&&g.Patrols.All(e=>e.Dead)
@@ -880,6 +880,12 @@ public static class IntegrationCheck
         while(!Pressable("Buy")[0].Disabled){Pressable("Buy")[0].EmitSignal(BaseButton.SignalName.Pressed);await Frames(2);}
         Check(bag.Count("cell")==bag.Capacity("cell")&&growth.Stardust==5,$"Buy trades {traded.Price} stardust for each resonance cell, until Mio carries all {bag.Capacity("cell")}");
         await Tap(Key.Escape);Check(g.Mode==GameMode.Playing,"escape leaves the save point's screen back to play");
+        // Komorebi's well is the second Starwell, the same screen.
+        var northern=Hoshikawa.World.SavePoints[1].At;Place(g.Player,new(northern.X+2,Hoshikawa.World.Height(northern.X+2,northern.Y)+.1f,northern.Y));await Frames(10);
+        Check(Hoshikawa.World.SavePoints.Length==2&&Hoshikawa.World.RegionAt(g.Player.GlobalPosition)=="Komorebi"&&g.Player.IsOnFloor()&&g.Interaction()==(Hud.StardustIcon,Localization.T(Hoshikawa.World.SavePointName).ToUpperInvariant())
+            &&g.GetNode<OmniLight3D>("Save point light Komorebi").GlobalPosition.DistanceTo(new(northern.X,g.Player.GlobalPosition.Y,northern.Y))<1.5f,"Komorebi's well is the other Starwell, lit, its name on the prompt");
+        g.Player.Health=20;await Tap(Key.E);Check(g.Mode==GameMode.Rest&&g.Player.Health==g.Player.MaxHealth,"and E there rests Mio and opens the same screen");
+        await Tap(Key.Escape);
         // ATK scales the sword's damage and posture damage; DEF divides a strike's damage.
         var dummy=downed;Place(g.Player,spot);dummy.GlobalPosition=spot+Vector3.Forward*2;dummy.Model.Rotation=Vector3.Zero;g.Player.Model.Rotation=new(0,Mathf.Pi,0);await Frames(12);
         float dummyHp=dummy.Health;await Press("attack",2);for(int i=0;i<30&&dummy.Health==dummyHp;i++)await Frames(1);await Frames(40);
@@ -894,17 +900,83 @@ public static class IntegrationCheck
         Place(g.Player,g.World.RelayPosition+Vector3.Back*2);g.Interact();
         Check(g.QuestStage==3&&g.Speaker=="Zero","relay activation contacts remote Zero");g.Mode=GameMode.Playing;
         Place(g.Player,g.World.Residents[0].Body.GlobalPosition+Vector3.Back*2);await Frames(60);g.Interact();
-        Check(g.QuestStage==4,"returning to Renji completes the prologue");
+        Check(g.QuestStage==Quest.Morning,"returning to Renji ends the first day");
         int mother=g.Script.FindIndex(b=>b.Speaker=="Mio"&&b.Text.Contains("mother"));
-        Check(g.Script[^1].Speaker==""&&g.Script[g.NightFrom].Text.StartsWith("Night")&&mother>g.NightFrom&&g.Script[mother+1].Speaker=="Zero","the prologue closes on the lantern night, where Zero changes the subject from Mio's mother");
+        Check(g.Script[^1].Speaker==""&&g.Script[g.NightFrom].Text.StartsWith("Night")&&mother>g.NightFrom&&g.Script[mother+1].Speaker=="Zero","the first day closes on the lantern night, where Zero changes the subject from Mio's mother");
         for(int i=0;i<40&&g.Speaker!="Mio";i++)await Tap(Key.E);
         Check(g.Voice.Playing&&g.Voice.Stream?.ResourcePath=="res://assets/audio/voice/ja/Mio/Homecoming.6.mp3","the homecoming voices Mio under its own scene key");
-        await Tap(Key.Escape);Check(g.Mode==GameMode.Playing&&!g.Voice.Playing,"escape skips the rest of a scene and silences its voice");
+        // The second day: Mio wakes in her room, Renji learns the station's home signal answers only to its own lever, and she does four errands in
+        // any order before she takes him his telephone; the third morning she meets the others at the rockfall, which they clear.
+        var gardener=g.Actor("KOMA-7").Body;var komaHome=gardener.GlobalPosition;var renji=g.Actor("Renji").Body;var sota=g.Actor("Sota").Body;var sotaHome=sota.GlobalPosition;
+        await Tap(Key.Escape);
+        Check(g.Mode==GameMode.Dialogue&&!g.Voice.Playing&&g.InRoom&&!g.World.Visible&&g.Script.SequenceEqual(Prologue.DayTwo)&&g.OnCard&&g.Blackout==1&&g.Player.Visual.Clip=="sleep",
+            "escape skips the rest of the homecoming and silences it; the second day opens on its card over black, Mio asleep on her futon");
+        await Frames(30);Check(g.Blackout==1&&g.Reveal==g.Dialogue.Length&&g.Voice.Stream==null,"the black holds under the card, shown whole and silent");
+        await Tap(Key.E);Check(g.Beat==1&&!g.OnCard&&g.Speaker=="Zero"&&g.NightFrom==-1,"one press moves past the card to Zero waking her by day");
+        await Frames(20);Check(g.Blackout<1&&g.Player.Visual.Clip=="wake","the black lifts as she sits up");
+        g.EndDialogue();var blanket=g.Room!.GetNode<MeshInstance3D>("Blanket");
+        Check(g.Mode==GameMode.Playing&&g.Objective=="Head outside"&&(float)blanket.Get("blend_shapes/folded")==1&&g.Room.GetNode<Node3D>("Telephone").Visible,"skipped, the morning leaves her up, her cover folded, to head outside");
+        g.LeaveRoom();
+        Check(!g.InRoom&&g.Mode==GameMode.Playing&&g.Objective=="Speak to Renji at the workshop"&&g.ObjectivePosition==renji.GlobalPosition&&!g.AtHome,"out of the door she goes to see Renji, and her door does not take her back in yet");
+        async Task TalkTo(Node3D who,Vector3? side=null){var talk=who.GlobalPosition+(side??Vector3.Back*2);talk.Y=Hoshikawa.World.Height(talk.X,talk.Z)+.1f;Place(g.Player,talk);await Frames(10);g.Interact();}
+        await TalkTo(renji);
+        Check(g.QuestStage==Quest.Ready&&g.Script.SequenceEqual(Prologue.HalfDone)&&g.Speaker=="Renji"&&g.Staged,"on the second morning Renji learns the station's signal answers only to its own lever, and sends her to get ready");
+        g.EndDialogue();Check(g.Objective=="Get ready to set out ({0}/4)"&&g.ErrandsDone==0&&g.ObjectiveText==Localization.F("Get ready to set out ({0}/4)",0),$"getting ready counts four errands on the objective: {g.ObjectiveText}");
+        await TalkTo(renji);Check(g.Script.SequenceEqual(Prologue.RenjiReady),"meanwhile Renji repeats what she needs");g.EndDialogue();
+        await TalkTo(sota);
+        Check(g.Script.SequenceEqual(Prologue.SotaJoins)&&g.Heard.Contains("Sota")&&g.ErrandsDone==1,"Sota joins her, which takes the place of his first meeting");g.EndDialogue();
+        await TalkTo(sota);Check(g.Script.SequenceEqual(Prologue.Usual("Sota")),"then he says his usual line");g.EndDialogue();
+        var yui2=g.Actor("Yui").Body;Check(g.ObjectivePosition.DistanceTo(g.Player.GlobalPosition)<=new[]{yui2.GlobalPosition,gardener.GlobalPosition}.Min(p=>p.DistanceTo(g.Player.GlobalPosition))+.01f,"the objective marks the nearest errand left");
+        g.Player.Inventory.Take("remedy");g.Player.Inventory.Take("remedy");await TalkTo(yui2);
+        Check(g.Script.SequenceEqual(Prologue.Crossbow)&&g.Player.Inventory.Count("remedy")==g.Player.Inventory.Capacity("remedy")&&g.ErrandsDone==2,"at the clinic Mio mends Yui's crossbow, and Chiaki sends her off with remedies");g.EndDialogue();
+        await TalkTo(g.Actor("Chiaki").Body);Check(g.Script.SequenceEqual(Prologue.Usual("Chiaki"))||g.Script.SequenceEqual(Prologue.FirstMeeting["Chiaki"]),"Chiaki, the crossbow done, speaks as usual");g.EndDialogue();
+        await TalkTo(gardener);
+        Check(g.Script.SequenceEqual(Prologue.KomaAsks)&&g.Script.Any(b=>b.Speaker=="Tetsuzo")&&g.Hud.Portrait("Tetsuzo")==null&&g.ErrandsDone==3,"KOMA-7 asks its keeper, whose voice comes from inside the house");
+        for(int i=0;i<40&&g.Speaker!="Tetsuzo";i++)await Tap(Key.E);
+        Check(g.Speaker=="Tetsuzo"&&g.Voice.Stream==null&&g.SpeakerRole=="","Grandpa Tetsu speaks silently, unseen");g.EndDialogue();
+        await TalkTo(g.Actor("Chiyo").Body);Check(g.Script.SequenceEqual(Prologue.ChiyoLamp)&&g.ErrandsDone==3,"Chiyo promises a lantern at the east gate, which is not one of the errands");g.EndDialogue();
+        Check(g.ObjectivePosition.DistanceTo(new(Hoshikawa.World.MioDoor.X,g.ObjectivePosition.Y,Hoshikawa.World.MioDoor.Z))<.01f,"the last errand left is at home");
+        var doorstep=new Vector3(Hoshikawa.World.MioDoor.X,Hoshikawa.World.Height(Hoshikawa.World.MioDoor.X,Hoshikawa.World.MioDoor.Z)+.1f,Hoshikawa.World.MioDoor.Z);Place(g.Player,doorstep);await Frames(10);
+        Check(g.AtHome&&g.Interaction()==("",Localization.T("DOOR")),"from the second day her own door takes her home");
+        g.Interact();Check(g.InRoom&&g.Mode==GameMode.Playing&&g.Objective=="Mend Renji's telephone"&&g.Player.Facing.X<-.9f&&g.Player.GlobalPosition.DistanceTo(g.Room!.GlobalPosition+Hoshikawa.World.Door)<1,"in at her door, facing into her room, she is to mend the telephone");
+        Indoors(Hoshikawa.World.Telephone+Vector3.Left*.6f);await Frames(5);
+        Check(g.Interaction()==("repair",Localization.T("TELEPHONE"))&&g.ObjectivePosition==g.Room!.GlobalPosition+Hoshikawa.World.Telephone,"Renji's telephone on the floor is the objective, to repair");
+        g.Interact();Check(g.Script.SequenceEqual(Prologue.PhoneFixed)&&g.QuestStage==Quest.Handover&&g.ToastTitle=="READY TO SET OUT","mending it is the fourth errand: Mio is ready to set out");
+        g.EndDialogue();Check(!g.Room!.GetNode<Node3D>("Telephone").Visible&&g.Objective=="Head outside"&&g.Interaction().Label=="","she takes the mended telephone with her");
+        g.LeaveRoom();Check(g.Objective=="Bring Renji his telephone"&&g.ObjectivePosition==renji.GlobalPosition,"and brings it to Renji");
+        await TalkTo(renji);
+        Check(g.QuestStage==Quest.Home&&g.Script.SequenceEqual(Prologue.Evening)&&g.Script[g.NightFrom].Speaker==""&&g.NightFrom==g.Script.Count-1,"at evening Renji sets the meeting at the rockfall, and night falls on the last line");
+        g.EndDialogue();
+        Check(renji.GlobalPosition.DistanceTo(Game.AtRockfall["Renji"].At with {Y=renji.GlobalPosition.Y})<.01f&&gardener.GlobalPosition.DistanceTo(Game.AtRockfall["KOMA-7"].At with {Y=gardener.GlobalPosition.Y})<.01f
+            &&g.Actor("Renji").Visual.Clip=="idle"&&g.Blackout>0&&g.Objective=="Go home and rest","Renji and KOMA-7 go up to the rockfall in the dark, and Mio is to go home");
+        Place(g.Player,doorstep);await Frames(10);g.Interact();
+        Check(g.InRoom&&g.QuestStage==Quest.Rockfall&&g.Script.SequenceEqual(Prologue.NightTwo)&&g.NightFrom==0&&g.Speaker=="Zero","home, she talks with Zero into the second night");
+        g.EndDialogue();
+        Check(g.InRoom&&g.Script.SequenceEqual(Prologue.DayThree)&&g.OnCard&&g.Player.Visual.Clip=="sleep"&&!g.Room!.GetNode<Node3D>("Telephone").Visible
+            &&sota.GlobalPosition.DistanceTo(Game.AtRockfall["Sota"].At with {Y=sota.GlobalPosition.Y})<.01f,"she sleeps to the third day's card, while Sota and Yui set out for the rockfall");
+        g.EndDialogue();g.LeaveRoom();
+        Check(g.Objective=="Meet the others at the rockfall"&&g.World.Rockfall.Count==32&&g.World.Rockfall.All(n=>n.Visible&&(n is not StaticBody3D b||b.CollisionLayer==1)),"the barrier and the rockfall still close the station road");
+        foreach(var who in new[]{"Renji","KOMA-7","Sota","Yui"})
+        {
+            var talk=g.Actor(who).Body.GlobalPosition+Vector3.Left*1.6f;talk.Y=Hoshikawa.World.Height(talk.X,talk.Z)+.1f;Place(g.Player,talk);await Frames(10);
+            Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-talk.X,g.Player.GlobalPosition.Z-talk.Z).Length()<.2f&&g.Interaction().Label==Localization.T(who).ToUpperInvariant(),"at the rockfall, there is room to talk to "+who);
+        }
+        g.Interact();Check(g.QuestStage==Quest.Beyond&&g.Script.SequenceEqual(Prologue.Rockfall)&&g.Staged,"they open the road");
+        while(g.Beat<Prologue.Cleared&&g.Mode==GameMode.Dialogue)await Tap(Key.E);
+        Check(g.Blackout>.5f&&g.World.Rockfall.All(n=>!n.Visible&&(n is not StaticBody3D b||b.CollisionLayer==0)),"as the narration says, the barrier and the boulders are cleared under a moment's black");
+        g.EndDialogue();
+        Check(gardener.GlobalPosition.DistanceTo(komaHome)<.01f&&g.Objective=="Take the station road east"&&g.ObjectivePosition==g.World.StationRoadEnd,"KOMA-7 goes back to its tomatoes, and the station road is open");
+        var through=new Vector3(41,Hoshikawa.World.Height(41,-160)+.1f,-160);Place(g.Player,through);await Frames(10);
+        Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-41,g.Player.GlobalPosition.Z+160).Length()<.2f,"Mio can stand where the barrier stood");
+        Place(g.Player,g.World.StationRoadEnd+Vector3.Up*.1f);await Frames(10);
+        Check(g.Player.IsOnFloor()&&g.ToastTitle=="TO BE CONTINUED","the road runs out where the next map will begin");
+        await TalkTo(renji,Vector3.Left*1.6f);Check(g.Script.SequenceEqual(Prologue.RenjiSeesOff),"Renji, staying at the plaza, sees them off");g.EndDialogue();
         if(DisplayServer.GetName()!="headless"){g.SaveScreenshot("res://artifacts/mission-complete.png");await Frames(5);}
         var chaser=g.Enemies.First(e=>e.Kind==Enemy.Scout&&!e.Dead);chaser.SetPhysicsProcess(true);Place(g.Player,chaser.GlobalPosition+Vector3.Back*6);await Frames(30);
         Check(chaser.State=="PURSUE"&&g.Music.Current=="battle","a scout after Mio brings in the battle music");g.SetPaused(true);
-        g.Restart();Check(g.QuestStage==0&&g.Enemies.All(e=>!e.Dead)&&g.Player.Health==100&&yui.Body.GlobalPosition.DistanceTo(new(Hoshikawa.World.YuiGate.X,yui.Body.GlobalPosition.Y,Hoshikawa.World.YuiGate.Z))<.01f,
-            "restart restores a fresh playable mission, Yui back at Mio's gate");chaser.SetPhysicsProcess(false);
+        g.Restart();Check(g.QuestStage==0&&g.Enemies.All(e=>!e.Dead)&&g.Player.Health==100&&yui.Body.GlobalPosition.DistanceTo(new(Hoshikawa.World.YuiGate.X,yui.Body.GlobalPosition.Y,Hoshikawa.World.YuiGate.Z))<.01f
+            &&sota.GlobalPosition.DistanceTo(sotaHome)<.01f&&renji.GlobalPosition.DistanceTo(new(-5.2f,renji.GlobalPosition.Y,11))<.01f&&g.Actor("Renji").Visual.Clip=="work"&&g.World.Rockfall.All(n=>n.Visible&&(n is not StaticBody3D b||b.CollisionLayer==1)),
+            "restart restores a fresh playable mission, Yui back at Mio's gate, Renji at his bench, Sota at home and the station road closed");chaser.SetPhysicsProcess(false);
         Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Opening)&&g.Log.Count==1,"restarting the prologue replays its opening, with a fresh history");
         // Through the narration, the waking, out of the door and past Yui at the gate.
         void SkipOpening(){g.EndDialogue();g.EndDialogue();g.LeaveRoom();g.EndDialogue();}
@@ -938,7 +1010,8 @@ public static class IntegrationCheck
                 ("Quit game",17,278),("Quit",17,78),("WASD  Move      SHIFT  Run      SPACE  Jump",13,334),("LMB / J  Attack     RMB / K  Guard & deflect",13,334),
                 ("CTRL / ALT  Dodge     TAB  Lock     Q  Skill",13,334),("E  Interact    H  Remedy    I  Items    ESC  Pause",12,334),
                 ("Items",17,278),("Settings",17,278),("Use",17,138),("Back",17,138),("Supplies",13,378),("Key items",13,378),("The train with no passengers",19,360),
-                ("Head outside",17,340),("Speak to Renji at the workshop",17,340),("Clear the old relay road",17,340),("Restart the manual relay",17,340),("Return to Renji in Hoshikawa",17,340),("Signals restored",17,340)};
+                ("Head outside",17,340),("Speak to Renji at the workshop",17,340),("Clear the old relay road",17,340),("Restart the manual relay",17,340),("Return to Renji in Hoshikawa",17,340),
+                ("Get ready to set out ({0}/4)",17,340),("Mend Renji's telephone",17,340),("Bring Renji his telephone",17,340),("Go home and rest",17,340),("Meet the others at the rockfall",17,340),("Take the station road east",17,340)};
             var overflow=tight.Where(t=>Width(t.Text,t.Size)>t.Room).Select(t=>t.Text).ToArray();
             Check(overflow.Length==0,$"{name}: every menu, control and panel string fits its fixed box {string.Join(" | ",overflow)}");
             var stats=Stats.All.Where(s=>Width(s.Short,17,serif)>120).Select(s=>s.Short).ToArray();

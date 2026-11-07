@@ -94,10 +94,6 @@ public static class Prologue
     {
         ("Renji","The road is clear? Then the relay is yours. Follow the lanterns up to the viaduct and wake it up."),
     };
-    public static readonly (string Speaker,string Text)[] RenjiRest=
-    {
-        ("Renji","The signals are ready. Ask that terminal of yours about the train now and then. Rest for a while. You have earned it."),
-    };
     public static readonly (string Speaker,string Text)[] Homecoming=
     {
         ("Renji","I can see the relay's lamp from the workshop roof. Green, for the first time since the line closed."),
@@ -114,7 +110,141 @@ public static class Prologue
         ("Zero","Goodnight, Mio. Thank you for the rice paddies."),
         ("","The link goes quiet. Far beyond the viaduct, the city keeps shining."),
     };
-    public const int NightFalls=4;
+    // The second day, from Mio's room: Renji learns the station's home signal answers only to its own lever, so someone has to get
+    // inside, and she gets ready to set out with two companions. Day cards (Cards) open the mornings over black.
+    public static readonly (string Speaker,string Text)[] DayTwo=
+    {
+        ("","Day two."),
+        ("Zero","Mio? Morning. Sixty-eight beats a minute. I'm only counting a little."),
+        ("Mio","...Morning, Zero."),
+        ("Mio","Last night, on the loading platform. What was moving there?"),
+        ("Zero","Nothing. ...That isn't my work."),
+        ("Mio","...That doesn't sound like you."),
+        ("Zero","Footsteps! I can hear footsteps outside. Three people. Is the village awake already?"),
+        ("Mio","Hoshikawa's always up before me. Two days until that train. Let's go and see Renji."),
+    };
+    public static readonly (string Speaker,string Text)[] HalfDone=
+    {
+        ("Renji","Morning, Mio. Terminal, report the signals at Hoshikawa Station."),
+        ("Zero","Every signal on the line has power. Hoshikawa Station's home signal has power, and answers only to the lever in the station's signal box."),
+        ("Renji","...Last night I said platform two would show that train red. I was wrong."),
+        ("Renji","Nothing out here can turn that signal. Someone has to get inside the station and pull the lever. And the train comes the day after tomorrow."),
+        ("Mio","Then I'll go."),
+        ("Renji","The station road is under a rockfall, and past it the station belongs to SIRIUS. And I can't go with you."),
+        ("Renji","If the relay goes down, every signal goes dark, and I'm the only one who can fix it. That plaza is also the robots' way down to the village."),
+        ("Renji","The village has taken turns up there since last night. From this evening I'll hold it myself. But you're not going alone. Find two people to go with you."),
+        ("Renji","And my telephone: is it working yet? I'll hook it onto the line by the relay. There are still old phone boxes along the line. Find one on the way and call me."),
+        ("Mio","Almost. One more wire."),
+        ("Renji","Then finish it, and get ready. Bring it to me when you are."),
+    };
+    public static readonly (string Speaker,string Text)[] RenjiReady=
+    {
+        ("Renji","Two people to go with you, and my telephone working. Then come and see me."),
+    };
+    // The four errands, in any order (Game.Errands). Sota's replaces his first meeting, whose "tell me first" it would answer.
+    public static readonly (string Speaker,string Text)[] SotaJoins=
+    {
+        ("Mio","Sota. The train comes the day after tomorrow, and someone has to get inside Hoshikawa Station to stop it."),
+        ("Sota","...Then I'm coming."),
+        ("Sota","Not along the tracks. They're the city's road now, with rail crawlers on them day and night. And the old road's tunnel came down in the spring rains."),
+        ("Sota","I've run letters all over these hills. There's a way round the mountain. A whole day's walk, and a night out on the way."),
+        ("Sota","My brother was taken at that station. Five years ago. I'm going."),
+        ("Sota","The signal box is upstairs, above the main hall."),
+        ("Mio","How do you know that?"),
+        ("Sota","...My brother told me. A long time ago."),
+    };
+    public static readonly (string Speaker,string Text)[] Crossbow=
+    {
+        ("Chiaki","Mio, good. Terminal, what medicine is on that train? Every box, if you can."),
+        ("Zero","Cough syrup, sixty boxes. Fever powder, forty. Antibiotics, forty. Bandages and salve, sixty. Two hundred boxes in all."),
+        ("Chiaki","I can't leave the clinic. So, Yui, you learn them. Cough syrup first, for Grandpa Tetsu. Then the fever powder, then the antibiotics."),
+        ("Yui","Cough syrup, fever powder, anti... antibiotics! Cough, fever, the long one. Got it!"),
+        ("Yui","Oh! And Mio, I fell on the night road. My crossbow's trigger spring snapped, and I can't do springs."),
+        ("Mio","Give it here. I've got a spare in my kit."),
+        ("","Mio opens the crossbow's lock, fits the spare spring and works the trigger until it clicks clean."),
+        ("Yui","It clicks! Mio, you're amazing!"),
+        ("Chiaki","Here, two remedies for the road. And bring everyone back to me in one piece."),
+    };
+    // KOMA-7 answers to its keeper, not to Mio: Grandpa Tetsu gives the order from inside the house, a voice with no portrait (Offstage).
+    public static readonly (string Speaker,string Text)[] KomaAsks=
+    {
+        ("Mio","KOMA, the station road is under a rockfall. Can you move the boulders?"),
+        ("KOMA-7","This request requires the keeper's consent."),
+        ("","Mio fetches Haruka from the fields, and the three of them go round to the Mori house's engawa."),
+        ("Haruka","Grandpa? KOMA needs your word. Mio's going to the station."),
+        ("","From inside the house comes a long cough, then Grandpa Tetsu's voice."),
+        ("Tetsuzo","...KOMA. Go and help them."),
+        ("Tetsuzo","Bring back the cough medicine. And bring yourself back too."),
+        ("KOMA-7","Keeper's voice confirmed. This unit walks slowly. It will set out tonight."),
+        ("Haruka","Forty years, and KOMA's never taken an order from anyone but Grandpa. He'll go up with Renji at dusk."),
+    };
+    public static readonly (string Speaker,string Text)[] PhoneFixed=
+    {
+        ("","Mio twists the last wire home and closes the telephone's case. Its bell gives one small ring."),
+        ("Zero","A telephone is a terminal for two people. I like it."),
+        ("Mio","Renji will like it even more."),
+    };
+    public static readonly (string Speaker,string Text)[] ChiyoLamp=
+    {
+        ("Chiyo","So you are going to the station. When you all come home, I will light a lantern at the east gate for you."),
+        ("Mio","Thank you, Chiyo. We'll look for it."),
+    };
+    public static readonly (string Speaker,string Text)[] Evening=
+    {
+        ("Mio","Renji, your telephone. It works. And Sota and Yui are coming with me."),
+        ("Renji","...Good. I'd have picked the same two."),
+        ("Renji","Then at first light tomorrow, meet at the rockfall east of the relay plaza. I'm going up tonight with KOMA, and I'll take over the watch there."),
+        ("Renji","And you won't have to carry the medicine home. There should still be freight handcarts on the station's platforms. Load them and push them home along the rails."),
+        ("Mio","Home along the line. The first thing it's carried for us in twelve years."),
+        ("Renji","Get some sleep, Mio. Tomorrow's a long walk."),
+        ("","The sun goes down behind the mountains, and one by one Hoshikawa's lanterns are lit again."),
+    };
+    public static readonly (string Speaker,string Text)[] RenjiNight=
+    {
+        ("Renji","Go home and sleep, Mio. KOMA and I have the plaza. First light, right here."),
+    };
+    public static readonly (string Speaker,string Text)[] NightTwo=
+    {
+        ("Zero","Mio. Sota's brother disappeared at that station, didn't he?"),
+        ("Zero","Is Sota scared?"),
+        ("Mio","If he is, he won't say so."),
+        ("Zero","...My night shift is starting. I have to go."),
+        ("Zero","Goodnight, Mio. Sleep well. I won't count anything tonight."),
+        ("Mio","Goodnight, Zero."),
+    };
+    public static readonly (string Speaker,string Text)[] DayThree=
+    {
+        ("","Day three."),
+        ("","Mio rises before dawn. The terminal on her wrist is still quiet."),
+    };
+    // At the rockfall east of the relay plaza: Renji opens the barrier, KOMA-7 the rockfall (World.ClearRockfall, at Cleared), and the
+    // three set out. Zero keeps silent with the others there.
+    public static readonly (string Speaker,string Text)[] Rockfall=
+    {
+        ("Yui","Mio! Over here! We beat you here, for once!"),
+        ("Sota","Morning. The rail crawlers went past an hour ago. If we leave now, we'll be round the mountain by dark."),
+        ("Renji","Then let's open the road."),
+        ("","Renji hauls the barrier aside, and KOMA-7 lifts the boulders one by one and sets them down off the road."),
+        ("KOMA-7","This unit is very good at moving rocks. Also tomatoes."),
+        ("","Renji clips his telephone onto the old line's junction box and cranks it. Far down the cleared road, a bell rings back."),
+        ("Renji","The old line still carries a voice. Find a phone box when you can, and call me."),
+        ("Renji","All three of you come back."),
+        ("Yui","All three of us, and the medicine too! That's a promise, not a question!"),
+        ("KOMA-7","This unit will return to the tomatoes. Bring back the cough medicine."),
+        ("Sota","Let's go. I'll show you the way round the mountain."),
+    };
+    public const int Cleared=3;
+    public static readonly (string Speaker,string Text)[] RenjiSeesOff=
+    {
+        ("Renji","Find a phone box when you can, and call me. All three of you come back."),
+    };
+    // The beat each scene's night falls on, from which the HUD darkens its scenes: the homecoming's walk home, the second evening, and the
+    // second night in Mio's room.
+    public static readonly Dictionary<string,int> Nightfall=new(){["Homecoming"]=4,["Evening"]=6,["NightTwo"]=0};
+    // Beats drawn as a title card over black rather than in the text box.
+    public static readonly HashSet<string> Cards=new(){"DayTwo.0","DayThree.0"};
+    // Speakers heard but never seen, who have no portrait.
+    public static readonly HashSet<string> Offstage=new(){"Tetsuzo"};
     public static readonly (string Speaker,string Text)[] RelayAsleep=
     {
         ("Zero","This is the manual relay! It's asleep. Renji has a plan for it. Go and find Renji first, okay?"),
@@ -206,7 +336,12 @@ public static class Prologue
     // The speakers with a Japanese voice; everyone else's lines play silent.
     public static readonly HashSet<string> Cast=new(){"Mio","Zero","Yui","Renji"};
     // The cast's lines written or changed since the last recording, which IntegrationCheck lets go without an mp3 until they are voiced.
-    public static readonly HashSet<string> Unrecorded=new(){};
+    public static readonly HashSet<string> Unrecorded=new(){
+        "DayTwo.1","DayTwo.2","DayTwo.3","DayTwo.4","DayTwo.5","DayTwo.6","DayTwo.7","HalfDone.0","HalfDone.1","HalfDone.2",
+        "HalfDone.3","HalfDone.4","HalfDone.5","HalfDone.6","HalfDone.7","HalfDone.8","HalfDone.9","HalfDone.10","RenjiReady.0","SotaJoins.0",
+        "SotaJoins.6","Crossbow.1","Crossbow.3","Crossbow.4","Crossbow.5","Crossbow.7","KomaAsks.0","PhoneFixed.1","PhoneFixed.2","ChiyoLamp.1",
+        "Evening.0","Evening.1","Evening.2","Evening.3","Evening.4","Evening.5","RenjiNight.0","NightTwo.0","NightTwo.1","NightTwo.2",
+        "NightTwo.3","NightTwo.4","NightTwo.5","Rockfall.0","Rockfall.2","Rockfall.6","Rockfall.7","Rockfall.8","RenjiSeesOff.0"};
     // What the 3D scene does when a beat starts: a camera shot and the clips its actors play ("Mio clip, Yui clip"). A beat with no entry, or
     // an empty part, keeps what was there. Shots: "over A B" looks past A's shoulder at B, "two A B" frames both from the side, "face A"
     // is in front of A, and any other name is a fixed shot (Game.Shots). Every actor goes back to its resting clip when the scene ends.
@@ -226,6 +361,11 @@ public static class Prologue
         ["Briefing.3"]=("","Mio stand, Yui give"),["Briefing.4"]=("","Renji read, Yui idle"),["Briefing.5"]=("","Renji point"),
         ["Briefing.6"]=("","Renji idle"),["Briefing.8"]=("","Mio terminal"),["Briefing.9"]=("face Yui","Mio stand, Yui wave"),
         ["Briefing.10"]=("","Yui idle"),["Briefing.11"]=("","Yui fold"),["Briefing.12"]=("two Mio Renji",""),
+        ["DayTwo.0"]=("bed","Mio sleep"),["DayTwo.1"]=("futon","Mio wake"),["DayTwo.3"]=("","Mio terminal_sit"),["DayTwo.6"]=("room","Mio rise"),["DayTwo.7"]=("","Mio terminal"),
+        ["HalfDone.0"]=("two Mio Renji","Renji idle"),["HalfDone.1"]=("","Mio terminal"),["HalfDone.2"]=("","Mio idle"),["HalfDone.8"]=("","Renji point"),["HalfDone.9"]=("","Renji idle"),
+        ["PhoneFixed.0"]=("floor",""),["Evening.0"]=("two Mio Renji","Renji idle"),["NightTwo.0"]=("face Mio","Mio terminal"),["NightTwo.5"]=("","Mio idle"),
+        ["DayThree.0"]=("bed","Mio sleep"),["DayThree.1"]=("room","Mio rise"),
+        ["Rockfall.0"]=("two Mio Renji","Yui wave"),["Rockfall.1"]=("","Yui idle"),["Rockfall.8"]=("","Yui wave"),["Rockfall.9"]=("","Yui idle"),
     };
     // What the Komorebi residents say every time: they have no first-meeting scene.
     public static readonly Dictionary<string,(string Speaker,string Text)[]> Komorebi=new()
@@ -250,8 +390,12 @@ public static class Prologue
     // Declared last so the scenes it names are already initialized.
     public static readonly Dictionary<(string Speaker,string Text)[],string> SceneNames=new[]{("Opening",Opening),("Intro",Intro),("Photo",Photo),("Gate",Gate),
         ("Briefing",Briefing),("YuiWaits",YuiWaits),("Homecoming",Homecoming),("RelayOnline",RelayOnline),("RenjiReminder",RenjiReminder),("RenjiRoadClear",RenjiRoadClear),
-        ("RenjiRest",RenjiRest),("RelayAsleep",RelayAsleep),("RelayGuardedNone",RelayGuardedNone),("RelayGuardedOne",RelayGuardedOne),
-        ("RelayGuardedTwo",RelayGuardedTwo),("RelayGuardedThree",RelayGuardedThree),("RelaySteady",RelaySteady)}
+        ("RelayAsleep",RelayAsleep),("RelayGuardedNone",RelayGuardedNone),("RelayGuardedOne",RelayGuardedOne),
+        ("RelayGuardedTwo",RelayGuardedTwo),("RelayGuardedThree",RelayGuardedThree),("RelaySteady",RelaySteady),
+        ("DayTwo",DayTwo),("HalfDone",HalfDone),("RenjiReady",RenjiReady),("SotaJoins",SotaJoins),("Crossbow",Crossbow),("KomaAsks",KomaAsks),("PhoneFixed",PhoneFixed),
+        ("ChiyoLamp",ChiyoLamp),("Evening",Evening),("RenjiNight",RenjiNight),("NightTwo",NightTwo),("DayThree",DayThree),("Rockfall",Rockfall),("RenjiSeesOff",RenjiSeesOff)}
         .Concat(FirstMeeting.Select(m=>("FirstMeeting."+m.Key,m.Value))).Concat(Komorebi.Select(m=>("Komorebi."+m.Key,m.Value)))
         .Concat(openers.Select(m=>("FirstMeeting."+m.Key,m.Value))).ToDictionary(s=>s.Item2,s=>s.Item1);
+    // A scene by its name, for tables such as Game.Errands that name them.
+    public static (string Speaker,string Text)[] Named(string name)=>SceneNames.First(s=>s.Value==name).Key;
 }
