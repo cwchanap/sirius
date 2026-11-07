@@ -705,6 +705,11 @@ public static class IntegrationCheck
         g.FinishWalks();Check(new Vector2(yui.Body.GlobalPosition.X-Game.YuiClinic.At.X,yui.Body.GlobalPosition.Z-Game.YuiClinic.At.Z).Length()<.01f,"Yui waits outside the clinic");
         Place(g.Player,g.World.Residents.Single(r=>r.Name=="Chiyo").Body.GlobalPosition+Vector3.Back*2);await Frames(5);g.Interact();
         Check(g.Speaker=="Chiyo"&&g.Script.Count==1,"a first-meeting scene plays once, then the resident's usual line");g.EndDialogue();
+        // A scene pauses the swing's timer and stands Mio at ease, so one begun mid-swing would resume it with her standing.
+        await Press("attack");await Tap(Key.E);
+        Check(g.Mode==GameMode.Playing&&!g.Player.Free&&g.Player.Visual.Clip.StartsWith("attack"),"E in the middle of a swing starts no scene");
+        await Frames(60);await Tap(Key.E);
+        Check(g.Mode==GameMode.Dialogue&&g.Speaker=="Chiyo"&&g.Player.Free,"once the swing is over, E talks to her as before");g.EndDialogue();
         var opponent=g.Enemies[0];
         Vector3 spot=new(0,Hoshikawa.World.Height(0,-29)+.1f,-29);
         // Mio faces north (-Z) and the robot faces her (+Z) unless a check turns it round.
