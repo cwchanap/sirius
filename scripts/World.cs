@@ -582,17 +582,19 @@ public partial class World : Node3D
         }
         Mesh(this,name,st.Commit(),Vector3.Zero,material);
     }
-    private void Signpost(Vector2 p,string text,float yaw=0)
+    private List<Label3D> Signpost(Vector2 p,string text,float yaw=0)
     {
         var sign=new Node3D {Name="Valley wayfinder",Position=new(p.X,Height(p.X,p.Y),p.Y),Rotation=new(0,yaw,0)};AddChild(sign);
         // The Tripo signpost's blank board, widened 30% so the longest lettering (2.8 m) fits between its posts; the lettering stands 3 cm off the planks.
         Model(sign,"Direction boards","signpost",Vector3.Zero,90,new(1.3f,1.3f,1.3f)).Scale=new(1,1,1.3f);
+        var both=new List<Label3D>();
         foreach(float side in new[]{-1f,1f})
         {
-            var lettering=Label(sign,text,new(0,1.86f,side*.1f),Gold,29);
+            var lettering=Label(sign,text,new(0,1.86f,side*.1f),Gold,29);both.Add(lettering);
             lettering.Billboard=BaseMaterial3D.BillboardModeEnum.Disabled;
             lettering.Rotation=new(0,side<0?Mathf.Pi:0,0);
         }
+        return both;
     }
     private void Komorebi()
     {
