@@ -22,6 +22,8 @@ public partial class Player : CharacterBody3D
     public bool Guarding { get; private set; }
     public bool Dodging => dodge > 0;
     public bool Casting => skillCast > 0;
+    // Not mid-swing, roll, cast, stagger or remedy: the timers pause with the game, so a scene that began in one would resume it with Mio standing.
+    public bool Free => attack <= 0 && dodge <= 0 && skillCast <= 0 && Stun <= 0 && healTimer <= 0;
     public float DeflectWindow { get; private set; }
     public ActorVisual Visual = null!;
     public Node3D Model = null!;
@@ -121,7 +123,7 @@ public partial class Player : CharacterBody3D
         MoveAndSlide();
         if(GlobalPosition.Y<-8)Respawn();
         if(Stun<=0)Posture=Math.Max(0,Posture-dt*(Guarding?8:18));
-        if(attack<=0&&dodge<=0&&skillCast<=0&&Stun<=0&&healTimer<=0)
+        if(Free)
         {
             if(!IsOnFloor())
             {
@@ -141,7 +143,7 @@ public partial class Player : CharacterBody3D
             {
                 // Played this fast, the walk and run feet slide least at 2 and 7.8 m/s (measured in game: 0.36 and 1.9 m/s).
                 string clip=Guarding?"guard":dir.Length()>.1f?(speed>5?"run":"walk"):"idle";
-                Visual.Play(clip,clip=="walk"?speed/1.26f:clip=="run"?2:1);
+                Visual.Play(clip,clip=="walk"?speed/1.26f:clip=="run"?2:1,false,Visual.Clip is "stand" or "terminal"?.4f:.12f);
             }
         }
     }

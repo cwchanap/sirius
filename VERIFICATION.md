@@ -1,5 +1,121 @@
 # MVP verification
 
+## Review of PR 36 — 2026-11-07
+
+CodeRabbit raised two findings and a nitpick on the pull request; Codex found nothing. All three CI jobs passed, and each finding was checked against the code before acting.
+- **`hand_weights.unbind`'s fallback never worked (valid, latent):**
+  - `clean`, the vertices the hands never touched, was found after the far vertices' hand weights were zeroed. Every one of them then counted as clean and was its own nearest, so a vertex left with a sliver of weight kept it renormalised to 100%, and one weighted only to the hands divided zero by zero into NaN.
+  - Found before the zeroing now. A synthetic case reproduces it: the old code gives a NaN row and a 3% sliver pinned to 100%; the fix gives both vertices a clean neighbour's weights.
+  - **No effect on Mio:** of her 7,005 unbound vertices none reaches the fallback, and the old and the fixed code write byte-identical GLBs from the same source, so the committed model is unchanged.
+- **`unbind_blender` rewrote every vertex's every group (valid, performance):** it now writes only the rows `unbind` changed. In Blender on Mio's model every one of her 30,578 vertices' weights is identical either way (largest difference 0.0), and the import step takes 0.7 s instead of 1.9 s.
+- **A scene begun mid-action left Mio standing (valid):**
+  - E in the middle of a swing, roll, cast, stagger or remedy started a scene. `Gather()` stood her at ease while her timers paused with the game, so the swing resumed after the scene with her standing. `main` didn't have this to the same degree, since `Gather()` didn't touch her animation until the dialogue-stance change in this PR.
+  - E is now ignored until she is free (`Player.Free`, the condition her clip selection already used). The self-test sends E mid-swing, expects no scene, and expects E to work once the swing is over. With the gate removed, that check fails.
+- **Skipped:** CodeRabbit's docstring-coverage warning (54.55% against 80% on the touched functions). It is advisory, and the tools' comments say why, not what.
+- **Self-test:** 700 checks pass headless in `en`, `ja` and `zh_TW`; unit 58 and e2e 4 pass; `check_mio_export.py` passes.
+
+## Mio's combat clips out of her body — 2026-11-06
+
+Hapadona agreed to rechoreograph the swings the last pass left alone. The same per-frame count of each forearm and hand, and the blade, against the rest of her body ran on `tools/mio_combat.py`'s clips as keyed, about seven seconds a run, while the keys were tuned.
+- **Found:**
+  - Her left hand jumped onto the hilt in a single frame and hung open beside it, its fingers through her right fist.
+  - In Resonance Cut it jumped there mid-spin, while the sword was still out to her right, so her left forearm swept across her chest and through her right arm (343 vertices inside).
+  - The third slash's windup and Resonance Cut's raise held her hands just over and behind her head: her forearms lay in the top of her hair (178 and 116).
+  - The stance's left hand sat on her thigh, which the first two cuts' follow-throughs and Resonance Cut's end raised into it (43, 100, 119).
+- **Changed:**
+  - A `grip` channel replaces the jump: it eases the left hand onto the hilt and off again. Held, the hand is a fist mirroring the right one across the sword's plane, a fist's width down the hilt, its fingers mirroring the right grip's. The rig's left and right rests differ by up to 15 degrees, so the mirror is read off them (`Rig.flip()`).
+  - During the spin the left hand is held out to her left, and after each two-handed cut it lets go outward instead of sliding back through her.
+  - The windup and the raise go up before her face. Raised hands bring the elbows forward; without that, the first cut's windup put the blade 69 vertices into her forearm.
+  - The stance's left hand is a few centimetres further out.
+  - Timing, lunges, link poses' times and trail windows are unchanged.
+- **Measured, every frame:**
+  - Not counting her two hands touching on the hilt: attack1 15, attack2 7, attack3 12, Resonance Cut 57 (the forearms meeting at the low two-handed grip).
+  - Counting them: attack3 42, and in Resonance Cut 57, with the hilt 71 into her left fist where it closes round the pommel.
+  - The blade still lies against her right forearm in the stance (27, as before).
+  - The committed clips match the keyer exactly. `check_mio_export.py` passes; contact sheets are in `artifacts/mio-combat/`.
+- **Self-test:** 698 checks pass headless in `en`, `ja` and `zh_TW`; unit 57 and e2e 4 pass.
+- **Not yet:** no Metal run. The importer's change ran only on the committed model.
+
+## The rest of the cast's self-contact — 2026-11-06
+
+Hapadona asked whether the satchel and Yui's hands were the only such places. A per-frame audit of every clip of every model (each forearm and hand, each shin and foot, and Mio's sword against the rest of the body) found more.
+- **Clean:** Chiyo, KOMA-7, Sota, Naomi, Toma and the shared villager in every clip. No leg passes through a leg anywhere.
+- **Found:**
+  - Mio's sword: her run swung the blade through her thighs on 16 of its 31 frames (132 vertices inside at worst), her stagger on one (135), her jump on two (29). Her death's held end lies on it through her right thigh (241, with her right forearm 187 inside the thigh).
+  - Her eye rub in the waking scene buried the fist in her cheek (171 vertices inside the head). Sitting under the cover, her terminal came up through her thigh and pouch (331).
+  - The patrol robot's staggered sag and kneeling death held its arm armour inside its thigh armour (586 and 520), and its run swung the arm through the raised thigh (430).
+- **Fixed:**
+  - `tools/self_contact.py` counts the blade against all of Mio's body but the gripping hand and turns her wrist out of it.
+  - Each turn now eases in and out over three frames either side. Solved one frame at a time, a run frame's 16-degree wrist turn had flicked the blade for a single frame. A frame keeps its own turn where a neighbour's would leave more inside.
+  - `--fix` reran it on Mio's idle, walk, guard and jump, starting from their uncleared clips, and on run, stagger and death (`import_tripo_mio.py` now clears all seven).
+  - `cast_clips.py --swap` rekeyed every cast clip of Mio, Yui and Renji.
+  - The eye rub's fist now sits at her eye (`RUB`), and her seated terminal comes up over her thigh (`RAISE_SAT`). Both clips play under the futon's cover, so they are keyed by hand.
+  - `patrol_clips.key()` clears the robot's arms when given its body, and `--fix=run,stagger,death` did so on the committed GLB. A 4–10 degree turn was enough.
+- **Measured, every frame:**
+  - Mio's run, stagger, jump and death have 8 or fewer vertices inside on either arm and on the sword.
+  - The eye rub has 13 inside at worst, the knuckles against her brow, and her seated terminal 14.
+  - Her other clips are 11 or under; `self_contact.py --max=30` passes for Mio and Yui.
+  - Yui's clips are 32 or under (her right hand resting on her folded left sleeve), Renji's 15, and the robot's 9.
+  - `check_mio_export.py` passes. Before-and-after sheets are in `artifacts/self-contact/`.
+- **Self-test:** 698 checks pass headless in `en`, `ja` and `zh_TW`; unit 57 and e2e 4 pass.
+- **Left alone:**
+  - Mio's combat clips: attack3's overhead windup puts both arms through the side hair for about 11 frames, Resonance Cut's two-handed grip crosses the forearms (346 on one frame), and attack1's and attack2's links put 42–94 into a thigh for a frame or two. Her left hand holds the hilt there, so turning an arm would pull it off; fixing them means rechoreographing `mio_combat.py`.
+  - The roll: 146 on a single frame.
+  - Her arms lying under the quilt in `sleep` and the start of `wake` (146, hidden by the cover the cloth solver laid over that pose).
+- **Not yet:** no Metal run. The importers' new steps ran only on the committed models.
+
+## Hands out of the body — 2026-11-06
+
+Hapadona saw Mio's hand go through her satchel and Yui's two hands through each other. Godot skins a mesh without self-collision, so only the clips can keep a hand out. `tools/self_contact.py` counts the hand and forearm vertices of each side lying inside the rest of the body: the nearest triangle within 3.5 cm faces away. At first it searched 10 cm, which flagged a cuff near the satchel's far panel as inside, so it was narrowed.
+- **Found:**
+  - Mio's idle, walk, guard and jump put up to 311 vertices of her left forearm inside the satchel, and her dialogue stance 149.
+  - Last round's relaxed stance pushed Yui's hip into her left arm (about 900 vertices) in every gesture; Renji had the same.
+  - Yui's folded forearms passed through each other and the chest (244 at worst), and her reading hands overlapped (about 200).
+- **Fixed:**
+  - The relaxed stance hangs the arms clear of the hips; Mio's dialogue stance turns her left upper arm out past the satchel.
+  - Folded arms were rebuilt from measurements (jacket front about 10 cm forward of the spine, sleeves 5 cm in radius): the left forearm crosses low and forward, the right a sleeve's thickness above it, the right hand curls over the left upper arm and the left fist tucks under the right elbow.
+  - Reading holds the hands apart.
+  - `clear()` turns the upper arm out of whatever is left, frame by frame; `cast_clips.py` runs it on every cast clip but the five under the futon's cover. `--fix` ran it on Mio's committed idle, walk, guard and jump (12–16 degrees at most, timing unchanged).
+- **Measured (`self_contact.py --max=30` passes):** Mio's idle 11, walk 11, guard 11, jump 13, dialogue stance 8 and terminal 7; every Yui clip 29 or under, folded arms 9 and 29 (the right hand resting on the left sleeve); every Renji clip 16 or under. Every other Mio clip is unchanged to the value; `check_mio_export.py` passes.
+- **Self-test:** 698 checks pass headless in `en`, `ja` and `zh_TW`; unit 57 and e2e 4 pass.
+- **Not yet:** no Metal run. The importers' new step ran only on the committed models, since the sources are on the Mac. Mio's combat swings, roll and death still pass a forearm through the satchel or her head for a few frames (`attack3` 179 at worst); they were left alone, since her left hand is placed on the hilt in some of them.
+
+## Mio's and Yui's hands — 2026-11-05
+
+Hapadona found the hands still messy. Close-ups of both models' hands, at rest and in every dialogue clip, showed three faults:
+- **Finger curls:** `patrol_clips.Rig` curls a finger about the bone crossed with straight down, an axis that vanishes for a finger hanging down: measured 70–160° off the knuckle line at the first knuckles, so a big curl swung fingers sideways or backward into claws (Yui's point and folded arms, Mio's terminal hand).
+- **Thumbs:** they were never posed.
+- **Texture:** the bake left dark fingertips, black slivers between Mio's fingers and reddish smears on Yui's palms.
+
+A fourth fault was in the rig itself. Tripo bound about 2,500 vertices of each of Mio's thighs and coat panels, 8–44 cm from her hands, a third of their weight to the last joint of the pinky: bending that joint alone moved 2,640 of them by up to 16 cm, and they were the dark shards that tore off her coat beside her hips whenever her hands moved.
+
+- **Fixed:**
+  - `tools/cast_clips.py` curls each finger joint toward the palm, about its length crossed with the palm's direction, read off the rest pose's finger bend.
+  - It tucks each thumb by a per-pose amount and has retuned the curls; Mio's sword wrist is straight in `stand`, the blade lowered by the arm and elbow instead.
+  - `tools/hand_weights.py` dropped hand-bone weight from 7,005 of Mio's vertices beyond 7 cm of her hands (hand vertices are all within 5 cm, nothing lies between 5 and 8 cm). After it, bending the pinky moves only the six vertices of its tip.
+  - `face_paint.repaint_hands()` repainted both characters' hand skin.
+- **Measured:** `check_mio_export.py` now also fails on any vertex bound to a hand from beyond 7 cm (0 now, 7,005 on the previous commit's model); every other clip of `mio.glb` is unchanged to the value; the face repaint reproduces its earlier texel counts exactly. Yui's and Renji's skin weights have no hand weight beyond 5 cm of a hand and were left as they were.
+- **Self-test:** 698 checks pass headless in `en`, `ja` and `zh_TW`; unit 57 and e2e 4 pass.
+- **Captures:** Blender workbench close-ups of every hand pose before and after, lit and unlit; Mio's thighs and coat in her terminal, attack, idle and stand before and after the weight fix; `tools/review_dialogue.gd` under xvfb and lavapipe.
+- **Not yet:** no Metal run. The importers' new steps (`unbind_blender()` in Mio's, the hand repaint in Yui's) ran only on the committed models, since the sources are on the Mac. The fingertips still shade darker than the hand where they hang down away from the light; that is lighting on Tripo's low-poly tips, not texture.
+
+## Posture review of Yui and Mio — 2026-11-03
+
+Hapadona asked for their posture to be reviewed again. Yui stood in the rig's rest pose under every clip: knees locked, feet parallel at the rest width, weight even, arms out in a slight A, and her gestures moved only her arms. Mio's terminal stood in that same rest stance while her Tripo idle stands with her feet 10 cm apart, the right turned out on its ball, so every cue between them (six in the waking scene alone) slid her feet, and in conversation she held her sword out level. `tools/cast_clips.py` now plants feet by leg IK (`Step`) with the hips riding as high as the weight-bearing leg reaches (`Weight`); Yui and Renji stand at ease (`STAND`: weight on the left leg, the right knee eased, feet closer and turned out, arms close) and gesture from it, and Mio has `stand`, her idle's own feet measured off its first frame with the sword lowered, which `Game.Gather()` starts every scene with and the stage cues in place of her idle; her terminal and the end of her rise share it.
+
+- **Measured:** Mio's `stand` and `terminal_hold` put her ankles where her idle's first frame does, to the millimetre, her hips within 1 mm and her toes within 2°; Yui's feet don't move between `idle` and `give_hold`; Yui's standing knee bends 5°, the free one 27°. Every other clip in `mio.glb` and Yui's walk and run are unchanged to the value.
+- **Self-test:** **698 checks pass headless** in `en`, `ja` and `zh_TW` (cloud container), a new one among them: every staged act names a clip its actor has. Yui's and Renji's idles still hold their hips and feet fixed. Unit 57 and e2e 4 pass. `check_mio_export.py`: 21 clips.
+- **Captures:** Blender workbench renders of the shipped clips from the committed GLBs, front, side and three-quarter, before and after; `tools/review_dialogue.gd` under xvfb and lavapipe.
+- **Not yet:** no Metal run; the importers' new leg IK ran only on the committed models (the sources are on the Mac); the blade's clearance from Mio's leg in `stand` was judged on renders, not by a collision check.
+
+## Mio's and Yui's faces and dialogue acting — 2026-11-03
+
+Hapadona found the front of Mio's and Yui's heads still messy and their dialogue acting puppet-like, the hands most. Tripo's bake had painted hair strands across their brows, eyelids, forehead and temples and skin along the edges of their bangs; `tools/face_paint.py` repaints both maps by geometry (see CLAUDE.md), and `tools/cast_clips.py` now flows its keys through a spline with each joint trailing its parent, places gesturing hands by IK, spreads the fingers and holds every gesture in a breathing `_hold` loop that `ActorVisual` queues.
+
+- **Self-test:** **697 checks pass headless** in `en`, `ja` and `zh_TW` (cloud container), Yui's and Renji's four-second idles among them (looping, animating the chest, hips and feet fixed). Unit tests 57 pass, e2e 4 pass. `check_mio_export.py`: 65 bones, 20 clips, 47,980 triangles, texture bytes matching `assets/art`.
+- **Models:** the clips were swapped into the committed GLBs (`cast_clips.py --swap`); every other clip in `mio.glb` is unchanged to the value, and a Blender import and export of these GLBs moves no rest transform or clip by more than 8e-6. `face_paint.repaint_blend()`, the importer's path, reproduces the committed Yui map pixel for pixel from Tripo's.
+- **Captures:** Blender workbench renders of both heads from the front, at ±30–35° and from the back before and after; contact sheets of every cast clip; `tools/review_dialogue.gd` under xvfb and lavapipe in English: Yui's wave, the letter held out palm up, her folded arms, Mio lifting the terminal on the futon and standing, and Yui's face in the briefing, with no skin in her bangs and no strands on her forehead.
+- **Not yet:** no Metal run; the sources live on the Mac, so the importers' new steps (Yui's repaint, Mio's committed map, the IK solver) ran only on the committed models here; Renji's gestures share the new clips and were checked on contact sheets only.
 ## Only Mio says Zero's name — 2026-11-03
 
 Hapadona found Yui calling Zero by name: nobody knows it but Mio and Chiyo, and Mio and Zero don't know that Chiyo does. Four lines broke it. Yui greeted and quizzed Zero by name at the gate (`Gate.3`, now "little terminal", 端末ちゃん, 小終端機; `Gate.5`) and at the clinic (`FirstMeeting.Yui.2`), and Mio called it Zero in front of KOMA-7 (`FirstMeeting.KOMA-7.4`, now sending KOMA back to its tomatoes). Renji, Sota and Yui now fight as well as Mio and guard the villages beside their trades, so Renji's last briefing line (`Briefing.13`) says he and Sota will keep watch over the village instead of telling Mio not to get surrounded, which his reminder still does. The glossary no longer has KOMA-7 call Zero "Unit Zero"; the README, the voice brief and CLAUDE.md state the rule. `tools/build_fonts.py` rebuilt the four subset fonts for 世, 張 and 顧.

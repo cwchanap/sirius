@@ -20,15 +20,19 @@ public partial class ActorVisual : Node
             string key=name.Split('/').Last().Split('.').First();
             clips.TryAdd(key,name);
             var anim=Animator.GetAnimation(name);
-            anim.LoopMode=key is "idle" or "walk" or "run" or "guard" or "sleep" or "sit" or "fold" or "wave" or "work" ? Animation.LoopModeEnum.Linear : Animation.LoopModeEnum.None;
+            anim.LoopMode=key is "idle" or "stand" or "walk" or "run" or "guard" or "sleep" or "sit" or "work" || key.EndsWith("_hold") ? Animation.LoopModeEnum.Linear : Animation.LoopModeEnum.None;
         }
     }
+    // A gesture with a <clip>_hold loop (tools/cast_clips.py) goes on into it, breathing in the pose it ends on instead of freezing.
     public void Play(string clip,float speed=1,bool restart=false,float blend=.12f)
     {
         if(Animator==null||!clips.TryGetValue(clip,out var name))return;
         Clip=clip;
-        if(!restart&&Animator.CurrentAnimation==name&&Animator.IsPlaying())return;
+        bool held=clips.TryGetValue(clip+"_hold",out var hold);
+        if(!restart&&(Animator.CurrentAnimation==name||held&&Animator.CurrentAnimation==hold)&&Animator.IsPlaying())return;
+        Animator.ClearQueue();
         Animator.Play(name,blend,speed);
+        if(held)Animator.Queue(hold);
     }
     public bool HasClip(string name)=>clips.ContainsKey(name);
 }

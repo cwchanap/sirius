@@ -135,22 +135,37 @@ class Rig:
             x, y, z = pose.get(side + 'Foot', (0, 0, 0))
             out[side + 'Foot'] = (self.rotation(side + 'Foot', (flex - pose[side + 'UpLeg'][0] - pose['Hips'][0] + x, y, z)), None)
         for name in FINGERS:
-            out[name] = (self.rotation(name, pose['curl']), None)
+            # A side's own curl (RightCurl, LeftCurl) overrides 'curl'; four values curl the index, middle, ring and pinky apart.
+            curl = pose.get(name[:name.index('Hand')] + 'Curl', pose['curl'])
+            if isinstance(curl, tuple):
+                curl = curl[('Index', 'Middle', 'Ring', 'Pinky').index(name[name.index('Hand') + 4:-1])]
+            out[name] = (self.rotation(name, curl), None)
         return out
 
 
-def key(rig, unit, clips=None, loops=LOOPS):
-    """Key every clip on the armature as an action in its own muted NLA track, as the shared importer collects them."""
+def key(rig, unit, clips=None, loops=LOOPS, solver=None, body=None, metres=1):
+    """Key every clip on the armature as an action in its own muted NLA track, as the shared importer collects them. Given the skinned
+    body, the arms are turned out of it first (tools/self_contact.py; metres: game metres per world unit)."""
     import bpy
-    solver = Rig(rig, unit)
+    import self_contact
+    solver = solver or Rig(rig, unit)
     rig.animation_data_create()
     for name, (length, at) in (clips or CLIPS).items():
+        poses = [solver.bases(at(f / FPS if name not in loops or f < round(length * FPS) else 0)) for f in range(round(length * FPS) + 1)]
+        if body is not None:
+            frames = [{pb.name: Matrix.Identity(4) for pb in rig.pose.bones} for _ in poses]
+            for basis, bases in zip(frames, poses):
+                for bone, (q, loc) in bases.items():
+                    basis[bone] = Matrix.LocRotScale(loc, q, None)
+            self_contact.clear(body, rig, frames, metres=metres)
+            poses = [{bone: (basis[bone].to_quaternion(), loc if loc is None else basis[bone].translation) for bone, (_, loc) in bases.items()}
+                     for basis, bases in zip(frames, poses)]
         action = bpy.data.actions.new(name)
         action.use_fake_user = True
         rig.animation_data.action = action
         last = {}
-        for f in range(round(length * FPS) + 1):
-            for bone, (q, loc) in solver.bases(at(f / FPS if name not in loops or f < round(length * FPS) else 0)).items():
+        for f, bases in enumerate(poses):
+            for bone, (q, loc) in bases.items():
                 pb = rig.pose.bones[bone]
                 pb.rotation_mode = 'QUATERNION'
                 if bone in last and last[bone].dot(q) < 0:
@@ -184,7 +199,7 @@ def height(rig):
 VIEWS = {'front':(0, -1, .15), 'side': (-1, 0, .15), 'quarter': (-1, -1, .4)}
 
 
-def preview(model='patrol', clips=None, loops=LOOPS, size=HEIGHT):
+def preview(model='patrol', clips=None, loops=LOOPS, size=HEIGHT, make=Rig):
     """Contact sheets of the clips keyed on the committed model, or on a GLB of its Tripo source (--src) scaled to size."""
     import bpy
     clips = clips or CLIPS
@@ -207,7 +222,7 @@ def preview(model='patrol', clips=None, loops=LOOPS, size=HEIGHT):
     unit = size / height(rig) if 'src' in opts else rig.matrix_world.to_scale()[0]
     if 'src' in opts:
         rig.scale = (unit,) * 3
-    key(rig, unit, clips, loops)
+    key(rig, unit, clips, loops, make(rig, unit))
     if 'glb' in opts:
         bpy.ops.export_scene.gltf(filepath=str(out / f'{model}.glb'), export_format='GLB', export_animations=True,
                                   export_animation_mode='ACTIONS', export_apply=False)

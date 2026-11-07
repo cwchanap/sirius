@@ -19,7 +19,9 @@ from mathutils import Matrix, Quaternion, Vector
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 import cast_clips  # noqa: E402
+import hand_weights  # noqa: E402
 import mio_combat  # noqa: E402
+import self_contact  # noqa: E402
 OUT = ROOT / 'artifacts/mio-tripo-animation'
 SOURCE = 'assets/source/tripo-bridge-20261016-mio-anim.blend'
 FIXED = 'assets/source/mio-lowpoly-fixed-face2.blend'
@@ -118,8 +120,11 @@ def main():
     rig.name, body.name = 'Mio', 'Mio Tripo body'
     # The same mesh as the repaired source: take its hair-colour and normal-map repairs.
     with bpy.data.libraries.load(str(ROOT / FIXED)) as (src, dst):
-        dst.images = ['3d_fantasy_character_model_basecolor', '3d_fantasy_character_model_normal']
+        dst.images = ['3d_fantasy_character_model_normal']
     fixed = {i.name.rsplit('_', 1)[-1].split('.')[0]: i for i in dst.images}
+    # The committed base colour is the repaired source's with its face repainted by tools/face_paint.py.
+    fixed['basecolor'] = bpy.data.images.load(str(ROOT / 'assets/art/mio-lowpoly-basecolor.jpg'))
+    fixed['basecolor'].pack()
     tree = body.data.materials[0].node_tree
     bsdf = next(n for n in tree.nodes if n.type == 'BSDF_PRINCIPLED')
     # Tripo's roughness and metallic bakes carry the same projection errors; keep Mio matte.
@@ -182,6 +187,9 @@ def main():
     root.scale = (scale,) * 3
     root.location.z = -zmin * scale
     rig.parent = root
+    bpy.context.view_layer.update()
+    # Tripo's skinning gives her thighs and coat a third of their weight on the hanging pinky; free them from the hands.
+    assert hand_weights.unbind_blender(body, rig) > 1000
     source_actions = {a.name.removeprefix('Armature|'): a for a in bpy.data.actions}
     hip = rig.pose.bones['Hips']
     basis = hip.bone.matrix_local.to_3x3().inverted()
@@ -244,7 +252,7 @@ def main():
     bpy.data.scenes.remove(old_scene)
     # mio_combat.py points the seated blade, hilt to tip, with its edge leading.
     steel = scene.objects['Sword blade steel']
-    blade, edge, _, _ = mio_combat.sword(rig, [steel.matrix_basis @ v.co for v in steel.data.vertices])
+    blade, edge, hilt, _ = mio_combat.sword(rig, [steel.matrix_basis @ v.co for v in steel.data.vertices])
     clips = {}
     for name, (source, first, last, frames) in CLIPS.items():
         activate(rig, source_actions[source])
@@ -286,8 +294,13 @@ def main():
                     hip.location -= basis @ Vector((0, 0, min(f.head.z for f in feet) - foot_floor))
                 pose.update({pb.name: pb.matrix_basis.copy() for pb in rig.pose.bones})
         clips[name] = poses
-    clips.update(mio_combat.clips(rig, ready, (blade, edge), grip))
-    clips.update(cast_clips.poses(rig, scale, cast_clips.MIO, cast_clips.MIO_LOOPS, grip))
+    clips.update(mio_combat.clips(rig, ready, (blade, edge, hilt), grip))
+    rig.animation_data.action = None
+    # Her Tripo clips swing her forearms through her satchel and hips and the blade through her legs; the cast clips are kept out by
+    # poses(), the combat clips by their own keys (an arm turned here would leave the hilt). The roll is left alone (one frame).
+    for name in ('idle', 'walk', 'run', 'jump', 'guard', 'stagger', 'death'):
+        self_contact.clear(body, rig, clips[name])
+    clips.update(cast_clips.poses(rig, scale, cast_clips.MIO, cast_clips.LOOPS['mio'], grip, cast_clips.HEIGHTS['mio'], body))
     actions = []
     for name, poses in clips.items():
         action = bpy.data.actions.new(name)

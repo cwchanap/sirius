@@ -129,7 +129,7 @@ public partial class Game : Node3D
             {ShowItems(Mode==GameMode.Playing);return;}
             if(key.Keycode==Key.Escape&&Mode==GameMode.Settings){ShowSettings(false);return;}
             if(key.PhysicalKeycode==Key.E&&Mode==GameMode.Inventory){UseItem(Hud.Selected);return;}
-            if(key.PhysicalKeycode==Key.E&&Mode==GameMode.Playing){Interact();return;}
+            if(key.PhysicalKeycode==Key.E&&Mode==GameMode.Playing){if(Player.Free)Interact();return;}
             if(key.PhysicalKeycode==Key.R&&Mode==GameMode.Defeated){Retry();return;}
         }
         if(e is InputEventMouseMotion motion&&Mode==GameMode.Playing&&Input.MouseMode==Input.MouseModeEnum.Captured)

@@ -49,7 +49,7 @@ def main():
     blade, edge, hilt, tip = mio_combat.sword(rig, [rig.matrix_world.inverted() @ steel.matrix_world @ v.co for v in steel.data.vertices])
     hand = rig.data.bones['RightHand'].matrix_local
     ends = [hand.inverted() @ hilt.lerp(tip, .5), hand.inverted() @ tip]
-    clips = mio_combat.clips(rig, ready, (blade, edge), grip)
+    clips = mio_combat.clips(rig, ready, (blade, edge, hilt), grip)
     if 'glb' in opts:
         for name, poses in clips.items():
             action = bpy.data.actions.new(name)
