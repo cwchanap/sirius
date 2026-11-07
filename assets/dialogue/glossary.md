@@ -21,7 +21,7 @@ Chinese is Taiwan usage (臺灣用語): 軟體, 網路, 資訊, 號誌, 影片, 
 | Toma | トウマ | 冬馬 | Orchard keeper, Kakizaki Tōma (柿崎冬馬) |
 | Yui | ユイ | 結衣 | Pass courier from Komorebi, Takahara Yui (高原結衣); stays in Hoshikawa after the opening |
 | Shio (Mio's mother) | シオ | 汐 | Decided: kanji in Chinese |
-| Mori Tetsuzo | 森テツゾウ | 森鐵藏 | KOMA-7's registered keeper; the village calls him "Grandpa Tetsu": テツじいちゃん, 鐵爺爺 |
+| Mori Tetsuzo | 森テツゾウ | 森鐵藏 | KOMA-7's registered keeper; the village calls him "Grandpa Tetsu": テツじいちゃん, 鐵爺爺. Speaks once, unseen, from inside the Mori house; his name plate reads テツゾウ, 鐵藏 |
 | SIRIUS | シリウス | 天狼 | The city AI. 天狼 is the name proposed in the story notes **?** |
 
 ## Places
@@ -39,6 +39,11 @@ Chinese is Taiwan usage (臺灣用語): 軟體, 網路, 資訊, 號誌, 影片, 
 | The station (end of the relay road extension, east of the relay plaza) | 駅 | 車站 |
 | Mikawa Highlands | 三河高原 | 三河高原 |
 | Hoshikawa Station (on the old line, where no train has stopped for twelve years) | 星川駅 | 星川站 |
+| Relay plaza (under the broken viaduct, where the manual relay stands) | リレー広場 | 繼電器廣場 |
+| The rockfall (closing the station road east of the relay plaza) | 落石 | 落石 |
+| The station road (east from the relay plaza toward the station) | 駅への道 | 往車站的路 |
+| East gate (where Chiyo lights a lantern for the travellers' return) | 東口 | 東口 |
+| Main hall (the station's concourse, under the signal box) | コンコース | 大廳 |
 | engawa (veranda) | 縁側 | 緣廊 |
 
 ## Game terms
@@ -77,6 +82,16 @@ Chinese is Taiwan usage (臺灣用語): 軟體, 網路, 資訊, 號誌, 影片, 
 | Siding | 側線 | 側線 |
 | Freight train | 貨物列車 | 貨運列車 | |
 | Timetable | 時刻表 | 時刻表 | |
+| Home signal (Hoshikawa Station's, which only its own lever turns) | 場内信号 | 進站號誌 | |
+| Signal box (inside the station, upstairs) | 信号扱所 | 號誌所 | |
+| Lever (the signal box's) | てこ | 拉桿 | The railway word in Japanese |
+| Rail crawler (the city's machines patrolling the tracks) | 軌道巡回機 | 巡軌機 | Not the patrol robots |
+| Barrier (the villagers' barricade on the station road) | バリケード | 路障 | |
+| Phone box (old line-side telephone) | 電話ボックス | 電話箱 | |
+| Junction box (the old line's, where Renji clips his telephone on) | 端子箱 | 端子箱 | |
+| Freight handcart (on the station's platforms) | 貨物用の手押し車 | 貨運手推車 | |
+| Crossbow (Yui's) | 十字弓 | 十字弓 | |
+| Day two, Day three (the title cards) | 二日目, 三日目 | 第二天, 第三天 | |
 | Medicine (the train's cargo, the villages' shortage) | 薬 | 藥品, 藥 | Not the remedy item | |
 
 ## Tone

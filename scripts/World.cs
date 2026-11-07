@@ -37,7 +37,8 @@ public partial class World : Node3D
         ("Komorebi Meeting Hall",new(0,-277),new(10.82f,3.6f,7.4f),0,"hall")};
     public static readonly Vector2 ShrineCenter=new(-1,63);
     // Hoshikawa's well is the valley's one save point, where Mio rests, levels up and trades. Its name is drawn through the ui tables.
-    public static readonly Vector2 SavePoint=new(-3.2f,24);
+    // The Starwells, where Mio rests, levels up and trades: Hoshikawa's well in the square and Komorebi's.
+    public static readonly (string Village,Vector2 At)[] SavePoints={("Hoshikawa",new(-3.2f,24)),("Komorebi",new(-4.8f,-249.6f))};
     public const string SavePointName="Starwell";
     public static readonly (Vector2 From,Vector2 To)[] Footpaths={(new(0,15),new(17.2f,15)),(new(21.4f,15),new(34,15)),(new(34,15),new(34,20))};
     public static bool OnFootpath(Vector2 p,float margin)=>Footpaths.Any(f=>Geometry2D.GetClosestPointToSegment(p,f.From,f.To).DistanceTo(p)<1.2f+margin);
@@ -390,7 +391,7 @@ public partial class World : Node3D
         Resident("Yui", "PASS COURIER",YuiGate,4,Mathf.Pi);
         // Renji's workbench, which he hammers at between scenes.
         Box(this,"Renji's workbench",new(-4.4f,Height(-4.4f,11)+.4f,11),new(.7f,.8f,1.4f),wood,true);
-        Well("Village well",SavePoint);
+        Well("Village well",SavePoints[0].At);
         RiceFields();
         Fence(new(-24,0,0),new(-24,0,42));
         Fence(new(23,0,1),new(23,0,13));Fence(new(23,0,17),new(23,0,42));
@@ -603,7 +604,7 @@ public partial class World : Node3D
         // Door paths: the lodge's and the clinic's from the road, and one across it from the weavers' door to the store's.
         Footpath(new(0,-239.8f),new(-7.3f,-239.8f),1.3f);Footpath(new(0,-246),new(7.7f,-246),1.3f);
         Footpath(new(-7.7f,-261.2f),new(10.4f,-261.2f),1.3f);Footpath(new(0,-254),new(22,-254),1.3f);
-        Well("Komorebi well",new(-4.8f,-249.6f));NoticeBoard("Komorebi notice board",new(5.6f,-251.6f),180);
+        Well("Komorebi well",SavePoints[1].At);NoticeBoard("Komorebi notice board",new(5.6f,-251.6f),180);
         Bench(new(-6.2f,-256.5f),90);Bench(new(5.8f,-257.5f),-90);
         StoneLantern(this,new(-3.9f,Height(-3.9f,-270.5f),-270.5f));StoneLantern(this,new(3.9f,Height(3.9f,-270.5f),-270.5f));
         foreach(var p in new[]{new Vector2(-4.5f,-236),new Vector2(5,-243),new Vector2(4.4f,-249.4f),new Vector2(5.4f,-264.2f),new Vector2(-6,-267),new Vector2(20,-252)})

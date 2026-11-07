@@ -3,6 +3,10 @@ using static Hoshikawa.Localization;
 namespace Hoshikawa;
 
 public enum GameMode { Title, Playing, Dialogue, Paused, Defeated, Inventory, Settings, Rest, History }
+// The prologue's quest stages in order, which Game.QuestStage holds. The first day: Renji's briefing, the relay road's patrols, the relay
+// and back to Renji. The second: his news in the morning, four errands to get ready, the telephone to him at evening and home to bed.
+// The third: the rockfall east of the relay plaza, and the station road beyond it.
+public static class Quest {public const int Renji=0,Road=1,Relay=2,Return=3,Morning=4,Ready=5,Handover=6,Home=7,Rockfall=8,Beyond=9;}
 public partial class Game : Node3D
 {
     public World World=null!;
@@ -37,7 +41,8 @@ public partial class Game : Node3D
     public float ToastTime,FeedbackTime,FlashTime,GainTime;
     // The stardust last earned, shown rising over the HUD's count.
     public int Gained;
-    private Node3D savePointGlow=null!;
+    private readonly List<Node3D> savePointGlows=new();
+    private bool arrived;
     public bool SelfTest;
     private Node3D cameraRig=null!;
     private SpringArm3D spring=null!;
@@ -64,10 +69,13 @@ public partial class Game : Node3D
             var p=new Vector3(homes[i].X,Hoshikawa.World.Height(homes[i].X,homes[i].Y)+.1f,homes[i].Y);
             var enemy=new Enemy {Game=this,Home=p,Position=p,Index=i+1,Kind=kind};Enemies.Add(enemy);AddChild(enemy);
         }
-        // Outside World, whose static meshes are baked: the save point's light over the well.
-        var well=Hoshikawa.World.SavePoint;var mouth=new Vector3(well.X,Hoshikawa.World.Height(well.X,well.Y)+1.15f,well.Y);
-        savePointGlow=Glow(this,"Save point glow",new QuadMesh(),mouth,Fx(Hoshikawa.World.Jade,1.6f,Soft,true));savePointGlow.Scale=Vector3.One*1.6f;
-        AddChild(new OmniLight3D {Name="Save point light",Position=mouth,LightColor=Hoshikawa.World.Jade,LightEnergy=1.4f,OmniRange=5});
+        // Outside World, whose static meshes are baked: each save point's light over its well.
+        foreach(var (village,well) in Hoshikawa.World.SavePoints)
+        {
+            var mouth=new Vector3(well.X,Hoshikawa.World.Height(well.X,well.Y)+1.15f,well.Y);
+            var glow=Glow(this,"Save point glow "+village,new QuadMesh(),mouth,Fx(Hoshikawa.World.Jade,1.6f,Soft,true));glow.Scale=Vector3.One*1.6f;savePointGlows.Add(glow);
+            AddChild(new OmniLight3D {Name="Save point light "+village,Position=mouth,LightColor=Hoshikawa.World.Jade,LightEnergy=1.4f,OmniRange=5});
+        }
         cameraRig=new Node3D {Position=Player.Position+Vector3.Up*1.3f};AddChild(cameraRig);
         spring=new SpringArm3D {SpringLength=7.5f,Margin=.25f,CollisionMask=1|Hoshikawa.World.CameraLayer,Shape=new SphereShape3D {Radius=.2f}};cameraRig.AddChild(spring);
         Camera=new Camera3D {Fov=59,Near=.08f,Far=260,Current=true};spring.AddChild(Camera);
@@ -162,6 +170,8 @@ public partial class Game : Node3D
                 previousRegion=Region;Toast(Region.ToUpperInvariant(),seconds:3.5f);
             }
             if(Locked!=null&&(Locked.Dead||Locked.GlobalPosition.DistanceTo(Player.GlobalPosition)>22))Locked=null;
+            // The station road ends where the relay road's extension, the next map, will begin.
+            if(QuestStage==Quest.Beyond&&!arrived&&Player.GlobalPosition.DistanceTo(World.StationRoadEnd)<4){arrived=true;Toast("TO BE CONTINUED",seconds:6);}
             if(Locked!=null)
             {var to=Locked.GlobalPosition-Player.GlobalPosition;CameraYaw=Mathf.LerpAngle(CameraYaw,Mathf.Atan2(-to.X,-to.Z),dt*3.8f);}
         }
@@ -175,7 +185,7 @@ public partial class Game : Node3D
         Camera.HOffset=CameraShake>0?Mathf.Sin((float)elapsed*100)*CameraShake*.2f:0;
         Camera.VOffset=CameraShake>0?Mathf.Cos((float)elapsed*86)*CameraShake*.15f:0;
         CameraPunch=Math.Max(0,CameraPunch-dt*3);Camera.Fov=fov-CameraPunch*CameraPunch*7;
-        savePointGlow.Scale=Vector3.One*(1.6f+.15f*Mathf.Sin((float)elapsed*1.7f));
+        foreach(var glow in savePointGlows)glow.Scale=Vector3.One*(1.6f+.15f*Mathf.Sin((float)elapsed*1.7f));
         TintTime=Math.Max(0,TintTime-dt);Staging(Mode==GameMode.History?0:dt);
         Hud.QueueRedraw();
         if(capturePath!=""&&!captured&&elapsed>6){captured=true;SaveScreenshot(capturePath);}
@@ -210,16 +220,16 @@ public partial class Game : Node3D
     }
     public void Restart()
     {
-        QuestStage=0;Heard.Clear();Log.Clear();foreach(var e in Enemies)e.Reset();
-        opening?.Kill();Opened.Clear();foreach(var s in World.Shortcuts)s.Swing(s.Closed);
+        QuestStage=Quest.Renji;Heard.Clear();Log.Clear();arrived=false;foreach(var e in Enemies)e.Reset();
+        opening?.Kill();Opened.Clear();foreach(var s in World.Shortcuts)s.Swing(s.Closed);World.ClearRockfall(false);
         foreach(var pickup in World.Pickups)pickup.Node.Visible=true;Player.Inventory.Reset();
         Player.Growth.Reset();
-        Retry();PlaceYui();Opening();
+        Retry();PlaceCast();Opening();
     }
     // Recovering at the village or resting at the save point sends every robot home and brings back the scouts and drones Mio shut down;
     // the patrols stay down, because the mission counts them.
     private void Regroup(){foreach(var e in Enemies)if(!e.Dead||e.Kind!=Enemy.Patrol)e.Reset();}
-    public bool AtSavePoint=>new Vector2(Player.GlobalPosition.X,Player.GlobalPosition.Z).DistanceTo(Hoshikawa.World.SavePoint)<2.4f;
+    public bool AtSavePoint=>Hoshikawa.World.SavePoints.Any(p=>new Vector2(Player.GlobalPosition.X,Player.GlobalPosition.Z).DistanceTo(p.At)<2.4f);
     // The save point rests Mio and opens its screen, where she levels up and trades; play stays frozen under it.
     public void Rest()
     {
@@ -231,60 +241,64 @@ public partial class Game : Node3D
     public bool Raise(string id){bool raised=Player.Growth.Raise(id);if(raised){Player.Rest();Sound("heal");}Hud.RefreshMenu();return raised;}
     public bool Buy(string id){bool bought=Player.Growth.Buy(Player.Inventory,id);if(bought)Sound("heal");Hud.RefreshMenu();return bought;}
     public void Earn(int amount){Player.Growth.Stardust+=amount;Gained=amount;GainTime=2.5f;}
+    // The second day's four errands, in any order, each a scene and who starts it: Sota joining, Yui's crossbow at the clinic (with Chiaki),
+    // KOMA-7 asking its keeper, and Renji's telephone mended in Mio's room.
+    public static readonly (string Scene,string By)[] Errands={("SotaJoins","Sota"),("Crossbow","Yui"),("KomaAsks","KOMA-7"),("PhoneFixed","Telephone")};
+    public int ErrandsDone=>Errands.Count(e=>Heard.Contains(e.Scene));
+    public bool MendPhone=>QuestStage==Quest.Ready&&!Heard.Contains("PhoneFixed");
     // English is what quest logic and the route tests read; the HUD shows the translated one, and counts the patrols in crests.
-    public string Objective=>InRoom?"Head outside":QuestStage switch
+    public string Objective=>InRoom?MendPhone?"Mend Renji's telephone":"Head outside":QuestStage switch
     {
-        0=>"Speak to Renji at the workshop",
-        1=>"Clear the old relay road",
-        2=>"Restart the manual relay",
-        3=>"Return to Renji in Hoshikawa",
-        _=>"Signals restored"
+        Quest.Renji or Quest.Morning=>"Speak to Renji at the workshop",
+        Quest.Road=>"Clear the old relay road",
+        Quest.Relay=>"Restart the manual relay",
+        Quest.Return=>"Return to Renji in Hoshikawa",
+        Quest.Ready=>"Get ready to set out ({0}/4)",
+        Quest.Handover=>"Bring Renji his telephone",
+        Quest.Home=>"Go home and rest",
+        Quest.Rockfall=>"Meet the others at the rockfall",
+        _=>"Take the station road east"
     };
-    public string ObjectiveText=>T(Objective);
-    public Vector3 ObjectivePosition=>InRoom?Room!.GlobalPosition+Hoshikawa.World.Door:QuestStage switch
+    public string ObjectiveText=>F(Objective,ErrandsDone);
+    public Vector3 ObjectivePosition=>InRoom?Room!.GlobalPosition+(MendPhone?Hoshikawa.World.Telephone:Hoshikawa.World.Door):QuestStage switch
     {
-        0 or 3=>World.Residents[0].Body.GlobalPosition,
-        1=>Patrols.FirstOrDefault(e=>!e.Dead)?.GlobalPosition??World.RelayPosition,
-        _=>World.RelayPosition
+        Quest.Road=>Patrols.FirstOrDefault(e=>!e.Dead)?.GlobalPosition??World.RelayPosition,
+        Quest.Relay=>World.RelayPosition,
+        Quest.Ready=>Errands.Where(e=>!Heard.Contains(e.Scene)).Select(e=>e.By=="Telephone"?Doorstep:Actor(e.By).Body.GlobalPosition).MinBy(p=>p.DistanceTo(Player.GlobalPosition)),
+        Quest.Home=>Doorstep,
+        Quest.Beyond=>World.StationRoadEnd,
+        _=>Actor("Renji").Body.GlobalPosition
     };
+    private static Vector3 Doorstep=>new(Hoshikawa.World.MioDoor.X,Hoshikawa.World.Height(Hoshikawa.World.MioDoor.X,Hoshikawa.World.MioDoor.Z),Hoshikawa.World.MioDoor.Z);
+    // From the second day Mio can go home through her own door, to mend the telephone and to sleep.
+    public bool AtHome=>!InRoom&&QuestStage>=Quest.Ready&&Player.GlobalPosition.DistanceTo(Doorstep)<1.8f;
     // What E would do here, as the HUD's prompt shows it: an icon under assets/art/ui/ and what it acts on.
     public (string Icon,string Label) Interaction()
     {
-        if(InRoom)return AtDoor?("",T("DOOR")):AtPhoto?("",T("PHOTO")):("","");
+        if(InRoom)return AtDoor?("",T("DOOR")):AtPhoto?("",T("PHOTO")):AtPhone?("repair",T("TELEPHONE")):("","");
         if(Nearest() is {} r)return ("talk",T(r.Name).ToUpperInvariant());
         if(World.RelayPosition.DistanceTo(Player.GlobalPosition)<3.3f)return ("repair",T("MANUAL RELAY"));
         if(AtSavePoint)return (Hud.StardustIcon,T(Hoshikawa.World.SavePointName).ToUpperInvariant());
+        if(AtHome)return ("",T("DOOR"));
         if(ShortcutHere()!=null)return ("ladder",T("LADDER"));
         if(PickupHere() is {} pickup){var item=Items.Get(pickup.Item);return (item.Icon,T(item.Name).ToUpperInvariant());}
         return ("","");
     }
     public void Interact()
     {
-        if(InRoom){if(AtDoor)LeaveRoom();else if(AtPhoto)Play(Prologue.Photo);return;}
-        if(Nearest() is {} r)
-        {
-            if(r.Name=="Renji")
-            {
-                // Yui brings the news with Mio, so she is there even if Mio skipped meeting her at the gate.
-                if(QuestStage==0){Heard.Add("Gate");PlaceYui();QuestStage=Patrols.All(e=>e.Dead)?2:1;Toast("THE TRAIN WITH NO PASSENGERS",seconds:4);Play(Prologue.Briefing);}
-                else if(QuestStage==3){QuestStage=4;Toast("SIGNALS RESTORED","Chapter prologue complete · Hoshikawa is ready.",8);Sound("heal");Play(Prologue.Homecoming);NightFrom=Prologue.NightFalls;}
-                else Play(QuestStage==4?Prologue.RenjiRest:QuestStage==2?Prologue.RenjiRoadClear:Prologue.RenjiReminder);
-                return;
-            }
-            if(r.Name=="Yui"&&!Heard.Contains("Gate")){Play(Prologue.Gate);return;}
-            if(r.Name=="Yui"&&QuestStage==0){Play(Prologue.YuiWaits);return;}
-            if(r.Name is "Chiaki" or "Emiko"){Player.Rest();Sound("heal");}
-            Play(Heard.Add(r.Name)&&Prologue.FirstMeeting.TryGetValue(r.Name,out var scene)?scene:Prologue.Usual(r.Name));return;
-        }
+        if(InRoom){if(AtDoor)LeaveRoom();else if(AtPhoto)Play(Prologue.Photo);else if(AtPhone)Errand("PhoneFixed");return;}
+        if(Nearest() is {} r){Talk(r.Name);return;}
         if(World.RelayPosition.DistanceTo(Player.GlobalPosition)<3.3f)
         {
-            if(QuestStage==0)Play(Prologue.RelayAsleep);
-            else if(QuestStage==1)Play(Prologue.RelayGuardedFor(Patrols.Count(e=>!e.Dead)));
-            else if(QuestStage==2){QuestStage=3;Burst(World.RelayPosition+Vector3.Up*2,Hoshikawa.World.Jade,4);Sound("skill");Play(Prologue.RelayOnline);}
+            if(QuestStage==Quest.Renji)Play(Prologue.RelayAsleep);
+            else if(QuestStage==Quest.Road)Play(Prologue.RelayGuardedFor(Patrols.Count(e=>!e.Dead)));
+            else if(QuestStage==Quest.Relay){QuestStage=Quest.Return;Burst(World.RelayPosition+Vector3.Up*2,Hoshikawa.World.Jade,4);Sound("skill");Play(Prologue.RelayOnline);}
             else Play(Prologue.RelaySteady);
             return;
         }
         if(AtSavePoint){Rest();return;}
+        // Home on the second night, she talks with Zero and sleeps, and wakes on the third morning.
+        if(AtHome){EnterRoom(false);if(QuestStage==Quest.Home){QuestStage=Quest.Rockfall;Play(Prologue.NightTwo);}return;}
         if(ShortcutHere() is {} shortcut)
         {
             Opened.Add(shortcut.Name);opening=CreateTween();opening.TweenMethod(Callable.From<float>(shortcut.Swing),shortcut.Closed,shortcut.Open,1.8f).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
@@ -297,6 +311,39 @@ public partial class Game : Node3D
             Sound("heal");Toast(item.Name,seconds:4,icon:item.Icon);
         }
     }
+    // What a resident says depends on the quest stage; quest stages change here, before the scene plays.
+    private void Talk(string name)
+    {
+        if(name is "Chiaki" or "Emiko"){Player.Rest();Sound("heal");}
+        if(QuestStage==Quest.Rockfall&&name is "Renji" or "Yui" or "Sota" or "KOMA-7"){QuestStage=Quest.Beyond;Play(Prologue.Rockfall);return;}
+        if(name=="Renji")
+        {
+            // Yui brings the news with Mio, so she is there even if Mio skipped meeting her at the gate.
+            if(QuestStage==Quest.Renji){Heard.Add("Gate");PlaceCast();QuestStage=Patrols.All(e=>e.Dead)?Quest.Relay:Quest.Road;Toast("THE TRAIN WITH NO PASSENGERS",seconds:4);Play(Prologue.Briefing);}
+            else if(QuestStage==Quest.Return){QuestStage=Quest.Morning;Sound("heal");Play(Prologue.Homecoming);}
+            else if(QuestStage==Quest.Morning){QuestStage=Quest.Ready;Play(Prologue.HalfDone);}
+            else if(QuestStage==Quest.Handover){QuestStage=Quest.Home;Play(Prologue.Evening);}
+            else Play(QuestStage switch {Quest.Road=>Prologue.RenjiReminder,Quest.Relay=>Prologue.RenjiRoadClear,Quest.Ready=>Prologue.RenjiReady,Quest.Home=>Prologue.RenjiNight,_=>Prologue.RenjiSeesOff});
+            return;
+        }
+        if(name=="Yui"&&!Heard.Contains("Gate")){Play(Prologue.Gate);return;}
+        if(name=="Yui"&&QuestStage==Quest.Renji){Play(Prologue.YuiWaits);return;}
+        if(QuestStage==Quest.Ready&&(name is "Yui" or "Chiaki"?"Crossbow":Errands.FirstOrDefault(e=>e.By==name).Scene) is {} errand&&!Heard.Contains(errand))
+        {
+            // Sota's recruiting takes his first meeting's place; Chiaki sends Mio off with her remedies.
+            if(errand=="SotaJoins")Heard.Add("Sota");if(errand=="Crossbow")Player.Inventory.Fill("remedy");
+            Errand(errand);return;
+        }
+        if(name=="Chiyo"&&QuestStage is Quest.Ready or Quest.Handover&&!Heard.Contains("ChiyoLamp")){Play(Prologue.ChiyoLamp);return;}
+        if(name=="Sota"&&QuestStage>=Quest.Morning)Heard.Add("Sota");
+        Play(Heard.Add(name)&&Prologue.FirstMeeting.TryGetValue(name,out var scene)?scene:Prologue.Usual(name));
+    }
+    // One of the second day's errands; the last of the four sends Mio back to Renji.
+    private void Errand(string scene)
+    {
+        Play(Prologue.Named(scene));
+        if(QuestStage==Quest.Ready&&ErrandsDone==Errands.Length){QuestStage=Quest.Handover;Toast("READY TO SET OUT",seconds:4);}
+    }
     private (string Name,string Role,Node3D Body)? Nearest()
     {
         var r=World.Residents.MinBy(r=>r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition));
@@ -307,20 +354,22 @@ public partial class Game : Node3D
     public void Play(params (string Speaker,string Text)[] beats)
     {
         Release();Script.Clear();Script.AddRange(beats);scene=Prologue.SceneNames.GetValueOrDefault(beats);if(scene!=null)Heard.Add(scene);
-        Beat=-1;NightFrom=-1;Mode=GameMode.Dialogue;Input.MouseMode=Input.MouseModeEnum.Visible;Gather();Advance();
+        Beat=-1;NightFrom=Prologue.Nightfall.GetValueOrDefault(scene??"",-1);Mode=GameMode.Dialogue;Input.MouseMode=Input.MouseModeEnum.Visible;Gather();Advance();
     }
     // The first press finishes a line still typing out; the next one moves on.
     public void Advance()
     {
         if(Beat>=0&&Reveal<Dialogue.Length){Reveal=Dialogue.Length;return;}
         if(++Beat>=Script.Count){EndDialogue();return;}
-        Speaker=Script[Beat].Speaker;Dialogue=Line(scene,Beat,Script[Beat].Text);Reveal=0;
+        Speaker=Script[Beat].Speaker;Dialogue=Line(scene,Beat,Script[Beat].Text);Reveal=OnCard?Dialogue.Length:0;
         var line=$"res://assets/audio/voice/ja/{Speaker}/{scene}.{Beat}.mp3";var voice=scene!=null&&ResourceLoader.Exists(line)?line:null;
         Log.Add((scene,Beat,Speaker,Script[Beat].Text,voice));if(Log.Count>LogLength)Log.RemoveAt(0);
         Voice.Stop();Voice.Stream=voice!=null?GD.Load<AudioStream>(voice):null;hushed=Voice.Stream!=null&&Fast;if(Voice.Stream!=null&&!Fast)Voice.Play();
         Cue($"{scene}.{Beat}");
         SpeakerRole=Speaker switch {"Mio"=>"OFFLINE RUNNER","Zero"=>"SENSORY LINK · CITY SIDE",_=>World.Residents.FirstOrDefault(r=>r.Name==Speaker).Role??""};
     }
+    // A day's title card, drawn over black; the black lifts as the scene's next line starts.
+    public bool OnCard=>Mode is GameMode.Dialogue or GameMode.History&&Prologue.Cards.Contains($"{scene}.{Beat}");
     // The history opens over a scene, which holds still under it (its camera, clips, the cover and its voice), until it closes back to the same line; a voice replayed there stops.
     public void ShowHistory(bool show)
     {
@@ -340,7 +389,7 @@ public partial class Game : Node3D
     public void OnEnemyDefeated(Enemy enemy)
     {
         Earn(enemy.Kind.Reward);
-        if(QuestStage==1&&Patrols.All(e=>e.Dead)){QuestStage=2;Toast("ROAD CLEARED",seconds:5);}
+        if(QuestStage==Quest.Road&&Patrols.All(e=>e.Dead)){QuestStage=Quest.Relay;Toast("ROAD CLEARED",seconds:5);}
     }
     public void ToggleLock()
     {

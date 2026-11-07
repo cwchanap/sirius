@@ -9,7 +9,7 @@ public partial class World
 {
     public static readonly Vector3 RoomAt=new(31,300,7.5f);
     // Mio's hips on the futon, her feet toward the shoji; the door out in the east wall; the photograph of her mother on the north wall.
-    public static readonly Vector3 Bed=new(-.6f,0,-.2f),Door=new(1.6f,0,.65f),Photo=new(.9f,0,-1.3f);
+    public static readonly Vector3 Bed=new(-.6f,0,-.2f),Door=new(1.6f,0,.65f),Photo=new(.9f,0,-1.3f),Telephone=new(.4f,0,.05f);
     public Node3D Room()
     {
         var room=new Node3D {Name="Mio's room",Position=RoomAt};
@@ -61,7 +61,7 @@ public partial class World
         // Tripo Studio models (assets/models/), placed whole.
         Box(room,"Desk",new(-1.67f,.32f,-.9f),new(.55f,.05f,1),cedar,true);
         foreach(float x in new[]{-1.9f,-1.44f})foreach(float z in new[]{-1.35f,-.45f})Box(room,"Desk leg",new(x,.15f,z),new(.05f,.3f,.05f),dark);
-        foreach(var (name,model,p,yaw) in new[]{("Desk lamp","desk_lamp",new Vector3(-1.75f,.345f,-1.15f),0f),("Telephone","telephone",new Vector3(.4f,0,.05f),-25f),
+        foreach(var (name,model,p,yaw) in new[]{("Desk lamp","desk_lamp",new Vector3(-1.75f,.345f,-1.15f),0f),("Telephone","telephone",Telephone,-25f),
             ("Tools","tools",new Vector3(.45f,0,-.5f),0f),("Wire spool","spool",new Vector3(.78f,0,.32f),30f)})
         {var n=GD.Load<PackedScene>($"res://assets/models/{model}.glb").Instantiate<Node3D>();n.Name=name;n.Position=p;n.RotationDegrees=new(0,yaw,0);room.AddChild(n);}
         Box(room,"Photo frame",new(Photo.X,1.45f,-1.79f),new(.32f,.4f,.03f),dark);

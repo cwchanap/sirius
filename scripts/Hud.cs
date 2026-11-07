@@ -148,7 +148,7 @@ public partial class Hud : Control
                 float mark=icon==""?0:38,width=font.GetStringSize(label,fontSize:18).X+70+mark,x=(w-width)/2;Panel(new(x,h-225,width,44),.92f);
                 Keycap("E",new(x+14,h-214.4f));if(icon!="")Mark(icon,new(x+66,h-203),30,cream);Text(label,new(x+52+mark,h-196),18,cream);
             }
-            if(Game.QuestStage<4&&!Game.Camera.IsPositionBehind(Game.ObjectivePosition))
+            if(!Game.Camera.IsPositionBehind(Game.ObjectivePosition))
             {
                 var p=Game.Camera.UnprojectPosition(Game.ObjectivePosition+Vector3.Up*3.8f)/scale;
                 if(p.X>30&&p.X<w-30&&p.Y>150&&p.Y<h-230)Diamond(p,9,gold);
@@ -181,10 +181,10 @@ public partial class Hud : Control
     private void Quest()
     {
         string text=Game.ObjectiveText;float x=78+font.GetStringSize(text,fontSize:17).X;
-        DrawTextureRect(questShade,new(0,24,x+(Game.QuestStage==1?190:110),46),false);
+        DrawTextureRect(questShade,new(0,24,x+(Game.QuestStage==Hoshikawa.Quest.Road?190:110),46),false);
         Diamond(new(44,47),6,gold);Text(text,new(62,53),17,cream);
-        if(Game.QuestStage==1)foreach(var patrol in Game.Patrols){DrawIcon("sirius",new(x+12,47),28,patrol.Dead?new Color(cream,.22f):crest);x+=28;}
-        if(Game.QuestStage<4)Text(F("{0} m",(int)Game.Player.GlobalPosition.DistanceTo(Game.ObjectivePosition)),new(x+8,53),12,muted);
+        if(Game.QuestStage==Hoshikawa.Quest.Road)foreach(var patrol in Game.Patrols){DrawIcon("sirius",new(x+12,47),28,patrol.Dead?new Color(cream,.22f):crest);x+=28;}
+        Text(F("{0} m",(int)Game.Player.GlobalPosition.DistanceTo(Game.ObjectivePosition)),new(x+8,53),12,muted);
     }
     // The nearest robot: its crest (smaller for a smaller robot), health and posture, and the TAB key until it is locked on.
     private void Target(Enemy e)
@@ -367,7 +367,7 @@ public partial class Hud : Control
         foreach(var e in Game.Enemies.Where(e=>!e.Dead))
         {var p=Map(e.GlobalPosition);if(p.Length()<r-4)DrawCircle(center+p,3,new("e58b66"));}
         DrawCircle(center,4,cream);DrawLine(center,center+new Vector2(-Mathf.Sin(Game.CameraYaw),-Mathf.Cos(Game.CameraYaw))*10,cream,2);
-        if(Game.QuestStage<4)Diamond(center+Map(Game.ObjectivePosition).LimitLength(r-9),4,gold);
+        Diamond(center+Map(Game.ObjectivePosition).LimitLength(r-9),4,gold);
         var link=center+new Vector2(-60,60);DrawCircle(link,17,new Color(ink,.95f));DrawArc(link,17,0,Mathf.Tau,32,new Color(jade,.6f),1);DrawIcon("zero",link,30,jade);
     }
     private void Diamond(Vector2 p,float radius,Color c)
@@ -376,6 +376,8 @@ public partial class Hud : Control
     // Zero has no figure; its voice is a pulsing link emblem beside Mio, because it speaks from her wrist terminal.
     private void Dialogue()
     {
+        // A day's title card stands alone on black.
+        if(Game.OnCard){DrawRect(new(0,0,w,h),Colors.Black);Center(Game.Dialogue,h/2+14,40,gold,true);return;}
         bool night=Game.NightFrom>=0&&Game.Beat>=Game.NightFrom;
         DrawRect(new(0,0,w,h),night?new Color(.012f,.02f,.06f,.8f):new Color(.015f,.035f,.04f,.3f));
         if(Game.Blackout>0)DrawRect(new(0,0,w,h),new Color(0,0,0,Game.Blackout));

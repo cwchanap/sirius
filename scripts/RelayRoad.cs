@@ -81,6 +81,10 @@ public partial class World
     // The ruined teahouse on its terrace above the junction, in the Hamlet table's shape.
     public static readonly (string Name,Vector2 At,Vector3 Size,float Yaw,string Style) OldTeahouse=("Old Teahouse",new(12,-59.5f),new(8,4.03f,7),0,"teahouse");
     public Vector3 RelayPosition=>new(-6,Height(-6,-167),-167);
+    // The station road's barrier and rockfall, models and bodies, and where the road runs out past them, the extension's way in.
+    public readonly List<Node3D> Rockfall=new();
+    public void ClearRockfall(bool clear){foreach(var n in Rockfall){n.Visible=!clear;if(n is StaticBody3D body)body.CollisionLayer=clear?0u:1u;}}
+    public Vector3 StationRoadEnd=>new(50.5f,Height(50.5f,-160),-160);
     // The three patrols guard the junction, the teahouse terrace and the relay plaza. The scouts watch the forest valley, the quarry,
     // the switchback's hairpin and the high road. The drones hover over the switchback's foot, the forest valley and the high road,
     // each over 16 m from any patrol or scout, so Mio can take one on alone.
@@ -132,8 +136,8 @@ public partial class World
             }
         }
         Signpost(new(-4,-21),"E · MANUAL RELAY\nN · OLD QUARRY");
-        // The road east from the plaza beside the old line is the relay road extension's way in, toward the station: closed for the
-        // prologue by a barrier and, behind it, a rockfall slid down from the cutting's end, boulders resting on its talus.
+        // The road east from the plaza beside the old line is the relay road extension's way in, toward the station: closed by a barrier and,
+        // behind it, a rockfall slid down from the cutting's end, boulders resting on its talus, until the third morning (ClearRockfall).
         const float barrier=41;float road=-160;
         // Three Tripo barricades (assets/models/barricade.glb, 3 m long on its Z axis) across the road, each on the lowest ground under it.
         foreach(float z in new[]{road-3,road,road+3})
@@ -141,6 +145,7 @@ public partial class World
             float ground=new[]{-1.5f,1.5f}.Min(dz=>Height(barrier,z+dz));
             var n=Model(this,"Station road barrier","barricade",new(barrier,ground,z),z==road?180:0,new(1.3f,1.3f,1.3f));
             var body=new StaticBody3D();n.AddChild(body);body.AddChild(new CollisionShape3D{Position=new(0,.65f,0),Shape=new BoxShape3D{Size=new(.4f,1.3f,3)}});
+            Rockfall.Add(n);Rockfall.Add(body);
         }
         Signpost(new(39,-158),"E · STATION\nROCKFALL · ROAD CLOSED",Mathf.Pi/2);
         foreach(var (x,z,size,turn) in new[]{(43.5f,-161.5f,1.3f,.4f),(44.5f,-158.2f,1.1f,1.9f),(46.5f,-160.4f,1.8f,.9f),(47.8f,-157.8f,1.4f,2.6f),(46,-163,1.2f,1.4f),(48.5f,-162,1.5f,.2f),
@@ -202,9 +207,10 @@ public partial class World
     {
         float h=size/2,ground=new[]{-h,h}.SelectMany(dx=>new[]{-h,h},(dx,dz)=>Height(x+dx,z+dz)).Min();
         var n=Model(this,name,"boulder",new(x,ground-size*.05f,z),Mathf.RadToDeg(turn),new(1.05f,1.05f,1.05f));n.Scale=Vector3.One*size/1.58f;
-        ActorVisual.Descendants(n).OfType<MeshInstance3D>().Single().VisibilityRangeEnd=80;
+        ActorVisual.Descendants(n).OfType<MeshInstance3D>().Single().VisibilityRangeEnd=80;if(name=="Rockfall boulder")Rockfall.Add(n);
         if(!solid)return;
         var body=new StaticBody3D{Position=n.Position+Vector3.Up*size*.35f};AddChild(body);body.AddChild(new CollisionShape3D{Shape=new CylinderShape3D{Radius=size*.42f,Height=size*.7f}});
+        if(name=="Rockfall boulder")Rockfall.Add(body);
     }
     // The teahouse's ladder, drawn up on its terrace's brow above the junction until Mio lowers it from there: a steep ship's ladder,
     // under 40 degrees so she walks it.

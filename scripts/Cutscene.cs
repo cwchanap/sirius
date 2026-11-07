@@ -19,10 +19,27 @@ public partial class Game
         ["shoji"]=(new(.5f,1.55f,-1.45f),new(-1.3f,1,5),2,true),["backlit"]=(new(1.4f,1.35f,-1.6f),new(-.6f,1.1f,1.6f),2,true),
         ["photo"]=(new(1.55f,1.6f,-.55f),new(.9f,1.35f,-1.79f),0,true),
     };
-    // Where Yui stands as the story moves her: at Mio's gate, by Renji's bench until he has heard the news, then outside the clinic.
+    // Where the story moves its residents. Yui waits at Mio's gate, by Renji's bench until he has heard the news, then outside the clinic.
+    // Renji and KOMA-7 go up to the rockfall east of the relay plaza on the second evening, Sota and Yui on the third morning, and KOMA-7
+    // goes home once it has cleared the road. Everyone else, and these the rest of the time, stand where World.Village() put them.
     public static readonly (Vector3 At,float Yaw) YuiWorkshop=(new(-2.6f,0,10.6f),Mathf.Pi/2),YuiClinic=(new(-1.8f,0,34.2f),-.84f);
-    public (Vector3 At,float Yaw) YuiSpot=>!Heard.Contains("Gate")?(Hoshikawa.World.YuiGate,Mathf.Pi):QuestStage==0?YuiWorkshop:YuiClinic;
+    public static readonly Dictionary<string,(Vector3 At,float Yaw)> AtRockfall=new()
+    {
+        ["Renji"]=(new(37.6f,0,-161),-Mathf.Pi/2),["KOMA-7"]=(new(38.2f,0,-158.6f),-Mathf.Pi/2),["Sota"]=(new(34.4f,0,-158.6f),-Mathf.Pi/2),["Yui"]=(new(35.6f,0,-163),-Mathf.Pi/2),
+    };
+    private readonly Dictionary<string,(Vector3 At,float Yaw)> homes=new();
+    public (Vector3 At,float Yaw) Spot(string name)=>name switch
+    {
+        "Yui" when !Heard.Contains("Gate")=>(Hoshikawa.World.YuiGate,Mathf.Pi),
+        "Yui"=>QuestStage==Quest.Renji?YuiWorkshop:QuestStage<Quest.Rockfall?YuiClinic:AtRockfall[name],
+        "Renji" when QuestStage>=Quest.Home=>AtRockfall[name],
+        "KOMA-7" when QuestStage is Quest.Home or Quest.Rockfall=>AtRockfall[name],
+        "Sota" when QuestStage>=Quest.Rockfall=>AtRockfall[name],
+        _=>homes[name]
+    };
     public static string RestClip(string name)=>name=="Renji"?"work":"idle";
+    // Away from his bench Renji stands idle.
+    private string Rests(string name)=>name=="Renji"&&QuestStage>=Quest.Home?"idle":RestClip(name);
     public Node3D? Room;
     public bool InRoom=>Room!=null;
     public bool Staged=>shot.Current;
@@ -42,6 +59,7 @@ public partial class Game
     private void Stage()
     {
         shot=new Camera3D {Name="Scene camera",Fov=50,Near=.05f,Far=320};shot.CullMask&=~Hoshikawa.World.NameLayer;AddChild(shot);
+        foreach(var (name,_,body) in World.Residents)homes[name]=(body.GlobalPosition,body.Rotation.Y);
         Actor("Renji").Visual.Play(RestClip("Renji"));
     }
     // A named actor: Mio is the player, whose model turns; a resident turns whole.
@@ -88,6 +106,8 @@ public partial class Game
     // What the 3D scene does as a beat starts (Prologue.Stage).
     private void Cue(string key)
     {
+        // There is no clip yet for KOMA-7 lifting rock: the road clears under a moment's black.
+        if(key==$"Rockfall.{Prologue.Cleared}"){Blackout=1;World.ClearRockfall(true);}
         if(!Prologue.Stage.TryGetValue(key,out var cue))return;
         foreach(var act in cue.Acts.Split(',',StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries))
         {
@@ -121,7 +141,7 @@ public partial class Game
     private void Release(bool glide=false)
     {
         back=glide&&shot.Current?CameraBack:0;backFrom=shotNow;if(back==0&&shot.Current)Camera.MakeCurrent();
-        foreach(var (name,yaw) in staged){var actor=Actor(name);actor.Turn.Rotation=new(0,yaw,0);actor.Visual.Play(RestClip(name),1,true,.35f);}
+        foreach(var (name,yaw) in staged){var actor=Actor(name);actor.Turn.Rotation=new(0,yaw,0);actor.Visual.Play(Rests(name),1,true,.35f);}
         staged.Clear();
     }
     // What a scene's end sets going.
@@ -129,20 +149,30 @@ public partial class Game
     {
         if(ended=="Opening"){EnterRoom();Play(Prologue.Intro);}
         // Up and talked into going, she is left with the door out ahead of the camera, and her cover folded, even if a skip never cued her rise.
-        else if(ended=="Intro"&&Room!=null)
+        else if(ended is "Intro" or "DayTwo" or "DayThree"&&Room!=null)
         {
             tuck?.Kill();tuck=null;if(Room.GetNodeOrNull<MeshInstance3D>("Blanket") is {} cover){cover.Set("blend_shapes/sit",0f);cover.Set("blend_shapes/folded",1f);}
             var to=Room.GlobalPosition+Hoshikawa.World.Door-Player.GlobalPosition;CameraYaw=Mathf.Atan2(-to.X,-to.Z);
         }
         else if(ended=="Gate")Walk("Yui",new[]{new Vector3(30,0,15),new Vector3(.5f,0,15),YuiWorkshop.At},"run",4.2f,YuiWorkshop.Yaw);
         else if(ended=="Briefing")Walk("Yui",new[]{new Vector3(.5f,0,15),new Vector3(.5f,0,31),YuiClinic.At},"walk",1.4f,YuiClinic.Yaw);
+        // After the homecoming's night Mio wakes in her room on the second day, and after the second night on the third.
+        else if(ended=="Homecoming"){EnterRoom();Play(Prologue.DayTwo);}
+        else if(ended=="NightTwo"){PlaceCast();EnterRoom();Play(Prologue.DayThree);}
+        // She takes the mended telephone with her.
+        else if(ended=="PhoneFixed"&&Room?.GetNodeOrNull<Node3D>("Telephone") is {} phone)phone.Visible=false;
+        // Renji and KOMA-7 leave for the relay plaza in the dark; KOMA-7 goes home once the road is open.
+        else if(ended is "Evening" or "Rockfall"){if(ended=="Rockfall")World.ClearRockfall(true);Blackout=1;PlaceCast();}
     }
     // The title's journey, and a restarted prologue: from black, over the valley to Mio's house, then into her room.
     private void Opening(){ToastTime=0;Player.Visible=false;Blackout=1;Aim("sky");Play(Prologue.Opening);}
-    private void EnterRoom()
+    // Into her room: asleep on the futon, as a day begins, or in at the door, facing in, from the valley.
+    private void EnterRoom(bool asleep=true)
     {
-        Room=World.Room();AddChild(Room);World.Visible=false;Player.Visible=true;Sword(false);
-        Place(Room.GlobalPosition+Hoshikawa.World.Bed,0,Mathf.Pi*.8f);spring.SpringLength=2.2f;Blackout=1;
+        ExitRoom();Room=World.Room();AddChild(Room);World.Visible=false;Player.Visible=true;Sword(false);
+        if(Heard.Contains("PhoneFixed"))Room.GetNode<Node3D>("Telephone").Visible=false;
+        if(asleep)Place(Room.GlobalPosition+Hoshikawa.World.Bed,0,Mathf.Pi*.8f);else Place(Room.GlobalPosition+Hoshikawa.World.Door+Vector3.Left*.6f,-Mathf.Pi/2,Mathf.Pi/2);
+        spring.SpringLength=2.2f;Blackout=1;
     }
     // Out of the door: the valley comes back with Mio on her doorstep, and Yui at the gate the first time.
     public void LeaveRoom()
@@ -161,6 +191,7 @@ public partial class Game
     private bool Near(Vector3 local,float reach){var p=Player.GlobalPosition-Room!.GlobalPosition;return new Vector2(p.X-local.X,p.Z-local.Z).Length()<reach;}
     public bool AtDoor=>InRoom&&Near(Hoshikawa.World.Door,1.3f);
     public bool AtPhoto=>InRoom&&Near(Hoshikawa.World.Photo,1.1f);
+    public bool AtPhone=>MendPhone&&InRoom&&Near(Hoshikawa.World.Telephone,1.1f);
     private void Walk(string name,Vector3[] path,string clip,float speed,float yaw)
     {
         moves.RemoveAll(m=>m.Name==name);moves.Add(new Move {Name=name,Path=path,Speed=speed,Yaw=yaw});Actor(name).Visual.Play(clip,1,true,.2f);
@@ -179,14 +210,19 @@ public partial class Game
     private void Arrive(Move move)
     {
         var (body,_,visual)=Actor(move.Name);var end=move.Path[^1];
-        body.GlobalPosition=new(end.X,Hoshikawa.World.Height(end.X,end.Z),end.Z);body.Rotation=new(0,move.Yaw,0);visual.Play(RestClip(move.Name),1,true,.25f);moves.Remove(move);
+        body.GlobalPosition=new(end.X,Hoshikawa.World.Height(end.X,end.Z),end.Z);body.Rotation=new(0,move.Yaw,0);visual.Play(Rests(move.Name),1,true,.25f);moves.Remove(move);
     }
     // Finishes every walk at once, as a restart or a scene that needs Yui in place does.
     public void FinishWalks(){foreach(var move in moves.ToArray())Arrive(move);}
-    private void PlaceYui()
+    // Puts every resident where the story has them now (Spot), as a restart, a skipped scene or a change of day does.
+    private void PlaceCast()
     {
-        FinishWalks();var (at,yaw)=YuiSpot;var yui=Actor("Yui");
-        yui.Body.GlobalPosition=new(at.X,Hoshikawa.World.Height(at.X,at.Z),at.Z);yui.Body.Rotation=new(0,yaw,0);yui.Visual.Play("idle",1,true);
+        FinishWalks();
+        foreach(var (name,_,body) in World.Residents)
+        {
+            var (at,yaw)=Spot(name);var visual=Actor(name).Visual;
+            body.GlobalPosition=new(at.X,Hoshikawa.World.Height(at.X,at.Z),at.Z);body.Rotation=new(0,yaw,0);visual.Play(Rests(name),1,true);
+        }
     }
     // The ground under a walker, bridges included, but not its own collider.
     private float Ground(Vector3 p,Node3D who)
@@ -197,7 +233,7 @@ public partial class Game
     }
     private void Staging(float dt)
     {
-        if(Mode!=GameMode.Paused)Blackout=Math.Max(0,Blackout-dt*.8f);
+        if(Mode!=GameMode.Paused)Blackout=OnCard?1:Math.Max(0,Blackout-dt*.8f);
         if(Mode is GameMode.Playing or GameMode.Dialogue)Walking(dt);
         if(shot.Current&&back>0)
         {

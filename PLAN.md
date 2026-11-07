@@ -233,6 +233,18 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [ ] Voice Zero's six new relay reminders in Japanese.
 - [ ] Export presets, once they exist, need `*.json` in the resource filter so `assets/dialogue/` ships.
 
+## Before setting out: the second and third day (出發之前)
+
+- [x] Plan (Notion, 序章後半：出發之前): the station's home signal answers only to its own signal box's lever, so someone must go in; Renji holds the relay plaza; Sota and Yui go with Mio; three days, two day changes, all on the existing maps.
+- [x] Twelve new scenes in `Prologue.cs` (the second morning, Renji's news, Sota joining, the clinic and Yui's crossbow, KOMA-7 and Grandpa Tetsu's unseen voice, the telephone, Chiyo's lantern, the evening, the second night, the third morning, the rockfall) and three repeats, in Japanese and Traditional Chinese; `RenjiRest` and the homecoming's "prologue complete" card are gone.
+- [x] Quest stages after the relay (`Quest`): Renji in the morning, four errands in any order counted on the objective and marked nearest first, the telephone to Renji, home to sleep, the rockfall, the station road.
+- [x] Day changes: a title card over black (`Prologue.Cards`) opens each morning in Mio's room; her door takes her home from the second day; night tints the evening and the second night (`Prologue.Nightfall`).
+- [x] Residents move with the story (`Game.Spot`): Renji and KOMA-7 up to the rockfall on the second evening, Sota and Yui on the third morning, KOMA-7 home once it has cleared the road (`World.ClearRockfall`, under a moment's black until KOMA-7 has a lifting clip).
+- [x] A second Starwell at Komorebi's well (`World.SavePoints`).
+- [x] Self-test (737 checks) in all three languages, unit tests.
+- [ ] Voice the 49 new cast lines (`Prologue.Unrecorded`) once the owner has read them.
+- [ ] Separate tasks: KOMA-7 lifting rock, Yui's crossbow, the city skyline on the north-west ridge, the relay road's extension (next map).
+
 ## A longer opening (開場劇情)
 
 - [x] Rename the cast to the 2026-10-23 name table (Renji, Chiaki, Haruka, Sota, Naomi, Emiko; Mio's family name Minase) in code, both translations, the glossary, voice files and portraits.
