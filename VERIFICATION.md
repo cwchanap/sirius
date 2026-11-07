@@ -1,5 +1,19 @@
 # MVP verification
 
+## Review of PR 36 — 2026-11-07
+
+CodeRabbit raised two findings and a nitpick on the pull request; Codex found nothing. All three CI jobs passed, and each finding was checked against the code before acting.
+- **`hand_weights.unbind`'s fallback never worked (valid, latent):**
+  - `clean`, the vertices the hands never touched, was found after the far vertices' hand weights were zeroed. Every one of them then counted as clean and was its own nearest, so a vertex left with a sliver of weight kept it renormalised to 100%, and one weighted only to the hands divided zero by zero into NaN.
+  - Found before the zeroing now. A synthetic case reproduces it: the old code gives a NaN row and a 3% sliver pinned to 100%; the fix gives both vertices a clean neighbour's weights.
+  - **No effect on Mio:** of her 7,005 unbound vertices none reaches the fallback, and the old and the fixed code write byte-identical GLBs from the same source, so the committed model is unchanged.
+- **`unbind_blender` rewrote every vertex's every group (valid, performance):** it now writes only the rows `unbind` changed. In Blender on Mio's model every one of her 30,578 vertices' weights is identical either way (largest difference 0.0), and the import step takes 0.7 s instead of 1.9 s.
+- **A scene begun mid-action left Mio standing (valid):**
+  - E in the middle of a swing, roll, cast, stagger or remedy started a scene. `Gather()` stood her at ease while her timers paused with the game, so the swing resumed after the scene with her standing. `main` didn't have this to the same degree, since `Gather()` didn't touch her animation until the dialogue-stance change in this PR.
+  - E is now ignored until she is free (`Player.Free`, the condition her clip selection already used). The self-test sends E mid-swing, expects no scene, and expects E to work once the swing is over. With the gate removed, that check fails.
+- **Skipped:** CodeRabbit's docstring-coverage warning (54.55% against 80% on the touched functions). It is advisory, and the tools' comments say why, not what.
+- **Self-test:** 700 checks pass headless in `en`, `ja` and `zh_TW`; unit 58 and e2e 4 pass; `check_mio_export.py` passes.
+
 ## Mio's combat clips out of her body — 2026-11-06
 
 Hapadona agreed to rechoreograph the swings the last pass left alone. The same per-frame count of each forearm and hand, and the blade, against the rest of her body ran on `tools/mio_combat.py`'s clips as keyed, about seven seconds a run, while the keys were tuned.

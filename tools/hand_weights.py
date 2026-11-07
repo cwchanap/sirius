@@ -31,11 +31,12 @@ def unbind(points, weights, names, segments, scale, radius=RADIUS):
             u = np.clip((points - a) @ ab / max(ab @ ab, 1e-12), 0, 1)
             near = np.minimum(near, np.linalg.norm(points - (a + u[:, None] * ab), axis=1) * scale)
         far = (near > radius) & (weights[:, hand].sum(1) > 0)
+        # Found before the far vertices' hand weights go: afterwards every one of them would count as untouched, and be its own nearest.
+        clean = np.where(weights[:, hand].sum(1) == 0)[0]
         before = weights[far].sum(1)
         weights[np.ix_(far, hand)] = 0
         changed |= far
         lost = np.where(far)[0][weights[far].sum(1) < .2 * before]
-        clean = np.where(weights[:, hand].sum(1) == 0)[0]
         for i in lost:
             weights[i] = weights[clean[np.argmin(np.linalg.norm(points[clean] - points[i], axis=1))]]
     weights[changed] /= weights[changed].sum(1, keepdims=True)
@@ -126,8 +127,10 @@ def unbind_blender(body, rig):
     world = rig.matrix_world
     segments = {side: [(np.array(world @ b.head_local), np.array(world @ b.tail_local)) for b in rig.data.bones if b.name.startswith(side + 'Hand')]
                 for side in ('Right', 'Left')}
-    dense, n = unbind(points, dense, groups, segments, 1)
-    for i in np.where((dense > 0).any(1))[0]:
+    original = dense
+    dense, n = unbind(points, original, groups, segments, 1)
+    # Only the rows it changed: rewriting every vertex's every group is millions of calls into Blender.
+    for i in np.where((dense != original).any(1))[0]:
         for gi, w in enumerate(dense[i]):
             if w > 0:
                 body.vertex_groups[gi].add([int(i)], float(w), 'REPLACE')
