@@ -1,5 +1,23 @@
 # MVP verification
 
+## The contact audit, every frame — 2026-11-07
+
+The pull request's review found `self_contact.py`'s report measured `len(frames) // 12` apart, about 13 frames of each clip, so a hand through the body for one or two frames (the flicker the tool exists to stop) could pass its `--max` gate. The notes below claimed `--max=30` passed for Yui and Mio; that was true of the sampled frames only.
+- **Changed:** the report measures every frame of every clip it is given. All of Yui's, Renji's and the robot's clips take under a minute each; Mio's 21 take about two.
+- **Found:** Yui's folded-arms hold peaked at 35 vertices, over the gate (24 at the frames the old report sampled; 32 by an earlier per-frame script, whose evaluation differs from the tool's by a few vertices at the margin).
+  - The breathing sway pressed her right hand into her left sleeve. Without `clear()` the same hold measures 13 on that hand.
+  - `clear()` is what made it worse. It solves one arm after the other, so turning the left arm out of the body put its forearm into the right hand the right arm had just cleared.
+  - Not fixed in `clear()`: a second sweep would change every clip's keys again for one pose that rests a hand on the other arm. The pose is kept clear by its own key, and `clear()`'s docstring says so.
+- **Fixed:** the folded pose's right wrist is 1.5 cm further from the sleeve (`FOLD`), and Yui's clips are rekeyed (`cast_clips.py --model=yui --swap`). The hold now peaks at 11 on the left hand and 5 on the right. The pose looks the same; the hand sits less deep in the sleeve.
+- **Measured, every frame, and passing `--max=30`:**
+  - Yui 16 or under (the reading hold's hands against each other), Renji 15, the robot 9.
+  - Mio's idle, walk, run, jump, guard, stagger, death, stand, terminal, rise and sit 13 or under. Her two seated terminal clips are 13 and 20, keyed by hand (the seated hold's left hand against her ribs).
+- **Not under the gate, so Mio's check names her clips (`--clips=`):**
+  - The roll: 144 on one frame.
+  - Sleep and wake, under the quilt the cloth solver lays over them.
+  - The combat clips, where her left fist holds the hilt: the third slash 42, Resonance Cut 68 counting the fist against the sword.
+- **Self-test:** 700 checks pass headless in `en`, `ja` and `zh_TW`; unit 58 and e2e 4 pass.
+
 ## Review of PR 36 — 2026-11-07
 
 CodeRabbit raised two findings and a nitpick on the pull request; Codex found nothing. All three CI jobs passed, and each finding was checked against the code before acting.
@@ -54,8 +72,8 @@ Hapadona asked whether the satchel and Yui's hands were the only such places. A 
 - **Measured, every frame:**
   - Mio's run, stagger, jump and death have 8 or fewer vertices inside on either arm and on the sword.
   - The eye rub has 13 inside at worst, the knuckles against her brow, and her seated terminal 14.
-  - Her other clips are 11 or under; `self_contact.py --max=30` passes for Mio and Yui.
-  - Yui's clips are 32 or under (her right hand resting on her folded left sleeve), Renji's 15, and the robot's 9.
+  - Her other clips are 11 or under; `self_contact.py --max=30` passed for Mio and Yui, but it measured only 13 frames a clip: Yui's folded hold was 35 at a frame it skipped (see the every-frame audit above).
+  - Yui's clips are 32 or under by a separate every-frame script (her right hand resting on her folded left sleeve), Renji's 15, and the robot's 9.
   - `check_mio_export.py` passes. Before-and-after sheets are in `artifacts/self-contact/`.
 - **Self-test:** 698 checks pass headless in `en`, `ja` and `zh_TW`; unit 57 and e2e 4 pass.
 - **Left alone:**
@@ -76,7 +94,7 @@ Hapadona saw Mio's hand go through her satchel and Yui's two hands through each 
   - Folded arms were rebuilt from measurements (jacket front about 10 cm forward of the spine, sleeves 5 cm in radius): the left forearm crosses low and forward, the right a sleeve's thickness above it, the right hand curls over the left upper arm and the left fist tucks under the right elbow.
   - Reading holds the hands apart.
   - `clear()` turns the upper arm out of whatever is left, frame by frame; `cast_clips.py` runs it on every cast clip but the five under the futon's cover. `--fix` ran it on Mio's committed idle, walk, guard and jump (12–16 degrees at most, timing unchanged).
-- **Measured (`self_contact.py --max=30` passes):** Mio's idle 11, walk 11, guard 11, jump 13, dialogue stance 8 and terminal 7; every Yui clip 29 or under, folded arms 9 and 29 (the right hand resting on the left sleeve); every Renji clip 16 or under. Every other Mio clip is unchanged to the value; `check_mio_export.py` passes.
+- **Measured (13 frames a clip; the every-frame figures are in the 2026-11-07 entry above):** Mio's idle 11, walk 11, guard 11, jump 13, dialogue stance 8 and terminal 7; every Yui clip 29 or under, folded arms 9 and 29 (the right hand resting on the left sleeve); every Renji clip 16 or under. Every other Mio clip is unchanged to the value; `check_mio_export.py` passes.
 - **Self-test:** 698 checks pass headless in `en`, `ja` and `zh_TW`; unit 57 and e2e 4 pass.
 - **Not yet:** no Metal run. The importers' new step ran only on the committed models, since the sources are on the Mac. Mio's combat swings, roll and death still pass a forearm through the satchel or her head for a few frames (`attack3` 179 at worst); they were left alone, since her left hand is placed on the hilt in some of them.
 
