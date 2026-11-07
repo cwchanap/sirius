@@ -83,7 +83,10 @@ public partial class World
     public Vector3 RelayPosition=>new(-6,Height(-6,-167),-167);
     // The station road's barrier and rockfall, models and bodies, and where the road runs out past them, the extension's way in.
     public readonly List<Node3D> Rockfall=new();
-    public void ClearRockfall(bool clear){foreach(var n in Rockfall){n.Visible=!clear;if(n is StaticBody3D body)body.CollisionLayer=clear?0u:1u;}}
+    // The signpost before the rockfall stays when it is cleared; only its "road closed" line goes.
+    public const string StationSign="E · STATION",ClosedSign="E · STATION\nROCKFALL · ROAD CLOSED";
+    public List<Label3D> RockfallSign=new();
+    public void ClearRockfall(bool clear){foreach(var n in Rockfall){n.Visible=!clear;if(n is StaticBody3D body)body.CollisionLayer=clear?0u:1u;}foreach(var l in RockfallSign)l.Text=clear?StationSign:ClosedSign;}
     public Vector3 StationRoadEnd=>new(50.5f,Height(50.5f,-160),-160);
     // The three patrols guard the junction, the teahouse terrace and the relay plaza. The scouts watch the forest valley, the quarry,
     // the switchback's hairpin and the high road. The drones hover over the switchback's foot, the forest valley and the high road,
@@ -147,7 +150,7 @@ public partial class World
             var body=new StaticBody3D();n.AddChild(body);body.AddChild(new CollisionShape3D{Position=new(0,.65f,0),Shape=new BoxShape3D{Size=new(.4f,1.3f,3)}});
             Rockfall.Add(n);Rockfall.Add(body);
         }
-        Signpost(new(39,-158),"E · STATION\nROCKFALL · ROAD CLOSED",Mathf.Pi/2);
+        RockfallSign=Signpost(new(39,-158),ClosedSign,Mathf.Pi/2);
         foreach(var (x,z,size,turn) in new[]{(43.5f,-161.5f,1.3f,.4f),(44.5f,-158.2f,1.1f,1.9f),(46.5f,-160.4f,1.8f,.9f),(47.8f,-157.8f,1.4f,2.6f),(46,-163,1.2f,1.4f),(48.5f,-162,1.5f,.2f),
             (49.5f,-159.8f,2.4f,1.1f),(50.3f,-157.6f,2,2.2f),(50.4f,-162.6f,2.2f,.7f),(51.6f,-160.4f,2.6f,1.7f),(52.6f,-158.4f,1.8f,.3f),(52.8f,-162,2,2.9f),(54,-160.2f,2.2f,1.3f)})
             Boulder("Rockfall boulder",x,z,size,turn);

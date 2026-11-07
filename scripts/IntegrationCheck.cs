@@ -955,7 +955,7 @@ public static class IntegrationCheck
         Check(g.InRoom&&g.Script.SequenceEqual(Prologue.DayThree)&&g.OnCard&&g.Player.Visual.Clip=="sleep"&&!g.Room!.GetNode<Node3D>("Telephone").Visible
             &&sota.GlobalPosition.DistanceTo(Game.AtRockfall["Sota"].At with {Y=sota.GlobalPosition.Y})<.01f,"she sleeps to the third day's card, while Sota and Yui set out for the rockfall");
         g.EndDialogue();g.LeaveRoom();
-        Check(g.Objective=="Meet the others at the rockfall"&&g.World.Rockfall.Count==32&&g.World.Rockfall.All(n=>n.Visible&&(n is not StaticBody3D b||b.CollisionLayer==1)),"the barrier and the rockfall still close the station road");
+        Check(g.Objective=="Meet the others at the rockfall"&&g.World.Rockfall.Count==32&&g.World.Rockfall.All(n=>n.Visible&&(n is not StaticBody3D b||b.CollisionLayer==1))&&g.World.RockfallSign.Count==2&&g.World.RockfallSign.All(l=>l.Text==World.ClosedSign),"the barrier and the rockfall still close the station road, and its sign says so");
         foreach(var who in new[]{"Renji","KOMA-7","Sota","Yui"})
         {
             var talk=g.Actor(who).Body.GlobalPosition+Vector3.Left*1.6f;talk.Y=Hoshikawa.World.Height(talk.X,talk.Z)+.1f;Place(g.Player,talk);await Frames(10);
@@ -963,7 +963,7 @@ public static class IntegrationCheck
         }
         g.Interact();Check(g.QuestStage==Quest.Beyond&&g.Script.SequenceEqual(Prologue.Rockfall)&&g.Staged,"they open the road");
         while(g.Beat<Prologue.Cleared&&g.Mode==GameMode.Dialogue)await Tap(Key.E);
-        Check(g.Blackout>.5f&&g.World.Rockfall.All(n=>!n.Visible&&(n is not StaticBody3D b||b.CollisionLayer==0)),"as the narration says, the barrier and the boulders are cleared under a moment's black");
+        Check(g.Blackout>.5f&&g.World.Rockfall.All(n=>!n.Visible&&(n is not StaticBody3D b||b.CollisionLayer==0))&&g.World.RockfallSign.All(l=>l.Text==World.StationSign),"as the narration says, the barrier and the boulders are cleared under a moment's black, and the sign only points the way");
         g.EndDialogue();
         Check(gardener.GlobalPosition.DistanceTo(komaHome)<.01f&&g.Objective=="Take the station road east"&&g.ObjectivePosition==g.World.StationRoadEnd,"KOMA-7 goes back to its tomatoes, and the station road is open");
         var through=new Vector3(41,Hoshikawa.World.Height(41,-160)+.1f,-160);Place(g.Player,through);await Frames(10);
@@ -975,7 +975,7 @@ public static class IntegrationCheck
         var chaser=g.Enemies.First(e=>e.Kind==Enemy.Scout&&!e.Dead);chaser.SetPhysicsProcess(true);Place(g.Player,chaser.GlobalPosition+Vector3.Back*6);await Frames(30);
         Check(chaser.State=="PURSUE"&&g.Music.Current=="battle","a scout after Mio brings in the battle music");g.SetPaused(true);
         g.Restart();Check(g.QuestStage==0&&g.Enemies.All(e=>!e.Dead)&&g.Player.Health==100&&yui.Body.GlobalPosition.DistanceTo(new(Hoshikawa.World.YuiGate.X,yui.Body.GlobalPosition.Y,Hoshikawa.World.YuiGate.Z))<.01f
-            &&sota.GlobalPosition.DistanceTo(sotaHome)<.01f&&renji.GlobalPosition.DistanceTo(new(-5.2f,renji.GlobalPosition.Y,11))<.01f&&g.Actor("Renji").Visual.Clip=="work"&&g.World.Rockfall.All(n=>n.Visible&&(n is not StaticBody3D b||b.CollisionLayer==1)),
+            &&sota.GlobalPosition.DistanceTo(sotaHome)<.01f&&renji.GlobalPosition.DistanceTo(new(-5.2f,renji.GlobalPosition.Y,11))<.01f&&g.Actor("Renji").Visual.Clip=="work"&&g.World.Rockfall.All(n=>n.Visible&&(n is not StaticBody3D b||b.CollisionLayer==1))&&g.World.RockfallSign.All(l=>l.Text==World.ClosedSign),
             "restart restores a fresh playable mission, Yui back at Mio's gate, Renji at his bench, Sota at home and the station road closed");chaser.SetPhysicsProcess(false);
         Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Opening)&&g.Log.Count==1,"restarting the prologue replays its opening, with a fresh history");
         // Through the narration, the waking, out of the door and past Yui at the gate.
