@@ -243,9 +243,10 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [x] Residents move with the story (`Game.Spot`): Renji and KOMA-7 up to the rockfall on the second evening, Sota and Yui on the third morning, KOMA-7 home once it has cleared the road (`World.ClearRockfall`, under a moment's black until KOMA-7 has a lifting clip).
 - [x] A second Starwell at Komorebi's well (`World.SavePoints`).
 - [x] Self-test (737 checks) in all three languages, unit tests.
+- [x] Everyone knows the name Zero, as Mio's terminal's name, and Mio calls it Zero anywhere: the villagers say "ask Zero" and Mio asks "Zero, ..."; her reminder in the morning is "you only answer me" (`Intro.17`, a re-voice). The name test is gone.
 - [x] Zero answers only Mio's questions, and the villagers know it: Yui, Renji, Chiaki, KOMA-7 and Sota ask Mio, and she asks the terminal (`PrologueTest.ZeroAnswersOnlyMio`). 13 cast lines changed or added, the 7 recorded ones' takes removed for re-voicing and the unchanged takes after them renamed to their new keys.
 - [x] Second script review: platform two's departure signal (not the home signal) is the one only the station's lever turns, the old freight system logs each load by its category code, and the way home is an old track trolley while the crawlers keep off the rails.
-- [ ] Voice the 63 unrecorded cast lines (`Prologue.Unrecorded`) once the owner has read them.
+- [ ] Voice the 64 unrecorded cast lines (`Prologue.Unrecorded`) once the owner has read them.
 - [ ] Separate tasks: KOMA-7 lifting rock, Yui's crossbow, the city skyline on the north-west ridge, the relay road's extension (next map).
 
 ## A longer opening (開場劇情)

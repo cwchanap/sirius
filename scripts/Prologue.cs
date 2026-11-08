@@ -4,8 +4,8 @@ namespace Hoshikawa;
 // terminal and has no portrait: nobody in the valley has seen its body. The city lets it know only what its work needs, so it is
 // curious like a child about everything else; it counts things and minds Mio's heartbeat, sleep and meals.
 // It asks about everything except Mio's mother; the epilogue's change of subject is the first hint of its secret. Its other job, loading
-// freight at the city's freight terminal by night, is how it knows the train. Only Mio calls it Zero, and only with nobody else there:
-// to everyone else it is her terminal (Chiyo knows its name too and never lets on). Yui, the pass courier, is quick, bright and never
+// freight at the city's freight terminal by night, is how it knows the train. Everyone knows it as Zero, the name of Mio's terminal, and she
+// calls it Zero anywhere; nobody but her knows a robot in the city is on the other end. Yui, the pass courier, is quick, bright and never
 // short of words; she, Sota and Renji fight as well as Mio, and keeping the robots out of their villages is their work beside their trades.
 public static class Prologue
 {
@@ -36,7 +36,7 @@ public static class Prologue
         ("Mio","Not anymore. City freight runs straight through on platform two and never slows down. No train has stopped at Hoshikawa Station in twelve years."),
         ("Zero","A station where no train stops is a very lonely station."),
         ("Mio","And Chiaki's shelves have been running low since spring. Two hundred boxes, and not one of them for us."),
-        ("Mio","Renji has to hear this. Come on, Zero. And outside, you only answer when someone asks. Remember?"),
+        ("Mio","Renji has to hear this. Come on, Zero. And outside, you only answer me. Remember?"),
         ("Zero","I remember. ...But you haven't eaten since yesterday noon. Nineteen hours. I counted."),
         ("Mio","I'll grab a rice ball on the way. Let's go."),
     };
@@ -52,9 +52,9 @@ public static class Prologue
         ("Yui","Mio! Mio, Mio, Mio! Good, you're up!"),
         ("Mio","Yui? You came all the way down from Komorebi?"),
         ("Yui","Walked all night! Well, jogged some of it. I went around the relay road, because guess what's camped on it now? Patrols! Three of them, with those creepy amber eyes."),
-        ("Yui","Morning to your little terminal too! ...I know, I know. It only ever answers you, Mio."),
+        ("Yui","Tell Zero good morning from me too! ...I know, I know. It only ever answers you, Mio."),
         ("Yui","So ask it for me. What's in my bag?"),
-        ("Mio","...Terminal, what's in Yui's bag?"),
+        ("Mio","...Zero, what's in Yui's bag?"),
         ("Zero","Letters. Her bag always has letters."),
         ("Yui","Ha! Letters, mostly. Other people's words. And this one's for Hoshikawa."),
         ("Yui","It's from Emiko. Komorebi has one week of medicine left. She's asking if you can spare any."),
@@ -73,8 +73,8 @@ public static class Prologue
         ("Renji","...Then we take the medicine off that train. Only the medicine. Our paddies feed us; the food can go on to people who need it more."),
         ("Renji","We can't stop a city train out on the line. But the old line's signals are still standing. Dead for twelve years, every one of them."),
         ("Renji","The manual relay below the viaduct feeds them. Bring it back, and the line answers to us again."),
-        ("Renji","Yui saw patrol units camped on the relay road. Clear any still there and restart the relay. ...Mio, can that terminal of yours keep count of them?"),
-        ("Mio","Terminal? Can you?"),
+        ("Renji","Yui saw patrol units camped on the relay road. Clear any still there and restart the relay. ...Mio, can Zero keep count of them?"),
+        ("Mio","Zero? Can you?"),
         ("Zero","Yes. The patrols poll the relay over the old line. This terminal will count the ones still out there."),
         ("Yui","I'm coming too! I know that road. Well, I know around that road."),
         ("Renji","Not this time. You walked all night, and Emiko needs an answer. Go and see Chiaki at the clinic. She'll want to know what that train is carrying."),
@@ -97,8 +97,8 @@ public static class Prologue
     };
     public static readonly (string Speaker,string Text)[] Homecoming=
     {
-        ("Renji","I can see the relay's lamp from the workshop roof. Green, for the first time since the line closed. Mio, ask your terminal about the rest of the line."),
-        ("Mio","Terminal, does every signal down the line have power again? Are they all green?"),
+        ("Renji","I can see the relay's lamp from the workshop roof. Green, for the first time since the line closed. Mio, ask Zero about the rest of the line."),
+        ("Mio","Zero, does every signal down the line have power again? Are they all green?"),
         ("Zero","All green. ...One near the village just went dark. ...It is green again now."),
         ("Renji","Good. When that train comes, platform two shows it red, and for once it will have to stop. You woke the line up, Mio."),
         ("","Night falls over Hoshikawa. Mio walks home alone, and one by one the lanterns are lit."),
@@ -126,8 +126,8 @@ public static class Prologue
     };
     public static readonly (string Speaker,string Text)[] HalfDone=
     {
-        ("Renji","Morning, Mio. Ask your terminal about the signals at Hoshikawa Station."),
-        ("Mio","Terminal, report the signals at Hoshikawa Station."),
+        ("Renji","Morning, Mio. Ask Zero about the signals at Hoshikawa Station."),
+        ("Mio","Zero, report the signals at Hoshikawa Station."),
         ("Zero","Every signal on the line has power. Platform two's departure signal at Hoshikawa Station has power too, but answers only to the lever in the station's signal box."),
         ("Renji","...Last night I said platform two would show that train red. I was wrong."),
         ("Renji","Nothing out here can turn that signal. Someone has to get inside the station and pull the lever. Then that train stops right beside platform two. And it comes the day after tomorrow."),
@@ -157,8 +157,8 @@ public static class Prologue
     };
     public static readonly (string Speaker,string Text)[] Crossbow=
     {
-        ("Chiaki","Mio, good. Ask your terminal what medicine is on that train. Every box, if it can."),
-        ("Mio","Terminal, what medicine is on the train? Every box."),
+        ("Chiaki","Mio, good. Ask Zero what medicine is on that train. Every box, if it can."),
+        ("Mio","Zero, what medicine is on the train? Every box."),
         ("Zero","The old freight system still logs each load on the line by its category code. Cough syrup, sixty boxes. Fever medicine, forty. Antibiotics, forty. Bandages and salve, sixty. Two hundred boxes in all."),
         ("Chiaki","I can't leave the clinic. So, Yui, you learn them. Cough syrup first, for Grandpa Tetsu. Then the fever medicine, then the antibiotics."),
         ("Yui","Cough syrup, fever medicine, anti... antibiotics! Cough, fever, the long one. Got it!"),
@@ -308,10 +308,10 @@ public static class Prologue
         ["KOMA-7"]=new[]
         {
             ("KOMA-7","Morning diagnostic: tomatoes healthy. Humans worried. Reminder for Mio: this unit is still far better company than your terminal."),
-            ("KOMA-7","Query, relayed through Mio: does your terminal know what tomatoes feel like?"),
-            ("Mio","...Fine. Terminal, do you know what tomatoes feel like?"),
+            ("KOMA-7","Query, relayed through Mio: does Zero know what tomatoes feel like?"),
+            ("Mio","...Fine. Zero, do you know what tomatoes feel like?"),
             ("Zero","No. This terminal has never touched one."),
-            ("KOMA-7","Round. Warm in the afternoon. Second query, relayed through Mio: where is your terminal's body?"),
+            ("KOMA-7","Round. Warm in the afternoon. Second query, relayed through Mio: where is Zero's body?"),
             ("Mio","It doesn't have one, KOMA. It's just a terminal. Go and look after your tomatoes."),
         },
         ["Chiaki"]=new[]
@@ -322,8 +322,8 @@ public static class Prologue
         ["Sota"]=new[]
         {
             ("Sota","Watch for the red diamond on a patrol: that sweeping attack cannot be blocked. Dodge through it or jump away."),
-            ("Sota","...Say, Mio. Ask that terminal who's on the other end of it."),
-            ("Mio","...Terminal. Who's on the other end of you?"),
+            ("Sota","...Say, Mio. Ask Zero who's on the other end of it."),
+            ("Mio","...Zero. Who's on the other end of you?"),
             ("Zero","This terminal answers queries about the old line."),
             ("Mio","Told you, Sota. It's old wiring from the signal box. It only knows the line."),
             ("Sota","Huh. Then if it ever knows when that train is due, tell me first. I'd want to be there."),
@@ -333,8 +333,8 @@ public static class Prologue
         {
             ("Yui","Chiaki is teaching me medicines! This one's for fevers, this one's for coughs, and this one tastes awful. I tried it."),
             ("Mio","What did it taste like?"),
-            ("Yui","Like the inside of an old boot! Mio, have your terminal remember that one: old boot."),
-            ("Mio","Terminal, remember that one."),
+            ("Yui","Like the inside of an old boot! Mio, have Zero remember that one: old boot."),
+            ("Mio","Zero, remember that one."),
             ("Zero","Saved. Old boot."),
         },
     };
@@ -344,7 +344,7 @@ public static class Prologue
     public static readonly HashSet<string> Cast=new(){"Mio","Zero","Yui","Renji"};
     // The cast's lines written or changed since the last recording, which IntegrationCheck lets go without an mp3 until they are voiced.
     public static readonly HashSet<string> Unrecorded=new(){
-        "Gate.3","Gate.4","Gate.5","Briefing.7","Briefing.8","Homecoming.0","Homecoming.1","DayTwo.1","DayTwo.2","DayTwo.3",
+        "Intro.17","Gate.3","Gate.4","Gate.5","Briefing.7","Briefing.8","Homecoming.0","Homecoming.1","DayTwo.1","DayTwo.2","DayTwo.3",
         "DayTwo.4","DayTwo.5","DayTwo.6","DayTwo.7","HalfDone.0","HalfDone.1","HalfDone.2","HalfDone.3","HalfDone.4","HalfDone.5",
         "HalfDone.6","HalfDone.7","HalfDone.8","HalfDone.9","HalfDone.10","HalfDone.11","RenjiReady.0","SotaJoins.0","SotaJoins.6","Crossbow.1",
         "Crossbow.2","Crossbow.4","Crossbow.5","Crossbow.6","Crossbow.8","KomaAsks.0","PhoneFixed.1","PhoneFixed.2","ChiyoLamp.1","Evening.0",
