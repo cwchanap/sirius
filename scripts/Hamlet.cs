@@ -248,8 +248,12 @@ public partial class World
         var c=ShrineCenter+new Vector2(0,2.2f);
         var h=new Node3D{Name="Hoshikawa shrine",Position=new(c.X,Height(c.X,c.Y),c.Y),RotationDegrees=new(0,180,0)};AddChild(h);
         // The Tripo hall: its granite base (z -1.73..1.35) and steps (to 2.04) face its +Z, the approach's way once turned.
-        Model(h,"Shrine hall","shrine",Vector3.Zero,0,new(1.3f,1.3f,1.3f));
-        var body=new StaticBody3D();h.AddChild(body);
+        var mesh=ActorVisual.Descendants(Model(h,"Shrine hall","shrine",Vector3.Zero,0,new(1.3f,1.3f,1.3f))).OfType<MeshInstance3D>().Single();
+        var local=h.GlobalTransform.AffineInverse()*mesh.GlobalTransform;var faces=mesh.Mesh.GetFaces().Select(v=>local*v).ToArray();
+        // The whole mesh keeps the camera out of the roof; its own faces below .65 m are the base and the steps Mio climbs.
+        CameraStop(h,new ConcavePolygonShape3D{Data=faces,BackfaceCollision=true});
+        var steps=Enumerable.Range(0,faces.Length/3).Where(i=>faces[(3*i)..(3*i+3)].All(v=>v.Y<.65f)).SelectMany(i=>faces[(3*i)..(3*i+3)]).ToArray();
+        var body=new StaticBody3D();h.AddChild(body);body.AddChild(new CollisionShape3D{Shape=new ConcavePolygonShape3D{Data=steps,BackfaceCollision=true}});
         body.AddChild(new CollisionShape3D{Position=new(0,.3f,-.19f),Shape=new BoxShape3D{Size=new(3.24f,.6f,3.08f)}});
         body.AddChild(new CollisionShape3D{Position=new(0,1.8f,-.15f),Shape=new BoxShape3D{Size=new(2.6f,2.4f,2.5f)}});
     }

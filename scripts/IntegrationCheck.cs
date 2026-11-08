@@ -136,8 +136,11 @@ public static class IntegrationCheck
             var bridgeMesh=ActorVisual.Descendants(g.World.GetNode(name+"/Timber bridge")).OfType<MeshInstance3D>().Single();
             var faces=bridgeMesh.Mesh.GetFaces().Select(v=>bridgeMesh.GlobalTransform*v).ToArray();float low=faces.Min(v=>v.Y),crown=faces.Max(v=>v.Y);
             var feet=faces.Where(v=>v.Y<low+.2f).ToArray();float proud=feet.Max(v=>v.Y-Hoshikawa.World.Height(v.X,v.Z));
-            Check(proud<.05f&&crown>deck+.5f,$"{name} is Tripo's timber bridge, its pier feet {-proud:F2} m into the ground and its rails {crown-deck:F2} m over the deck, {faces.Length/3} triangles");
+            int pierFaces=g.World.GetNode(name).GetChildren().OfType<StaticBody3D>().SelectMany(b=>b.GetChildren().OfType<CollisionShape3D>()).Select(c=>c.Shape).OfType<ConcavePolygonShape3D>().Sum(c=>c.Data.Length/3);
+            Check(proud<.05f&&crown>deck+.5f&&pierFaces>0,$"{name} is Tripo's timber bridge, its pier feet {-proud:F2} m into the ground and its rails {crown-deck:F2} m over the deck, {faces.Length/3} triangles, {pierFaces} of them solid piers");
         }
+        var pouchBarrel=ActorVisual.Descendants(g.World.GetNode("Pouch barrel")).OfType<MeshInstance3D>().Single();float lid=(pouchBarrel.GlobalTransform*pouchBarrel.GetAabb()).End.Y-g.World.GetNode<Node3D>("Remedy pouch").GlobalPosition.Y;
+        Check(lid<.84f,$"the remedy pouch rests on its barrel's lid, {lid:F2} m up");
         using(var deck=PhysicsRayQueryParameters3D.Create(new(0,3,-8),new(0,-3,-8),1))Check(g.GetWorld3D().DirectSpaceState.IntersectRay(deck) is {Count:>0} hit&&Math.Abs(hit["position"].AsVector3().Y-.82f)<.01f
             &&Hoshikawa.World.Height(0,-8)<Hoshikawa.World.WaterLevel-1,"the stone bridge's deck carries walkers at .82 m over open river");
         // The Cedar River's banks carry reeds, pebbles and half-sunk rocks where it holds water, clear of the Cedar Bridge and its embankments;
