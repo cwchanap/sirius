@@ -245,7 +245,7 @@ public partial class World : Node3D
     private Material PropMaterial(string name)
     {
         if(!propMaterials.TryGetValue(name,out var m))
-            propMaterials[name]=m=name switch{"cedar"=>VillageAtlas(new(1,0),Vector2.One,new(1.55f,1.5f,1.45f)),"paper"=>Mat(new("f8d48c"),.35f),"stone"=>stone,
+            propMaterials[name]=m=name switch{"cedar"=>VillageAtlas(new(1,0),Vector2.One,new(1.55f,1.5f,1.45f)),"stone"=>stone,
                 "straw"=>Mat(new("d6bd78")),"leaf"=>Mat(new("8eaa63")),"leaf_dark"=>Mat(new("728f60")),"root"=>Mat(new("ebe5d3")),_=>TreeMaterial(name)};
         return m;
     }
@@ -326,7 +326,7 @@ public partial class World : Node3D
         // 1 m cells, on the terrain's own columns, so the sheet's ends meet the gorge's and the sea's water vertex for vertex.
         Mesh(this,"Hoshikawa river",new PlaneMesh { Size = new(2*HalfWidth,8), SubdivideWidth = 2*HalfWidth-1 },new(0,WaterLevel,-8),water);
         var bridge=new Node3D{Name="Stone Bridge",Position=new(0,0,-8)};AddChild(bridge);
-        TimberBridge(bridge,.82f,5,1.8f,new[]{-1.2f,1.2f});
+        Bridge(bridge,.82f,5,1.8f);
         foreach(float side in new[]{-1f,1f})
         {
             float bottom=Height(0,-8+side*3.4f)-.6f;
@@ -418,29 +418,18 @@ public partial class World : Node3D
         collision.AddChild(new CollisionShape3D { Position=new(0,height/2,0),Shape=new CapsuleShape3D { Radius=.32f,Height=height } });
         Residents.Add((name,role,n));
     }
-    // A timber bridge along its node's Z from -half to half: a plank every half metre with its top at deck, on three log stringers and a log cap
-    // across each bent's pair of stone piers, with a post every 2 m and a top and knee rail each side. One slab carries walkers at the deck and
-    // each top rail fences them in, as the flat bridges' boxes did.
-    private void TimberBridge(Node3D bridge,float deck,float half,float rail,float[] bents)
+    // The Tripo bridge runs 13.26 m along its Z with its deck 4.03 m over its pier feet: stretched to the span from -half to half and sunk so its
+    // deck stands at deck, burying the low bridge's piers in the river bed. One slab carries walkers at the deck and each rail fences them in.
+    private void Bridge(Node3D bridge,float deck,float half,float rail)
     {
-        var o=bridge.Position;var r=new RandomNumberGenerator{Seed=4441};
-        for(int i=0;i<=half*4;i++)Prop(bridge,$"Bridge plank {i}","plank",new(r.RandfRange(-.05f,.05f),deck-r.RandfRange(0,.012f),i*.5f-half),i%2*Mathf.Pi+r.RandfRange(-.01f,.01f));
-        foreach(float x in new[]{-2.2f,0,2.2f})Prop(bridge,$"Bridge stringer {x}","field_rail",new(x,deck-.21f,0),0,new(2,2,half+.4f));
-        foreach(float z in bents)
-        {
-            Prop(bridge,$"Bridge pier cap {z}","field_rail",new(0,deck-.45f,z),Mathf.Pi/2,new(2,2,1.4f));
-            foreach(float x in new[]{-2f,2f}){float top=deck-.57f,bottom=Height(o.X+x,o.Z+z)-.4f;Box(bridge,$"Stone bridge pier {bridge.GetChildCount()}",new(x,(top+bottom)/2,z),new(.8f,top-bottom,.9f),stone,true);}
-        }
-        foreach(float x in new[]{-2.9f,2.9f})
-        {
-            for(float z=-half;z<=half;z+=2)Prop(bridge,$"Bridge post {bridge.GetChildCount()}","field_post",new(x,deck,z),z,new(1.2f,(rail+.1f-deck)/1.31f,1.2f));
-            foreach(float y in new[]{rail,deck+.45f})Prop(bridge,$"{(y==rail?"Bridge rail":"Bridge knee rail")} {x}","field_rail",new(x,y,0),0,new(1,1,half+.25f));
-            Solid(o+new Vector3(x,rail,0),Vector3.Zero,new(.12f,.12f,2*half+.5f));
-        }
+        var o=bridge.Position;
+        Model(bridge,"Timber bridge","bridge",new(0,deck-4.03f,0),0,new(1.3f,1.3f,1.3f)).Scale=new(1,1,(2*half+.5f)/13.26f);
+        foreach(float x in new[]{-2.9f,2.9f})Solid(o+new Vector3(x,rail,0),Vector3.Zero,new(.12f,.12f,2*half+.5f));
         Solid(o+new Vector3(0,deck-.1f,0),Vector3.Zero,new(6,.2f,2*half+.46f));
     }
     private void Solid(Vector3 p,Vector3 turn,Vector3 size){var body=new StaticBody3D{Position=p,Rotation=turn,CollisionMask=0};AddChild(body);body.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=size}});}
-    private void Lamp(Vector3 p)=>Prop(this,"Lantern pole","lamp",p);
+    private void Lamp(Vector3 p)=>Model(this,"Lantern pole","street_lamp",p,0,new(1.3f,1.3f,1.3f));
+    private void Barrel(Node3D parent,string name,Vector3 p,float yaw,float scale=1)=>Model(parent,name,"village_barrel",p,Mathf.RadToDeg(yaw),new(1.3f,1.3f,1.3f)).Scale=Vector3.One*scale;
     // Weathered posts and split rails from tools/build_village_props.py. A rail is its 2 m model stretched to the span, so the colliders are bodies of their own.
     private void Fence(Vector3 a,Vector3 b)
     {
@@ -498,7 +487,7 @@ public partial class World : Node3D
         var water = new ShaderMaterial { Shader=GD.Load<Shader>("res://assets/shaders/water.gdshader") };water.SetShaderParameter("flow",new Vector2(-.35f,0));
         Mesh(this,"Cedar River",new PlaneMesh { Size=new(2*HalfWidth,7.5f),SubdivideWidth=2*HalfWidth-1 },new(0,CedarLevel,CedarZ),water);
         var bridge=new Node3D {Name="Cedar Bridge",Position=new(RoadX(CedarZ),0,CedarZ)};AddChild(bridge);
-        TimberBridge(bridge,4.1f,8,5.2f,new[]{-6f,0,6f});
+        Bridge(bridge,4.1f,8,5.2f);
         Label(bridge,"CEDAR RIVER",new(0,6.6f,0),Gold,29);
         var shelter=new Node3D {Name="Cedar Pass Shelter",Position=new(-12,Height(-12,-191),-191)};AddChild(shelter);
         // The Tripo shelter, stretched 15% taller for headroom under its tie beams, its slab centred on the levelled pad and sunk to stand 3 cm
@@ -509,7 +498,7 @@ public partial class World : Node3D
         Solid(shelter.Position+new Vector3(0,-.12f,0),Vector3.Zero,new(6,.3f,5.9f));
         Solid(shelter.Position+new Vector3(.03f,.36f,-1.8f),Vector3.Zero,new(3.97f,.66f,.96f));
         foreach(float x in new[]{-2.31f,2.31f})foreach(float z in new[]{-2.2f,2.18f})Solid(shelter.Position+new Vector3(x,1.5f,z),Vector3.Zero,new(.3f,3,.3f));
-        for(int i=0;i<3;i++)Prop(shelter,"Rain barrel","barrel",new(3.55f,0,-1+i*1.1f),i*2,Vector3.One*1.2f);
+        for(int i=0;i<3;i++)Barrel(shelter,"Rain barrel",new(3.55f,0,-1+i*1.1f),i*2,1.2f);
         Label(shelter,"CEDAR PASS SHELTER",new(0,3.3f,2.72f),Gold,26);
         Footpath(new(RoadX(-189),-189),new(-12,-187),1.2f);
         Footpath(new(-12,-187),new(-12,-188f),1.2f);
@@ -624,10 +613,9 @@ public partial class World : Node3D
         }
         foreach(float z in new[]{-234f,-266f})
         {
-            foreach(float x in new[]{-4.5f,4.5f}) Box(this,"Festival mast",new(x,Height(x,z)+2.4f,z),new(.15f,4.8f,.15f),wood);
-            Box(this,"Bunting rope",new(0,Height(0,z)+4.5f,z),new(9,.035f,.035f),wood);
-            for(int i=0;i<9;i++)
-                Box(this,"Cloth pennant",new(-3.8f+i*.95f,Height(0,z)+4.15f,z),new(.55f,.65f,.025f),Mat(new(i%2==0?"ba795d":"7ba89c")));
+            // Tripo's masts stand 6.3 m apart, widened to the 9 m the road's lanterns and houses leave them.
+            Model(this,"Festival mast","festival_mast",new(0,Height(0,z),z),0,new(1.3f,1.3f,1.3f)).Scale=new(1.4f,1.1f,1.1f);
+            foreach(float x in new[]{-4.5f,4.5f})Solid(new(x,Height(x,z)+2.4f,z),Vector3.Zero,new(.2f,4.8f,.2f));
         }
         Signpost(new(5,-235),"KOMOREBI\nLODGE · CLINIC · ORCHARDS");
         // Persimmons hang on the crown's lower outside, on the foliage cards' outer corners.
@@ -644,7 +632,7 @@ public partial class World : Node3D
         }
         // The packing station between the store and the orchard fence: Toma's handcart, barrels and a hasa rack along the fence.
         Handcart("Orchard handcart",new(19,-261),90);
-        foreach(var p in new Vector2[]{new(17.4f,-264),new(17.6f,-264.9f),new(18.3f,-264.4f)})Prop(this,"Orchard barrel","barrel",new(p.X,Height(p.X,p.Y),p.Y),p.X*3);
+        foreach(var p in new Vector2[]{new(17.4f,-264),new(17.6f,-264.9f),new(18.3f,-264.4f)})Barrel(this,"Orchard barrel",new(p.X,Height(p.X,p.Y),p.Y),p.X*3);
         Hasa(new(20.3f,-267),90);
         // Hoshigaki: strings of persimmons drying under the store's front eave, either side of its sign.
         var store=Buildings.Single(n=>n.Name=="Orchard Store");float front=TripoHouses["kura"].Walls.End.Y+.35f,eave=KomorebiHouses.Single(h=>h.Name=="Orchard Store").Size.Y;

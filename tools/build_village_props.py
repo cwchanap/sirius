@@ -1,12 +1,12 @@
-"""Deterministic village prop GLBs for Hoshikawa: street lamp, bench, barrel, the bamboo fence post and panel, and the
-water and field props: brook pebbles and rocks, the paddy sluice, water-wheel trough and hasa rack, the bridge deck plank, field fence post and rail, cabbage and daikon.
+"""Deterministic village prop GLBs for Hoshikawa: the bamboo fence post and panel, and the water and field props: brook
+pebbles and rocks, the paddy sluice, water-wheel trough and hasa rack, field fence post and rail, cabbage and daikon.
 
 Run: /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python tools/build_village_props.py
 
 Built to real-world scale for 1.6-1.8 m characters, origin on the ground, Z up in Blender (Y up once exported).
 Each GLB carries geometry, UVs and material *names* only; World.Prop() binds them to the existing art:
 cedar = village-atlas.png boards (one tile = TILE metres, grain along V), bark_bamboo = bark-bamboo.png (wraps once
-round a culm, a node every half tile) and paper = the lit lantern colour. The water and field props add stone (the masonry
+round a culm, a node every half tile). The water and field props add stone (the masonry
 atlas cell, two tiles per UV unit), straw, leaf, leaf_dark and root, flat colours. Merge() bakes one mesh per material per
 32 m cell, so each material costs a draw call (and its shadow passes) in every cell a prop stands in: stone and straw are
 the materials the primitives there already use, and the three crop colours stand only in Komorebi's garden beds.
@@ -21,7 +21,7 @@ from mathutils import Matrix, Vector
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "assets", "models", "props")
 TILE = 1.2
-MATERIALS = ("cedar", "paper", "bark_bamboo", "stone", "straw", "leaf", "leaf_dark", "root")
+MATERIALS = ("cedar", "bark_bamboo", "stone", "straw", "leaf", "leaf_dark", "root")
 
 
 def jitter(i, k):
@@ -109,70 +109,6 @@ class Builder:
 
     def tris(self):
         return sum(len(f) - 2 for f in self.faces)
-
-
-def lamp():
-    b = Builder()
-    b.box((0, 0, -.08), (.2, .2, .36), "cedar", grain=0, shift=(.5, .5))
-    b.box((0, 0, .88), (.1, .1, 1.56), "cedar")
-    b.box((0, 0, 1.635), (.36, .36, .03), "cedar", grain=0, shift=(.3, .1))
-    b.box((0, 0, 1.84), (.3, .3, .38), "paper")
-    for x in (-.165, .165):
-        for y in (-.165, .165):
-            b.box((x, y, 1.855), (.035, .035, .42), "cedar", shift=(x, y))
-    for s in (-1, 1):
-        b.box((0, s * .165, 2.04), (.36, .035, .03), "cedar", grain=0, shift=(.1, s * .2))
-        b.box((s * .165, 0, 2.04), (.035, .36, .03), "cedar", grain=1, shift=(s * .2, .1))
-        b.box((0, s * .155, 1.84), (.3, .02, .02), "cedar", grain=0, shift=(.4, s * .3))
-        b.box((s * .155, 0, 1.84), (.02, .3, .02), "cedar", grain=1, shift=(s * .3, .4))
-    # A shallow hipped cap: four slopes to a small flat top, a flat soffit and thin eave edges.
-    eave, top, z0, z1 = .29, .04, 2.075, 2.2
-    lo = [Vector((x * eave, y * eave, z0)) for x, y in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
-    hi = [Vector((x * top, y * top, z1)) for x, y in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
-    for i in range(4):
-        n = (i + 1) % 4
-        quad = [lo[i], lo[n], hi[n], hi[i]]
-        b.face(quad, [(p.x / TILE + i * .2, (p - lo[i]).length / TILE) for p in quad], "cedar")
-        edge = [lo[i] - Vector((0, 0, .025)), lo[n] - Vector((0, 0, .025)), lo[n], lo[i]]
-        b.face(edge, [(p.x / TILE + p.y / TILE, p.z / TILE) for p in edge], "cedar")
-    b.face(hi, [(p.x / TILE, p.y / TILE) for p in hi], "cedar")
-    soffit = [p - Vector((0, 0, .025)) for p in reversed(lo)]
-    b.face(soffit, [(p.x / TILE, p.y / TILE) for p in soffit], "cedar")
-    b.tube((0, 0, z1), (0, 0, z1 + .07), .028, .008, 8, "cedar", smooth=True, cap_bottom=False)
-    return b
-
-
-def bench():
-    b = Builder()
-    for i, y in enumerate((-.14, 0, .14)):
-        b.box((0, y, .47), (1.6, .13, .04), "cedar", grain=0, shift=(i * .37, i * .23))
-    for x in (-.62, .62):
-        b.box((x, 0, .425), (.07, .4, .05), "cedar", grain=1, shift=(x, .5))
-        b.box((x, 0, .12), (.05, .3, .05), "cedar", grain=1, shift=(x, .7))
-        for y in (-.15, .15):
-            b.box((x, y, .17), (.06, .06, .46), "cedar", shift=(x + y, 0))
-    for y in (-.15, .15):
-        b.box((0, y, .12), (1.24, .04, .05), "cedar", grain=0, shift=(.2, y))
-    return b
-
-
-def barrel():
-    b = Builder()
-    # Staves stay faceted and the planks run up them; the chime stands 4 cm proud of the lid.
-    b.tube((0, 0, 0), (0, 0, .8), .29, .315, 18, "cedar", u_tiles=2, v_scale=1 / TILE, smooth=False, cap_top=False, cap_bottom=False)
-    b.tube((0, 0, .76), (0, 0, .8), .296, .3, 18, "cedar", u_tiles=2, v_scale=1 / TILE, smooth=False, cap_top=False, cap_bottom=False, inward=True)
-    lid = b.ring((0, 0, .76), (0, 0, 1), .296, 18)
-    b.face(lid, [(p.x / TILE + .3, p.y / TILE) for p in lid], "cedar")
-    outer, inner = b.ring((0, 0, .8), (0, 0, 1), .315, 18), b.ring((0, 0, .8), (0, 0, 1), .3, 18)
-    for i in range(18):
-        n = (i + 1) % 18
-        quad = [inner[i], inner[n], outer[n], outer[i]]
-        b.face(quad, [(i / 9, 0), ((i + 1) / 9, 0), ((i + 1) / 9, .02), (i / 9, .02)], "cedar")
-    for z in (.1, .42, .7):
-        r = .29 + .025 * z / .8 + .011
-        # Split-bamboo hoops: the culm runs round the barrel, so the texture's V follows the hoop.
-        b.tube((0, 0, z - .024), (0, 0, z + .024), r, r, 24, "bark_bamboo", u_tiles=2 * math.pi * r / .6, v_scale=1 / .6, swap=True)
-    return b
 
 
 def fence_post():
@@ -271,14 +207,6 @@ def field_rail():
     return b
 
 
-def plank():
-    """A bridge deck board 6 m along X, its top at the origin; World lays them a half metre apart. Its 0.44 m width spans one of the atlas
-    cell's seven boards (1/7 of a tile) and its length one tile, grain drawn out: at TILE a seam crossed every plank each 1.2 m, a brick pattern."""
-    b = Builder()
-    b.box((0, 0, -.045), (6, .44, .09), "cedar", grain=0, shift=(1.5 / 7, 0), u_scale=TILE / 7 / .44, v_scale=TILE / 6)
-    return b
-
-
 def cabbage():
     """A cabbage head cupped by five outer leaves, half a metre across."""
     b = Builder()
@@ -332,10 +260,10 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     for o in list(bpy.data.objects):
         bpy.data.objects.remove(o)
-    for name, build, limit in (("lamp", lamp, 600), ("bench", bench, 600), ("barrel", barrel, 900), ("fence_post", fence_post, 200), ("fence_panel", fence_panel, 600),
+    for name, build, limit in (("fence_post", fence_post, 200), ("fence_panel", fence_panel, 600),
                               ("pebbles", pebbles, 600), ("river_rock", river_rock, 300), ("sluice", sluice, 300), ("hasa", hasa, 1200),
                               ("field_post", field_post, 100), ("field_rail", field_rail, 60), ("cabbage", cabbage, 400), ("daikon", daikon, 400),
-                              ("trough", trough, 60), ("plank", plank, 12)):
+                              ("trough", trough, 60)):
         export(build(), name, limit)
     print("VILLAGE_PROPS_OK")
 
