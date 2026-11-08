@@ -110,7 +110,7 @@ public static class Prologue
         ("Zero","Goodnight, Mio. Thank you for the rice paddies."),
         ("","The link goes quiet. Far beyond the viaduct, the city keeps shining."),
     };
-    // The second day, from Mio's room: Renji learns the station's home signal answers only to its own lever, so someone has to get
+    // The second day, from Mio's room: Renji learns platform two's departure signal answers only to the station's own lever, so someone has to get
     // inside, and she gets ready to set out with two companions. Day cards (Cards) open the mornings over black.
     public static readonly (string Speaker,string Text)[] DayTwo=
     {
@@ -126,9 +126,9 @@ public static class Prologue
     public static readonly (string Speaker,string Text)[] HalfDone=
     {
         ("Renji","Morning, Mio. Terminal, report the signals at Hoshikawa Station."),
-        ("Zero","Every signal on the line has power. Hoshikawa Station's home signal has power, and answers only to the lever in the station's signal box."),
+        ("Zero","Every signal on the line has power. Platform two's departure signal at Hoshikawa Station has power too, but answers only to the lever in the station's signal box."),
         ("Renji","...Last night I said platform two would show that train red. I was wrong."),
-        ("Renji","Nothing out here can turn that signal. Someone has to get inside the station and pull the lever. And the train comes the day after tomorrow."),
+        ("Renji","Nothing out here can turn that signal. Someone has to get inside the station and pull the lever. Then that train stops right beside platform two. And it comes the day after tomorrow."),
         ("Mio","Then I'll go."),
         ("Renji","The station road is under a rockfall, and past it the station belongs to SIRIUS. And I can't go with you."),
         ("Renji","If the relay goes down, every signal goes dark, and I'm the only one who can fix it. That plaza is also the robots' way down to the village."),
@@ -156,7 +156,7 @@ public static class Prologue
     public static readonly (string Speaker,string Text)[] Crossbow=
     {
         ("Chiaki","Mio, good. Terminal, what medicine is on that train? Every box, if you can."),
-        ("Zero","Cough syrup, sixty boxes. Fever medicine, forty. Antibiotics, forty. Bandages and salve, sixty. Two hundred boxes in all."),
+        ("Zero","The old freight system still logs each load on the line by its category code. Cough syrup, sixty boxes. Fever medicine, forty. Antibiotics, forty. Bandages and salve, sixty. Two hundred boxes in all."),
         ("Chiaki","I can't leave the clinic. So, Yui, you learn them. Cough syrup first, for Grandpa Tetsu. Then the fever medicine, then the antibiotics."),
         ("Yui","Cough syrup, fever medicine, anti... antibiotics! Cough, fever, the long one. Got it!"),
         ("Yui","Oh! And Mio, I fell on the night road. My crossbow's trigger spring snapped, and I can't do springs."),
@@ -194,8 +194,9 @@ public static class Prologue
         ("Mio","Renji, your telephone. It works. And Sota and Yui are coming with me."),
         ("Renji","...Good. I'd have picked the same two."),
         ("Renji","Then at first light tomorrow, meet at the rockfall east of the relay plaza. I'm going up tonight with KOMA, and I'll take over the watch there."),
-        ("Renji","And you may not have to carry the medicine home. There should still be freight handcarts on the station's platforms. If the line's quiet once that train is stopped, load them up and push them home along the rails."),
-        ("Mio","Home along the line. The first thing it's carried for us in twelve years."),
+        ("Renji","And you may not have to carry the medicine home. The station should still have an old track trolley, the kind line crews used to push."),
+        ("Renji","The crawlers keep off the rails while a city train is on the line. Once that one's stopped, load the trolley and push it home along the rails."),
+        ("Mio","Home along the line. For the first time in twelve years, I hope it carries something for us."),
         ("Renji","Get some sleep, Mio. Tomorrow's a long walk."),
         ("","The sun goes down behind the mountains, and one by one Hoshikawa's lanterns are lit again."),
     };
@@ -240,7 +241,7 @@ public static class Prologue
     };
     // The beat each scene's night falls on, from which the HUD darkens its scenes: the homecoming's walk home, the second evening, and the
     // second night in Mio's room.
-    public static readonly Dictionary<string,int> Nightfall=new(){["Homecoming"]=4,["Evening"]=6,["NightTwo"]=0};
+    public static readonly Dictionary<string,int> Nightfall=new(){["Homecoming"]=4,["Evening"]=7,["NightTwo"]=0};
     // Beats drawn as a title card over black rather than in the text box.
     public static readonly HashSet<string> Cards=new(){"DayTwo.0","DayThree.0"};
     // Speakers heard but never seen, who have no portrait.
@@ -340,7 +341,7 @@ public static class Prologue
         "DayTwo.1","DayTwo.2","DayTwo.3","DayTwo.4","DayTwo.5","DayTwo.6","DayTwo.7","HalfDone.0","HalfDone.1","HalfDone.2",
         "HalfDone.3","HalfDone.4","HalfDone.5","HalfDone.6","HalfDone.7","HalfDone.8","HalfDone.9","HalfDone.10","RenjiReady.0","SotaJoins.0",
         "SotaJoins.6","Crossbow.1","Crossbow.3","Crossbow.4","Crossbow.5","Crossbow.7","KomaAsks.0","PhoneFixed.1","PhoneFixed.2","ChiyoLamp.1",
-        "Evening.0","Evening.1","Evening.2","Evening.3","Evening.4","Evening.5","RenjiNight.0","NightTwo.0","NightTwo.1","NightTwo.2",
+        "Evening.0","Evening.1","Evening.2","Evening.3","Evening.4","Evening.5","Evening.6","RenjiNight.0","NightTwo.0","NightTwo.1","NightTwo.2",
         "NightTwo.3","NightTwo.4","NightTwo.5","Rockfall.0","Rockfall.2","Rockfall.6","Rockfall.7","Rockfall.8","RenjiSeesOff.0"};
     // What the 3D scene does when a beat starts: a camera shot and the clips its actors play ("Mio clip, Yui clip"). A beat with no entry, or
     // an empty part, keeps what was there. Shots: "over A B" looks past A's shoulder at B, "two A B" frames both from the side, "face A"

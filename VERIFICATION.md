@@ -1,5 +1,15 @@
 # MVP verification
 
+## Second script review of the second and third day — 2026-11-08
+
+A second external review of the latter half's script; its three points and two wording suggestions are applied. Every changed line is one of the unrecorded cast lines, so no take goes stale.
+
+- **Platform two's departure signal.** A home signal held at red stops a train before the station, but the story needs it standing beside platform two, so the signal only the signal box's lever turns is now platform two's departure signal (`HalfDone.1`), and Renji says the train will then stop beside the platform (`HalfDone.3`). The homecoming's voiced "platform two shows it red" already fits.
+- **The terminal's manifest.** Zero's answer to Chiaki first says the old freight system logs each load on the line by its category code (`Crossbow.1`), so a terminal on the old line can know the medicine box by box.
+- **The way home.** Freight handcarts don't run on rails: Renji now names an old track trolley, and says the crawlers keep off the rails while a city train is on the line (`Evening.3`, `Evening.4`, a new beat; night now falls on `Evening.7`).
+- **Wording.** Mio hopes the line carries something for them (`Evening.5`), and `RenjiReady.0`'s Japanese reads as one list.
+- **Checks:** unit tests 60 pass; the self-test passes headless in `en`, `ja` and `zh_TW`, 742 checks each (cloud, Godot 4.6.2 mono); `tools/build_voice.py --check` passes; the fonts were rebuilt for the new characters. 50 cast lines are now unrecorded.
+
 ## Tripo props, batches 3-4 — 2026-11-08
 
 - Unit tests: 60 pass (`dotnet test`, cloud).

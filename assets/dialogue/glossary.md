@@ -82,14 +82,15 @@ Chinese is Taiwan usage (臺灣用語): 軟體, 網路, 資訊, 號誌, 影片, 
 | Siding | 側線 | 側線 |
 | Freight train | 貨物列車 | 貨運列車 | |
 | Timetable | 時刻表 | 時刻表 | |
-| Home signal (Hoshikawa Station's, which only its own lever turns) | 場内信号 | 進站號誌 | |
+| Departure signal (platform two's at Hoshikawa Station, at the platform's far end; only the signal box's lever turns it, and a train it holds at red stops beside the platform) | 出発信号 | 出發號誌 | 二番線の出発信号 / 第二月台的出發號誌 |
 | Signal box (inside the station, upstairs) | 信号扱所 | 號誌所 | |
 | Lever (the signal box's) | てこ | 拉桿 | The railway word in Japanese |
 | Rail crawler (the city's machines patrolling the tracks) | 軌道巡回機 | 巡軌機 | Not the patrol robots |
 | Barrier (the villagers' barricade on the station road) | バリケード | 路障 | |
 | Phone box (old line-side telephone) | 電話ボックス | 電話箱 | |
 | Junction box (the old line's, where Renji clips his telephone on) | 端子箱 | 端子箱 | |
-| Freight handcart (on the station's platforms) | 貨物用の手押し車 | 貨運手推車 | |
+| Track trolley (the old line's maintenance trolley, pushed by hand along the rails) | 保線用の軌道台車, 台車 | 養路用的軌道台車, 台車 | |
+| Category code (how the old freight system logs each load on the line) | 品目コード | 品項代碼 | |
 | Crossbow (Yui's) | 十字弓 | 十字弓 | |
 | Day two, Day three (the title cards) | 二日目, 三日目 | 第二天, 第三天 | |
 | Medicine (the train's cargo, the villages' shortage) | 薬 | 藥品, 藥 | Not the remedy item | |
