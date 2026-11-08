@@ -59,29 +59,6 @@ public class PrologueTest
         AssertThat(Prologue.Offstage.Where(s=>File.Exists(Repo.Path($"assets/art/portraits/{s.ToLowerInvariant()}.png")))).IsEmpty();
         AssertThat(Prologue.Offstage.Where(s=>!Beats().Values.Any(b=>b.Speaker==s))).IsEmpty();
     }
-    // Only Mio and Chiyo know Zero's name, and Chiyo never lets on: everyone else calls it her terminal, and Mio says it only with nobody
-    // else in the stretch. A scene's night falls before she walks home alone. 零件 is "parts" in Chinese, not the name.
-    [TestCase]
-    public void NobodyButMioCallsZeroByName()
-    {
-        var ja=Localization.ParseLines(File.ReadAllText(Repo.Path("assets/dialogue/ja.json")),"ja");var zh=Localization.ParseLines(File.ReadAllText(Repo.Path("assets/dialogue/zh_TW.json")),"zh_TW");
-        var named=new List<string>();
-        foreach(var (scene,name) in Prologue.SceneNames)
-        {
-            int cut=Prologue.Nightfall.GetValueOrDefault(name,scene.Length);
-            foreach(var (from,to) in new[]{(0,cut),(cut,scene.Length)})
-            {
-                bool company=scene[from..to].Any(b=>b.Speaker is not ("" or "Mio" or "Zero"));
-                for(int i=from;i<to;i++)
-                {
-                    string key=$"{name}.{i}";
-                    bool says=scene[i].Text.Contains("Zero")||ja.GetValueOrDefault(key,"").Contains("ゼロ")||System.Text.RegularExpressions.Regex.IsMatch(zh.GetValueOrDefault(key,""),"零(?!件)");
-                    if(says&&(company||scene[i].Speaker is not ("Mio" or "Zero")))named.Add(key);
-                }
-            }
-        }
-        AssertThat(named).IsEmpty();
-    }
     // The terminal answers only Mio, and the villagers know it: with anyone else in the stretch, they ask Mio, and Zero speaks only
     // straight after her (or goes on from its own line).
     [TestCase]

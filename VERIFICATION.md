@@ -1,5 +1,9 @@
 # MVP verification
 
+## Everyone knows Zero's name — 2026-11-08
+
+Hapadona's next rule: Mio calls Zero by name anywhere, and everyone knows the name, only as the name of her terminal. The villagers' asks say "ask Zero", Mio's say "Zero, ...", and her reminder on the way out of her room is "you only answer me" (`Intro.17`, whose take is removed for re-voicing; 64 lines unrecorded now). `PrologueTest.NobodyButMioCallsZeroByName` is removed; `ZeroAnswersOnlyMio` stays. Unit tests 60 pass; self-test below.
+
 ## Zero answers only Mio — 2026-11-08
 
 Hapadona's new rule: Zero reacts only to Mio's questions, and the villagers know it and never talk to it directly. Everyone who asked the terminal now asks Mio, and she asks it: Yui at the gate and after her medicine lesson, Renji at the briefing, the homecoming and the second morning, Chiaki at the clinic, KOMA-7 and Sota at their first meetings.
