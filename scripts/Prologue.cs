@@ -362,8 +362,8 @@ public static class Prologue
         ["Briefing.6"]=("","Renji idle"),["Briefing.8"]=("","Mio terminal"),["Briefing.9"]=("face Yui","Mio stand, Yui wave"),
         ["Briefing.10"]=("","Yui idle"),["Briefing.11"]=("","Yui fold"),["Briefing.12"]=("two Mio Renji",""),
         ["DayTwo.0"]=("bed","Mio sleep"),["DayTwo.1"]=("futon","Mio wake"),["DayTwo.3"]=("","Mio terminal_sit"),["DayTwo.6"]=("room","Mio rise"),["DayTwo.7"]=("","Mio terminal"),
-        ["HalfDone.0"]=("two Mio Renji","Renji idle"),["HalfDone.1"]=("","Mio terminal"),["HalfDone.2"]=("","Mio idle"),["HalfDone.8"]=("","Renji point"),["HalfDone.9"]=("","Renji idle"),
-        ["PhoneFixed.0"]=("floor",""),["Evening.0"]=("two Mio Renji","Renji idle"),["NightTwo.0"]=("face Mio","Mio terminal"),["NightTwo.5"]=("","Mio idle"),
+        ["HalfDone.0"]=("two Mio Renji","Renji idle"),["HalfDone.1"]=("","Mio terminal"),["HalfDone.2"]=("","Mio stand"),["HalfDone.8"]=("","Renji point"),["HalfDone.9"]=("","Renji idle"),
+        ["PhoneFixed.0"]=("floor",""),["Evening.0"]=("two Mio Renji","Renji idle"),["NightTwo.0"]=("face Mio","Mio terminal"),["NightTwo.5"]=("","Mio stand"),
         ["DayThree.0"]=("bed","Mio sleep"),["DayThree.1"]=("room","Mio rise"),
         ["Rockfall.0"]=("two Mio Renji","Yui wave"),["Rockfall.1"]=("","Yui idle"),["Rockfall.8"]=("","Yui wave"),["Rockfall.9"]=("","Yui idle"),
     };
