@@ -1,5 +1,14 @@
 # MVP verification
 
+## Zero answers only Mio — 2026-11-08
+
+Hapadona's new rule: Zero reacts only to Mio's questions, and the villagers know it and never talk to it directly. Everyone who asked the terminal now asks Mio, and she asks it: Yui at the gate and after her medicine lesson, Renji at the briefing, the homecoming and the second morning, Chiaki at the clinic, KOMA-7 and Sota at their first meetings.
+
+- **Lines:** 13 cast lines changed or added (`Gate.3`–`.5`, `Briefing.7`–`.8`, `Homecoming.0`–`.1`, `HalfDone.1`, `Crossbow.1`, `FirstMeeting.KOMA-7.2`, `FirstMeeting.Sota.2`, `FirstMeeting.Yui.2`–`.3`), plus Chiaki's, KOMA-7's and Sota's silent lines. Zero's own lines are unchanged in Japanese, so their takes stay; only `Gate.6`'s English and Chinese say "her bag".
+- **Voice files:** the 7 takes whose Japanese changed are removed and listed in `Prologue.Unrecorded` (63 in all now); the 11 unchanged takes after an added beat are renamed to their new keys and re-imported.
+- **Test:** `PrologueTest.ZeroAnswersOnlyMio` fails on any Zero beat that follows someone other than Mio in a stretch with company.
+- **Checks:** unit tests 61 pass; the self-test passes headless in `en`, `ja` and `zh_TW`, 742 checks each (its homecoming voice check now waits for the first recorded Mio line); `tools/build_voice.py --check` passes; the fonts were rebuilt.
+
 ## Second script review of the second and third day — 2026-11-08
 
 A second external review of the latter half's script; its three points and two wording suggestions are applied. Every changed line is one of the unrecorded cast lines, so no take goes stale.

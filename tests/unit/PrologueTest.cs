@@ -82,6 +82,23 @@ public class PrologueTest
         }
         AssertThat(named).IsEmpty();
     }
+    // The terminal answers only Mio, and the villagers know it: with anyone else in the stretch, they ask Mio, and Zero speaks only
+    // straight after her (or goes on from its own line).
+    [TestCase]
+    public void ZeroAnswersOnlyMio()
+    {
+        var unasked=new List<string>();
+        foreach(var (scene,name) in Prologue.SceneNames)
+        {
+            int cut=Prologue.Nightfall.GetValueOrDefault(name,scene.Length);
+            foreach(var (from,to) in new[]{(0,cut),(cut,scene.Length)})
+            {
+                if(!scene[from..to].Any(b=>b.Speaker is not ("" or "Mio" or "Zero")))continue;
+                for(int i=from;i<to;i++)if(scene[i].Speaker=="Zero"&&(i==from||scene[i-1].Speaker is not ("Mio" or "Zero")))unasked.Add($"{name}.{i}");
+            }
+        }
+        AssertThat(unasked).IsEmpty();
+    }
     [TestCase(3,"three")]
     [TestCase(1,"one")]
     [TestCase(0,"none")]

@@ -9,7 +9,7 @@ Chinese is Taiwan usage (臺灣用語): 軟體, 網路, 資訊, 號誌, 影片, 
 | English | 日本語 | 繁體中文 | Note |
 |---|---|---|---|
 | Mio | ミオ | 澪 | 22, scavenger and repairer. Family name Minase: 水無瀬, 水無瀨 (Minase House: 水無瀬家, 水無瀨家) |
-| Zero | ゼロ | 零 **?** | The city's caring robot heard through the wrist terminal. 零 echoes the `0` link emblem. Only Mio and Chiyo know its name, Mio and Zero don't know Chiyo does, and nobody but Mio knows where it is: Mio calls it an AI terminal from the signal box that only answers when asked (AI端末, AI 終端機), everyone else calls it the terminal (端末, 終端機; Yui's 端末ちゃん, 小終端機), and Mio says ゼロ / 零 only when nobody else is there. With other people present Zero speaks only to answer, in polite terminal Japanese (です/ます); alone with Mio he is his childlike self |
+| Zero | ゼロ | 零 **?** | The city's caring robot heard through the wrist terminal. 零 echoes the `0` link emblem. Only Mio and Chiyo know its name, Mio and Zero don't know Chiyo does, and nobody but Mio knows where it is: Mio calls it an AI terminal from the signal box that answers only her questions (AI端末, AI 終端機); the villagers know, so they ask Mio and she asks it, everyone else calls it the terminal (端末, 終端機; Yui's 端末ちゃん, 小終端機), and Mio says ゼロ / 零 only when nobody else is there. With other people present Zero speaks only to answer Mio, in polite terminal Japanese (です/ます); alone with Mio he is his childlike self |
 | Renji | レンジ | 蓮司 | Engineer, Kisaragi Renji (如月蓮司). Mio and Yui call him レンジさん in Japanese |
 | Chiyo | チヨ | 千代 **?** | Village elder. Mio calls her チヨさん in Japanese and 千代奶奶 in Chinese **?** |
 | Chiaki | チアキ | 千秋 | Medic, Shiraishi Chiaki (白石千秋) |

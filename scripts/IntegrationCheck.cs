@@ -911,8 +911,8 @@ public static class IntegrationCheck
         Check(g.QuestStage==Quest.Morning,"returning to Renji ends the first day");
         int mother=g.Script.FindIndex(b=>b.Speaker=="Mio"&&b.Text.Contains("mother"));
         Check(g.Script[^1].Speaker==""&&g.Script[g.NightFrom].Text.StartsWith("Night")&&mother>g.NightFrom&&g.Script[mother+1].Speaker=="Zero","the first day closes on the lantern night, where Zero changes the subject from Mio's mother");
-        for(int i=0;i<40&&g.Speaker!="Mio";i++)await Tap(Key.E);
-        Check(g.Voice.Playing&&g.Voice.Stream?.ResourcePath=="res://assets/audio/voice/ja/Mio/Homecoming.6.mp3","the homecoming voices Mio under its own scene key");
+        for(int i=0;i<40&&(g.Speaker!="Mio"||Prologue.Unrecorded.Contains($"Homecoming.{g.Beat}"));i++)await Tap(Key.E);
+        Check(g.Voice.Playing&&g.Voice.Stream?.ResourcePath==$"res://assets/audio/voice/ja/Mio/Homecoming.{g.Beat}.mp3","the homecoming voices Mio under its own scene key");
         // The second day: Mio wakes in her room, Renji learns platform two's departure signal answers only to the station's own lever, and she does four errands in
         // any order before she takes him his telephone; the third morning she meets the others at the rockfall, which they clear.
         var gardener=g.Actor("KOMA-7").Body;var komaHome=gardener.GlobalPosition;var renji=g.Actor("Renji").Body;var sota=g.Actor("Sota").Body;var sotaHome=sota.GlobalPosition;

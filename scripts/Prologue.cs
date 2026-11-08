@@ -52,10 +52,10 @@ public static class Prologue
         ("Yui","Mio! Mio, Mio, Mio! Good, you're up!"),
         ("Mio","Yui? You came all the way down from Komorebi?"),
         ("Yui","Walked all night! Well, jogged some of it. I went around the relay road, because guess what's camped on it now? Patrols! Three of them, with those creepy amber eyes."),
-        ("Yui","Morning, little terminal! ...Still nothing? Your wrist never says hello first, Mio."),
-        ("Mio","It's an AI terminal, Yui. It only answers when someone asks it something."),
-        ("Yui","Then I'm asking. Terminal, what's in my bag?"),
-        ("Zero","Letters. Your bag always has letters."),
+        ("Yui","Morning to your little terminal too! ...I know, I know. It only ever answers you, Mio."),
+        ("Yui","So ask it for me. What's in my bag?"),
+        ("Mio","...Terminal, what's in Yui's bag?"),
+        ("Zero","Letters. Her bag always has letters."),
         ("Yui","Ha! Letters, mostly. Other people's words. And this one's for Hoshikawa."),
         ("Yui","It's from Emiko. Komorebi has one week of medicine left. She's asking if you can spare any."),
         ("Mio","We can't. We're down to a week too. And Grandpa Tetsu's cough is getting worse."),
@@ -73,7 +73,8 @@ public static class Prologue
         ("Renji","...Then we take the medicine off that train. Only the medicine. Our paddies feed us; the food can go on to people who need it more."),
         ("Renji","We can't stop a city train out on the line. But the old line's signals are still standing. Dead for twelve years, every one of them."),
         ("Renji","The manual relay below the viaduct feeds them. Bring it back, and the line answers to us again."),
-        ("Renji","Yui saw patrol units camped on the relay road. Clear any still there and restart the relay. ...Terminal, can you keep count of them?"),
+        ("Renji","Yui saw patrol units camped on the relay road. Clear any still there and restart the relay. ...Mio, can that terminal of yours keep count of them?"),
+        ("Mio","Terminal? Can you?"),
         ("Zero","Yes. The patrols poll the relay over the old line. This terminal will count the ones still out there."),
         ("Yui","I'm coming too! I know that road. Well, I know around that road."),
         ("Renji","Not this time. You walked all night, and Emiko needs an answer. Go and see Chiaki at the clinic. She'll want to know what that train is carrying."),
@@ -96,8 +97,8 @@ public static class Prologue
     };
     public static readonly (string Speaker,string Text)[] Homecoming=
     {
-        ("Renji","I can see the relay's lamp from the workshop roof. Green, for the first time since the line closed."),
-        ("Renji","Every signal down the line has power again. Terminal, are they all green?"),
+        ("Renji","I can see the relay's lamp from the workshop roof. Green, for the first time since the line closed. Mio, ask your terminal about the rest of the line."),
+        ("Mio","Terminal, does every signal down the line have power again? Are they all green?"),
         ("Zero","All green. ...One near the village just went dark. ...It is green again now."),
         ("Renji","Good. When that train comes, platform two shows it red, and for once it will have to stop. You woke the line up, Mio."),
         ("","Night falls over Hoshikawa. Mio walks home alone, and one by one the lanterns are lit."),
@@ -125,7 +126,8 @@ public static class Prologue
     };
     public static readonly (string Speaker,string Text)[] HalfDone=
     {
-        ("Renji","Morning, Mio. Terminal, report the signals at Hoshikawa Station."),
+        ("Renji","Morning, Mio. Ask your terminal about the signals at Hoshikawa Station."),
+        ("Mio","Terminal, report the signals at Hoshikawa Station."),
         ("Zero","Every signal on the line has power. Platform two's departure signal at Hoshikawa Station has power too, but answers only to the lever in the station's signal box."),
         ("Renji","...Last night I said platform two would show that train red. I was wrong."),
         ("Renji","Nothing out here can turn that signal. Someone has to get inside the station and pull the lever. Then that train stops right beside platform two. And it comes the day after tomorrow."),
@@ -155,7 +157,8 @@ public static class Prologue
     };
     public static readonly (string Speaker,string Text)[] Crossbow=
     {
-        ("Chiaki","Mio, good. Terminal, what medicine is on that train? Every box, if you can."),
+        ("Chiaki","Mio, good. Ask your terminal what medicine is on that train. Every box, if it can."),
+        ("Mio","Terminal, what medicine is on the train? Every box."),
         ("Zero","The old freight system still logs each load on the line by its category code. Cough syrup, sixty boxes. Fever medicine, forty. Antibiotics, forty. Bandages and salve, sixty. Two hundred boxes in all."),
         ("Chiaki","I can't leave the clinic. So, Yui, you learn them. Cough syrup first, for Grandpa Tetsu. Then the fever medicine, then the antibiotics."),
         ("Yui","Cough syrup, fever medicine, anti... antibiotics! Cough, fever, the long one. Got it!"),
@@ -305,9 +308,10 @@ public static class Prologue
         ["KOMA-7"]=new[]
         {
             ("KOMA-7","Morning diagnostic: tomatoes healthy. Humans worried. Reminder for Mio: this unit is still far better company than your terminal."),
-            ("KOMA-7","Query for Mio's terminal: do you know what tomatoes feel like?"),
+            ("KOMA-7","Query, relayed through Mio: does your terminal know what tomatoes feel like?"),
+            ("Mio","...Fine. Terminal, do you know what tomatoes feel like?"),
             ("Zero","No. This terminal has never touched one."),
-            ("KOMA-7","Round. Warm in the afternoon. Query: terminal, where is your body?"),
+            ("KOMA-7","Round. Warm in the afternoon. Second query, relayed through Mio: where is your terminal's body?"),
             ("Mio","It doesn't have one, KOMA. It's just a terminal. Go and look after your tomatoes."),
         },
         ["Chiaki"]=new[]
@@ -318,7 +322,8 @@ public static class Prologue
         ["Sota"]=new[]
         {
             ("Sota","Watch for the red diamond on a patrol: that sweeping attack cannot be blocked. Dodge through it or jump away."),
-            ("Sota","...Say, terminal. Who's on the other end of you?"),
+            ("Sota","...Say, Mio. Ask that terminal who's on the other end of it."),
+            ("Mio","...Terminal. Who's on the other end of you?"),
             ("Zero","This terminal answers queries about the old line."),
             ("Mio","Told you, Sota. It's old wiring from the signal box. It only knows the line."),
             ("Sota","Huh. Then if it ever knows when that train is due, tell me first. I'd want to be there."),
@@ -328,7 +333,8 @@ public static class Prologue
         {
             ("Yui","Chiaki is teaching me medicines! This one's for fevers, this one's for coughs, and this one tastes awful. I tried it."),
             ("Mio","What did it taste like?"),
-            ("Yui","Like the inside of an old boot! Terminal, remember that one: old boot."),
+            ("Yui","Like the inside of an old boot! Mio, have your terminal remember that one: old boot."),
+            ("Mio","Terminal, remember that one."),
             ("Zero","Saved. Old boot."),
         },
     };
@@ -338,11 +344,13 @@ public static class Prologue
     public static readonly HashSet<string> Cast=new(){"Mio","Zero","Yui","Renji"};
     // The cast's lines written or changed since the last recording, which IntegrationCheck lets go without an mp3 until they are voiced.
     public static readonly HashSet<string> Unrecorded=new(){
-        "DayTwo.1","DayTwo.2","DayTwo.3","DayTwo.4","DayTwo.5","DayTwo.6","DayTwo.7","HalfDone.0","HalfDone.1","HalfDone.2",
-        "HalfDone.3","HalfDone.4","HalfDone.5","HalfDone.6","HalfDone.7","HalfDone.8","HalfDone.9","HalfDone.10","RenjiReady.0","SotaJoins.0",
-        "SotaJoins.6","Crossbow.1","Crossbow.3","Crossbow.4","Crossbow.5","Crossbow.7","KomaAsks.0","PhoneFixed.1","PhoneFixed.2","ChiyoLamp.1",
-        "Evening.0","Evening.1","Evening.2","Evening.3","Evening.4","Evening.5","Evening.6","RenjiNight.0","NightTwo.0","NightTwo.1","NightTwo.2",
-        "NightTwo.3","NightTwo.4","NightTwo.5","Rockfall.0","Rockfall.2","Rockfall.6","Rockfall.7","Rockfall.8","RenjiSeesOff.0"};
+        "Gate.3","Gate.4","Gate.5","Briefing.7","Briefing.8","Homecoming.0","Homecoming.1","DayTwo.1","DayTwo.2","DayTwo.3",
+        "DayTwo.4","DayTwo.5","DayTwo.6","DayTwo.7","HalfDone.0","HalfDone.1","HalfDone.2","HalfDone.3","HalfDone.4","HalfDone.5",
+        "HalfDone.6","HalfDone.7","HalfDone.8","HalfDone.9","HalfDone.10","HalfDone.11","RenjiReady.0","SotaJoins.0","SotaJoins.6","Crossbow.1",
+        "Crossbow.2","Crossbow.4","Crossbow.5","Crossbow.6","Crossbow.8","KomaAsks.0","PhoneFixed.1","PhoneFixed.2","ChiyoLamp.1","Evening.0",
+        "Evening.1","Evening.2","Evening.3","Evening.4","Evening.5","Evening.6","RenjiNight.0","NightTwo.0","NightTwo.1","NightTwo.2",
+        "NightTwo.3","NightTwo.4","NightTwo.5","Rockfall.0","Rockfall.2","Rockfall.6","Rockfall.7","Rockfall.8","RenjiSeesOff.0","FirstMeeting.KOMA-7.2",
+        "FirstMeeting.Sota.2","FirstMeeting.Yui.2","FirstMeeting.Yui.3"};
     // What the 3D scene does when a beat starts: a camera shot and the clips its actors play ("Mio clip, Yui clip"). A beat with no entry, or
     // an empty part, keeps what was there. Shots: "over A B" looks past A's shoulder at B, "two A B" frames both from the side, "face A"
     // is in front of A, and any other name is a fixed shot (Game.Shots). Every actor goes back to its resting clip when the scene ends.
@@ -355,15 +363,15 @@ public static class Prologue
         ["Intro.6"]=("room","Mio rise"),["Intro.7"]=("shoji","Mio stand"),["Intro.9"]=("face Mio","Mio terminal"),["Intro.11"]=("","Mio stand"),
         ["Intro.15"]=("","Mio terminal"),["Intro.16"]=("","Mio stand"),["Intro.17"]=("","Mio terminal"),["Intro.19"]=("","Mio stand"),
         ["Photo.0"]=("photo",""),
-        ["Gate.0"]=("two Mio Yui","Yui wave"),["Gate.1"]=("","Yui idle"),["Gate.2"]=("","Yui point"),["Gate.3"]=("","Mio terminal, Yui idle"),
-        ["Gate.4"]=("","Mio stand"),["Gate.6"]=("","Mio terminal"),["Gate.7"]=("over Mio Yui","Mio stand, Yui give"),["Gate.8"]=("","Mio terminal, Yui idle"),
+        ["Gate.0"]=("two Mio Yui","Yui wave"),["Gate.1"]=("","Yui idle"),["Gate.2"]=("","Yui point"),["Gate.3"]=("","Yui idle"),
+        ["Gate.5"]=("","Mio terminal"),["Gate.7"]=("over Mio Yui","Mio stand, Yui give"),["Gate.8"]=("","Mio terminal, Yui idle"),
         ["Gate.9"]=("","Mio stand"),["Gate.11"]=("","Yui wave"),["Gate.12"]=("","Yui idle"),["Gate.13"]=("","Yui point"),
         ["Briefing.0"]=("two Mio Renji","Renji idle"),["Briefing.1"]=("","Yui wave"),["Briefing.2"]=("","Mio terminal, Yui idle"),
         ["Briefing.3"]=("","Mio stand, Yui give"),["Briefing.4"]=("","Renji read, Yui idle"),["Briefing.5"]=("","Renji point"),
-        ["Briefing.6"]=("","Renji idle"),["Briefing.8"]=("","Mio terminal"),["Briefing.9"]=("face Yui","Mio stand, Yui wave"),
-        ["Briefing.10"]=("","Yui idle"),["Briefing.11"]=("","Yui fold"),["Briefing.12"]=("two Mio Renji",""),
+        ["Briefing.6"]=("","Renji idle"),["Briefing.8"]=("","Mio terminal"),["Briefing.10"]=("face Yui","Mio stand, Yui wave"),
+        ["Briefing.11"]=("","Yui idle"),["Briefing.12"]=("","Yui fold"),["Briefing.13"]=("two Mio Renji",""),
         ["DayTwo.0"]=("bed","Mio sleep"),["DayTwo.1"]=("futon","Mio wake"),["DayTwo.3"]=("","Mio terminal_sit"),["DayTwo.6"]=("room","Mio rise"),["DayTwo.7"]=("","Mio terminal"),
-        ["HalfDone.0"]=("two Mio Renji","Renji idle"),["HalfDone.1"]=("","Mio terminal"),["HalfDone.2"]=("","Mio stand"),["HalfDone.8"]=("","Renji point"),["HalfDone.9"]=("","Renji idle"),
+        ["HalfDone.0"]=("two Mio Renji","Renji idle"),["HalfDone.1"]=("","Mio terminal"),["HalfDone.3"]=("","Mio stand"),["HalfDone.9"]=("","Renji point"),["HalfDone.10"]=("","Renji idle"),
         ["PhoneFixed.0"]=("floor",""),["Evening.0"]=("two Mio Renji","Renji idle"),["NightTwo.0"]=("face Mio","Mio terminal"),["NightTwo.5"]=("","Mio stand"),
         ["DayThree.0"]=("bed","Mio sleep"),["DayThree.1"]=("room","Mio rise"),
         ["Rockfall.0"]=("two Mio Renji","Yui wave"),["Rockfall.1"]=("","Yui idle"),["Rockfall.8"]=("","Yui wave"),["Rockfall.9"]=("","Yui idle"),
