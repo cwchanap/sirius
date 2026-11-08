@@ -139,7 +139,7 @@ public static class Prologue
     };
     public static readonly (string Speaker,string Text)[] RenjiReady=
     {
-        ("Renji","Two people to go with you, and my telephone working. Then come and see me."),
+        ("Renji","Two people to go with you, KOMA to shift that rockfall, and my telephone working. Then come and see me."),
     };
     // The four errands, in any order (Game.Errands). Sota's replaces his first meeting, whose "tell me first" it would answer.
     public static readonly (string Speaker,string Text)[] SotaJoins=
@@ -156,9 +156,9 @@ public static class Prologue
     public static readonly (string Speaker,string Text)[] Crossbow=
     {
         ("Chiaki","Mio, good. Terminal, what medicine is on that train? Every box, if you can."),
-        ("Zero","Cough syrup, sixty boxes. Fever powder, forty. Antibiotics, forty. Bandages and salve, sixty. Two hundred boxes in all."),
-        ("Chiaki","I can't leave the clinic. So, Yui, you learn them. Cough syrup first, for Grandpa Tetsu. Then the fever powder, then the antibiotics."),
-        ("Yui","Cough syrup, fever powder, anti... antibiotics! Cough, fever, the long one. Got it!"),
+        ("Zero","Cough syrup, sixty boxes. Fever medicine, forty. Antibiotics, forty. Bandages and salve, sixty. Two hundred boxes in all."),
+        ("Chiaki","I can't leave the clinic. So, Yui, you learn them. Cough syrup first, for Grandpa Tetsu. Then the fever medicine, then the antibiotics."),
+        ("Yui","Cough syrup, fever medicine, anti... antibiotics! Cough, fever, the long one. Got it!"),
         ("Yui","Oh! And Mio, I fell on the night road. My crossbow's trigger spring snapped, and I can't do springs."),
         ("Mio","Give it here. I've got a spare in my kit."),
         ("","Mio opens the crossbow's lock, fits the spare spring and works the trigger until it clicks clean."),
@@ -174,34 +174,34 @@ public static class Prologue
         ("Haruka","Grandpa? KOMA needs your word. Mio's going to the station."),
         ("","From inside the house comes a long cough, then Grandpa Tetsu's voice."),
         ("Tetsuzo","...KOMA. Go and help them."),
-        ("Tetsuzo","Bring back the cough medicine. And bring yourself back too."),
+        ("Tetsuzo","Mio, I'm counting on you for the cough medicine. KOMA, you come back safe too."),
         ("KOMA-7","Keeper's voice confirmed. This unit walks slowly. It will set out tonight."),
         ("Haruka","Forty years, and KOMA's never taken an order from anyone but Grandpa. He'll go up with Renji at dusk."),
     };
     public static readonly (string Speaker,string Text)[] PhoneFixed=
     {
-        ("","Mio twists the last wire home and closes the telephone's case. Its bell gives one small ring."),
+        ("","Mio twists the last wire home, closes the telephone's case and gives its crank a turn. The bell answers with one small ring."),
         ("Zero","A telephone is a terminal for two people. I like it."),
         ("Mio","Renji will like it even more."),
     };
     public static readonly (string Speaker,string Text)[] ChiyoLamp=
     {
         ("Chiyo","So you are going to the station. When you all come home, I will light a lantern at the east gate for you."),
-        ("Mio","Thank you, Chiyo. We'll look for it."),
+        ("Mio","Thank you, Chiyo. We'll follow that light home."),
     };
     public static readonly (string Speaker,string Text)[] Evening=
     {
         ("Mio","Renji, your telephone. It works. And Sota and Yui are coming with me."),
         ("Renji","...Good. I'd have picked the same two."),
         ("Renji","Then at first light tomorrow, meet at the rockfall east of the relay plaza. I'm going up tonight with KOMA, and I'll take over the watch there."),
-        ("Renji","And you won't have to carry the medicine home. There should still be freight handcarts on the station's platforms. Load them and push them home along the rails."),
+        ("Renji","And you may not have to carry the medicine home. There should still be freight handcarts on the station's platforms. If the line's quiet once that train is stopped, load them up and push them home along the rails."),
         ("Mio","Home along the line. The first thing it's carried for us in twelve years."),
         ("Renji","Get some sleep, Mio. Tomorrow's a long walk."),
         ("","The sun goes down behind the mountains, and one by one Hoshikawa's lanterns are lit again."),
     };
     public static readonly (string Speaker,string Text)[] RenjiNight=
     {
-        ("Renji","Go home and sleep, Mio. KOMA and I have the plaza. First light, right here."),
+        ("Renji","Go home and sleep, Mio. KOMA and I have the plaza tonight. First light, here at the rockfall."),
     };
     public static readonly (string Speaker,string Text)[] NightTwo=
     {
@@ -226,7 +226,7 @@ public static class Prologue
         ("Renji","Then let's open the road."),
         ("","Renji hauls the barrier aside, and KOMA-7 lifts the boulders one by one and sets them down off the road."),
         ("KOMA-7","This unit is very good at moving rocks. Also tomatoes."),
-        ("","Renji clips his telephone onto the old line's junction box and cranks it. Far down the cleared road, a bell rings back."),
+        ("","Renji clips his telephone onto the old line's junction box and cranks it. Somewhere down the cleared road, faint but clear, a phone box's bell rings with it."),
         ("Renji","The old line still carries a voice. Find a phone box when you can, and call me."),
         ("Renji","All three of you come back."),
         ("Yui","All three of us, and the medicine too! That's a promise, not a question!"),
