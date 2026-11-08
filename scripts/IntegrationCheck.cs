@@ -39,7 +39,7 @@ public static class IntegrationCheck
         foreach(var (name,_,_,_,style) in houses)
         {
             var b=g.World.Buildings.Single(n=>n.Name==name);
-            var mesh=ActorVisual.Descendants(b).OfType<MeshInstance3D>().Single(m=>m.Mesh is ArrayMesh);var box=b.GlobalTransform.AffineInverse()*mesh.GlobalTransform*mesh.GetAabb();int tris=mesh.Mesh.GetFaces().Length/3;
+            var mesh=ActorVisual.Descendants(b.GetNode("Tripo "+style)).OfType<MeshInstance3D>().Single();var box=b.GlobalTransform.AffineInverse()*mesh.GlobalTransform*mesh.GetAabb();int tris=mesh.Mesh.GetFaces().Length/3;
             var foot=mesh.Mesh.GetFaces().Select(v=>mesh.GlobalTransform*v).Where(v=>v.Y<b.GlobalPosition.Y+.1f).ToArray();
             Check(tris<20000&&mesh.MaterialOverride is BaseMaterial3D{AlbedoTexture:not null,NormalEnabled:true,AlbedoColor.R:>1}&&Math.Abs(box.Position.Y)<.05f&&box.Size.Y>6
                 &&foot.Length>0&&foot.All(v=>Math.Abs(Hoshikawa.World.Height(v.X,v.Z)-b.GlobalPosition.Y)<.05f),$"{name} is Tripo's textured {style}, brightened, and its footprint stands on its level pad, {tris} triangles");
@@ -130,14 +130,13 @@ public static class IntegrationCheck
         // The scarecrow stands in a paddy, the rice left unplanted round its pole.
         var rice=new[]{"Rice","Rice, paler hills"}.SelectMany(n=>ActorVisual.Descendants(g.World.GetNode(n)).OfType<MeshInstance3D>()).SelectMany(m=>m.Mesh.GetFaces().Select(v=>m.GlobalTransform*v)).ToArray();
         Check(Hoshikawa.World.Paddies.Any(p=>p.HasPoint(Hoshikawa.World.Scarecrow))&&rice.Length>0&&rice.All(v=>new Vector2(v.X,v.Z).DistanceTo(Hoshikawa.World.Scarecrow)>.35f),"the scarecrow stands in a paddy, the rice cleared round its pole");
-        // Both bridges are plank decks on log stringers over stone piers standing in their river beds; under the stone bridge the river runs open.
-        foreach(var (name,planks,deck) in new[]{("Stone Bridge",21,.82f),("Cedar Bridge",33,4.1f)})
+        // Both bridges are Tripo's timber bridge, stretched to their spans, its piers footed in the river beds and banks; under the stone bridge the river runs open.
+        foreach(var (name,deck) in new[]{("Stone Bridge",.82f),("Cedar Bridge",4.1f)})
         {
-            var parts=g.World.GetNode(name).GetChildren().OfType<MeshInstance3D>().ToArray();
-            var piers=parts.Where(n=>n.Name.ToString().Contains("Stone bridge pier")).Select(n=>(n.GlobalPosition,((BoxMesh)n.Mesh).Size)).ToArray();
-            Check(parts.Count(n=>n.Name.ToString().Contains("Bridge plank"))==planks&&parts.Count(n=>n.Name.ToString().Contains("Bridge stringer"))==3&&piers.Length>=4
-                &&piers.All(p=>p.GlobalPosition.Y-p.Size.Y/2<Hoshikawa.World.Height(p.GlobalPosition.X,p.GlobalPosition.Z)-.3f&&p.GlobalPosition.Y+p.Size.Y/2<deck-.5f),
-                $"{name} is {planks} planks on stringers over {piers.Length} stone piers footed in the ground");
+            var bridgeMesh=ActorVisual.Descendants(g.World.GetNode(name+"/Timber bridge")).OfType<MeshInstance3D>().Single();
+            var faces=bridgeMesh.Mesh.GetFaces().Select(v=>bridgeMesh.GlobalTransform*v).ToArray();float low=faces.Min(v=>v.Y),crown=faces.Max(v=>v.Y);
+            var feet=faces.Where(v=>v.Y<low+.2f).ToArray();float proud=feet.Max(v=>v.Y-Hoshikawa.World.Height(v.X,v.Z));
+            Check(proud<.05f&&crown>deck+.5f,$"{name} is Tripo's timber bridge, its pier feet {-proud:F2} m into the ground and its rails {crown-deck:F2} m over the deck, {faces.Length/3} triangles");
         }
         using(var deck=PhysicsRayQueryParameters3D.Create(new(0,3,-8),new(0,-3,-8),1))Check(g.GetWorld3D().DirectSpaceState.IntersectRay(deck) is {Count:>0} hit&&Math.Abs(hit["position"].AsVector3().Y-.82f)<.01f
             &&Hoshikawa.World.Height(0,-8)<Hoshikawa.World.WaterLevel-1,"the stone bridge's deck carries walkers at .82 m over open river");
@@ -188,8 +187,8 @@ public static class IntegrationCheck
         Check(merged.Length>0&&mergedCorners.Length==bakedCorners.Length&&mergedExtent.Position.DistanceTo(bakedExtent.Position)<.01f&&mergedExtent.End.DistanceTo(bakedExtent.End)<.01f,
             $"{baked.Length} static primitives bake into {merged.Length} merged meshes, keeping all {bakedCorners.Length/3} triangles where they stood");
         var props=baked.Where(n=>n.Mesh.ResourceName.StartsWith("prop ")).GroupBy(n=>n.Mesh.ResourceName.ToString()[5..]).ToDictionary(x=>x.Key,x=>x.Count());
-        Check("lamp bench barrel fence_post fence_panel pebbles river_rock sluice trough hasa field_post field_rail plank cabbage daikon".Split(' ').All(props.ContainsKey),
-            "lamps, benches, barrels, the bamboo and field fences, brook stones, paddy sluice, wheel trough and rack, bridge planks and the Komorebi crops are baked Blender props: "+string.Join(", ",props.Select(x=>$"{x.Key} {x.Value}")));
+        Check("fence_post fence_panel pebbles river_rock sluice trough hasa field_post field_rail cabbage daikon".Split(' ').All(props.ContainsKey)&&!props.Keys.Intersect(new[]{"lamp","bench","barrel","plank"}).Any(),
+            "the bamboo and field fences, brook stones, paddy sluice, wheel trough and rack and the Komorebi crops are baked Blender props, the lamps, benches, barrels and bridge planks Tripo's: "+string.Join(", ",props.Select(x=>$"{x.Key} {x.Value}")));
         foreach(var model in g.World.Residents.Select(r=>r.Body))
         {
             var skeleton=ActorVisual.Descendants(model).OfType<Skeleton3D>().Single();
@@ -537,6 +536,12 @@ public static class IntegrationCheck
             Check(tris<10000&&mesh.MaterialOverride is BaseMaterial3D{AlbedoTexture:not null,NormalEnabled:true,AlbedoColor.R:>1}&&Math.Abs(box.Position.Y-Hoshikawa.World.Height(x,z))<.05f&&Math.Abs(box.Size.Y-height)<.1f
                 &&hit.Count>0&&prop.IsAncestorOf((Node)hit["collider"]),$"the {model} at ({x}, {z}) is Tripo's textured model, brightened, grounded and solid, {tris} triangles");
         }
+        // The second Tripo batch: every model is placed, its own GLB, textured and brightened like the first.
+        var placed=g.World.FindChildren("*","Node3D",true,false).OfType<Node3D>().Where(n=>n.SceneFilePath.StartsWith("res://assets/models/")&&!n.SceneFilePath.Contains("/props/"))
+            .GroupBy(n=>n.SceneFilePath.GetFile().GetBaseName()).ToDictionary(x=>x.Key,x=>x.ToArray());
+        var batch="shrine torii bridge ishigaki festival_mast street_lamp laundry woodpile tea_bench chochin tomato village_bench village_barrel".Split(' ');
+        Check(batch.All(m=>placed.TryGetValue(m,out var n)&&n.All(x=>ActorVisual.Descendants(x).OfType<MeshInstance3D>().Single().MaterialOverride is BaseMaterial3D{AlbedoTexture:not null,AlbedoColor.R:>1})),
+            "the shrine, torii, bridges, terrace wall, festival masts, street lamps, laundry, woodpile, tea bench, chochin, tomatoes, benches and barrels are Tripo's: "+string.Join(", ",batch.Select(m=>$"{m} {(placed.TryGetValue(m,out var n)?n.Length:0)}")));
         var villageTrees=g.World.GetChildren().OfType<Node3D>().Where(n=>n.Position.Z>0&&n.Position.Z<76&&Math.Abs(n.Position.X)<40&&n.GetChildren().OfType<StaticBody3D>().Any()
             &&"keyaki sugi sakura bamboo shrub".Split(' ').Any(s=>n.Name.ToString().Contains(s))).ToArray();
         Check(villageTrees.Length>=30,$"Hoshikawa is planted with {villageTrees.Length} trees and shrubs");

@@ -165,7 +165,7 @@ public partial class World
         }
         Handcart("Quarry sled",new(-33,-138),90);
         var pouch=new Node3D{Name="Remedy pouch",Position=new(-40,Height(-40,-137),-137)};AddChild(pouch);
-        Prop(this,"Pouch barrel","barrel",pouch.Position,.6f);
+        Barrel(this,"Pouch barrel",pouch.Position,.6f);
         var barrel=new StaticBody3D{Position=pouch.Position+new Vector3(0,.42f,0)};AddChild(barrel);barrel.AddChild(new CollisionShape3D{Shape=new CylinderShape3D{Radius=.32f,Height=.84f}});
         pouch.AddChild(Combined("Pouch",Mat(new("c9a25a"),.25f),(new(0,.96f,0),new(.34f,.24f,.26f)),(new(0,1.12f,0),new(.14f,.1f,.12f))));Pickups.Add(new("pouch",pouch));
         // Two resonance cells, standing lit on the ground: one behind the terrace's patrol, one at the forest valley's eastern bend.
