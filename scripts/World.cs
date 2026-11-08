@@ -423,7 +423,11 @@ public partial class World : Node3D
     private void Bridge(Node3D bridge,float deck,float half,float rail)
     {
         var o=bridge.Position;
-        Model(bridge,"Timber bridge","bridge",new(0,deck-4.03f,0),0,new(1.3f,1.3f,1.3f)).Scale=new(1,1,(2*half+.5f)/13.26f);
+        var model=Model(bridge,"Timber bridge","bridge",new(0,deck-4.03f,0),0,new(1.3f,1.3f,1.3f));model.Scale=new(1,1,(2*half+.5f)/13.26f);
+        // The piers are the model's own faces under the deck's beams, solid where they stand out of the bed or the banks.
+        var mesh=ActorVisual.Descendants(model).OfType<MeshInstance3D>().Single();var local=bridge.GlobalTransform.AffineInverse()*mesh.GlobalTransform;var faces=mesh.Mesh.GetFaces().Select(v=>local*v).ToArray();
+        var piers=Enumerable.Range(0,faces.Length/3).Where(i=>faces[(3*i)..(3*i+3)].All(v=>v.Y<deck-.6f)).SelectMany(i=>faces[(3*i)..(3*i+3)]).ToArray();
+        var body=new StaticBody3D();bridge.AddChild(body);body.AddChild(new CollisionShape3D{Shape=new ConcavePolygonShape3D{Data=piers,BackfaceCollision=true}});
         foreach(float x in new[]{-2.9f,2.9f})Solid(o+new Vector3(x,rail,0),Vector3.Zero,new(.12f,.12f,2*half+.5f));
         Solid(o+new Vector3(0,deck-.1f,0),Vector3.Zero,new(6,.2f,2*half+.46f));
     }
