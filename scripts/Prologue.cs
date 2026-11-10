@@ -61,7 +61,7 @@ public static class Prologue
         ("Mio","We can't. We're down to a week too. And Grandpa Tetsu's cough is getting worse."),
         ("Mio","...Maybe there's a way. Something's coming down the line."),
         ("Yui","Down the line? You mean a train? Okay, now you have to tell me everything."),
-        ("Mio","Come on. Renji needs to hear this."),
+        ("Mio","Come on. I'll tell you and Renji together."),
         ("Yui","Race you to the workshop!"),
     };
     public static readonly (string Speaker,string Text)[] Briefing=
@@ -97,7 +97,7 @@ public static class Prologue
     };
     public static readonly (string Speaker,string Text)[] Homecoming=
     {
-        ("Renji","I can see the relay's lamp from the workshop roof. Green, for the first time since the line closed. Mio, ask Zero about the rest of the line."),
+        ("Renji","I saw the relay's lamp from the workshop roof. Green, for the first time since the line closed. Mio, ask Zero about the rest of the line."),
         ("Mio","Zero, does every signal down the line have power again? Are they all green?"),
         ("Zero","All green. ...One near the village just went dark. ...It is green again now."),
         ("Renji","Good. When that train comes, platform two shows it red, and for once it will have to stop. You woke the line up, Mio."),
@@ -126,7 +126,7 @@ public static class Prologue
     };
     public static readonly (string Speaker,string Text)[] HalfDone=
     {
-        ("Renji","Morning, Mio. Ask Zero about the signals at Hoshikawa Station."),
+        ("Renji","Morning, Mio. Something kept me up all night. Ask Zero about the signals at Hoshikawa Station."),
         ("Mio","Zero, how are the signals at Hoshikawa Station?"),
         ("Zero","Every signal on the line has power. Platform two's departure signal at Hoshikawa Station has power too, but answers only to the lever in the station's signal box."),
         ("Renji","...Last night I said platform two would show that train red. I was wrong."),
@@ -137,7 +137,7 @@ public static class Prologue
         ("Renji","The village has taken turns up there since last night. From this evening I'll hold it myself. But you're not going alone. Find two people to go with you."),
         ("Renji","And my telephone: is it working yet? I'll hook it onto the line by the relay. There are still old phone boxes along the line. Find one on the way and call me."),
         ("Mio","Almost. One more wire."),
-        ("Renji","Then finish it, and get ready. Bring it to me when you are."),
+        ("Renji","Then finish it. And ask KOMA about that rockfall: no one here can lift those boulders. Bring me the telephone when you're ready."),
     };
     public static readonly (string Speaker,string Text)[] RenjiReady=
     {
@@ -162,7 +162,7 @@ public static class Prologue
         ("Zero","The old freight system still logs each load on the line by its category code. Cough syrup, sixty boxes. Fever medicine, forty. Antibiotics, forty. Bandages and salve, sixty. Two hundred boxes in all."),
         ("Chiaki","I can't leave the clinic. So, Yui, you learn them. Cough syrup first, for Grandpa Tetsu. Then the fever medicine, then the antibiotics."),
         ("Yui","Cough syrup, fever medicine, anti... antibiotics! Cough, fever, the long one. Got it!"),
-        ("Yui","Oh! And Mio, I fell on the night road. My crossbow's trigger spring snapped, and I can't do springs."),
+        ("Yui","Oh! And Mio, if I'm coming with you, I need my crossbow. I fell on the night road and its trigger spring snapped. I can't do springs."),
         ("Mio","Give it here. I've got a spare in my kit."),
         ("","Mio opens the crossbow's lock, fits the spare spring and works the trigger until it clicks clean."),
         ("Yui","It clicks! Mio, you're amazing!"),
@@ -233,6 +233,7 @@ public static class Prologue
         ("","Renji clips his telephone onto the old line's junction box and cranks it. Somewhere down the cleared road, faint but clear, a phone box's bell rings with it."),
         ("Renji","The old line still carries a voice. Find a phone box when you can, and call me."),
         ("Renji","All three of you come back."),
+        ("Mio","We will. Stay by that telephone, Renji."),
         ("Yui","All three of us, and the medicine too! That's a promise, not a question!"),
         ("KOMA-7","This unit will return to the tomatoes. Bring back the cough medicine."),
         ("Sota","Let's go. I'll show you the way round the mountain."),
@@ -349,7 +350,7 @@ public static class Prologue
         "HalfDone.6","HalfDone.7","HalfDone.8","HalfDone.9","HalfDone.10","HalfDone.11","RenjiReady.0","SotaJoins.0","SotaJoins.6","Crossbow.1",
         "Crossbow.2","Crossbow.4","Crossbow.5","Crossbow.6","Crossbow.8","KomaAsks.0","PhoneFixed.1","PhoneFixed.2","ChiyoLamp.1","Evening.0",
         "Evening.1","Evening.2","Evening.3","Evening.4","Evening.5","Evening.6","RenjiNight.0","NightTwo.0","NightTwo.1","NightTwo.2",
-        "NightTwo.3","NightTwo.4","NightTwo.5","Rockfall.0","Rockfall.2","Rockfall.6","Rockfall.7","Rockfall.8","RenjiSeesOff.0","FirstMeeting.KOMA-7.2",
+        "NightTwo.3","NightTwo.4","NightTwo.5","Rockfall.0","Rockfall.2","Rockfall.6","Rockfall.7","Rockfall.8","Rockfall.9","RenjiSeesOff.0","FirstMeeting.KOMA-7.2",
         "FirstMeeting.Sota.2","FirstMeeting.Yui.2","FirstMeeting.Yui.3"};
     // What the 3D scene does when a beat starts: a camera shot and the clips its actors play ("Mio clip, Yui clip"). A beat with no entry, or
     // an empty part, keeps what was there. Shots: "over A B" looks past A's shoulder at B, "two A B" frames both from the side, "face A"
@@ -374,7 +375,7 @@ public static class Prologue
         ["HalfDone.0"]=("two Mio Renji","Renji idle"),["HalfDone.1"]=("","Mio terminal"),["HalfDone.3"]=("","Mio stand"),["HalfDone.9"]=("","Renji point"),["HalfDone.10"]=("","Renji idle"),
         ["PhoneFixed.0"]=("floor",""),["Evening.0"]=("two Mio Renji","Renji idle"),["NightTwo.0"]=("face Mio","Mio terminal"),["NightTwo.5"]=("","Mio stand"),
         ["DayThree.0"]=("bed","Mio sleep"),["DayThree.1"]=("room","Mio rise"),
-        ["Rockfall.0"]=("two Mio Renji","Yui wave"),["Rockfall.1"]=("","Yui idle"),["Rockfall.8"]=("","Yui wave"),["Rockfall.9"]=("","Yui idle"),
+        ["Rockfall.0"]=("two Mio Renji","Yui wave"),["Rockfall.1"]=("","Yui idle"),["Rockfall.9"]=("","Yui wave"),["Rockfall.10"]=("","Yui idle"),
     };
     // What the Komorebi residents say every time: they have no first-meeting scene.
     public static readonly Dictionary<string,(string Speaker,string Text)[]> Komorebi=new()
