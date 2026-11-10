@@ -1,8 +1,12 @@
 # MVP verification
 
+## A read for natural dialogue — 2026-11-10
+
+Hapadona found Mio's reminder to Zero on the way out of her room awkward and asked for a read of the whole script. Six English lines changed, with their Japanese and Chinese: the reminder is gone (`Intro.17`), so Zero's next line opens "Wait, Mio." (`Intro.18`, its take removed; 65 lines unrecorded); Mio asks "how are the signals" (`HalfDone.1`); `Evening.5` no longer reads as her first hope in twelve years; two narration lines say Mio, not "you". Sixteen more Chinese lines are reworded only. The read also found that the last change had cut `Briefing.7` and `Homecoming.0` down to their final sentence in Japanese and Chinese, which the unit tests don't compare; both are restored. The history check now clicks Zero's last voiced waking line. Unit tests 60 pass, `build_voice.py --check` passes, and the headless self-test passes 742 checks in `en`, `ja` and `zh_TW`.
+
 ## Everyone knows Zero's name — 2026-11-08
 
-Hapadona's next rule: Mio calls Zero by name anywhere, and everyone knows the name, only as the name of her terminal. The villagers' asks say "ask Zero", Mio's say "Zero, ...", and her reminder on the way out of her room is "you only answer me" (`Intro.17`, whose take is removed for re-voicing; 64 lines unrecorded now). `PrologueTest.NobodyButMioCallsZeroByName` is removed; `ZeroAnswersOnlyMio` stays. Unit tests 60 pass; self-test below.
+Hapadona's next rule: Mio calls Zero by name anywhere, and everyone knows the name, only as the name of her terminal. The villagers' asks say "ask Zero", Mio's say "Zero, ..." (`Intro.17`'s take is removed for re-voicing; 64 lines unrecorded then). `PrologueTest.NobodyButMioCallsZeroByName` is removed; `ZeroAnswersOnlyMio` stays. Unit tests 60 pass; self-test below.
 
 ## Zero answers only Mio — 2026-11-08
 

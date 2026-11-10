@@ -688,7 +688,7 @@ public static class IntegrationCheck
         Check(g.LogScroll==2,"up and the wheel step back through the history, down and the wheel forward");
         for(int i=0;i<4;i++)await Tap(Key.Down);Check(g.LogScroll==0,"and no further than the newest line");
         await Tap(Key.E);Check(g.Replaying==g.Log.Count-1&&g.Voice.StreamPaused&&g.Mode==GameMode.History,"E replays the voice of the line at the bottom, Renji's, while the scene's own stays paused");
-        int waking=g.Log.FindLastIndex(l=>l.Scene=="Intro"&&l.Speaker=="Zero");g.LogScroll=g.Log.Count-1-waking;await Frames(2);
+        int waking=g.Log.FindLastIndex(l=>l.Scene=="Intro"&&l.Speaker=="Zero"&&l.Voice!=null);g.LogScroll=g.Log.Count-1-waking;await Frames(2);
         g.GetViewport().PushInput(new InputEventMouseButton {ButtonIndex=MouseButton.Left,Pressed=true,Position=g.Hud.Shown.Single(l=>l.Line==waking).Rect.GetCenter()},true);await Frames(1);
         Check(g.Replaying==waking&&g.Mode==GameMode.History,"a click on a line replays its voice, here Zero's in the waking scene");
         int mute=g.Log.FindLastIndex(l=>l.Voice==null&&l.Speaker!="");Check(mute>=0&&!g.Replay(mute)&&g.Replaying==waking,$"a silent resident's line, {g.Log[mute].Speaker}'s, has no voice to replay");

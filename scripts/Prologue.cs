@@ -36,8 +36,8 @@ public static class Prologue
         ("Mio","Not anymore. City freight runs straight through on platform two and never slows down. No train has stopped at Hoshikawa Station in twelve years."),
         ("Zero","A station where no train stops is a very lonely station."),
         ("Mio","And Chiaki's shelves have been running low since spring. Two hundred boxes, and not one of them for us."),
-        ("Mio","Renji has to hear this. Come on, Zero. And outside, you only answer me. Remember?"),
-        ("Zero","I remember. ...But you haven't eaten since yesterday noon. Nineteen hours. I counted."),
+        ("Mio","Renji has to hear this. Come on, Zero."),
+        ("Zero","Wait, Mio. You haven't eaten since yesterday noon. Nineteen hours. I counted."),
         ("Mio","I'll grab a rice ball on the way. Let's go."),
     };
     // The old photograph on her wall. Zero, who asks about everything, does not ask about this.
@@ -127,7 +127,7 @@ public static class Prologue
     public static readonly (string Speaker,string Text)[] HalfDone=
     {
         ("Renji","Morning, Mio. Ask Zero about the signals at Hoshikawa Station."),
-        ("Mio","Zero, report the signals at Hoshikawa Station."),
+        ("Mio","Zero, how are the signals at Hoshikawa Station?"),
         ("Zero","Every signal on the line has power. Platform two's departure signal at Hoshikawa Station has power too, but answers only to the lever in the station's signal box."),
         ("Renji","...Last night I said platform two would show that train red. I was wrong."),
         ("Renji","Nothing out here can turn that signal. Someone has to get inside the station and pull the lever. Then that train stops right beside platform two. And it comes the day after tomorrow."),
@@ -199,7 +199,7 @@ public static class Prologue
         ("Renji","Then at first light tomorrow, meet at the rockfall east of the relay plaza. I'm going up tonight with KOMA, and I'll take over the watch there."),
         ("Renji","And you may not have to carry the medicine home. The station should still have an old track trolley, the kind line crews used to push."),
         ("Renji","The crawlers keep off the rails while a city train is on the line. Once that one's stopped, load the trolley and push it home along the rails."),
-        ("Mio","Home along the line. For the first time in twelve years, I hope it carries something for us."),
+        ("Mio","Home along the line. Twelve years, and it might finally carry something for us."),
         ("Renji","Get some sleep, Mio. Tomorrow's a long walk."),
         ("","The sun goes down behind the mountains, and one by one Hoshikawa's lanterns are lit again."),
     };
@@ -294,7 +294,7 @@ public static class Prologue
             ("Chiyo","Shio wore one just like it. Your mother never went anywhere without hers."),
             ("Mio","Everyone who worked the line had one, didn't they?"),
             ("Chiyo","Perhaps. Perhaps they did."),
-            ("","Chiyo looks past you, toward the city, and says nothing more."),
+            ("","Chiyo looks past Mio, toward the city, and says nothing more."),
         },
         ["Haruka"]=new[]
         {
@@ -327,7 +327,7 @@ public static class Prologue
             ("Zero","This terminal answers queries about the old line."),
             ("Mio","Told you, Sota. It's old wiring from the signal box. It only knows the line."),
             ("Sota","Huh. Then if it ever knows when that train is due, tell me first. I'd want to be there."),
-            ("","Sota keeps his eyes on your wrist a moment longer than he needs to."),
+            ("","Sota keeps his eyes on Mio's wrist a moment longer than he needs to."),
         },
         ["Yui"]=new[]
         {
@@ -344,7 +344,7 @@ public static class Prologue
     public static readonly HashSet<string> Cast=new(){"Mio","Zero","Yui","Renji"};
     // The cast's lines written or changed since the last recording, which IntegrationCheck lets go without an mp3 until they are voiced.
     public static readonly HashSet<string> Unrecorded=new(){
-        "Intro.17","Gate.3","Gate.4","Gate.5","Briefing.7","Briefing.8","Homecoming.0","Homecoming.1","DayTwo.1","DayTwo.2","DayTwo.3",
+        "Intro.17","Intro.18","Gate.3","Gate.4","Gate.5","Briefing.7","Briefing.8","Homecoming.0","Homecoming.1","DayTwo.1","DayTwo.2","DayTwo.3",
         "DayTwo.4","DayTwo.5","DayTwo.6","DayTwo.7","HalfDone.0","HalfDone.1","HalfDone.2","HalfDone.3","HalfDone.4","HalfDone.5",
         "HalfDone.6","HalfDone.7","HalfDone.8","HalfDone.9","HalfDone.10","HalfDone.11","RenjiReady.0","SotaJoins.0","SotaJoins.6","Crossbow.1",
         "Crossbow.2","Crossbow.4","Crossbow.5","Crossbow.6","Crossbow.8","KomaAsks.0","PhoneFixed.1","PhoneFixed.2","ChiyoLamp.1","Evening.0",

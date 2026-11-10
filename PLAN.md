@@ -243,10 +243,11 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [x] Residents move with the story (`Game.Spot`): Renji and KOMA-7 up to the rockfall on the second evening, Sota and Yui on the third morning, KOMA-7 home once it has cleared the road (`World.ClearRockfall`, under a moment's black until KOMA-7 has a lifting clip).
 - [x] A second Starwell at Komorebi's well (`World.SavePoints`).
 - [x] Self-test (737 checks) in all three languages, unit tests.
-- [x] Everyone knows the name Zero, as Mio's terminal's name, and Mio calls it Zero anywhere: the villagers say "ask Zero" and Mio asks "Zero, ..."; her reminder in the morning is "you only answer me" (`Intro.17`, a re-voice). The name test is gone.
+- [x] Everyone knows the name Zero, as Mio's terminal's name, and Mio calls it Zero anywhere: the villagers say "ask Zero" and Mio asks "Zero, ...". The name test is gone.
 - [x] Zero answers only Mio's questions, and the villagers know it: Yui, Renji, Chiaki, KOMA-7 and Sota ask Mio, and she asks the terminal (`PrologueTest.ZeroAnswersOnlyMio`). 13 cast lines changed or added, the 7 recorded ones' takes removed for re-voicing and the unchanged takes after them renamed to their new keys.
 - [x] Second script review: platform two's departure signal (not the home signal) is the one only the station's lever turns, the old freight system logs each load by its category code, and the way home is an old track trolley while the crawlers keep off the rails.
-- [ ] Voice the 64 unrecorded cast lines (`Prologue.Unrecorded`) once the owner has read them.
+- [x] A read for natural lines: Mio no longer reminds Zero of the rule on her way out (`Intro.17`, so Zero's `Intro.18` opens "Wait, Mio." and waits for a new take), she asks "how are the signals" rather than "report" (`HalfDone.1`), `Evening.5` reads straight, the narration says Mio, not "you", and the Chinese loses its stiffest wording. Two lines the last change cut short in Japanese and Chinese (`Briefing.7`, `Homecoming.0`) are whole again.
+- [ ] Voice the 65 unrecorded cast lines (`Prologue.Unrecorded`) once the owner has read them.
 - [ ] Separate tasks: KOMA-7 lifting rock, Yui's crossbow, the city skyline on the north-west ridge, the relay road's extension (next map).
 
 ## A longer opening (開場劇情)
