@@ -154,6 +154,8 @@ public partial class Game
             tuck?.Kill();tuck=null;if(Room.GetNodeOrNull<MeshInstance3D>("Blanket") is {} cover){cover.Set("blend_shapes/sit",0f);cover.Set("blend_shapes/folded",1f);}
             var to=Room.GlobalPosition+Hoshikawa.World.Door-Player.GlobalPosition;CameraYaw=Mathf.Atan2(-to.X,-to.Z);
         }
+        // Sent to find two companions, she settles on them with Zero before she asks either.
+        else if(ended=="HalfDone")Play(Prologue.PickTwo);
         else if(ended=="Gate")Walk("Yui",new[]{new Vector3(30,0,15),new Vector3(.5f,0,15),YuiWorkshop.At},"run",4.2f,YuiWorkshop.Yaw);
         else if(ended=="Briefing")Walk("Yui",new[]{new Vector3(.5f,0,15),new Vector3(.5f,0,31),YuiClinic.At},"walk",1.4f,YuiClinic.Yaw);
         // After the homecoming's night Mio wakes in her room on the second day, and after the second night on the third.

@@ -139,6 +139,17 @@ public static class Prologue
         ("Mio","Almost. One more wire."),
         ("Renji","Then finish it. And ask KOMA about that rockfall: no one here can lift those boulders. Bring me the telephone when you're ready."),
     };
+    // Outside the workshop Mio settles on her two with Zero, before she asks either (After("HalfDone")).
+    public static readonly (string Speaker,string Text)[] PickTwo=
+    {
+        ("","Mio steps out of the workshop and lifts her wrist."),
+        ("Mio","Two people, Zero."),
+        ("Zero","Who will you ask?"),
+        ("Mio","Sota, for one. He's run letters over every hill between here and the station. If the road is gone, he'll know another way."),
+        ("Zero","And the other one?"),
+        ("Mio","Yui. She'll be at the clinic with Chiaki. She's waited for that train since yesterday, and her crossbow reaches what my sword can't."),
+        ("Zero","Sota, Yui, KOMA and one wire. Four things. I'll count them with you."),
+    };
     public static readonly (string Speaker,string Text)[] RenjiReady=
     {
         ("Renji","Two people to go with you, KOMA to shift that rockfall, and my telephone working. Then come and see me."),
@@ -347,7 +358,7 @@ public static class Prologue
     public static readonly HashSet<string> Unrecorded=new(){
         "Intro.17","Intro.18","Gate.3","Gate.4","Gate.5","Briefing.7","Briefing.8","Homecoming.0","Homecoming.1","DayTwo.1","DayTwo.2","DayTwo.3",
         "DayTwo.4","DayTwo.5","DayTwo.6","DayTwo.7","HalfDone.0","HalfDone.1","HalfDone.2","HalfDone.3","HalfDone.4","HalfDone.5",
-        "HalfDone.6","HalfDone.7","HalfDone.8","HalfDone.9","HalfDone.10","HalfDone.11","RenjiReady.0","SotaJoins.0","SotaJoins.6","Crossbow.1",
+        "HalfDone.6","HalfDone.7","HalfDone.8","HalfDone.9","HalfDone.10","HalfDone.11","PickTwo.1","PickTwo.2","PickTwo.3","PickTwo.4","PickTwo.5","PickTwo.6","RenjiReady.0","SotaJoins.0","SotaJoins.6","Crossbow.1",
         "Crossbow.2","Crossbow.4","Crossbow.5","Crossbow.6","Crossbow.8","KomaAsks.0","PhoneFixed.1","PhoneFixed.2","ChiyoLamp.1","Evening.0",
         "Evening.1","Evening.2","Evening.3","Evening.4","Evening.5","Evening.6","RenjiNight.0","NightTwo.0","NightTwo.1","NightTwo.2",
         "NightTwo.3","NightTwo.4","NightTwo.5","Rockfall.0","Rockfall.2","Rockfall.6","Rockfall.7","Rockfall.8","Rockfall.9","RenjiSeesOff.0","FirstMeeting.KOMA-7.2",
@@ -373,6 +384,7 @@ public static class Prologue
         ["Briefing.11"]=("","Yui idle"),["Briefing.12"]=("","Yui fold"),["Briefing.13"]=("two Mio Renji",""),
         ["DayTwo.0"]=("bed","Mio sleep"),["DayTwo.1"]=("futon","Mio wake"),["DayTwo.3"]=("","Mio terminal_sit"),["DayTwo.6"]=("room","Mio rise"),["DayTwo.7"]=("","Mio terminal"),
         ["HalfDone.0"]=("two Mio Renji","Renji idle"),["HalfDone.1"]=("","Mio terminal"),["HalfDone.3"]=("","Mio stand"),["HalfDone.9"]=("","Renji point"),["HalfDone.10"]=("","Renji idle"),
+        ["PickTwo.0"]=("face Mio","Mio terminal"),
         ["PhoneFixed.0"]=("floor",""),["Evening.0"]=("two Mio Renji","Renji idle"),["NightTwo.0"]=("face Mio","Mio terminal"),["NightTwo.5"]=("","Mio stand"),
         ["DayThree.0"]=("bed","Mio sleep"),["DayThree.1"]=("room","Mio rise"),
         ["Rockfall.0"]=("two Mio Renji","Yui wave"),["Rockfall.1"]=("","Yui idle"),["Rockfall.9"]=("","Yui wave"),["Rockfall.10"]=("","Yui idle"),
@@ -402,7 +414,7 @@ public static class Prologue
         ("Briefing",Briefing),("YuiWaits",YuiWaits),("Homecoming",Homecoming),("RelayOnline",RelayOnline),("RenjiReminder",RenjiReminder),("RenjiRoadClear",RenjiRoadClear),
         ("RelayAsleep",RelayAsleep),("RelayGuardedNone",RelayGuardedNone),("RelayGuardedOne",RelayGuardedOne),
         ("RelayGuardedTwo",RelayGuardedTwo),("RelayGuardedThree",RelayGuardedThree),("RelaySteady",RelaySteady),
-        ("DayTwo",DayTwo),("HalfDone",HalfDone),("RenjiReady",RenjiReady),("SotaJoins",SotaJoins),("Crossbow",Crossbow),("KomaAsks",KomaAsks),("PhoneFixed",PhoneFixed),
+        ("DayTwo",DayTwo),("HalfDone",HalfDone),("PickTwo",PickTwo),("RenjiReady",RenjiReady),("SotaJoins",SotaJoins),("Crossbow",Crossbow),("KomaAsks",KomaAsks),("PhoneFixed",PhoneFixed),
         ("ChiyoLamp",ChiyoLamp),("Evening",Evening),("RenjiNight",RenjiNight),("NightTwo",NightTwo),("DayThree",DayThree),("Rockfall",Rockfall),("RenjiSeesOff",RenjiSeesOff)}
         .Concat(FirstMeeting.Select(m=>("FirstMeeting."+m.Key,m.Value))).Concat(Komorebi.Select(m=>("Komorebi."+m.Key,m.Value)))
         .Concat(openers.Select(m=>("FirstMeeting."+m.Key,m.Value))).ToDictionary(s=>s.Item2,s=>s.Item1);

@@ -1,5 +1,9 @@
 # MVP verification
 
+## Mio picks her two — 2026-11-10
+
+Hapadona asked for a dialogue in which Mio decides who to take before she reaches out to them. `PickTwo` plays as `HalfDone` ends: out of the workshop she tells Zero why Sota and why Yui, and Zero counts the four errands. Six cast lines join `Prologue.Unrecorded` (72). The self-test checks the scene follows Renji's (743 checks, passing in `en`, `ja` and `zh_TW`); unit tests 60 pass and `build_voice.py --check` matches 207 lines. Not seen on screen: the scene opens on a `face Mio` shot, unchecked under Metal.
+
 ## A third read, of the Chinese — 2026-11-10
 
 Hapadona asked what 「沿著那條線回家」 meant: the Chinese used a bare 線 for the railway, for a wire and, in 「還在線上」, for what reads as "online". Twenty-three Chinese lines now name the thing (鐵路, 鐵軌, 電線) or drop a calque; Japanese and English are untouched, so no voice take changes. The reading list's speaker names, which had slipped a row when `Rockfall.8` was added, come from a fixed table now. Unit tests 60 pass and the headless self-test passes 742 checks in `en`, `ja` and `zh_TW`.

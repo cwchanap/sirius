@@ -929,6 +929,7 @@ public static class IntegrationCheck
         async Task TalkTo(Node3D who,Vector3? side=null){var talk=who.GlobalPosition+(side??Vector3.Back*2);talk.Y=Hoshikawa.World.Height(talk.X,talk.Z)+.1f;Place(g.Player,talk);await Frames(10);g.Interact();}
         await TalkTo(renji);
         Check(g.QuestStage==Quest.Ready&&g.Script.SequenceEqual(Prologue.HalfDone)&&g.Speaker=="Renji"&&g.Staged,"on the second morning Renji learns the station's signal answers only to its own lever, and sends her to get ready");
+        g.EndDialogue();Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.PickTwo)&&g.Speaker=="","leaving Renji, she settles with Zero on the two she will ask");
         g.EndDialogue();Check(g.Objective=="Get ready to set out ({0}/4)"&&g.ErrandsDone==0&&g.ObjectiveText==Localization.F("Get ready to set out ({0}/4)",0),$"getting ready counts four errands on the objective: {g.ObjectiveText}");
         await TalkTo(renji);Check(g.Script.SequenceEqual(Prologue.RenjiReady),"meanwhile Renji repeats what she needs");g.EndDialogue();
         await TalkTo(sota);
