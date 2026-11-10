@@ -130,7 +130,7 @@
   "ChiyoLamp.0": {"speaker": "Chiyo", "en": "So you are going to the station. When you all come home, I will light a lantern at the east gate for you.", "ja": "駅へ行くんだね。みんなが帰ってくるときには、東口に灯りをともしておくよ。"},
   "ChiyoLamp.1": {"speaker": "Mio", "en": "Thank you, Chiyo. We'll follow that light home.", "ja": "ありがとうございます、チヨさん。その灯りを目指して、必ず帰ります。"},
   "Evening.0": {"speaker": "Mio", "en": "Renji, your telephone. It works. And Sota and Yui are coming with me.", "ja": "レンジさん、電話、直ったよ。それと、ソウタとユイが一緒に来てくれる。"},
-  "Evening.1": {"speaker": "Renji", "en": "...Good. I'd have picked the same two.", "ja": "……そうか。俺が選んでも、その二人だった。"},
+  "Evening.1": {"speaker": "Renji", "en": "...Sota and Yui. Good. With those two beside you, I'll worry less up at the relay.", "ja": "……ソウタとユイか。よし。あの二人が一緒なら、俺もリレーのそばで少しは安心していられる。"},
   "Evening.2": {"speaker": "Renji", "en": "Then at first light tomorrow, meet at the rockfall east of the relay plaza. I'm going up tonight with KOMA, and I'll take over the watch there.", "ja": "なら、明日の夜明けに、リレー広場の東の落石の前で落ち合おう。俺は今夜KOMAを連れて上がって、見張りを引き継ぐ。"},
   "Evening.3": {"speaker": "Renji", "en": "And you may not have to carry the medicine home. The station should still have an old track trolley, the kind line crews used to push.", "ja": "それと、薬は背負って帰らなくて済むかもしれない。駅には、昔の保線用の軌道台車がまだ残ってるはずだ。"},
   "Evening.4": {"speaker": "Renji", "en": "The crawlers keep off the rails while a city train is on the line. Once that one's stopped, load the trolley and push it home along the rails.", "ja": "都市の列車が線路にいる間は、軌道巡回機は線路に出てこない。列車を止めたら、台車に積んで線路伝いに押して帰ってこい。"},
