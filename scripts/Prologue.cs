@@ -207,7 +207,7 @@ public static class Prologue
     public static readonly (string Speaker,string Text)[] Evening=
     {
         ("Mio","Renji, your telephone. It works. And Sota and Yui are coming with me."),
-        ("Renji","...Good. I'd have picked the same two."),
+        ("Renji","...Sota and Yui. Good. With those two beside you, I'll worry less up at the relay."),
         ("Renji","Then at first light tomorrow, meet at the rockfall east of the relay plaza. I'm going up tonight with KOMA, and I'll take over the watch there."),
         ("Renji","And you may not have to carry the medicine home. The station should still have an old track trolley, the kind line crews used to push."),
         ("Renji","The crawlers keep off the rails while a city train is on the line. Once that one's stopped, load the trolley and push it home along the rails."),
