@@ -1,5 +1,9 @@
 # MVP verification
 
+## A second read of the dialogue — 2026-11-10
+
+A second pass at Hapadona's ask, this time for logic too. Renji's reminder listed KOMA and the rockfall as an errand that his scene never gave, so `HalfDone.11` now sends Mio to KOMA; `HalfDone.0` says something kept him up before he asks about the signals; Yui says she is coming as she hands over the crossbow (`Crossbow.5`); Mio, silent through the whole send-off, answers Renji in a new beat (`Rockfall.8`, the later beats and their stage keys moved down one; 66 lines unrecorded). `Gate.12` and `Homecoming.0` change in English and Chinese only, so `Gate.12`'s take stays. Three more Chinese lines are reworded. Unit tests 60 pass, `build_voice.py --check` passes (200 lines), and the headless self-test passes 742 checks in `en`, `ja` and `zh_TW`.
+
 ## A read for natural dialogue — 2026-11-10
 
 Hapadona found Mio's reminder to Zero on the way out of her room awkward and asked for a read of the whole script. Six English lines changed, with their Japanese and Chinese: the reminder is gone (`Intro.17`), so Zero's next line opens "Wait, Mio." (`Intro.18`, its take removed; 65 lines unrecorded); Mio asks "how are the signals" (`HalfDone.1`); `Evening.5` no longer reads as her first hope in twelve years; two narration lines say Mio, not "you". Sixteen more Chinese lines are reworded only. The read also found that the last change had cut `Briefing.7` and `Homecoming.0` down to their final sentence in Japanese and Chinese, which the unit tests don't compare; both are restored. The history check now clicks Zero's last voiced waking line. Unit tests 60 pass, `build_voice.py --check` passes, and the headless self-test passes 742 checks in `en`, `ja` and `zh_TW`.

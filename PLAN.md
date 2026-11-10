@@ -247,7 +247,8 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [x] Zero answers only Mio's questions, and the villagers know it: Yui, Renji, Chiaki, KOMA-7 and Sota ask Mio, and she asks the terminal (`PrologueTest.ZeroAnswersOnlyMio`). 13 cast lines changed or added, the 7 recorded ones' takes removed for re-voicing and the unchanged takes after them renamed to their new keys.
 - [x] Second script review: platform two's departure signal (not the home signal) is the one only the station's lever turns, the old freight system logs each load by its category code, and the way home is an old track trolley while the crawlers keep off the rails.
 - [x] A read for natural lines: Mio no longer reminds Zero of the rule on her way out (`Intro.17`, so Zero's `Intro.18` opens "Wait, Mio." and waits for a new take), she asks "how are the signals" rather than "report" (`HalfDone.1`), `Evening.5` reads straight, the narration says Mio, not "you", and the Chinese loses its stiffest wording. Two lines the last change cut short in Japanese and Chinese (`Briefing.7`, `Homecoming.0`) are whole again.
-- [ ] Voice the 65 unrecorded cast lines (`Prologue.Unrecorded`) once the owner has read them.
+- [x] A second read, for logic as well: Renji says what kept him up before he asks about the station's signals (`HalfDone.0`) and sends Mio to KOMA about the rockfall, which only his reminder named (`HalfDone.11`); Yui says she is coming when she hands over her crossbow (`Crossbow.5`); Mio answers Renji at the rockfall, where she said nothing (a new beat, `Rockfall.8`); and she no longer says "Renji has to hear this" twice in one morning (`Gate.12`, English and Chinese only).
+- [ ] Voice the 66 unrecorded cast lines (`Prologue.Unrecorded`) once the owner has read them.
 - [ ] Separate tasks: KOMA-7 lifting rock, Yui's crossbow, the city skyline on the north-west ridge, the relay road's extension (next map).
 
 ## A longer opening (開場劇情)
