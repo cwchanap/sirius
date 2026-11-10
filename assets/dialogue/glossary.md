@@ -21,7 +21,7 @@ Chinese is Taiwan usage (臺灣用語): 軟體, 網路, 資訊, 號誌, 影片, 
 | Toma | トウマ | 冬馬 | Orchard keeper, Kakizaki Tōma (柿崎冬馬) |
 | Yui | ユイ | 結衣 | Pass courier from Komorebi, Takahara Yui (高原結衣); stays in Hoshikawa after the opening |
 | Shio (Mio's mother) | シオ | 汐 | Decided: kanji in Chinese |
-| Mori Tetsuzo | 森テツゾウ | 森鐵藏 | KOMA-7's registered keeper; the village calls him "Grandpa Tetsu": テツじいちゃん, 鐵爺爺. Speaks once, unseen, from inside the Mori house; his name plate reads テツゾウ, 鐵藏 |
+| Mori Tetsuzo | 森テツゾウ | 森鐵藏 | KOMA-7's registered keeper, who long ago told it to help anyone in the village who asks, as everyone knows; the village calls him "Grandpa Tetsu": テツじいちゃん, 鐵爺爺. Speaks once, unseen, from inside the Mori house; his name plate reads テツゾウ, 鐵藏 |
 | SIRIUS | シリウス | 天狼 | The city AI. 天狼 is the name proposed in the story notes **?** |
 
 ## Places

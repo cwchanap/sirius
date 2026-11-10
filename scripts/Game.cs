@@ -242,7 +242,7 @@ public partial class Game : Node3D
     public bool Buy(string id){bool bought=Player.Growth.Buy(Player.Inventory,id);if(bought)Sound("heal");Hud.RefreshMenu();return bought;}
     public void Earn(int amount){Player.Growth.Stardust+=amount;Gained=amount;GainTime=2.5f;}
     // The second day's four errands, in any order, each a scene and who starts it: Sota joining, Yui's crossbow at the clinic (with Chiaki),
-    // KOMA-7 asking its keeper, and Renji's telephone mended in Mio's room.
+    // KOMA-7 asked to clear the rockfall, and Renji's telephone mended in Mio's room.
     public static readonly (string Scene,string By)[] Errands={("SotaJoins","Sota"),("Crossbow","Yui"),("KomaAsks","KOMA-7"),("PhoneFixed","Telephone")};
     public int ErrandsDone=>Errands.Count(e=>Heard.Contains(e.Scene));
     public bool MendPhone=>QuestStage==Quest.Ready&&!Heard.Contains("PhoneFixed");

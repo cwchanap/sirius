@@ -1,5 +1,9 @@
 # MVP verification
 
+## KOMA-7 takes the village's asks — 2026-11-10
+
+Hapadona changed KOMA-7's setting: Grandpa Tetsu approved long ago that it takes orders from the other villagers, and everyone knows it. In `KomaAsks` it now accepts Mio's request at once on that standing order, tells its keeper it will be out a night, and he answers from inside the house that it never needed his leave; KOMA-7 names the standing order on the first day too (`FirstMeeting.Haruka.3`). The scene keeps its nine beats and no cast line changed, so `Prologue.Unrecorded` stays at 72. Unit tests 60 pass, `build_voice.py --check` matches 207 lines, and the self-test passes its 743 checks headless in `en`, `ja` and `zh_TW` after a font rebuild. Not seen on screen.
+
 ## Mio picks her two — 2026-11-10
 
 Hapadona asked for a dialogue in which Mio decides who to take before she reaches out to them. `PickTwo` plays as `HalfDone` ends: out of the workshop she tells Zero why Sota and why Yui, and Zero counts the four errands. Six cast lines join `Prologue.Unrecorded` (72). The self-test checks the scene follows Renji's (743 checks, passing in `en`, `ja` and `zh_TW`); unit tests 60 pass and `build_voice.py --check` matches 207 lines. Not seen on screen: the scene opens on a `face Mio` shot, unchecked under Metal.

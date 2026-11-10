@@ -179,18 +179,19 @@ public static class Prologue
         ("Yui","It clicks! Mio, you're amazing!"),
         ("Chiaki","Here, two remedies for the road. And bring everyone back to me in one piece."),
     };
-    // KOMA-7 answers to its keeper, not to Mio: Grandpa Tetsu gives the order from inside the house, a voice with no portrait (Offstage).
+    // Grandpa Tetsu long ago told KOMA-7 to help anyone in the village who asks, as everyone knows, so it agrees at once; it still tells its
+    // keeper before a night away, and he answers from inside the house, a voice with no portrait (Offstage).
     public static readonly (string Speaker,string Text)[] KomaAsks=
     {
         ("Mio","KOMA, the station road is under a rockfall. Can you move the boulders?"),
-        ("KOMA-7","This request requires the keeper's consent."),
-        ("","Mio fetches Haruka from the fields, and the three of them go round to the Mori house's engawa."),
-        ("Haruka","Grandpa? KOMA needs your word. Mio's going to the station."),
+        ("KOMA-7","Request accepted. Keeper's standing order: when anyone in the village asks, help. This unit will tell the keeper it is out tonight."),
+        ("","KOMA-7 walks, slowly, round to the Mori house's engawa. Mio follows, and Haruka looks up from her baskets."),
+        ("KOMA-7","Keeper. This unit goes to move rocks for Mio. It will be away one night."),
         ("","From inside the house comes a long cough, then Grandpa Tetsu's voice."),
-        ("Tetsuzo","...KOMA. Go and help them."),
+        ("Tetsuzo","...Go on, then. You've never needed my leave to help this village."),
         ("Tetsuzo","Mio, I'm counting on you for the cough medicine. KOMA, you come back safe too."),
-        ("KOMA-7","Keeper's voice confirmed. This unit walks slowly. It will set out tonight."),
-        ("Haruka","Forty years, and KOMA's never taken an order from anyone but Grandpa. He'll go up with Renji at dusk."),
+        ("KOMA-7","Acknowledged. This unit walks slowly. It will set out tonight."),
+        ("Haruka","Forty years he's worked for the whole village, and he still tells Grandpa before he goes anywhere. Renji goes up at dusk, Mio. KOMA can walk with him."),
     };
     public static readonly (string Speaker,string Text)[] PhoneFixed=
     {
@@ -313,7 +314,7 @@ public static class Prologue
             ("Haruka","KOMA keeps our irrigation running without a network. Old machines are our neighbors. The amber-eyed patrols beyond the bridge are not."),
             ("KOMA-7","Correction: this unit is the best neighbor."),
             ("Haruka","He's been like this since Grandpa Tetsu registered him. Forty years of the same jokes."),
-            ("KOMA-7","Registered keeper: Mori Tetsuzo. Keeper status: napping on the engawa. This unit answers to its keeper, not to the network."),
+            ("KOMA-7","Registered keeper: Mori Tetsuzo. Keeper status: napping on the engawa. Keeper's standing order: when anyone in the village asks, help. This unit answers to its keeper, not to the network."),
             ("Mio","And that's why the patrols can't order you around. Lucky you."),
             ("KOMA-7","Correct. Patrols have no keepers. Very lonely machines."),
         },
