@@ -940,7 +940,7 @@ public static class IntegrationCheck
         Check(g.Script.SequenceEqual(Prologue.Crossbow)&&g.Player.Inventory.Count("remedy")==g.Player.Inventory.Capacity("remedy")&&g.ErrandsDone==2,"at the clinic Mio mends Yui's crossbow, and Chiaki sends her off with remedies");g.EndDialogue();
         await TalkTo(g.Actor("Chiaki").Body);Check(g.Script.SequenceEqual(Prologue.Usual("Chiaki"))||g.Script.SequenceEqual(Prologue.FirstMeeting["Chiaki"]),"Chiaki, the crossbow done, speaks as usual");g.EndDialogue();
         await TalkTo(gardener);
-        Check(g.Script.SequenceEqual(Prologue.KomaAsks)&&g.Script.Any(b=>b.Speaker=="Tetsuzo")&&g.Hud.Portrait("Tetsuzo")==null&&g.ErrandsDone==3,"KOMA-7 asks its keeper, whose voice comes from inside the house");
+        Check(g.Script.SequenceEqual(Prologue.KomaAsks)&&g.Script.Any(b=>b.Speaker=="Tetsuzo")&&g.Hud.Portrait("Tetsuzo")==null&&g.ErrandsDone==3,"KOMA-7 agrees at once and tells its keeper, whose voice comes from inside the house");
         for(int i=0;i<40&&g.Speaker!="Tetsuzo";i++)await Tap(Key.E);
         Check(g.Speaker=="Tetsuzo"&&g.Voice.Stream==null&&g.SpeakerRole=="","Grandpa Tetsu speaks silently, unseen");g.EndDialogue();
         await TalkTo(g.Actor("Chiyo").Body);Check(g.Script.SequenceEqual(Prologue.ChiyoLamp)&&g.ErrandsDone==3,"Chiyo promises a lantern at the east gate, which is not one of the errands");g.EndDialogue();

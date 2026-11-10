@@ -250,6 +250,7 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [x] A second read, for logic as well: Renji says what kept him up before he asks about the station's signals (`HalfDone.0`) and sends Mio to KOMA about the rockfall, which only his reminder named (`HalfDone.11`); Yui says she is coming when she hands over her crossbow (`Crossbow.5`); Mio answers Renji at the rockfall, where she said nothing (a new beat, `Rockfall.8`); and she no longer says "Renji has to hear this" twice in one morning (`Gate.12`, English and Chinese only).
 - [x] A third read, of the Chinese alone: a bare 線 no longer stands for the railway, a wire and "online" by turns (`Evening.4`, `Evening.5`, `HalfDone.10` and others say 鐵路, 鐵軌 or 電線), and twenty-odd lines lose a calque. No Japanese or English changed, so no take is affected.
 - [x] Mio decides who to ask before she asks: leaving Renji on the second morning she settles with Zero on Sota, who knows the hills, and Yui with her crossbow (`PickTwo`, seven beats, played by `After("HalfDone")`).
+- [x] KOMA-7 takes the village's asks: Grandpa Tetsu long ago told it to help anyone in the village who asks, and everyone knows it, so it agrees to Mio at once and only tells him before a night away (`KomaAsks`, `FirstMeeting.Haruka.3`).
 - [ ] Voice the 72 unrecorded cast lines (`Prologue.Unrecorded`) once the owner has read them.
 - [ ] Separate tasks: KOMA-7 lifting rock, Yui's crossbow, the city skyline on the north-west ridge, the relay road's extension (next map).
 
