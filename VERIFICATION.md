@@ -1,5 +1,9 @@
 # MVP verification
 
+## A third read, of the Chinese — 2026-11-10
+
+Hapadona asked what 「沿著那條線回家」 meant: the Chinese used a bare 線 for the railway, for a wire and, in 「還在線上」, for what reads as "online". Twenty-three Chinese lines now name the thing (鐵路, 鐵軌, 電線) or drop a calque; Japanese and English are untouched, so no voice take changes. The reading list's speaker names, which had slipped a row when `Rockfall.8` was added, come from a fixed table now. Unit tests 60 pass and the headless self-test passes 742 checks in `en`, `ja` and `zh_TW`.
+
 ## A second read of the dialogue — 2026-11-10
 
 A second pass at Hapadona's ask, this time for logic too. Renji's reminder listed KOMA and the rockfall as an errand that his scene never gave, so `HalfDone.11` now sends Mio to KOMA; `HalfDone.0` says something kept him up before he asks about the signals; Yui says she is coming as she hands over the crossbow (`Crossbow.5`); Mio, silent through the whole send-off, answers Renji in a new beat (`Rockfall.8`, the later beats and their stage keys moved down one; 66 lines unrecorded). `Gate.12` and `Homecoming.0` change in English and Chinese only, so `Gate.12`'s take stays. Three more Chinese lines are reworded. Unit tests 60 pass, `build_voice.py --check` passes (200 lines), and the headless self-test passes 742 checks in `en`, `ja` and `zh_TW`.
