@@ -179,8 +179,11 @@ public static class IntegrationCheck
         }
         Check(step<.1f,$"hamlet terrain is continuous (largest 5 cm step {step:F3} at {stepAt})");
         Check(g.World.Residents.Count==10&&g.World.Residents.Select(r=>r.Name).Distinct().Count()==10,"ten named residents across two villages");
-        Check(g.Patrols.Count()==3&&g.Enemies.Count(e=>e.Kind==Enemy.Scout)==4&&g.Enemies.Count(e=>e.Kind==Enemy.Drone)==5&&g.Enemies.All(e=>Hoshikawa.World.RegionAt(e.Home)=="Old Relay Road"),
+        var relayRobots=g.Enemies.Where(e=>!e.Maze).ToArray();var mazeRobots=g.Enemies.Where(e=>e.Maze).ToArray();
+        Check(g.Patrols.Count()==3&&relayRobots.Count(e=>e.Kind==Enemy.Scout)==4&&relayRobots.Count(e=>e.Kind==Enemy.Drone)==5&&relayRobots.All(e=>Hoshikawa.World.RegionAt(e.Home)=="Old Relay Road"),
             "three patrol robots, four scouts and five drones on the relay road");
+        Check(mazeRobots.Length==39&&mazeRobots.Count(e=>e.Kind==Enemy.Patrol)==5&&mazeRobots.Count(e=>e.Kind==Enemy.Drone)==15&&mazeRobots.Count(e=>e.Asleep&&e.State=="ASLEEP")==7&&mazeRobots.All(e=>Hoshikawa.World.RegionAt(e.Home)==Hoshikawa.World.MazeName),
+            "Tunnel Mountain holds 39 robots of its own, five patrols, nineteen scouts (seven of them dormant) and fifteen drones");
         var merged=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().StartsWith("Merged statics")).ToArray();
         var baked=g.World.FindChildren("*","MeshInstance3D",true,false).Cast<MeshInstance3D>().Where(n=>!n.Visible&&(n.Mesh is PrimitiveMesh||n.Mesh.ResourceName.StartsWith("prop "))).ToArray();
         Vector3[] Corners(IEnumerable<MeshInstance3D> meshes)=>meshes.SelectMany(n=>n.Mesh.GetFaces().Select(v=>n.GlobalTransform*v)).ToArray();
@@ -434,7 +437,7 @@ public static class IntegrationCheck
         Check(!await Head(new(56,-160),true,240)&&g.Player.IsOnFloor()&&g.Player.GlobalPosition.X is >36 and <41,$"the road east from the plaza toward the station stops at its barrier {g.Player.GlobalPosition}");
         // The teahouse ladder is the relay road's shortcut: drawn up, it leaves the terrace out of reach from the junction under its cliff;
         // lowered from the terrace, it is walked both ways and stays down when Mio recovers at the village.
-        var ladder=g.World.Shortcuts.Single();bool Turned(float angle)=>ladder.Part.Quaternion.AngleTo(new Quaternion(Vector3.Right,angle))<.01f;var lever=new Vector2(ladder.From.X,ladder.From.Z);var top=new Vector2(ladder.Part.Position.X,ladder.Part.Position.Z-2);var below=top+new Vector2(0,12);
+        var ladder=g.World.Parts.Single(p=>p.Name=="Teahouse ladder");bool Turned(float angle)=>ladder.Body.Quaternion.AngleTo(new Quaternion(Vector3.Right,angle))<.01f;var lever=new Vector2(ladder.From.X,ladder.From.Z);var top=new Vector2(ladder.Body.Position.X,ladder.Body.Position.Z-2);var below=top+new Vector2(0,12);
         Place(g.Player,new(below.X,Hoshikawa.World.Height(below.X,below.Y)+.1f,below.Y));await Frames(10);
         Check(!await Head(top,true,240)&&g.Player.GlobalPosition.Y<4&&g.Interaction().Icon!="ladder",
             $"the drawn-up ladder leaves the teahouse terrace out of reach from the junction, and cannot be lowered from below {g.Player.GlobalPosition}");
@@ -449,14 +452,14 @@ public static class IntegrationCheck
         // The quarry's remedy pouch lets Mio carry one more remedy for the rest of the prologue.
         var bag=g.Player.Inventory;
         Check(bag.Held.Select(i=>i.Id).SequenceEqual(new[]{"remedy","terminal"})&&bag.Count("remedy")==3&&bag.Count("terminal")==1,"Mio sets out with three remedies and the wrist terminal");
-        var pouch=g.World.Pickups.Single(p=>p.Item=="pouch").Node;var crate=pouch.GlobalPosition+Vector3.Back*1.3f;
+        var pouch=g.World.Pickups.First(p=>p.Item=="pouch").Node;var crate=pouch.GlobalPosition+Vector3.Back*1.3f;
         Place(g.Player,new(crate.X,Hoshikawa.World.Height(crate.X,crate.Z)+.1f,crate.Z));await Frames(10);
         Check(g.Interaction().Icon=="remedy","the remedy pouch waits on its crate at the quarry's end");
         g.Interact();
         Check(!pouch.Visible&&bag.Count("pouch")==1&&bag.Capacity("remedy")==4&&bag.Count("remedy")==4&&g.Interaction().Icon!="remedy"&&g.ToastIcon=="remedy",
             "taking the remedy pouch adds it to Mio's key items and raises the remedies she carries to four");
         // Two resonance cells lie on the relay road, each on standable ground and taken once.
-        var cells=g.World.Pickups.Where(p=>p.Item=="cell").Select(p=>p.Node).ToArray();
+        var cells=g.World.Pickups.Where(p=>p.Item=="cell"&&!Hoshikawa.World.InMaze(p.Node.Position.X,p.Node.Position.Z)).Select(p=>p.Node).ToArray();
         foreach(var found in cells)
         {
             var by=found.GlobalPosition+Vector3.Back*1.3f;by.Y=Hoshikawa.World.Height(by.X,by.Z)+.1f;Place(g.Player,by);await Frames(10);
@@ -890,7 +893,7 @@ public static class IntegrationCheck
         await Tap(Key.Escape);Check(g.Mode==GameMode.Playing,"escape leaves the save point's screen back to play");
         // Komorebi's well is the second Starwell, the same screen.
         var northern=Hoshikawa.World.SavePoints[1].At;Place(g.Player,new(northern.X+2,Hoshikawa.World.Height(northern.X+2,northern.Y)+.1f,northern.Y));await Frames(10);
-        Check(Hoshikawa.World.SavePoints.Length==2&&Hoshikawa.World.RegionAt(g.Player.GlobalPosition)=="Komorebi"&&g.Player.IsOnFloor()&&g.Interaction()==(Hud.StardustIcon,Localization.T(Hoshikawa.World.SavePointName).ToUpperInvariant())
+        Check(Hoshikawa.World.SavePoints.Length==4&&Hoshikawa.World.RegionAt(g.Player.GlobalPosition)=="Komorebi"&&g.Player.IsOnFloor()&&g.Interaction()==(Hud.StardustIcon,Localization.T(Hoshikawa.World.SavePointName).ToUpperInvariant())
             &&g.GetNode<OmniLight3D>("Save point light Komorebi").GlobalPosition.DistanceTo(new(northern.X,g.Player.GlobalPosition.Y,northern.Y))<1.5f,"Komorebi's well is the other Starwell, lit, its name on the prompt");
         g.Player.Health=20;await Tap(Key.E);Check(g.Mode==GameMode.Rest&&g.Player.Health==g.Player.MaxHealth,"and E there rests Mio and opens the same screen");
         await Tap(Key.Escape);
@@ -974,11 +977,69 @@ public static class IntegrationCheck
         while(g.Beat<Prologue.Cleared&&g.Mode==GameMode.Dialogue)await Tap(Key.E);
         Check(g.Blackout>.5f&&g.World.Rockfall.All(n=>!n.Visible&&(n is not StaticBody3D b||b.CollisionLayer==0))&&g.World.RockfallSign.All(l=>l.Text==World.StationSign),"as the narration says, the barrier and the boulders are cleared under a moment's black, and the sign only points the way");
         g.EndDialogue();
-        Check(gardener.GlobalPosition.DistanceTo(komaHome)<.01f&&g.Objective=="Take the station road east"&&g.ObjectivePosition==g.World.StationRoadEnd,"KOMA-7 goes back to its tomatoes, and the station road is open");
+        Check(gardener.GlobalPosition.DistanceTo(komaHome)<.01f&&g.Objective=="Take the station road east"&&g.ObjectivePosition==g.World.MazeEnd,"KOMA-7 goes back to its tomatoes, and the station road is open, on to Tunnel Mountain's Halt");
         var through=new Vector3(41,Hoshikawa.World.Height(41,-160)+.1f,-160);Place(g.Player,through);await Frames(10);
         Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-41,g.Player.GlobalPosition.Z+160).Length()<.2f,"Mio can stand where the barrier stood");
-        Place(g.Player,g.World.StationRoadEnd+Vector3.Up*.1f);await Frames(10);
-        Check(g.Player.IsOnFloor()&&g.ToastTitle=="TO BE CONTINUED","the road runs out where the next map will begin");
+        // Tunnel Mountain, the relay road's extension. Its robots stand still here: the walk is of the ground, its parts and its traps.
+        foreach(var e in mazeRobots)e.SetPhysicsProcess(false);
+        Vector3 On(Vector2 p)=>new(p.X,Hoshikawa.World.Height(p.X,p.Y)+.1f,p.Y);
+        async Task Walk(params (float X,float Z)[] points){foreach(var (x,z) in points)await WalkTo(new(x,z));}
+        await Walk((48,-160),(60,-160),(74,-160));
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Y>8.8f&&g.Region==Hoshikawa.World.MazeName&&g.ToastTitle=="TUNNEL MOUNTAIN"&&g.Music.Current=="relay",$"the road runs on over its bridge above the Wash into Tunnel Mountain, under the relay road's music {g.Player.GlobalPosition}");
+        await Walk((86,-159.5f),(92,-158.5f));var courtWell=Hoshikawa.World.SavePoints[2].At;Place(g.Player,On(courtWell+new Vector2(2,0)));await Frames(10);
+        Check(g.Interaction().Icon==Hud.StardustIcon&&g.GetNode<OmniLight3D>("Save point light Court").GlobalPosition.DistanceTo(new(courtWell.X,g.Player.GlobalPosition.Y,courtWell.Y))<1.5f,"the Court's well is Tunnel Mountain's first Starwell, lit");
+        await Tap(Key.E);Check(g.Mode==GameMode.Rest&&g.RestedAt==2,"Mio rests at it");await Tap(Key.Escape);
+        // The Bell ledge over the shrine terrace is out of reach from it until its stair is let down from the ledge.
+        var bellStair=g.World.Parts.Single(p=>p.Name=="Bell stair");bool Down(World.Part part)=>part.Body.Quaternion.AngleTo(new Quaternion(Vector3.Up,part.Yaw)*new Quaternion(part.Kind=="gate"?Vector3.Up:Vector3.Right,part.Open))<.01f;
+        var bellFoot=new Vector2(bellStair.To.X,bellStair.To.Z);var bellBrow=new Vector2(bellStair.Body.Position.X,bellStair.Body.Position.Z);var bellLedge=bellBrow+(bellBrow-bellFoot).Normalized()*1.5f;
+        await Walk((96,-152),(98,-144.5f),(96,-138),(96,-131),(bellFoot.X-.6f,bellFoot.Y+.6f));
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-14)<.4f&&!await Head(bellLedge,true,200)&&g.Player.GlobalPosition.Y<16&&g.Interaction().Icon!="ladder",$"up the stone steps to the shrine terrace, where the drawn-up Bell stair leaves the ledge out of reach {g.Player.GlobalPosition}");
+        // Leg 1: down the abutment stair into the Wash, round by the Pit, the Narrows and the canyon, up its ramp and the Catwalk to the pass road,
+        // keeping to the Catwalk's inner side where the canyon has eaten its brink.
+        Place(g.Player,On(new(88,-158.5f)));await Frames(5);
+        await Walk((85.4f,-155),(85,-151),(80.5f,-147.5f),(76.5f,-146.5f),(75,-140),(77,-134),(78,-128),(81.5f,-119.5f),(84,-113),(88,-108.5f),(92,-104.5f),(98,-100.5f),(106,-98),(116,-96.5f),(130,-97),(142,-100),(147,-102),
+            (150,-105),(152.5f,-108),(154,-110.5f),(148,-111),(144.5f,-109.2f),(142,-107.8f),(140,-106.5f),(137,-105.3f),(130,-103.4f),(122,-103.2f),(120.5f,-109),(120,-114.5f),(122,-117.7f),(128,-118.2f));
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-18)<.6f&&!g.Sprung.Contains("Hairpin rocks"),$"leg 1 climbs from the Wash by the canyon's ramp and the Catwalk to the pass road {g.Player.GlobalPosition}");
+        // Rocks parked on the Hairpin's corner roll down the pass road at her when she comes near its foot, and strike like a patrol.
+        var hairpin=g.World.Parts.Single(p=>p.Name=="Hairpin rocks");g.Player.Health=g.Player.MaxHealth;g.Player.Invulnerable=0;hp=g.Player.Health;
+        await WalkTo(new(hairpin.To.X,hairpin.To.Z),false);for(int i=0;i<240&&hairpin.Body.Visible;i++)await Frames(1);
+        Check(g.Sprung.Contains(hairpin.Name)&&!hairpin.Body.Visible&&Math.Abs(hp-g.Player.Health-Enemy.StrikeDamage/growth.Scale("def"))<.01f,$"the Hairpin's rocks roll down the pass road onto her and break, striking like a patrol ({hp-g.Player.Health:F0})");
+        await Walk((140,-118),(145,-117.5f),(151,-122),(149,-128),(140,-131.5f),(130,-133.5f),(123,-138.5f),(121,-144),(116,-143),(110,-140),(bellLedge.X,bellLedge.Y));
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-20)<.6f,$"round the Hairpin and over the saddle to the Bell ledge {g.Player.GlobalPosition}");
+        Place(g.Player,On(new(bellStair.From.X,bellStair.From.Z)));await Frames(10);
+        Check(g.Interaction()==("ladder",Localization.T("STAIR")),"the Bell stair is let down from the ledge");
+        g.Interact();await Frames(130);
+        Check(g.Opened.Contains(bellStair.Name)&&Down(bellStair),"letting the Bell stair down opens the shortcut");
+        await WalkTo(bellBrow,false);await WalkTo(bellFoot+(bellFoot-bellBrow).Normalized()*1.5f,false);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-14)<.4f,$"the Bell stair walks down to the shrine terrace {g.Player.GlobalPosition}");
+        await WalkTo(bellBrow);await WalkTo(bellLedge);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-20)<.6f,$"and back up to the ledge, a few steps from the Court's Starwell {g.Player.GlobalPosition}");
+        // A dormant scout lies still where it fell: from its back she shuts it down before it wakes; in front of it, it gets up.
+        var dormant=mazeRobots.Single(e=>e.Sleeps==-135);dormant.SetPhysicsProcess(true);Place(g.Player,dormant.GlobalPosition-dormant.Forward*1.6f);g.Player.Model.Rotation=new(0,Mathf.Atan2(dormant.Forward.X,dormant.Forward.Z),0);await Frames(20);
+        Check(dormant.Asleep&&g.Player.CanShutDown(dormant)&&g.Locked==null,"a dormant scout in the Pit stays down while Mio comes at its back");
+        await Press("attack",2);await Frames(20);Check(dormant.Dead,"and her attack from behind shuts it down before it wakes");
+        dormant.Reset();Place(g.Player,dormant.GlobalPosition+dormant.Forward*3);await Frames(10);
+        Check(!dormant.Dead&&!dormant.Asleep&&dormant.State!="ASLEEP","in front of it, it wakes");dormant.Reset();dormant.SetPhysicsProcess(false);
+        // The Cut gate is barred on the Halt's side: from the Crossing it will not open, and it closes the Cut.
+        var cutGate=g.World.Parts.Single(p=>p.Kind=="gate");var gateWest=new Vector2(cutGate.To.X,cutGate.To.Z);var gateEast=new Vector2(cutGate.From.X,cutGate.From.Z);
+        Place(g.Player,On(gateWest-(gateEast-gateWest).Normalized()*3));await Frames(10);
+        Check(!await Head(gateEast,true,200)&&g.Player.GlobalPosition.X<Hoshikawa.World.CutGate.X,$"the closed Cut gate stops her at the Crossing's end of the Cut {g.Player.GlobalPosition}");
+        Place(g.Player,On(gateWest));await Frames(10);g.Interact();
+        Check(g.Interaction()==("ladder",Localization.T("GATE"))&&!g.Opened.Contains(cutGate.Name)&&g.ToastTitle=="IT WILL NOT OPEN FROM THIS SIDE","from that side the gate will not open");
+        // A rotten plank on the trestle from the Halt gives way under her into the gorge's head; a rest puts it back.
+        var rotten=g.World.Parts.Single(p=>p.Name=="Trestle rotten plank");Place(g.Player,rotten.From+Vector3.Up*.1f);await Frames(90);
+        Check(g.Sprung.Contains(rotten.Name)&&g.Player.GlobalPosition.Y<rotten.From.Y-3&&((StaticBody3D)rotten.Body).CollisionLayer==0,$"the trestle's rotten plank gives way under her {g.Player.GlobalPosition}");
+        Place(g.Player,On(gateEast));await Frames(10);g.Interact();await Frames(130);
+        Check(g.Opened.Contains(cutGate.Name)&&Down(cutGate)&&await Head(gateWest-(gateEast-gateWest).Normalized()*3,true,240),"unbarred from the Halt's side, the gate opens the Cut through to the Crossing");
+        // The Halt's well is the second Starwell, where Tunnel Mountain's first part ends for now. Resting there re-arms the traps, and a defeat
+        // brings her back to it.
+        var haltWell=Hoshikawa.World.SavePoints[3].At;Place(g.Player,On(haltWell+new Vector2(2,0)));await Frames(10);
+        Check(g.Player.IsOnFloor()&&g.ToastTitle=="TO BE CONTINUED","the way runs out at the Halt, where the maze's north half will begin");
+        await Tap(Key.E);await Tap(Key.Escape);
+        Check(g.RestedAt==3&&!g.Sprung.Any()&&rotten.Body.Visible&&((StaticBody3D)rotten.Body).CollisionLayer==1&&hairpin.Body.Visible&&hairpin.Body.Position.DistanceTo(hairpin.From)<.01f,"resting at the Halt re-arms the plank and the rocks");
+        g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);
+        bool felled=g.Mode==GameMode.Defeated;g.Retry();await Frames(5);
+        Check(felled&&g.Player.GlobalPosition.DistanceTo(On(haltWell+new Vector2(0,2)))<.5f&&g.ToastTitle=="BACK AT THE STARWELL"&&g.Opened.Contains(cutGate.Name)&&g.Opened.Contains(bellStair.Name),"a defeat brings Mio back to the Starwell she last rested at, the Bell stair and the gate still open");
         await TalkTo(renji,Vector3.Left*1.6f);Check(g.Script.SequenceEqual(Prologue.RenjiSeesOff),"Renji, staying at the plaza, sees them off");g.EndDialogue();
         if(DisplayServer.GetName()!="headless"){g.SaveScreenshot("res://artifacts/mission-complete.png");await Frames(5);}
         var chaser=g.Enemies.First(e=>e.Kind==Enemy.Scout&&!e.Dead);chaser.SetPhysicsProcess(true);Place(g.Player,chaser.GlobalPosition+Vector3.Back*6);await Frames(30);

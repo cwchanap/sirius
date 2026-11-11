@@ -9,7 +9,7 @@ public partial class Music : Node
     {["valley"]=("res://assets/audio/valley.wav",-16),["relay"]=("res://assets/audio/relay.ogg",-24),["battle"]=("res://assets/audio/battle.ogg",-24)};
     // Seconds a crossfade takes, and how long the battle music outlasts the last robot still after Mio.
     public const float Fade=1.5f,Calm=3;
-    public static string Track(string region,bool danger)=>danger?"battle":region=="Old Relay Road"?"relay":"valley";
+    public static string Track(string region,bool danger)=>danger?"battle":region is "Old Relay Road" or World.MazeName?"relay":"valley";
     public string Current {get;private set;}="valley";
     public readonly Dictionary<string,AudioStreamPlayer> Players=new();
     private readonly Dictionary<string,float> level=new();

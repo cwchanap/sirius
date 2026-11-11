@@ -21,10 +21,12 @@ public partial class World
         ["clinic"]=(new(.05f,.18f),new(-5,-2.84f,10,4.94f),new(0,3,.25f)),
         ["farmhouse"]=(new(0,.05f),new(-5.45f,-3.55f,10.9f,7.1f),new(-1.2f,2.5f,.25f)),
     };
-    public Node3D Minka(string name,Vector2 at,Vector3 size,float yaw,string style)
+    // A Tripo house of the given style standing whole at `at`, its front to the frame's +Z: its model, a camera stop over all of it, its own
+    // faces below the eaves as walls, and a box filling them to the eave.
+    private Node3D TripoHouse(string name,Vector2 at,float eave,float yaw,string style)
     {
-        var b=new Node3D{Name=name,Position=new(at.X,Height(at.X,at.Y),at.Y),RotationDegrees=new(0,yaw,0)};AddChild(b);Buildings.Add(b);
-        var (to,walls,sign)=TripoHouses[style];float eave=size.Y,front=walls.End.Y;
+        var b=new Node3D{Name=name,Position=new(at.X,Height(at.X,at.Y),at.Y),RotationDegrees=new(0,yaw,0)};AddChild(b);
+        var (to,walls,_)=TripoHouses[style];
         var mesh=ActorVisual.Descendants(Model(b,"Tripo "+style,style,new(to.X,0,to.Y),-90,new(1.3f,1.3f,1.3f))).OfType<MeshInstance3D>().Single();
         var shell=mesh.Mesh.CreateTrimeshShape();shell.BackfaceCollision=true;CameraStop(mesh,shell);
         // The player meets the model's own walls, posts, decks and steps below the eaves (not its ground faces), and a box fills the walls so doorways stay shut.
@@ -33,6 +35,12 @@ public partial class World
         var solid=new StaticBody3D();mesh.AddChild(solid);solid.AddChild(new CollisionShape3D{Shape=new ConcavePolygonShape3D{Data=low.ToArray(),BackfaceCollision=true}});
         var body=new StaticBody3D();b.AddChild(body);
         body.AddChild(new CollisionShape3D{Position=new(walls.GetCenter().X,eave/2,walls.GetCenter().Y),Shape=new BoxShape3D{Size=new(walls.Size.X,eave,walls.Size.Y)}});
+        return b;
+    }
+    public Node3D Minka(string name,Vector2 at,Vector3 size,float yaw,string style)
+    {
+        var b=TripoHouse(name,at,size.Y,yaw,style);Buildings.Add(b);
+        var (_,walls,sign)=TripoHouses[style];float eave=size.Y,front=walls.End.Y;
         var timber=Mat(new("3f3026"));var hang=new Vector3(sign.X,sign.Y,front+sign.Z);
         ShopSign(b,name,hang);
         foreach(float x in new[]{-1.1f,1.1f})Box(b,"Sign cord",new(sign.X+x,(sign.Y+.21f+eave)/2,hang.Z),new(.025f,eave-sign.Y-.21f,.025f),timber);

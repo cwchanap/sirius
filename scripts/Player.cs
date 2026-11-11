@@ -214,11 +214,20 @@ public partial class Player : CharacterBody3D
             if(Posture>=100){Posture=100;Stun=1.2f;Guarding=false;Visual.Play("stagger",1,true);Game.Flash("posture_break",new("f18470"));}
             return "guarded";
         }
-        Health=Math.Max(0,Health-enemy.Strike(perilous)/Growth.Scale("def"));Invulnerable=.65f;Stun=.32f;
+        Hurt(enemy.Strike(perilous));return "hit";
+    }
+    // A trap's rolling load strikes as hard as a patrol and throws her the way it rolls, unless she is rolling clear herself.
+    public void Crush(Vector3 push)
+    {
+        if(Health<=0||Invulnerable>0)return;
+        Hurt(Enemy.StrikeDamage);Velocity=push*7+Vector3.Up*3;
+    }
+    private void Hurt(float strike)
+    {
+        Health=Math.Max(0,Health-strike/Growth.Scale("def"));Invulnerable=.65f;Stun=.32f;
         attack=skillCast=0;comboQueued=false;Game.CameraShake=.2f;Visual.Play("stagger",1.3f,true);
         Game.Burst(GlobalPosition+Vector3.Up,new("ee8b76"),.8f);Game.Sound("hurt");Game.Bark("hurt");
         if(Health<=0){Visual.Play("death",1,true);Game.Die();}
-        return "hit";
     }
     // Spends one of a consumable on its effect, unless she has none or it would do nothing now.
     public bool Use(string id)
@@ -240,7 +249,9 @@ public partial class Player : CharacterBody3D
     public void Rest(){Health=MaxHealth;Stamina=MaxStamina;Winded=false;Posture=0;Inventory.Fill("remedy");SkillCharges=MaxSkillCharges;Spent=0;}
     public void Respawn()
     {
-        GlobalPosition=new(0,World.Height(0,31)+.1f,31);Velocity=Vector3.Zero;Rest();
+        // Back by the Starwell she last rested at, or in Hoshikawa's street.
+        var at=Game.RestedAt>0?World.SavePoints[Game.RestedAt].At+new Vector2(0,2):new Vector2(0,31);
+        GlobalPosition=new(at.X,World.Height(at.X,at.Y)+.1f,at.Y);Velocity=Vector3.Zero;Rest();
         Stun=attack=dodge=skillCast=Invulnerable=DeflectWindow=healTimer=landing=0;comboQueued=false;Guarding=false;
         Model.Rotation=new(0,Mathf.Pi,0);Visual.Play("idle",1,true);
     }

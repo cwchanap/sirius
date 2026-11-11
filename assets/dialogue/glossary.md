@@ -42,6 +42,7 @@ Chinese is Taiwan usage (臺灣用語): 軟體, 網路, 資訊, 號誌, 影片, 
 | Relay plaza (under the broken viaduct, where the manual relay stands) | リレー広場 | 繼電器廣場 |
 | The rockfall (closing the station road east of the relay plaza) | 落石 | 落石 |
 | The station road (east from the relay plaza toward the station) | 駅への道 | 往車站的路 |
+| Tunnel Mountain (the maze the station road runs into past the rockfall) | トンネル山 | 隧道山 |
 | East gate (where Chiyo lights a lantern for the travellers' return) | 東口 | 東口 |
 | Main hall (the station's concourse, under the signal box) | コンコース | 大廳 |
 | engawa (veranda) | 縁側 | 緣廊 |

@@ -20,6 +20,13 @@ public partial class Enemy : CharacterBody3D
     public Vector3 Home;
     public int Index;
     public RobotKind Kind=Patrol;
+    // Tunnel Mountain's: Maze keeps a patrol out of the relay mission's count, Reach scales its patrol loop to its trail, and Sleeps,
+    // for a dormant scout, is the way it lies facing, in degrees, until Mio comes near or strikes it. Asleep it can be shut down from behind.
+    public bool Maze;
+    public float Reach=1;
+    public float? Sleeps;
+    private bool asleep;
+    public bool Asleep=>asleep&&!Dead;
     public float MaxHealth=>Kind.Health;
     public float Health, Posture;
     public bool Dead=>Health<=0;
@@ -48,7 +55,7 @@ public partial class Enemy : CharacterBody3D
         AddChild(new CollisionShape3D {Position=new(0,Kind.Flies?1.1f:1,0),Shape=Kind.Flies?new SphereShape3D {Radius=.4f}:new CapsuleShape3D {Radius=.38f,Height=2}});
         Model=GD.Load<PackedScene>($"res://assets/models/{Kind.Model}.glb").Instantiate<Node3D>();AddChild(Model);Model.Scale=Vector3.One*Kind.Size;
         if(Kind.Flies){MotionMode=MotionModeEnum.Floating;Model.Position=Vector3.Up*Lift;rotor=Model.FindChild("Rotor") as Node3D;}
-        Visual=new ActorVisual();AddChild(Visual);Visual.Bind(Model);Visual.Play("walk");
+        Visual=new ActorVisual();AddChild(Visual);Visual.Bind(Model);Visual.Play("walk");Doze();
         marker=World.Label(this,"",new(0,2.8f,0),World.Gold,38);clock=Index*2;
         // The shade, a little larger and drawn first, keeps the tinted icon readable against the sky.
         foreach(var (size,priority) in new[]{(.0029f,0),(.0025f,1)})
@@ -66,6 +73,12 @@ public partial class Enemy : CharacterBody3D
         float dt=(float)delta;clock+=dt;rotor?.RotateY(Spin*dt);recovery=Math.Max(0,recovery-dt);stagger=Math.Max(0,stagger-dt);
         var to=Game.Player.GlobalPosition-GlobalPosition;float distance=new Vector2(to.X,to.Z).Length();to.Y=0;
         Vector3 movement=Vector3.Zero;
+        // A dormant scout lies still where it fell and wakes when Mio comes close in its sight, unless she comes at its back.
+        if(asleep)
+        {
+            if(distance<4.5f&&Math.Abs(Game.Player.GlobalPosition.Y-GlobalPosition.Y)<2.5f&&!ExposedTo(Game.Player.GlobalPosition)&&Game.ClearSight(GlobalPosition+Vector3.Up,Game.Player.GlobalPosition+Vector3.Up))Wake();
+            else{ShowBadge(Game.Player.CanShutDown(this)?"shutdown":"");Velocity=new(0,IsOnFloor()?-.5f:Velocity.Y-22*dt,0);MoveAndSlide();return;}
+        }
         if(broken>0)
         {
             broken-=dt;State="BROKEN";
@@ -103,7 +116,7 @@ public partial class Enemy : CharacterBody3D
         else
         {
             State="PATROL";Posture=Math.Max(0,Posture-dt*12);
-            var destination=Home+new Vector3(Mathf.Sin(clock*.27f+Index)*3.2f,0,Mathf.Cos(clock*.27f+Index)*2.4f)*Kind.Roam;
+            var destination=Home+new Vector3(Mathf.Sin(clock*.27f+Index)*3.2f,0,Mathf.Cos(clock*.27f+Index)*2.4f)*Kind.Roam*Reach;
             var d=destination-GlobalPosition;d.Y=0;movement=d.Normalized()*1.25f;
             Model.Rotation=new(0,Mathf.LerpAngle(Model.Rotation.Y,Mathf.Atan2(d.X,d.Z),dt*3),0);Visual.Play(Kind.Flies?"idle":"walk",.8f);
         }
@@ -128,14 +141,22 @@ public partial class Enemy : CharacterBody3D
     public static bool Behind(Vector3 forward,Vector3 robot,Vector3 mio)
     {var d=mio-robot;d.Y=0;return d.LengthSquared()>.0001f&&forward.Dot(d.Normalized())<=BehindDot;}
     public bool ExposedTo(Vector3 mio)=>!Dead&&Behind(Forward,GlobalPosition,mio);
+    private void Doze()
+    {
+        asleep=Sleeps!=null;if(!asleep)return;
+        State="ASLEEP";Model.Rotation=new(0,Mathf.DegToRad(Sleeps!.Value),0);Visual.Play("death",1,true);
+    }
+    private void Wake(){asleep=false;State="RECOVER";recovery=.8f;Visual.Play("idle",1,true);Game.Sound("warning");}
     public void Stun(float seconds)
     {
         if(Dead||Broken)return;
+        if(asleep)Wake();
         stunned=seconds;attacking=false;stagger=0;crackle.Emitting=true;Visual.Play("stagger",.4f,true);
     }
     public void TakeHit(float damage,float posture)
     {
         if(Dead)return;
+        if(asleep)Wake();
         Health=Math.Max(0,Health-damage);Posture=Math.Min(100,Posture+posture);
         if(damage>0)
         {
@@ -169,7 +190,7 @@ public partial class Enemy : CharacterBody3D
     {
         if(State=="DEFEATED")return;
         Health=0;State="DEFEATED";marker.Text="";ShowBadge("");CollisionLayer=0;CollisionMask=0;
-        Visual.Play("death",1.5f,true);Game.Sound("break");
+        Visual.Play("death",1.5f,!asleep);asleep=false;Game.Sound("break");
         // A drone's rotor stops and it drops onto its prong, tipping forward.
         if(Kind.Flies)
         {
@@ -183,5 +204,6 @@ public partial class Enemy : CharacterBody3D
         GlobalPosition=Home+Vector3.Up*.15f;Velocity=Vector3.Zero;Health=MaxHealth;Posture=0;broken=attackTimer=recovery=stagger=stunned=0;
         attacking=struck=false;swings=0;CollisionLayer=4;CollisionMask=1|2|4;State="PATROL";marker.Text="";ShowBadge("");Visual.Play("idle",1,true);
         if(Kind.Flies){fall?.Kill();knock?.Kill();Model.Position=Vector3.Up*Lift;Model.Rotation=Model.Rotation with {X=0};}
+        Doze();
     }
 }
