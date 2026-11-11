@@ -73,6 +73,8 @@ On 2026-11-01 the 27 cast lines that the dialogue rewrite changed (Zero kept a s
 
 On 2026-11-03 five lines changed so that nobody but Mio names Zero (3 Yui, 1 Mio, 1 Renji) and were re-rendered the same way for 239 credits. The cloud container could not reach `elevenlabsusercontent.com` that day, so a Remote Control session on the Mac downloaded the `master_url`s and pushed them.
 
+On 2026-11-11 the 72 cast lines written since the last recording (the second and third days, `PickTwo`, the rockfall and the night scenes: 29 Mio, 21 Renji, 14 Zero, 8 Yui) were rendered the same way, one take each on one flow, for about 2,600 credits, and downloaded by a Remote Control session on the Mac (the signed URLs last about 2.8 hours; the manifest gave the Mac each `Speaker Key Session Gen Signature` line). `Prologue.Unrecorded` is empty again.
+
 ## Common mistakes
 
 - Writing tags or kana readings into `ja`: they belong in `tts`.
