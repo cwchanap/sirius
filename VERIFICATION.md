@@ -1,5 +1,9 @@
 # MVP verification
 
+## The latter half is voiced — 2026-11-11
+
+The 72 cast lines in `Prologue.Unrecorded` (Mio 29, Renji 21, Zero 14, Yui 8) were voiced through the ElevenLabs connector, `eleven_v4`, one take each on one flow, about 2,600 credits, with the cast's voices (Mio Yuki, Renji Sho, Zero Koume, Yui kano) and each line's `tts` where it has one. The cloud container cannot reach `elevenlabsusercontent.com`, so a Remote Control session on the Mac downloaded the signed `master_url`s and pushed the mp3s. `Prologue.Unrecorded` is now empty. Checked in the cloud: every file is MPEG layer III, 128 kbps, mono (the smallest 37 KB); the 72 `.import` files come from a headless Godot import; unit tests 60 pass; `build_voice.py --check` matches 207 lines; the self-test passes headless in `en`, `ja` and `zh_TW` (it now requires every cast beat to have its mp3). Not done: nobody has listened to the takes (the cloud has no speakers; proper nouns such as 星川 and KOMA are the likeliest misreadings), and no Metal run.
+
 ## KOMA-7 takes the village's asks — 2026-11-10
 
 Hapadona changed KOMA-7's setting: Grandpa Tetsu approved long ago that it takes orders from the other villagers, and everyone knows it. In `KomaAsks` it now accepts Mio's request at once on that standing order, tells its keeper it will be out a night, and he answers from inside the house that it never needed his leave; KOMA-7 names the standing order on the first day too (`FirstMeeting.Haruka.3`). The scene keeps its nine beats and no cast line changed, so `Prologue.Unrecorded` stays at 72. Unit tests 60 pass, `build_voice.py --check` matches 207 lines, and the self-test passes its 743 checks headless in `en`, `ja` and `zh_TW` after a font rebuild. Not seen on screen.

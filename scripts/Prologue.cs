@@ -356,14 +356,7 @@ public static class Prologue
     // The speakers with a Japanese voice; everyone else's lines play silent.
     public static readonly HashSet<string> Cast=new(){"Mio","Zero","Yui","Renji"};
     // The cast's lines written or changed since the last recording, which IntegrationCheck lets go without an mp3 until they are voiced.
-    public static readonly HashSet<string> Unrecorded=new(){
-        "Intro.17","Intro.18","Gate.3","Gate.4","Gate.5","Briefing.7","Briefing.8","Homecoming.0","Homecoming.1","DayTwo.1","DayTwo.2","DayTwo.3",
-        "DayTwo.4","DayTwo.5","DayTwo.6","DayTwo.7","HalfDone.0","HalfDone.1","HalfDone.2","HalfDone.3","HalfDone.4","HalfDone.5",
-        "HalfDone.6","HalfDone.7","HalfDone.8","HalfDone.9","HalfDone.10","HalfDone.11","PickTwo.1","PickTwo.2","PickTwo.3","PickTwo.4","PickTwo.5","PickTwo.6","RenjiReady.0","SotaJoins.0","SotaJoins.6","Crossbow.1",
-        "Crossbow.2","Crossbow.4","Crossbow.5","Crossbow.6","Crossbow.8","KomaAsks.0","PhoneFixed.1","PhoneFixed.2","ChiyoLamp.1","Evening.0",
-        "Evening.1","Evening.2","Evening.3","Evening.4","Evening.5","Evening.6","RenjiNight.0","NightTwo.0","NightTwo.1","NightTwo.2",
-        "NightTwo.3","NightTwo.4","NightTwo.5","Rockfall.0","Rockfall.2","Rockfall.6","Rockfall.7","Rockfall.8","Rockfall.9","RenjiSeesOff.0","FirstMeeting.KOMA-7.2",
-        "FirstMeeting.Sota.2","FirstMeeting.Yui.2","FirstMeeting.Yui.3"};
+    public static readonly HashSet<string> Unrecorded=new();
     // What the 3D scene does when a beat starts: a camera shot and the clips its actors play ("Mio clip, Yui clip"). A beat with no entry, or
     // an empty part, keeps what was there. Shots: "over A B" looks past A's shoulder at B, "two A B" frames both from the side, "face A"
     // is in front of A, and any other name is a fixed shot (Game.Shots). Every actor goes back to its resting clip when the scene ends.

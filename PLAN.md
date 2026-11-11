@@ -252,7 +252,7 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [x] Mio decides who to ask before she asks: leaving Renji on the second morning she settles with Zero on Sota, who knows the hills, and Yui with her crossbow (`PickTwo`, seven beats, played by `After("HalfDone")`).
 - [x] KOMA-7 takes the village's asks: Grandpa Tetsu long ago told it to help anyone in the village who asks, and everyone knows it, so it agrees to Mio at once and only tells him before a night away (`KomaAsks`, `FirstMeeting.Haruka.3`).
 - [x] Renji no longer grades her choice of companions (`Evening.1`): with those two beside her he will worry less up at the relay.
-- [ ] Voice the 72 unrecorded cast lines (`Prologue.Unrecorded`) once the owner has read them.
+- [x] Voice the 72 unrecorded cast lines in Japanese (ElevenLabs: Mio Yuki 29, Renji Sho 21, Zero Koume 14, Yui kano 8, one take each, about 2,600 credits); `Prologue.Unrecorded` is empty. Not yet heard by the owner.
 - [ ] Separate tasks: KOMA-7 lifting rock, Yui's crossbow, the city skyline on the north-west ridge, the relay road's extension (next map).
 
 ## A longer opening (開場劇情)
