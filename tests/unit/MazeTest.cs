@@ -4,8 +4,8 @@ using static GdUnit4.Assertions;
 namespace Hoshikawa.Tests;
 
 // Tunnel Mountain's ground, flooded as Mio walks it (WildsTest.Reach): the maze is closed, each leg's far side is reached only by walking
-// it, its drops are one way, its trails meet without steps, and from every floor she can walk back to a Starwell. The places and the
-// blocks that shut a way off for a check are the plan's prototype's.
+// it, its drops are one way, its shortcuts are earned by long walks, its trails meet without steps, and from every floor she can walk
+// back to a Starwell. The places and the blocks that shut a way off for a check are the plan's prototype's.
 [TestSuite]
 public class MazeTest
 {
@@ -74,6 +74,19 @@ public class MazeTest
         s=From(Places["Halt"],null,Barred,Trestle,Canyon,BackStair);
         AssertThat(Has(s,"Gorge N")).OverrideFailureMessage("she can jump from the Halt into the gorge").IsTrue();None(s,"  ...and from there only the back stair or the fields lead out","Row","Bench 1");
         None(From(Gate,Decks,Barred,Mill),"without the Mill ravine nothing of the middle is reached","Halt","Row","Bench 1");
+    }
+    // The plan's walks, which its layout rules rest on, measured on the built ground: each leg is a long walk, within a tenth of the plan's,
+    // and the shortcut it opens saves most of it. The Bell stair's foot lies 4 m further out than the plan's, so its walk is a little longer.
+    [TestCase]
+    public void EachShortcutIsEarnedByALongWalk()
+    {
+        static bool Shut(int x,int z)=>new Vector2(x-World.CutGate.X,z-World.CutGate.Y).Length()<=Barred.R;
+        var gateEast=new Vector2(194,-166.2f);var bell=Decks.Concat(Bell).ToArray();
+        foreach(var (what,walked,plan) in new[]{("the rockfall's gate to Starwell 1",WildsTest.Walk(Gate,Court,Shut,Decks),42f),("leg 1, Starwell 1 to the Bell stair's head",WildsTest.Walk(Court,World.BellTop,Shut,Decks),231),
+            ("leg 2, Starwell 1 to Starwell 2",WildsTest.Walk(Court,Halt,Shut,Decks),519),("Starwell 2 back down the Cut to the gate's bar",WildsTest.Walk(Halt,gateEast,Shut,Decks),56)})
+            AssertThat(Math.Abs(walked/plan-1)).OverrideFailureMessage($"{what}: {walked:F0} m, the plan's {plan} m").IsLess(.1f);
+        AssertThat(WildsTest.Walk(Court,Places["Bell ledge"],Shut,bell)).OverrideFailureMessage("with the Bell stair down the ledge is a short climb from Starwell 1").IsLess(50);
+        AssertThat(WildsTest.Walk(Court,Halt,null,bell)).OverrideFailureMessage("with the Cut gate open Starwell 2 is under 210 m from Starwell 1").IsLess(210);
     }
     // The first walk, nothing open but the decks, reaches every place; from every floor she can walk back to a Starwell; and nothing reached
     // lies off the trails' floors and the cliffs she slides down between them (a drop's face lies up to 3.5 m from both its floors), nor
