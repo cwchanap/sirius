@@ -76,7 +76,7 @@ public partial class Enemy : CharacterBody3D
         // A dormant scout lies still where it fell and wakes when Mio comes close in its sight, unless she comes at its back.
         if(asleep)
         {
-            if(distance<4.5f&&Math.Abs(Game.Player.GlobalPosition.Y-GlobalPosition.Y)<2.5f&&!ExposedTo(Game.Player.GlobalPosition)&&Game.ClearSight(GlobalPosition+Vector3.Up,Game.Player.GlobalPosition+Vector3.Up))Wake();
+            if(distance<4.5f&&Math.Abs(Game.Player.GlobalPosition.Y-GlobalPosition.Y)<2.5f&&!ExposedTo(Game.Player.GlobalPosition)&&Game.ClearSight(GlobalPosition+Vector3.Up,Game.Player.GlobalPosition+Vector3.Up))Wake(true);
             else{ShowBadge(Game.Player.CanShutDown(this)?"shutdown":"");Velocity=new(0,IsOnFloor()?-.5f:Velocity.Y-22*dt,0);MoveAndSlide();return;}
         }
         if(broken>0)
@@ -144,9 +144,17 @@ public partial class Enemy : CharacterBody3D
     private void Doze()
     {
         asleep=Sleeps!=null;if(!asleep)return;
-        State="ASLEEP";Model.Rotation=new(0,Mathf.DegToRad(Sleeps!.Value),0);Visual.Play("death",1,true);
+        // Laid down at the death clip's end at once: a robot far from Mio is culled, and a clip started then would hold its first, standing frame.
+        State="ASLEEP";Model.Rotation=new(0,Mathf.DegToRad(Sleeps!.Value),0);Visual.Play("death",1,true,0);Visual.Animator?.Seek(Visual.Length("death"),true);
     }
-    private void Wake(){asleep=false;State="RECOVER";recovery=.8f;Visual.Play("idle",1,true);Game.Sound("warning");}
+    // Woken by Mio coming near, it gets up over Rise seconds, its death clip run backwards, and raises its guard before it comes on; struck, it
+    // reels at once.
+    public const float Rise=.5f;
+    private void Wake(bool rise=false)
+    {
+        asleep=false;State="RECOVER";recovery=.8f;Game.Sound("warning");
+        if(rise){stagger=Rise;recovery+=Rise;Visual.Play("death",-Visual.Length("death")/Rise,true,0,true);}else Visual.Play("idle",1,true);
+    }
     public void Stun(float seconds)
     {
         if(Dead||Broken)return;
@@ -190,7 +198,7 @@ public partial class Enemy : CharacterBody3D
     {
         if(State=="DEFEATED")return;
         Health=0;State="DEFEATED";marker.Text="";ShowBadge("");CollisionLayer=0;CollisionMask=0;
-        Visual.Play("death",1.5f,!asleep);asleep=false;Game.Sound("break");
+        if(!asleep)Visual.Play("death",1.5f,true);asleep=false;Game.Sound("break");
         // A drone's rotor stops and it drops onto its prong, tipping forward.
         if(Kind.Flies)
         {

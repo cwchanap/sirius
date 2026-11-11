@@ -24,15 +24,16 @@ public partial class ActorVisual : Node
         }
     }
     // A gesture with a <clip>_hold loop (tools/cast_clips.py) goes on into it, breathing in the pose it ends on instead of freezing.
-    public void Play(string clip,float speed=1,bool restart=false,float blend=.12f)
+    public void Play(string clip,float speed=1,bool restart=false,float blend=.12f,bool fromEnd=false)
     {
         if(Animator==null||!clips.TryGetValue(clip,out var name))return;
         Clip=clip;
         bool held=clips.TryGetValue(clip+"_hold",out var hold);
         if(!restart&&(Animator.CurrentAnimation==name||held&&Animator.CurrentAnimation==hold)&&Animator.IsPlaying())return;
         Animator.ClearQueue();
-        Animator.Play(name,blend,speed);
+        Animator.Play(name,blend,speed,fromEnd);
         if(held)Animator.Queue(hold);
     }
     public bool HasClip(string name)=>clips.ContainsKey(name);
+    public float Length(string clip)=>Animator!=null&&clips.TryGetValue(clip,out var name)?(float)Animator.GetAnimation(name).Length:0;
 }

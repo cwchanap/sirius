@@ -265,7 +265,8 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [x] The region's name, Tunnel Mountain, in all three languages, the relay road's music, the maze's painted ways on the minimap; four cells and a second pouch at the Kilns (the pouch limit is now 2).
 - [x] Stand-in houses, shrine and props from the valleys' own models; a barricade at Bench 1's end, and TO BE CONTINUED and the last objective's marker at the Halt.
 - [x] `MazeTest` floods the way in and both legs, closes the maze, finds every floor's way back to a Starwell, checks its ground for steps and what stands in it; the self-test walks the way in and leg 1, lets the Bell stair down, climbs it back, opens the Cut gate from the Halt and dies there, in all three languages.
-- [ ] Look under Metal on the Mac: the maze's frame rate, the spring ravine's rim near (164, −80), a dormant scout's death pose as it wakes.
+- [x] Metal on the Mac: the self-test passes, the maze holds 120 Hz, the spring ravine's rim has no gap; dormant scouts now lie down while culled and get up over half a second.
+- [ ] Look at the dormant scout's get-up under Metal; the notch and stepped crest the cut leaves in the ridge beside the Hoshikawa's spring hollow, seen from the headwater.
 - [ ] Separate tasks: the north half (HPA-701); the maze's own art, sound and story.
 
 ## A longer opening (開場劇情)

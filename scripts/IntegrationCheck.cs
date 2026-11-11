@@ -184,6 +184,11 @@ public static class IntegrationCheck
             "three patrol robots, four scouts and five drones on the relay road");
         Check(mazeRobots.Length==39&&mazeRobots.Count(e=>e.Kind==Enemy.Patrol)==5&&mazeRobots.Count(e=>e.Kind==Enemy.Drone)==15&&mazeRobots.Count(e=>e.Asleep&&e.State=="ASLEEP")==7&&mazeRobots.All(e=>Hoshikawa.World.RegionAt(e.Home)==Hoshikawa.World.MazeName),
             "Tunnel Mountain holds 39 robots of its own, five patrols, nineteen scouts (seven of them dormant) and fifteen drones");
+        // Far from Mio and culled, a dormant scout must already lie at its death clip's end, its hips well down, not stand in the clip's first frame.
+        float Hips(Enemy e,bool rest){var skeleton=ActorVisual.Descendants(e.Model).OfType<Skeleton3D>().Single();int hip=skeleton.FindBone("Hips");
+            return skeleton.ToGlobal((rest?skeleton.GetBoneGlobalRest(hip):skeleton.GetBoneGlobalPose(hip)).Origin).Y-e.GlobalPosition.Y;}
+        var sleepers=mazeRobots.Where(e=>e.Asleep).ToArray();
+        Check(sleepers.All(e=>!e.Visible&&Hips(e,false)<.8f*Hips(e,true)),"the dormant scouts lie down even while too far off to be simulated: "+string.Join(", ",sleepers.Select(e=>$"{Hips(e,false)/Hips(e,true):F2}")));
         var merged=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().StartsWith("Merged statics")).ToArray();
         var baked=g.World.FindChildren("*","MeshInstance3D",true,false).Cast<MeshInstance3D>().Where(n=>!n.Visible&&(n.Mesh is PrimitiveMesh||n.Mesh.ResourceName.StartsWith("prop "))).ToArray();
         Vector3[] Corners(IEnumerable<MeshInstance3D> meshes)=>meshes.SelectMany(n=>n.Mesh.GetFaces().Select(v=>n.GlobalTransform*v)).ToArray();
@@ -1019,7 +1024,8 @@ public static class IntegrationCheck
         Check(dormant.Asleep&&g.Player.CanShutDown(dormant)&&g.Locked==null,"a dormant scout in the Pit stays down while Mio comes at its back");
         await Press("attack",2);await Frames(20);Check(dormant.Dead,"and her attack from behind shuts it down before it wakes");
         dormant.Reset();Place(g.Player,dormant.GlobalPosition+dormant.Forward*3);await Frames(10);
-        Check(!dormant.Dead&&!dormant.Asleep&&dormant.State!="ASLEEP","in front of it, it wakes");dormant.Reset();dormant.SetPhysicsProcess(false);
+        Check(!dormant.Dead&&!dormant.Asleep&&dormant.State=="STAGGER"&&Hips(dormant,false)<Hips(dormant,true),"in front of it, it wakes and gets up");
+        await Frames(30);Check(dormant.State=="RECOVER"&&Hips(dormant,false)>.8f*Hips(dormant,true),$"standing in half a second, its guard up before it comes on ({Hips(dormant,false)/Hips(dormant,true):F2})");dormant.Reset();dormant.SetPhysicsProcess(false);
         // The Cut gate is barred on the Halt's side: from the Crossing it will not open, and it closes the Cut.
         var cutGate=g.World.Parts.Single(p=>p.Kind=="gate");var gateWest=new Vector2(cutGate.To.X,cutGate.To.Z);var gateEast=new Vector2(cutGate.From.X,cutGate.From.Z);
         Place(g.Player,On(gateWest-(gateEast-gateWest).Normalized()*3));await Frames(10);
