@@ -253,7 +253,20 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [x] KOMA-7 takes the village's asks: Grandpa Tetsu long ago told it to help anyone in the village who asks, and everyone knows it, so it agrees to Mio at once and only tells him before a night away (`KomaAsks`, `FirstMeeting.Haruka.3`).
 - [x] Renji no longer grades her choice of companions (`Evening.1`): with those two beside her he will worry less up at the relay.
 - [x] Voice the 72 unrecorded cast lines in Japanese (ElevenLabs: Mio Yuki 29, Renji Sho 21, Zero Koume 14, Yui kano 8, one take each, about 2,600 credits); `Prologue.Unrecorded` is empty. Not yet heard by the owner.
-- [ ] Separate tasks: KOMA-7 lifting rock, Yui's crossbow, the city skyline on the north-west ridge, the relay road's extension (next map).
+- [ ] Separate tasks: KOMA-7 lifting rock, Yui's crossbow, the city skyline on the north-west ridge. The relay road's extension is Tunnel Mountain, below.
+
+## Tunnel Mountain, part 1: the south half (HPA-700)
+
+- [x] The ground grows east over the maze (`World.MazeFine`, 1 m ground and collider), the mountains with it (`World.Far`), and the machine city's silhouette moves out beyond them.
+- [x] `World.MazeTrails` cut into it by the relay road's carving rule (`Carve()`, `MazeCut()`); `Height()` is still the one source. `World.Decks` bridge its gaps.
+- [x] One table of moving parts (`World.Parts`): the teahouse ladder, the Bell stair and the Cut gate, worked with E from one side and kept open through defeats; a rotten plank and three rolling loads (rocks, logs, barrels) sprung by a step, striking like a robot and knocking Mio back, re-armed by a rest.
+- [x] Two Starwells, at the Court and the Halt; a defeat anywhere, Komorebi included, brings Mio back to the last one she rested at.
+- [x] 39 robots (`World.MazeRobots`): seven scouts lie dormant, off the minimap and lock-on, wake when she comes near in their sight and can be shut down from behind first; robots beyond 75 m are not simulated; none counts for the mission, and the patrols stay down.
+- [x] The region's name, Tunnel Mountain, in all three languages, the relay road's music, the maze's painted ways on the minimap; four cells and a second pouch at the Kilns (the pouch limit is now 2).
+- [x] Stand-in houses, shrine and props from the valleys' own models; a barricade at Bench 1's end, and TO BE CONTINUED and the last objective's marker at the Halt.
+- [x] `MazeTest` floods the way in and both legs, closes the maze, finds every floor's way back to a Starwell, checks its ground for steps and what stands in it; the self-test walks the way in and leg 1, lets the Bell stair down, climbs it back, opens the Cut gate from the Halt and dies there, in all three languages.
+- [ ] Look under Metal on the Mac: the maze's frame rate, the spring ravine's rim near (164, −80), a dormant scout's death pose as it wakes.
+- [ ] Separate tasks: the north half (HPA-701); the maze's own art, sound and story.
 
 ## A longer opening (開場劇情)
 
