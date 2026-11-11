@@ -99,7 +99,7 @@ Chinese is Taiwan usage (臺灣用語): 軟體, 網路, 資訊, 號誌, 影片, 
 
 - **Zero** is a caring robot living in the city, talking like a curious child. The city lets it know only what its work needs, so everything outside the city is new to it. It counts things, minds Mio's heartbeat, sleep and meals, and says it will "keep" a smell. In Japanese it uses no first-person pronoun. In Chinese 我 is unavoidable; keep sentences short and plain.
 - **Mio** is practical, warm and a little dry. She talks plainly to friends and Zero, and politely (です/ます) to elders such as Chiyo. In Chinese she calls Chiyo 千代奶奶 **?**.
-- **KOMA-7** calls itself "this unit": 当機 in Japanese, 本機 in Chinese, and speaks in flat, report-like sentences. Zero is "Mio's terminal" to it: ミオの端末, 澪的終端機.
+- **KOMA-7** calls itself "this unit": 当機 in Japanese, 本機 in Chinese, and speaks in flat, report-like sentences. It may call Zero by its name (ゼロ, 零) or Mio's terminal (ミオの端末, 澪的終端機), but, like the other villagers, it routes questions through Mio.
 - **Renji** speaks like a plain-spoken older engineer (俺, お前), **Chiyo** like a gentle old woman, **Haruka**, **Chiaki**, **Sota** like people in their twenties, **Naomi**, **Emiko** and **Toma** warm and unhurried.
 - **Yui** is happy, energetic and talkative: quick exclamations, a lot said at once. In Japanese she says あたし and calls her elders さん; in Chinese she ends lines with 喔, 啦, 耶.
 - Narration (blank speaker) is plain and short.
