@@ -245,8 +245,11 @@ public partial class World
             Box(this,"Shrine approach step",new(x,Height(x,z)+.1f-.2f,z),new(2.6f,.4f,.5f),stone);
         }
         StoneLantern(this,new(-2.6f,Height(-2.6f,57.5f),57.5f));StoneLantern(this,new(.6f,Height(.6f,57.5f),57.5f));
-        var c=ShrineCenter+new Vector2(0,2.2f);
-        var h=new Node3D{Name="Hoshikawa shrine",Position=new(c.X,Height(c.X,c.Y),c.Y),RotationDegrees=new(0,180,0)};AddChild(h);
+        ShrineHall("Hoshikawa shrine",ShrineCenter+new Vector2(0,2.2f),180);
+    }
+    private void ShrineHall(string name,Vector2 c,float yaw)
+    {
+        var h=new Node3D{Name=name,Position=new(c.X,Height(c.X,c.Y),c.Y),RotationDegrees=new(0,yaw,0)};AddChild(h);
         // The Tripo hall: its granite base (z -1.73..1.35) and steps (to 2.04) face its +Z, the approach's way once turned.
         var mesh=ActorVisual.Descendants(Model(h,"Shrine hall","shrine",Vector3.Zero,0,new(1.3f,1.3f,1.3f))).OfType<MeshInstance3D>().Single();
         var local=h.GlobalTransform.AffineInverse()*mesh.GlobalTransform;var faces=mesh.Mesh.GetFaces().Select(v=>local*v).ToArray();
@@ -257,11 +260,11 @@ public partial class World
         body.AddChild(new CollisionShape3D{Position=new(0,.3f,-.19f),Shape=new BoxShape3D{Size=new(3.24f,.6f,3.08f)}});
         body.AddChild(new CollisionShape3D{Position=new(0,1.8f,-.15f),Shape=new BoxShape3D{Size=new(2.6f,2.4f,2.5f)}});
     }
-    private void Torii(Vector3 p,float yaw)
+    private void Torii(Vector3 p,float yaw,string name="Shrine torii")
     {
         // The Tripo gate's pillars stand at x ±1.45 on its own X, its beams along it; it is sunk to the lower pillar's ground.
         float sink=new[]{-1.45f,1.45f}.Min(s=>{var g=p+new Vector3(s,0,0).Rotated(Vector3.Up,Mathf.DegToRad(yaw));return Height(g.X,g.Z)-p.Y;});
-        var t=Model(this,"Shrine torii","torii",p+new Vector3(0,Math.Min(0,sink)-.05f,0),yaw,new(1.3f,1.3f,1.3f));
+        var t=Model(this,name,"torii",p+new Vector3(0,Math.Min(0,sink)-.05f,0),yaw,new(1.3f,1.3f,1.3f));
         foreach(float s in new[]{-1.45f,1.45f}){var body=new StaticBody3D{Position=new(s,2.2f,0)};t.AddChild(body);body.AddChild(new CollisionShape3D{Shape=new CylinderShape3D{Radius=.3f,Height=4.4f}});}
     }
     public void StoneLantern(Node3D parent,Vector3 p)

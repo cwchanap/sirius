@@ -13,7 +13,10 @@ public partial class Game : Node3D
     public Player Player=null!;
     public readonly List<Enemy> Enemies=new();
     // The three the relay mission counts; the scouts and drones are extra.
-    public IEnumerable<Enemy> Patrols=>Enemies.Where(e=>e.Kind==Enemy.Patrol);
+    // The relay road's patrols, the three the first day's mission counts; Tunnel Mountain's are not.
+    public IEnumerable<Enemy> Patrols=>Enemies.Where(e=>e.Kind==Enemy.Patrol&&!e.Maze);
+    // The Starwell Mio last rested at, a row of World.SavePoints, where a defeat brings her back.
+    public int RestedAt;
     public readonly HashSet<string> Opened=new();
     private Tween? opening;
     public Enemy? Locked;
@@ -69,12 +72,18 @@ public partial class Game : Node3D
             var p=new Vector3(homes[i].X,Hoshikawa.World.Height(homes[i].X,homes[i].Y)+.1f,homes[i].Y);
             var enemy=new Enemy {Game=this,Home=p,Position=p,Index=i+1,Kind=kind};Enemies.Add(enemy);AddChild(enemy);
         }
+        foreach(var (kind,at,sleeps) in Hoshikawa.World.MazeRobots)
+        {
+            var p=new Vector3(at.X,Hoshikawa.World.Height(at.X,at.Y)+.1f,at.Y);
+            var enemy=new Enemy {Game=this,Home=p,Position=p,Index=Enemies.Count+1,Kind=kind switch {"patrol"=>Enemy.Patrol,"scout"=>Enemy.Scout,_=>Enemy.Drone},Maze=true,Sleeps=sleeps,Reach=Hoshikawa.World.Room(at)};
+            Enemies.Add(enemy);AddChild(enemy);
+        }
         // Outside World, whose static meshes are baked: each save point's light over its well.
-        foreach(var (village,well) in Hoshikawa.World.SavePoints)
+        foreach(var (place,well) in Hoshikawa.World.SavePoints)
         {
             var mouth=new Vector3(well.X,Hoshikawa.World.Height(well.X,well.Y)+1.15f,well.Y);
-            var glow=Glow(this,"Save point glow "+village,new QuadMesh(),mouth,Fx(Hoshikawa.World.Jade,1.6f,Soft,true));glow.Scale=Vector3.One*1.6f;savePointGlows.Add(glow);
-            AddChild(new OmniLight3D {Name="Save point light "+village,Position=mouth,LightColor=Hoshikawa.World.Jade,LightEnergy=1.4f,OmniRange=5});
+            var glow=Glow(this,"Save point glow "+place,new QuadMesh(),mouth,Fx(Hoshikawa.World.Jade,1.6f,Soft,true));glow.Scale=Vector3.One*1.6f;savePointGlows.Add(glow);
+            AddChild(new OmniLight3D {Name="Save point light "+place,Position=mouth,LightColor=Hoshikawa.World.Jade,LightEnergy=1.4f,OmniRange=5});
         }
         cameraRig=new Node3D {Position=Player.Position+Vector3.Up*1.3f};AddChild(cameraRig);
         spring=new SpringArm3D {SpringLength=7.5f,Margin=.25f,CollisionMask=1|Hoshikawa.World.CameraLayer,Shape=new SphereShape3D {Radius=.2f}};cameraRig.AddChild(spring);
@@ -170,14 +179,15 @@ public partial class Game : Node3D
                 previousRegion=Region;Toast(Region.ToUpperInvariant(),seconds:3.5f);
             }
             if(Locked!=null&&(Locked.Dead||Locked.GlobalPosition.DistanceTo(Player.GlobalPosition)>22))Locked=null;
-            // The station road ends where the relay road's extension, the next map, will begin.
-            if(QuestStage==Quest.Beyond&&!arrived&&Player.GlobalPosition.DistanceTo(World.StationRoadEnd)<4){arrived=true;Toast("TO BE CONTINUED",seconds:6);}
+            // Tunnel Mountain's first part ends at the Halt's Starwell, where its north half will begin.
+            if(QuestStage==Quest.Beyond&&!arrived&&Player.GlobalPosition.DistanceTo(World.MazeEnd)<4){arrived=true;Toast("TO BE CONTINUED",seconds:6);}
+            Traps(dt);Cull();
             if(Locked!=null)
             {var to=Locked.GlobalPosition-Player.GlobalPosition;CameraYaw=Mathf.LerpAngle(CameraYaw,Mathf.Atan2(-to.X,-to.Z),dt*3.8f);}
         }
         // Any robot out of its patrol, chasing, striking, recovering or held, is a fight; robots only ever engage Mio. A pause, the items
         // screen or a scene freezes the fight and keeps its music; a defeat ends it, and so does Retry() (recovering or restarting).
-        if(Mode==GameMode.Playing)danger=Enemies.Any(e=>!e.Dead&&e.State!="PATROL")?Music.Calm:Math.Max(0,danger-dt);else if(Mode==GameMode.Defeated)danger=0;
+        if(Mode==GameMode.Playing)danger=Enemies.Any(e=>!e.Dead&&e.State is not ("PATROL" or "ASLEEP"))?Music.Calm:Math.Max(0,danger-dt);else if(Mode==GameMode.Defeated)danger=0;
         Music.Want(Music.Track(Region,danger>0));
         cameraRig.Position=cameraRig.Position.Lerp(Player.GlobalPosition+Vector3.Up*1.35f,1-Mathf.Exp(-dt*10));
         cameraRig.Rotation=new(CameraPitch,CameraYaw,0);
@@ -215,13 +225,13 @@ public partial class Game : Node3D
     public void Die(){Mode=GameMode.Defeated;Input.MouseMode=Input.MouseModeEnum.Visible;Hud.RefreshMenu();}
     public void Retry()
     {
-        ExitRoom();Player.Visible=true;Player.Respawn();Locked=null;danger=0;Regroup();
-        CameraYaw=0;FreezeAnimations(false);Start();Toast("BACK AT THE VILLAGE");
+        ExitRoom();Player.Visible=true;Player.Respawn();Locked=null;danger=0;Regroup();Arm();
+        CameraYaw=0;FreezeAnimations(false);Start();var at=Hoshikawa.World.SavePoints[RestedAt].At;Toast(Hoshikawa.World.InMaze(at.X,at.Y)?"BACK AT THE STARWELL":"BACK AT THE VILLAGE");
     }
     public void Restart()
     {
         QuestStage=Quest.Renji;Heard.Clear();Log.Clear();arrived=false;foreach(var e in Enemies)e.Reset();
-        opening?.Kill();Opened.Clear();foreach(var s in World.Shortcuts)s.Swing(s.Closed);World.ClearRockfall(false);
+        opening?.Kill();Opened.Clear();RestedAt=0;foreach(var s in World.Parts.Where(p=>p.Shortcut))s.Swing(s.Closed);World.ClearRockfall(false);
         foreach(var pickup in World.Pickups)pickup.Node.Visible=true;Player.Inventory.Reset();
         Player.Growth.Reset();
         Retry();PlaceCast();Opening();
@@ -233,7 +243,8 @@ public partial class Game : Node3D
     // The save point rests Mio and opens its screen, where she levels up and trades; play stays frozen under it.
     public void Rest()
     {
-        Player.Rest();Regroup();Sound("heal");
+        int at=Array.FindIndex(Hoshikawa.World.SavePoints,p=>new Vector2(Player.GlobalPosition.X,Player.GlobalPosition.Z).DistanceTo(p.At)<2.4f);if(at>=0)RestedAt=at;
+        Player.Rest();Regroup();Arm();Sound("heal");
         Mode=GameMode.Rest;Input.MouseMode=Input.MouseModeEnum.Visible;FreezeAnimations(true);Hud.RefreshMenu();
     }
     public void LeaveRest()=>SetPaused(false);
@@ -266,7 +277,7 @@ public partial class Game : Node3D
         Quest.Relay=>World.RelayPosition,
         Quest.Ready=>Errands.Where(e=>!Heard.Contains(e.Scene)).Select(e=>e.By=="Telephone"?Doorstep:Actor(e.By).Body.GlobalPosition).MinBy(p=>p.DistanceTo(Player.GlobalPosition)),
         Quest.Home=>Doorstep,
-        Quest.Beyond=>World.StationRoadEnd,
+        Quest.Beyond=>World.MazeEnd,
         _=>Actor("Renji").Body.GlobalPosition
     };
     private static Vector3 Doorstep=>new(Hoshikawa.World.MioDoor.X,Hoshikawa.World.Height(Hoshikawa.World.MioDoor.X,Hoshikawa.World.MioDoor.Z),Hoshikawa.World.MioDoor.Z);
@@ -280,7 +291,7 @@ public partial class Game : Node3D
         if(World.RelayPosition.DistanceTo(Player.GlobalPosition)<3.3f)return ("repair",T("MANUAL RELAY"));
         if(AtSavePoint)return (Hud.StardustIcon,T(Hoshikawa.World.SavePointName).ToUpperInvariant());
         if(AtHome)return ("",T("DOOR"));
-        if(ShortcutHere()!=null)return ("ladder",T("LADDER"));
+        if(ShortcutHere() is {} part)return ("ladder",T(part.Kind.ToUpperInvariant()));
         if(PickupHere() is {} pickup){var item=Items.Get(pickup.Item);return (item.Icon,T(item.Name).ToUpperInvariant());}
         return ("","");
     }
@@ -301,6 +312,8 @@ public partial class Game : Node3D
         if(AtHome){EnterRoom(false);if(QuestStage==Quest.Home){QuestStage=Quest.Rockfall;Play(Prologue.NightTwo);}return;}
         if(ShortcutHere() is {} shortcut)
         {
+            // A gate is unbarred from one side only.
+            if(shortcut.To.DistanceTo(Player.GlobalPosition)<shortcut.From.DistanceTo(Player.GlobalPosition)){Sound("guard");Toast("IT WILL NOT OPEN FROM THIS SIDE",seconds:3);return;}
             Opened.Add(shortcut.Name);opening=CreateTween();opening.TweenMethod(Callable.From<float>(shortcut.Swing),shortcut.Closed,shortcut.Open,1.8f).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
             Sound("guard");Toast("SHORTCUT OPENED",seconds:4);return;
         }
@@ -349,7 +362,7 @@ public partial class Game : Node3D
         var r=World.Residents.MinBy(r=>r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition));
         return r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition)<3.1f?r:null;
     }
-    private World.Shortcut? ShortcutHere()=>World.Shortcuts.FirstOrDefault(s=>!Opened.Contains(s.Name)&&s.From.DistanceTo(Player.GlobalPosition)<2.2f);
+    private World.Part? ShortcutHere()=>World.Parts.FirstOrDefault(s=>s.Shortcut&&!Opened.Contains(s.Name)&&(s.From.DistanceTo(Player.GlobalPosition)<2.2f||s.Kind=="gate"&&s.To.DistanceTo(Player.GlobalPosition)<2.2f));
     private World.Pickup? PickupHere()=>World.Pickups.FirstOrDefault(p=>p.Node.Visible&&p.Node.GlobalPosition.DistanceTo(Player.GlobalPosition)<2.2f);
     public void Play(params (string Speaker,string Text)[] beats)
     {
@@ -394,7 +407,7 @@ public partial class Game : Node3D
     public void ToggleLock()
     {
         if(Locked!=null){Locked=null;return;}
-        Locked=Enemies.Where(e=>!e.Dead&&e.GlobalPosition.DistanceTo(Player.GlobalPosition)<18)
+        Locked=Enemies.Where(e=>!e.Dead&&!e.Asleep&&e.GlobalPosition.DistanceTo(Player.GlobalPosition)<18)
             .OrderBy(e=>e.GlobalPosition.DistanceTo(Player.GlobalPosition)).FirstOrDefault();
     }
     public bool ClearSight(Vector3 a,Vector3 b)

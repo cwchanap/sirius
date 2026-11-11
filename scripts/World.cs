@@ -38,7 +38,8 @@ public partial class World : Node3D
     public static readonly Vector2 ShrineCenter=new(-1,63);
     // Hoshikawa's well is the valley's one save point, where Mio rests, levels up and trades. Its name is drawn through the ui tables.
     // The Starwells, where Mio rests, levels up and trades: Hoshikawa's well in the square and Komorebi's.
-    public static readonly (string Village,Vector2 At)[] SavePoints={("Hoshikawa",new(-3.2f,24)),("Komorebi",new(-4.8f,-249.6f))};
+    // The Starwells: the wells of both villages, then Tunnel Mountain's two, at the Court where it begins and at the Halt in its middle.
+    public static readonly (string Place,Vector2 At)[] SavePoints={("Hoshikawa",new(-3.2f,24)),("Komorebi",new(-4.8f,-249.6f)),("Court",new Vector2(92,-156)),("Halt",new Vector2(247,-173))};
     public const string SavePointName="Starwell";
     public static readonly (Vector2 From,Vector2 To)[] Footpaths={(new(0,15),new(17.2f,15)),(new(21.4f,15),new(34,15)),(new(34,15),new(34,20))};
     public static bool OnFootpath(Vector2 p,float margin)=>Footpaths.Any(f=>Geometry2D.GetClosestPointToSegment(p,f.From,f.To).DistanceTo(p)<1.2f+margin);
@@ -84,7 +85,7 @@ public partial class World : Node3D
         return fx+fz<=1?Height(x0,z0)+fx*(Height(x0+1,z0)-Height(x0,z0))+fz*(Height(x0,z0+1)-Height(x0,z0))
             :Height(x0+1,z0+1)+(1-fx)*(Height(x0,z0+1)-Height(x0+1,z0+1))+(1-fz)*(Height(x0+1,z0)-Height(x0+1,z0+1));
     }
-    public static string RegionAt(Vector3 p) => p.Z < -232 ? "Komorebi" : p.Z < RelayNorth ? "Cedar Pass" : p.Z < RelaySouth ? "Old Relay Road" : "Hoshikawa";
+    public static string RegionAt(Vector3 p) => InMaze(p.X, p.Z) ? MazeName : p.Z < -232 ? "Komorebi" : p.Z < RelayNorth ? "Cedar Pass" : p.Z < RelaySouth ? "Old Relay Road" : "Hoshikawa";
     public static readonly Color Jade = new("72e5cc"), Gold = new("eacb89"), Ink = new("152c33");
     private readonly RandomNumberGenerator rng = new() { Seed = 2189 };
     private Material stone = null!, roof = null!, wood = null!;
@@ -92,7 +93,7 @@ public partial class World : Node3D
     {
         stone = Atlas(new(0, 1), new(2, 2)); roof = Atlas(new(1, 1), new(5, 3));
         wood = Mat(new("594735"));
-        Environment(); Terrain(); Village(); Countryside(); RelayRoad(); NorthernValley(); Komorebi(); Merge();
+        Environment(); Terrain(); Village(); Countryside(); RelayRoad(); Maze(); NorthernValley(); Komorebi(); Merge();
     }
     // The static cache would otherwise hold its materials past the engine's leak check at quit.
     public override void _ExitTree() => looks.Clear();
@@ -305,7 +306,7 @@ public partial class World : Node3D
         AddChild(new DirectionalLight3D { RotationDegrees = new(-34, -52, 0), LightColor = new("ffdfb0"),
             LightEnergy = 1.2f, ShadowEnabled = true, DirectionalShadowMaxDistance = 100, ShadowBias = .06f });
         // The occupied city, a distant story landmark on the far eastern ridge, half lost in the haze from Cedar Pass.
-        for (int i=0;i<9;i++){float x=150+i*3;Box(this,"Machine city silhouette",new(x,Height(x,-120)+6+i%3*3,-120),new(2,18+i%3*6,3),Mat(new("728e8c")));}
+        for (int i=0;i<9;i++){float x=392+i*3;Box(this,"Machine city silhouette",new(x,Height(x,-120)+6+i%3*3,-120),new(2,18+i%3*6,3),Mat(new("728e8c")));}
     }
     private void Terrain()
     {
@@ -313,15 +314,19 @@ public partial class World : Node3D
         material.SetShaderParameter("atlas",GD.Load<Texture2D>("res://assets/art/material-atlas.png"));
         // The 1 m terrain over the play area and its margin, with its collider, in 64 m chunks that culling can drop; then the 4 m mountains and
         // seabed round it to Far, stitched to its edge.
+        // Height() is a pure function, so the chunks' vertices are worked out on every core and only their meshes made here.
+        static IEnumerable<Rect2I> Chunks(Rect2I area){for(int z=area.Position.Y;z<area.End.Y;z+=64)for(int x=area.Position.X;x<area.End.X;x+=64)yield return new(x,z,Math.Min(64,area.End.X-x),Math.Min(64,area.End.Y-z));}
         var ground = new StaticBody3D { Name = "Terrain collision" }; AddChild(ground);
-        for(int z=Fine.Position.Y;z<Fine.End.Y;z+=64)for(int x=Fine.Position.X;x<Fine.End.X;x+=64)
+        var fine=Chunks(Fine).Concat(Chunks(MazeFine)).ToArray();
+        foreach(var (area,data) in fine.Zip(fine.AsParallel().AsOrdered().Select(a=>Ground(a,1))))
         {
-            var mesh=Ground(new(x,z,Math.Min(64,Fine.End.X-x),Math.Min(64,Fine.End.Y-z)),1);
-            Mesh(this,$"Rolling terrain {x} {z}",mesh,Vector3.Zero,material);
+            var mesh=GroundMesh(data!.Value);
+            Mesh(this,$"Rolling terrain {area.Position.X} {area.Position.Y}",mesh,Vector3.Zero,material);
             ground.AddChild(new CollisionShape3D { Shape = mesh.CreateTrimeshShape() });
         }
-        for(int z=Far.Position.Y;z<Far.End.Y;z+=64)for(int x=Far.Position.X;x<Far.End.X;x+=64)
-            if(Ground(new(x,z,Math.Min(64,Far.End.X-x),Math.Min(64,Far.End.Y-z)),4,true) is ArrayMesh mesh)Mesh(this,$"Mountains {x} {z}",mesh,Vector3.Zero,material);
+        var far=Chunks(Far).ToArray();
+        foreach(var (area,data) in far.Zip(far.AsParallel().AsOrdered().Select(a=>Ground(a,4,true))))
+            if(data is {} d)Mesh(this,$"Mountains {area.Position.X} {area.Position.Y}",GroundMesh(d),Vector3.Zero,material);
         var water = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shaders/water.gdshader") };water.SetShaderParameter("flow",new Vector2(-.35f,0));
         // 1 m cells, on the terrain's own columns, so the sheet's ends meet the gorge's and the sea's water vertex for vertex.
         Mesh(this,"Hoshikawa river",new PlaneMesh { Size = new(2*HalfWidth,8), SubdivideWidth = 2*HalfWidth-1 },new(0,WaterLevel,-8),water);
@@ -334,47 +339,57 @@ public partial class World : Node3D
         }
         Wilds();
     }
-    // The side a coarse cell at `p` shares with the 1 m ground, if any, as its ends and the corners across the cell from them.
-    public static (Vector2I A,Vector2I B,Vector2I FarA,Vector2I FarB)? FineSide(Vector2I p,int step)
+    // The sides a coarse cell at `p` shares with the 1 m ground, as their ends: one, or two meeting at a corner where the 1 m ground turns
+    // in round the cell, as it does where MazeFine meets Fine.
+    public static List<(Vector2I A,Vector2I B)> FineSides(Vector2I p,int step)
     {
-        Vector2I r=new(step,0),d=new(0,step);
-        foreach(var (a,b,fa,fb,beyond) in new[]{(p,p+d,p+r,p+r+d,p-r),(p+r,p+r+d,p,p+d,p+r),(p,p+r,p+d,p+r+d,p-d),(p+d,p+r+d,p,p+r,p+d)})
-            if(!Fine.HasPoint(p)&&Fine.HasPoint(beyond))return (a,b,fa,fb);
-        return null;
+        Vector2I r=new(step,0),d=new(0,step);var sides=new List<(Vector2I,Vector2I)>();
+        if(!IsFine(p))foreach(var (a,b,beyond) in new[]{(p,p+d,p-r),(p+r,p+r+d,p+r),(p,p+r,p-d),(p+d,p+r+d,p+d)})if(IsFine(beyond))sides.Add((a,b));
+        return sides;
     }
     // A terrain grid over `area` at `step` metres, split on the (x+step,z)-(x,z+step) diagonal like the water grids. UV2.x is Shore(), which
     // varies across each triangle as the ground does, so the wet band painted from it follows the ground's own contour; UV2.y is RoadGap()
     // in the play area, 9 beyond it, so the road's paint stays off the mountains and the beach. With `skipFine`,
     // the 4 m grid leaves out the 1 m ground and fans each cell along its edge to that ground's own vertices, so the two meet without a crack.
-    private static ArrayMesh? Ground(Rect2I area,int step,bool skipFine=false)
+    private static (Vector3[] V,Vector3[] N,Vector2[] UV,Vector2[] Shore,int[] Index)? Ground(Rect2I area,int step,bool skipFine=false)
     {
         var at=new Dictionary<Vector2I,int>();var v=new List<Vector3>();var n=new List<Vector3>();var uv=new List<Vector2>();var shore=new List<Vector2>();var index=new List<int>();
-        bool Rim(Vector2I p)=>p.X>=Fine.Position.X&&p.X<=Fine.End.X&&p.Y>=Fine.Position.Y&&p.Y<=Fine.End.Y;
+        bool Rim(Vector2I p)=>new[]{Fine,MazeFine}.Any(f=>p.X>=f.Position.X&&p.X<=f.End.X&&p.Y>=f.Position.Y&&p.Y<=f.End.Y);
         int V(Vector2I p)
         {
             if(at.TryGetValue(p,out int k))return k;
             float x=p.X,z=p.Y,e=step==1||Rim(p)?.1f:1;var normal=new Vector3(Height(x-e,z)-Height(x+e,z),2*e,Height(x,z-e)-Height(x,z+e)).Normalized();
             at[p]=k=v.Count;v.Add(new(x,Height(x,z),z));n.Add(normal);uv.Add(new(x*.15f,z*.15f));
-            shore.Add(new(Shore(x,z),InPlay(x,z)?RoadGap(x,z):9));return k;
+            shore.Add(new(Shore(x,z),InPlay(x,z)||x>HalfWidth?RoadGap(x,z):9));return k;
         }
         // Wound clockwise seen from above, the terrain's front.
         void T(Vector2I a,Vector2I b,Vector2I d){if((b.X-a.X)*(d.Y-a.Y)-(b.Y-a.Y)*(d.X-a.X)<0)(b,d)=(d,b);index.AddRange(new[]{V(a),V(b),V(d)});}
         for(int z=area.Position.Y;z<area.End.Y;z+=step)for(int x=area.Position.X;x<area.End.X;x+=step)
         {
             Vector2I p=new(x,z),r=new(step,0),d=new(0,step);
-            if(skipFine&&Fine.HasPoint(p))continue;
-            if(skipFine&&FineSide(p,step) is var (a,b,fa,fb))
+            if(skipFine&&IsFine(p))continue;
+            var sides=skipFine?FineSides(p,step):new();
+            if(sides.Count==1)
             {
-                var u=(b-a)/step;var mid=a+u*(step/2);T(fa,mid,fb);
+                var (a,b)=sides[0];var u=(b-a)/step;var mid=a+u*(step/2);var inward=p*2+r+d-a-b;var (fa,fb)=(a+inward,b+inward);T(fa,mid,fb);
                 for(var q=a;q!=mid;q+=u)T(fa,q,q+u);
                 for(var q=mid;q!=b;q+=u)T(fb,q,q+u);
             }
+            else if(sides.Count==2)
+            {
+                // Fanned from the one corner on neither side, round both sides' vertices.
+                var on=sides.SelectMany(s=>new[]{s.A,s.B}).ToHashSet();var o=new[]{p,p+r,p+d,p+r+d}.Single(c=>!on.Contains(c));
+                foreach(var (a,b) in sides){var u=(b-a)/step;for(var q=a;q!=b;q+=u)T(o,q,q+u);}
+            }
             else{T(p,p+r,p+d);T(p+r,p+r+d,p+d);}
         }
-        if(index.Count==0)return null;
+        return index.Count==0?null:(v.ToArray(),n.ToArray(),uv.ToArray(),shore.ToArray(),index.ToArray());
+    }
+    private static ArrayMesh GroundMesh((Vector3[] V,Vector3[] N,Vector2[] UV,Vector2[] Shore,int[] Index) data)
+    {
         var arrays=new Godot.Collections.Array();arrays.Resize((int)Godot.Mesh.ArrayType.Max);
-        arrays[(int)Godot.Mesh.ArrayType.Vertex]=v.ToArray();arrays[(int)Godot.Mesh.ArrayType.Normal]=n.ToArray();
-        arrays[(int)Godot.Mesh.ArrayType.TexUV]=uv.ToArray();arrays[(int)Godot.Mesh.ArrayType.TexUV2]=shore.ToArray();arrays[(int)Godot.Mesh.ArrayType.Index]=index.ToArray();
+        arrays[(int)Godot.Mesh.ArrayType.Vertex]=data.V;arrays[(int)Godot.Mesh.ArrayType.Normal]=data.N;
+        arrays[(int)Godot.Mesh.ArrayType.TexUV]=data.UV;arrays[(int)Godot.Mesh.ArrayType.TexUV2]=data.Shore;arrays[(int)Godot.Mesh.ArrayType.Index]=data.Index;
         var mesh=new ArrayMesh();mesh.AddSurfaceFromArrays(Godot.Mesh.PrimitiveType.Triangles,arrays);return mesh;
     }
     private void Village()

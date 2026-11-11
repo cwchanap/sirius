@@ -7,7 +7,7 @@ public partial class World
 {
     // The 1 m terrain and its collider reach this far past the play area, over the cliffs, gorges and beach; 4 m mountains carry on to Far.
     public const int Margin = 40;
-    public static readonly Rect2I Fine = new(-HalfWidth-Margin,NorthEdge-Margin,2*(HalfWidth+Margin),SouthEdge-NorthEdge+2*Margin), Far = new(-180,NorthEdge-100,360,SouthEdge-NorthEdge+200);
+    public static readonly Rect2I Fine = new(-HalfWidth-Margin,NorthEdge-Margin,2*(HalfWidth+Margin),SouthEdge-NorthEdge+2*Margin), Far = new(-180,NorthEdge-100,620,SouthEdge-NorthEdge+200);
     public static bool InPlay(float x,float z)=>Math.Abs(x)<=HalfWidth&&z>=NorthEdge&&z<=SouthEdge;
     // The rivers beyond the play area, upstream first: (x, water level, z) points whose levels never rise downstream, a fall being two
     // points a metre apart with straight reaches either side. Each course meets a play-area river at its edge with that river's level,
@@ -58,7 +58,7 @@ public partial class World
     // into a trench before the cliff.
     private static float Outside(float x,float z)
     {
-        float cx=Mathf.Clamp(x,-HalfWidth,HalfWidth),cz=Mathf.Clamp(z,NorthEdge,SouthEdge),d=new Vector2(x-cx,z-cz).Length(),sea=Sea(x,z),edge=Inside(cx,cz);
+        float cx=Mathf.Clamp(x,-HalfWidth,HalfWidth),cz=Mathf.Clamp(z,NorthEdge,SouthEdge),d=new Vector2(x-cx,z-cz).Length(),sea=Sea(x,z),edge=EdgeHeight(cx,cz);
         // The beach starts down to the sea up to 6 m out from the edge, so the coast wanders instead of following it.
         float shore=3+3*Mathf.Sin(x*.07f+z*.05f)*Mathf.Sin(x*.031f-z*.083f);
         float y=Mathf.Lerp(edge,Mathf.Lerp(Mathf.Lerp(3.5f,edge,Mathf.SmoothStep(5,10,edge)),edge,sea),Mathf.SmoothStep(0,12,d))+(1-sea)*Mountain(x,z,d)-sea*(3*Mathf.SmoothStep(shore,shore+8,d)+.08f*Math.Max(0,d-shore-8));
@@ -74,7 +74,16 @@ public partial class World
             float bank=Mathf.Lerp(floor,level+.5f,Mathf.SmoothStep(half,half+2,gap))-(1-Mathf.SmoothStep(level+.5f,level+1.5f,y))*Math.Max(0,gap-half-4);
             y=sea>0?Math.Min(y,gorge):Math.Max(gorge,bank);
         }
-        return y;
+        return x>HalfWidth&&z<RelaySouth+40&&z>MazeFine.Position.Y-60?Math.Min(y,MazeCut(x,z)):y;
+    }
+    // The play area's edge height at (x, z), remembered for the last few points asked: a terrain row runs along one edge point but for
+    // its normals' samples either side, and on the relay road's edge each costs a Carve().
+    [ThreadStatic] private static (float X,float Z,float Height)[]? edges;[ThreadStatic] private static int nextEdge;
+    private static float EdgeHeight(float x,float z)
+    {
+        var seen=edges??=Enumerable.Repeat((float.NaN,float.NaN,0f),4).ToArray();
+        foreach(var (ex,ez,h) in seen)if(ex==x&&ez==z)return h;
+        float height=Inside(x,z);seen[nextEdge]=(x,z,height);nextEdge=(nextEdge+1)%seen.Length;return height;
     }
     // An 8 to 12 m cliff, rising over 5 m from a foot that wanders up to 4 m out from the edge: steeper than Mio's 50 degree floor limit
     // over 70% of its height and taller than her 1.24 m jump. Then ridges rising to 5-40 m.
@@ -123,7 +132,7 @@ public partial class World
     // joining is traced on 1 m cells everywhere, since a 4 m cell can straddle a levee and carry the water over it into the hollow behind;
     // a 4 m cell holds water only where one of its 1 m cells does. The ground under a fall's curtain, which neither reach's water covers,
     // counts as joined, so the band paints it wet behind the curtain.
-    private static readonly Lazy<(List<Vector2I> Near,List<Vector2I> Far,HashSet<Vector2I> Joined)[]> RiverWater=new(()=>Rivers.Select(r=>
+    private static readonly Lazy<(List<Vector2I> Near,List<Vector2I> Far,HashSet<Vector2I> Joined)[]> RiverWater=new(()=>Rivers.AsParallel().AsOrdered().Select(r=>
     {
         var course=r.Course;var box=new Rect2(course[0].X,course[0].Z,0,0);foreach(var p in course)box=box.Expand(new(p.X,p.Z));box=box.Grow(Spill+4);
         var area=new Rect2I((Vector2I)(box.Position/4).Floor()*4,(Vector2I)(box.Size/4).Ceil()*4+new Vector2I(4,4));
@@ -132,7 +141,7 @@ public partial class World
         var joined=Wet(area.Intersection(Far),1,Gorge,Level,c=>Along(course,c.X,c.Y).Gap<2);var cells=area.Intersection(Far);
         var all=joined.Concat(Enumerable.Range(0,cells.Size.X*cells.Size.Y).Select(i=>cells.Position+new Vector2I(i%cells.Size.X,i/cells.Size.X))
             .Where(c=>Along(course,c.X+.5f,c.Y+.5f) is var a&&Fall(course[a.Segment],course[a.Segment+1])&&a.Gap<Half(a.From,Beyond(c.X,c.Y))+1)).ToHashSet();
-        return (joined.Where(c=>Fine.HasPoint(c)).ToList(),Wet(area.Intersection(Far),4,c=>Gorge(c)&&!Fine.HasPoint((Vector2I)c.Floor()),Level)
+        return (joined.Where(IsFine).ToList(),Wet(area.Intersection(Far),4,c=>Gorge(c)&&!IsFine((Vector2I)c.Floor()),Level)
             .Where(c=>Enumerable.Range(0,16).Any(i=>all.Contains(c+new Vector2I(i%4,i/4)))).ToList(),all);
     }).ToArray());
     // The corners of every river water cell, and the ground within one 4 m cell of them. Shore() paints a river's wet band only on that
@@ -146,7 +155,7 @@ public partial class World
         var sea=WaterMaterial(Vector2.Zero);
         bool Open(Vector2 c)=>!InPlay(c.X,c.Y)&&Sea(c.X,c.Y)>0;
         WaterGrid("Sea",Wet(Fine,1,Open,(_,_)=>WaterLevel),1,(_,_)=>WaterLevel,sea);
-        WaterGrid("Open sea",Wet(Far,4,c=>Open(c)&&!Fine.HasPoint((Vector2I)c.Floor()),(_,_)=>WaterLevel),4,(_,_)=>WaterLevel,sea);
+        WaterGrid("Open sea",Wet(Far,4,c=>Open(c)&&!IsFine((Vector2I)c.Floor()),(_,_)=>WaterLevel),4,(_,_)=>WaterLevel,sea);
         // Past the 4 m mountains the sea runs on under the fog to the horizon, west of the whole range as well as south of it, ending
         // further out than any view reaches.
         Mesh(this,"Sea to the horizon",new PlaneMesh{Size=new(2000,3000),SubdivideWidth=249},new(Far.Position.X-1000,WaterLevel,0),sea);
@@ -189,7 +198,7 @@ public partial class World
             if(!owns(new(x+step/2f,z+step/2f)))continue;
             var corners=new[]{(x,z),(x+step,z),(x,z+step),(x+step,z+step)};var l=corners.Select(c=>level(c.Item1,c.Item2)).ToArray();
             // Along the 1 m ground's edge the terrain has a vertex every metre, each of which may let the water in.
-            var rim=step>1&&FineSide(new(x,z),step) is var (a,b,_,_)?Enumerable.Range(1,step-1).Select(i=>a+(b-a)/step*i).ToArray():Array.Empty<Vector2I>();
+            var rim=step>1?FineSides(new(x,z),step).SelectMany(s=>Enumerable.Range(1,step-1).Select(i=>s.A+(s.B-s.A)/step*i)).ToArray():Array.Empty<Vector2I>();
             if(l.Max()-l.Min()>.7f*step||corners.Select((c,i)=>Height(c.Item1,c.Item2)-l[i]).Concat(rim.Select(q=>Height(q.X,q.Y)-level(q.X,q.Y))).Min()>=.04f)continue;
             wet.Add(new(x,z));
         }

@@ -1,5 +1,6 @@
 extends SceneTree
-# Render cost at three village viewpoints. Draw calls and primitives repeat exactly, so compare those between commits;
+# Render cost at three village viewpoints and two in Tunnel Mountain (the Court and the Row). Draw calls and primitives repeat exactly,
+# so compare those between commits;
 # fps and CPU render time drift with machine load. GPU time reads 0 under Metal Forward Mobile, so it is not sampled.
 func _initialize():
 	call_deferred("run")
@@ -12,8 +13,9 @@ func run():
 	var vp=root.get_viewport_rid()
 	RenderingServer.viewport_set_measure_render_time(vp,true)
 	var mio=game.get_node("Mio")
-	for spot in [Vector3(0,.1,31),Vector3(0,.1,16),Vector3(-3,2.5,58)]:
+	for spot in [Vector3(0,.1,31),Vector3(0,.1,16),Vector3(-3,2.5,58),Vector3(92,10.1,-154),Vector3(232,20.1,-128)]:
 		mio.position=spot
+		mio.velocity=Vector3.ZERO
 		for i in range(90): await process_frame
 		var cpu=[]
 		for i in range(240):

@@ -138,7 +138,7 @@ public partial class Hud : Control
         if(Game.Blackout>0)DrawRect(new(0,0,w,h),new Color(0,0,0,Game.Blackout));
         if(Game.TintTime>0)DrawRect(new Rect2(0,0,w,h),new Color(Game.TintColor,Game.TintColor.A*Game.TintTime/Game.TintLength));
         Quest();if(!Game.InRoom)Minimap();Vitals();Wallet();
-        var closest=Game.Locked??Game.Enemies.Where(e=>!e.Dead&&e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)<12).OrderBy(e=>e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)).FirstOrDefault();
+        var closest=Game.Locked??Game.Enemies.Where(e=>!e.Dead&&!e.Asleep&&e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)<12).OrderBy(e=>e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)).FirstOrDefault();
         if(closest!=null)Target(closest);
         if(Game.Mode==GameMode.Playing)
         {
@@ -358,13 +358,13 @@ public partial class Hud : Control
         // The relay road follows its painted trails; RoadX() guides the road either side of it.
         for(float z=Game.Player.GlobalPosition.Z-52;z<Game.Player.GlobalPosition.Z+52;z+=2)
             if(z>=World.NorthEdge&&z<=World.SouthEdge-2&&!(z<-13&&z>World.RelayNorth+4))Road(new(World.RoadX(z),0,z),new(World.RoadX(z+2),0,z+2));
-        foreach(var (_,_,paint,points) in World.Trails)if(paint>0)for(int i=1;i<points.Length;i++)
+        foreach(var (_,_,paint,points) in World.AllTrails)if(paint>0)for(int i=1;i<points.Length;i++)
         {int n=(int)Math.Ceiling(points[i-1].DistanceTo(points[i])/2);for(int k=0;k<n;k++)Road(points[i-1].Lerp(points[i],(float)k/n),points[i-1].Lerp(points[i],(k+1f)/n));}
         foreach(var b in Game.World.Buildings)
         {var p=Map(b.Position);if(p.Length()<r-6)DrawRect(new Rect2(center+p-new Vector2(4,3),new Vector2(8,6)),new("9a9b77"));}
         foreach(var n in Game.World.Residents)
         {var p=Map(n.Body.Position);if(p.Length()<r-3)DrawCircle(center+p,2,jade);}
-        foreach(var e in Game.Enemies.Where(e=>!e.Dead))
+        foreach(var e in Game.Enemies.Where(e=>!e.Dead&&!e.Asleep))
         {var p=Map(e.GlobalPosition);if(p.Length()<r-4)DrawCircle(center+p,3,new("e58b66"));}
         DrawCircle(center,4,cream);DrawLine(center,center+new Vector2(-Mathf.Sin(Game.CameraYaw),-Mathf.Cos(Game.CameraYaw))*10,cream,2);
         Diamond(center+Map(Game.ObjectivePosition).LimitLength(r-9),4,gold);

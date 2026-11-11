@@ -31,11 +31,11 @@ public class ItemsTest
         AssertThat(bag.Count("cell")).IsEqual(0);AssertThat(bag.Take("cell")).IsFalse();
     }
     [TestCase]
-    public void ThePouchRaisesTheRemediesSheCarries()
+    public void EachPouchRaisesTheRemediesSheCarries()
     {
         var bag=new Inventory();
-        AssertThat(bag.Add("pouch")).IsTrue();AssertThat(bag.Add("pouch")).IsFalse();
-        AssertThat(bag.Capacity("remedy")).IsEqual(4);AssertThat(bag.Add("remedy")).IsTrue();AssertThat(bag.Count("remedy")).IsEqual(4);
+        AssertThat(bag.Add("pouch")).IsTrue();AssertThat(bag.Capacity("remedy")).IsEqual(4);AssertThat(bag.Add("remedy")).IsTrue();AssertThat(bag.Count("remedy")).IsEqual(4);
+        AssertThat(bag.Add("pouch")).IsTrue();AssertThat(bag.Add("pouch")).IsFalse();AssertThat(bag.Capacity("remedy")).IsEqual(5);
     }
     [TestCase]
     public void ASpentItemKeepsItsSlotUntilAReset()
