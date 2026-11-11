@@ -446,6 +446,19 @@ public partial class World : Node3D
         foreach(float x in new[]{-2.9f,2.9f})Solid(o+new Vector3(x,rail,0),Vector3.Zero,new(.12f,.12f,2*half+.5f));
         Solid(o+new Vector3(0,deck-.1f,0),Vector3.Zero,new(6,.2f,2*half+.46f));
     }
+    // The Tripo shelter, open to the south, stretched 15% taller for headroom under its tie beams, its slab centred on level ground and sunk
+    // to stand 3 cm proud. Boxes fit its slab, posts and back bench; its whole mesh keeps the camera under the roof.
+    private Node3D Shelter(string name,Vector2 at)
+    {
+        var shelter=new Node3D {Name=name,Position=new(at.X,Height(at.X,at.Y),at.Y)};AddChild(shelter);
+        var model=Model(shelter,"Tripo shelter","shelter",new(0,-.45f,-.18f),-90,new(1.3f,1.3f,1.3f));model.Scale=new(1,1.15f,1);
+        var mesh=ActorVisual.Descendants(model).OfType<MeshInstance3D>().Single();var local=shelter.GlobalTransform.AffineInverse()*mesh.GlobalTransform;
+        CameraStop(shelter,new ConcavePolygonShape3D{Data=mesh.Mesh.GetFaces().Select(v=>local*v).ToArray(),BackfaceCollision=true});
+        Solid(shelter.Position+new Vector3(0,-.12f,0),Vector3.Zero,new(6,.3f,5.9f));
+        Solid(shelter.Position+new Vector3(.03f,.36f,-1.8f),Vector3.Zero,new(3.97f,.66f,.96f));
+        foreach(float x in new[]{-2.31f,2.31f})foreach(float z in new[]{-2.2f,2.18f})Solid(shelter.Position+new Vector3(x,1.5f,z),Vector3.Zero,new(.3f,3,.3f));
+        return shelter;
+    }
     private void Solid(Vector3 p,Vector3 turn,Vector3 size){var body=new StaticBody3D{Position=p,Rotation=turn,CollisionMask=0};AddChild(body);body.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=size}});}
     private void Lamp(Vector3 p)=>Model(this,"Lantern pole","street_lamp",p,0,new(1.3f,1.3f,1.3f));
     private void Barrel(Node3D parent,string name,Vector3 p,float yaw,float scale=1)=>Model(parent,name,"village_barrel",p,Mathf.RadToDeg(yaw),new(1.3f,1.3f,1.3f)).Scale=Vector3.One*scale;
@@ -508,15 +521,7 @@ public partial class World : Node3D
         var bridge=new Node3D {Name="Cedar Bridge",Position=new(RoadX(CedarZ),0,CedarZ)};AddChild(bridge);
         Bridge(bridge,4.1f,8,5.2f);
         Label(bridge,"CEDAR RIVER",new(0,6.6f,0),Gold,29);
-        var shelter=new Node3D {Name="Cedar Pass Shelter",Position=new(-12,Height(-12,-191),-191)};AddChild(shelter);
-        // The Tripo shelter, stretched 15% taller for headroom under its tie beams, its slab centred on the levelled pad and sunk to stand 3 cm
-        // proud as the stone floor did. Boxes fit its slab, posts and back bench; its whole mesh keeps the camera under the roof.
-        var shelterModel=Model(shelter,"Tripo shelter","shelter",new(0,-.45f,-.18f),-90,new(1.3f,1.3f,1.3f));shelterModel.Scale=new(1,1.15f,1);
-        var shelterMesh=ActorVisual.Descendants(shelterModel).OfType<MeshInstance3D>().Single();var shelterLocal=shelter.GlobalTransform.AffineInverse()*shelterMesh.GlobalTransform;
-        CameraStop(shelter,new ConcavePolygonShape3D{Data=shelterMesh.Mesh.GetFaces().Select(v=>shelterLocal*v).ToArray(),BackfaceCollision=true});
-        Solid(shelter.Position+new Vector3(0,-.12f,0),Vector3.Zero,new(6,.3f,5.9f));
-        Solid(shelter.Position+new Vector3(.03f,.36f,-1.8f),Vector3.Zero,new(3.97f,.66f,.96f));
-        foreach(float x in new[]{-2.31f,2.31f})foreach(float z in new[]{-2.2f,2.18f})Solid(shelter.Position+new Vector3(x,1.5f,z),Vector3.Zero,new(.3f,3,.3f));
+        var shelter=Shelter("Cedar Pass Shelter",new(-12,-191));
         for(int i=0;i<3;i++)Barrel(shelter,"Rain barrel",new(3.55f,0,-1+i*1.1f),i*2,1.2f);
         Label(shelter,"CEDAR PASS SHELTER",new(0,3.3f,2.72f),Gold,26);
         Footpath(new(RoadX(-189),-189),new(-12,-187),1.2f);

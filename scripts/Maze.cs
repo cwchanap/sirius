@@ -97,6 +97,9 @@ public partial class World
         ("drone",new(262,-133),null),("drone",new(283.5f,-133),null),("drone",new(207,-167.8f),null)};
     // How far a robot at `at` roams, as a share of its kind's loop: less on a narrow trail, so it keeps off the walls.
     public static float Room(Vector2 at)=>Mathf.Clamp(MazeTrails.MinBy(t=>Near(t.Points,at.X,at.Y).Gap).Half/3.5f,.35f,1);
+    // The forest railway's line, broken where the trestle carries it over the Gorge's head.
+    public static readonly Vector2[][] Railway={new Vector2[]{new(161,-166),new(171,-165.2f),new(184,-165),new(200,-167),new(214,-168.5f),new(226,-169),new(258,-170),new(264,-170.4f)},
+        new Vector2[]{new(280,-171),new(284.5f,-171)}};
     public static readonly Vector2[] MazeCells={new(76.6f,-185),new(110.5f,-120.3f),new(192.5f,-100.7f),new(273,-182.5f)};
     public static readonly Vector2 KilnPouch=new(268,-27);
     private void Maze()
@@ -119,24 +122,36 @@ public partial class World
         foreach(var (x,z) in new[]{(90.2f,-128.6f),(93.8f,-128.6f),(87.5f,-156.5f),(96.5f,-153.5f)})StoneLantern(this,Ground(x,z));
         // The Court's east end, where the old line's tunnel has fallen in.
         foreach(var (x,z,size,turn) in new[]{(102.5f,-161,2.2f,.4f),(103.6f,-157.4f,1.8f,1.9f),(101.4f,-164,1.4f,.9f),(104.4f,-163.2f,2.6f,2.6f),(101.8f,-154.6f,1.2f,1.4f)})Boulder("Tunnel rubble",x,z,size,turn);
-        // The Row, an abandoned street of houses, two to a side, facing each other across it.
-        foreach(var (x,z,yaw,style) in new[]{(216f,-121.5f,180f,"kura"),(228f,-122.5f,180f,"farmhouse"),(226f,-140.5f,0f,"teahouse"),(251.5f,-140.5f,0f,"kura")})TripoHouse("Row house",new(x,z),3,yaw,style);
+        // The Row, an abandoned street of houses, three to a side, facing each other across it.
+        foreach(var (x,z,yaw,style) in new[]{(216f,-121.5f,180f,"kura"),(228f,-122.5f,180f,"farmhouse"),(250f,-121.5f,180f,"clinic"),(212f,-140.5f,0f,"kura"),(226f,-140.5f,0f,"teahouse"),(251.5f,-140.5f,0f,"kura")})
+            TripoHouse("Row house",new(x,z),3,yaw,style);
+        // The Halt's shelter, on the platform side of the line west of the Starwell.
+        Shelter("Halt shelter",new(236.5f,-174.3f));
         Handcart("Sawmill cart",new(229,-60.5f),20);
         var woodpile=Model(this,"Sawmill woodpile","woodpile",Ground(235.5f,-49),-80,new(1.3f,1.3f,1.3f));
         var stack=new StaticBody3D{Position=new(0,.6f,0)};woodpile.AddChild(stack);stack.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(1.77f,1.2f,1.11f)}});
         foreach(var (x,z) in new[]{(268.5f,-33.5f),(263.8f,-27.4f),(272.3f,-31.2f)})
         {Barrel(this,"Kiln barrel",Ground(x,z),x);var body=new StaticBody3D{Position=Ground(x,z)+Vector3.Up*.42f};AddChild(body);body.AddChild(new CollisionShape3D{Shape=new CylinderShape3D{Radius=.32f,Height=.84f}});}
         Kakashi("Field scarecrow",new(313,-60),200);
-        // Rails along the Cut and the Halt, the line the Halt served, on sleepers at a narrow gauge.
-        foreach(var name in new[]{"The Cut","The Halt"})
+        // The forest railway on sleepers at a narrow gauge, from its buried west tunnel over the Crossing, along the Cut and the Halt and, past
+        // the trestle (whose rails are its deck's), to its buried east tunnel; rubble fills both mouths.
+        foreach(var points in Railway)
         {
-            var points=MazeTrails.Single(t=>t.Name==name).Points;
             for(int i=0;i<points.Length-1;i++)
             {
-                var a=new Vector2(points[i].X,points[i].Z);var b=new Vector2(points[i+1].X,points[i+1].Z);float length=a.DistanceTo(b),yaw=Mathf.Atan2(b.X-a.X,b.Y-a.Y);var across=new Vector2(a.Y-b.Y,b.X-a.X)/length;
+                var a=points[i];var b=points[i+1];float length=a.DistanceTo(b),yaw=Mathf.Atan2(b.X-a.X,b.Y-a.Y);var across=new Vector2(a.Y-b.Y,b.X-a.X)/length;
                 for(float t=.4f;t<length;t+=.9f){var p=a.Lerp(b,t/length);Box(this,"Rail sleeper",Ground(p.X,p.Y)+Vector3.Up*.04f,new(2,.12f,.24f),wood).Rotation=new(0,yaw,0);}
                 foreach(float side in new[]{-.53f,.53f}){var m=(a+b)/2+across*side;var rail=Box(this,"Rail",Ground(m.X,m.Y)+Vector3.Up*.14f,new(.07f,.1f,length),Mat(new("6f6a62")));rail.Rotation=new(Mathf.Atan2(Height(a.X,a.Y)-Height(b.X,b.Y),length),yaw,0);}
             }
+        }
+        foreach(var (x,z,size,turn) in new[]{(159.8f,-166.4f,2.4f,.3f),(160.6f,-168.7f,1.7f,1.2f),(161.6f,-170.6f,1.2f,2.2f),(287.2f,-171.2f,2.4f,1.7f),(286.8f,-173.4f,1.5f,.6f),(286.9f,-168.9f,1.3f,2.9f)})
+            Boulder("Tunnel rubble",x,z,size,turn);
+        // The Catwalk's planks, laid across it on the cliff.
+        var catwalk=MazeTrails.Single(t=>t.Name=="Catwalk");
+        for(int i=0;i<catwalk.Points.Length-1;i++)
+        {
+            var a=new Vector2(catwalk.Points[i].X,catwalk.Points[i].Z);var b=new Vector2(catwalk.Points[i+1].X,catwalk.Points[i+1].Z);float length=a.DistanceTo(b),yaw=Mathf.Atan2(b.X-a.X,b.Y-a.Y);
+            for(float t=.2f;t<length;t+=.38f){var p=a.Lerp(b,t/length);Box(this,"Catwalk plank",Ground(p.X,p.Y)+Vector3.Up*.03f,new(2*catwalk.Half-.3f,.06f,.32f),wood).Rotation=new(Mathf.Atan2(Height(a.X,a.Y)-Height(b.X,b.Y),length),yaw,0);}
         }
         // Bench 1 runs on toward the north half of the maze, closed for now.
         foreach(float x in new[]{285f,288,291})
@@ -191,6 +206,7 @@ public partial class World
             var piers=Enumerable.Range(0,faces.Length/3).Where(i=>faces[(3*i)..(3*i+3)].All(v=>v.Y<-.6f)).SelectMany(i=>faces[(3*i)..(3*i+3)]).ToArray();
             body.AddChild(new CollisionShape3D{Shape=new ConcavePolygonShape3D{Data=piers,BackfaceCollision=true}});
         }
+        if(name=="Trestle")foreach(float x in new[]{-.53f,.53f})Box(frame,"Rail",new(x,.1f,0),new(.07f,.1f,length),Mat(new("6f6a62")));
         // The trestle's legs stand on the gorge's floor, each on the lowest ground under it.
         if(name=="Trestle")for(float z=-length/2+2;z<length/2-1;z+=3)foreach(float x in new[]{-half+.15f,half-.15f})
         {var top=frame.ToGlobal(new(x,-.2f,z));float ground=Height(top.X,top.Z)-.3f;Box(this,"Trestle leg",new(top.X,(top.Y+ground)/2,top.Z),new(.24f,top.Y-ground,.24f),wood,true);}

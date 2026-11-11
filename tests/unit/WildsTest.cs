@@ -75,6 +75,31 @@ public class WildsTest
         }
         return (seen,Area);
     }
+    // The shortest walk in metres from `from` to `to` over the same moves as Reach(), eight ways (a diagonal only between two floors), a
+    // link costing its own length; infinity if she cannot get there.
+    internal static float Walk(Vector2 from,Vector2 to,Func<int,int,bool>? blocked=null,IEnumerable<(Vector2 A,Vector2 B)>? links=null)
+    {
+        var (height,floor)=Ground.Value;int w=height.GetLength(0),h=height.GetLength(1);
+        (int,int) Cell(Vector2 p)=>((int)Mathf.Round(p.X)-Area.Position.X,(int)Mathf.Round(p.Y)-Area.Position.Y);
+        var joined=new Dictionary<(int,int),List<((int,int) To,float D)>>();
+        foreach(var (a,b) in links??[]){foreach(var (x,y) in new[]{(a,b),(b,a)}){if(!joined.TryGetValue(Cell(x),out var l))joined[Cell(x)]=l=new();l.Add((Cell(y),a.DistanceTo(b)));}}
+        var dist=new float[w,h];for(int i=0;i<w;i++)for(int j=0;j<h;j++)dist[i,j]=float.PositiveInfinity;
+        var start=Cell(from);var goal=Cell(to);dist[start.Item1,start.Item2]=0;var queue=new PriorityQueue<(int I,int J),float>();queue.Enqueue(start,0);
+        bool Step(int i,int j,int a,int b){float rise=height[a,b]-height[i,j];return floor[i,j]&&floor[a,b]?rise<=1.24f:rise<0;}
+        while(queue.TryDequeue(out var c,out float d))
+        {
+            var (i,j)=c;if(d>dist[i,j])continue;if(c==goal)return d;
+            foreach(var (di,dj) in new[]{(1,0),(-1,0),(0,1),(0,-1),(1,1),(1,-1),(-1,1),(-1,-1)})
+            {
+                int a=i+di,b=j+dj;if(a<0||b<0||a>=w||b>=h||float.IsNaN(height[a,b])||blocked?.Invoke(Area.Position.X+a,Area.Position.Y+b)==true||!Step(i,j,a,b))continue;
+                if(di!=0&&dj!=0&&!(floor[a,j]&&floor[i,b]))continue;
+                float n=d+(di!=0&&dj!=0?Mathf.Sqrt2:1);if(n<dist[a,b]){dist[a,b]=n;queue.Enqueue((a,b),n);}
+            }
+            foreach(var ((a,b),dd) in joined.GetValueOrDefault((i,j))??[])
+                if(blocked?.Invoke(Area.Position.X+a,Area.Position.Y+b)!=true&&d+dd<dist[a,b]){dist[a,b]=d+dd;queue.Enqueue((a,b),d+dd);}
+        }
+        return float.PositiveInfinity;
+    }
     internal static IEnumerable<Vector2I> Cells((bool[,] Seen,Rect2I Area) reach)
     {
         for(int i=0;i<reach.Seen.GetLength(0);i++)for(int j=0;j<reach.Seen.GetLength(1);j++)if(reach.Seen[i,j])yield return reach.Area.Position+new Vector2I(i,j);
