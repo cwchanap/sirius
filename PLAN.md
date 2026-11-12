@@ -268,7 +268,8 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [x] `MazeTest` floods the way in and both legs, closes the maze, finds every floor's way back to a Starwell, checks its ground for steps and what stands in it; the self-test walks the way in and leg 1, lets the Bell stair down, climbs it back, opens the Cut gate from the Halt and dies there, in all three languages.
 - [x] Metal on the Mac: the self-test passes, the maze holds 120 Hz, the spring ravine's rim has no gap; dormant scouts now lie down while culled and get up over half a second with no pop, checked again under Metal.
 - [ ] The dormant scout's get-up: the hips start up only after a quarter second of the slump unwinding, and the right arm flicks down and up into the guard; the notch and stepped crest the cut leaves in the ridge beside the Hoshikawa's spring hollow, seen from the headwater; a straight 6 m step in the mountains east of the maze's north-east corner, seen only from the air.
-- [ ] Separate tasks: the north half (HPA-701); the maze's own art, sound and story.
+- [x] The maze's own Tripo Studio models (the owner's, 2026-11-11): both Starwells, three tunnel mouths, the trestle and the hanging bridge with holes for their rotten planks, the Cut gate, the Bell stair, the Halt's platform, a log trolley, the line telephone, the sawmill and two charcoal kilns.
+- [ ] Separate tasks: the north half (HPA-701); the Row's houses, the wayside shrine and the Halt's shelter, still the valleys' models; the maze's sound and story.
 
 ## A longer opening (開場劇情)
 
