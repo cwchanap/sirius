@@ -48,6 +48,7 @@ public partial class World
         ("Goat track",1.8f,0,new Vector3[]{new(153,20.4f,-123.5f),new(161,19,-127.5f),new(168.5f,16.8f,-138),new(172,14.6f,-148),new(172.5f,13.7f,-152.5f)}),
         ("The Cut",2.6f,0,new Vector3[]{new(184,13.5f,-165),new(200,13.8f,-167),new(214,14.2f,-168.5f),new(226,14.5f,-169)}),
         ("The Halt",8,1.1f,new Vector3[]{new(226,14.5f,-169),new(258,14.5f,-170)}),
+        ("Trestle foot",1.6f,1.1f,new Vector3[]{new(262,14.5f,-170.3f),new(267.6f,14.5f,-170.5f)}),
         ("Trestle end",3,1.1f,new Vector3[]{new(281,14.5f,-171),new(283.5f,14.5f,-170.5f)}),
         ("Terrace stair",1.8f,1.1f,new Vector3[]{new(285,14.5f,-167.5f),new(287,16.4f,-160),new(288,18,-152)}),
         ("Goat ledge",1.6f,0,new Vector3[]{new(203,20,-130.5f),new(186,21,-126),new(172,21.8f,-124.5f),new(165.5f,22,-126.5f)}),
