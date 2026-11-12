@@ -187,7 +187,7 @@ public partial class Game : Node3D
         }
         // Any robot out of its patrol, chasing, striking, recovering or held, is a fight; robots only ever engage Mio. A pause, the items
         // screen or a scene freezes the fight and keeps its music; a defeat ends it, and so does Retry() (recovering or restarting).
-        if(Mode==GameMode.Playing)danger=Enemies.Any(e=>!e.Dead&&e.State is not ("PATROL" or "ASLEEP"))?Music.Calm:Math.Max(0,danger-dt);else if(Mode==GameMode.Defeated)danger=0;
+        if(Mode==GameMode.Playing)danger=Enemies.Any(e=>!e.Dead&&e.ProcessMode!=ProcessModeEnum.Disabled&&e.State is not ("PATROL" or "ASLEEP"))?Music.Calm:Math.Max(0,danger-dt);else if(Mode==GameMode.Defeated)danger=0;
         Music.Want(Music.Track(Region,danger>0));
         cameraRig.Position=cameraRig.Position.Lerp(Player.GlobalPosition+Vector3.Up*1.35f,1-Mathf.Exp(-dt*10));
         cameraRig.Rotation=new(CameraPitch,CameraYaw,0);

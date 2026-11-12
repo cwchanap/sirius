@@ -1033,7 +1033,11 @@ public static class IntegrationCheck
         Place(g.Player,On(gateWest));await Frames(10);g.Interact();
         Check(g.Interaction()==("ladder",Localization.T("GATE"))&&!g.Opened.Contains(cutGate.Name)&&g.ToastTitle=="IT WILL NOT OPEN FROM THIS SIDE","from that side the gate will not open");
         // A rotten plank on the trestle from the Halt gives way under her into the gorge's head; a rest puts it back.
-        var rotten=g.World.Parts.Single(p=>p.Name=="Trestle rotten plank");Place(g.Player,rotten.From+Vector3.Up*.1f);await Frames(90);
+        var rotten=g.World.Parts.Single(p=>p.Name=="Trestle rotten plank");Place(g.Player,rotten.From+Vector3.Up*.1f);await Frames(5);
+        // A pause the moment it creaks holds it: it gives way only while she plays.
+        g.SetPaused(true);await Frames(60);
+        Check(g.Sprung.Contains(rotten.Name)&&((StaticBody3D)rotten.Body).CollisionLayer==1&&rotten.Body.Transform.Origin.DistanceTo(rotten.Rest.Origin)<.01f,"a pause holds the creaking plank where it is");
+        g.SetPaused(false);await Frames(90);
         Check(g.Sprung.Contains(rotten.Name)&&g.Player.GlobalPosition.Y<rotten.From.Y-3&&((StaticBody3D)rotten.Body).CollisionLayer==0,$"the trestle's rotten plank gives way under her {g.Player.GlobalPosition}");
         Place(g.Player,On(gateEast));await Frames(10);g.Interact();await Frames(130);
         Check(g.Opened.Contains(cutGate.Name)&&Down(cutGate)&&await Head(gateWest-(gateEast-gateWest).Normalized()*3,true,240),"unbarred from the Halt's side, the gate opens the Cut through to the Crossing");

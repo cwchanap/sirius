@@ -349,7 +349,7 @@ public partial class World : Node3D
     }
     // A terrain grid over `area` at `step` metres, split on the (x+step,z)-(x,z+step) diagonal like the water grids. UV2.x is Shore(), which
     // varies across each triangle as the ground does, so the wet band painted from it follows the ground's own contour; UV2.y is RoadGap()
-    // in the play area, 9 beyond it, so the road's paint stays off the mountains and the beach. With `skipFine`,
+    // in the play area and over Tunnel Mountain east of it, 9 elsewhere, so the road's paint stays off the other mountains and the beach. With `skipFine`,
     // the 4 m grid leaves out the 1 m ground and fans each cell along its edge to that ground's own vertices, so the two meet without a crack.
     private static (Vector3[] V,Vector3[] N,Vector2[] UV,Vector2[] Shore,int[] Index)? Ground(Rect2I area,int step,bool skipFine=false)
     {
