@@ -1,0 +1,44 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://cus01b7xhlghe"
+path.s3tc="res://.godot/imported/halt_platform_stone_platform_3d_model_normal-813cc4dc1192.png-e0cb8855912ffe56895c005bdabbff44.s3tc.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "777b17b6b4a30a17b5558a0b797b39dd"
+}
+
+[deps]
+
+source_file="res://assets/models/halt_platform_stone_platform_3d_model_normal-813cc4dc1192.png"
+dest_files=["res://.godot/imported/halt_platform_stone_platform_3d_model_normal-813cc4dc1192.png-e0cb8855912ffe56895c005bdabbff44.s3tc.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/uastc_level=0
+compress/rdo_quality_loss=0.0
+compress/hdr_compression=1
+compress/normal_map=1
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/channel_remap/red=0
+process/channel_remap/green=1
+process/channel_remap/blue=2
+process/channel_remap/alpha=3
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=1

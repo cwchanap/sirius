@@ -272,7 +272,14 @@ public partial class World
         var part=new AnimatableBody3D{Name=name,Position=top+Vector3.Down*.1f,CollisionMask=0};AddChild(part);
         part.AddChild(new CollisionShape3D{Position=new(0,-.08f,length/2+.1f),Shape=new BoxShape3D{Size=new(1.5f,.16f,length+.2f)}});
         // The Tripo ladder (7.84 m, hinge brackets at its head) fitted to the walk box: its rung tops 2 cm above it and its rails to the box's sides.
-        Model(part,"Ladder","ladder",new(0,-.15f,length/2),-90,new(1.3f,1.3f,1.3f)).Scale=new(length/7.84f,.8f,1.15f);
+        if(kind=="ladder")Model(part,"Ladder","ladder",new(0,-.15f,length/2),-90,new(1.3f,1.3f,1.3f)).Scale=new(length/7.84f,.8f,1.15f);
+        else
+        {
+            // The Tripo stair: its treads' line runs 12.4 m from (0, 6, -6.25) at its hinged head down to (0, 0, 4.6), 29 degrees, so turned
+            // that line lies along the walk box, scaled to its length, its treads 2 cm above it and narrowed to 2 m over its handrail.
+            var model=Model(part,"Stair","bell_stair",Vector3.Zero,0,new(1.3f,1.3f,1.3f));float s=length/12.4f;var turn=new Basis(Vector3.Right,Mathf.DegToRad(-28.95f));
+            model.Basis=turn*Basis.FromScale(new(.42f,s,s));model.Position=Vector3.Up*.02f-turn*new Vector3(0,6*s,-6.25f*s);
+        }
         var stair=new Part(name,kind,part,from,foot,closed,Mathf.Atan2(-d.Y,new Vector2(d.X,d.Z).Length()),Mathf.Atan2(d.X,d.Z));stair.Swing(stair.Closed);Parts.Add(stair);
     }
     // A remedy pouch on a barrel's lid, and a resonance cell standing lit on the ground, each one of the Pickups.

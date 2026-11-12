@@ -1057,7 +1057,12 @@ public static class IntegrationCheck
         g.SetPaused(true);await Frames(60);
         Check(g.Sprung.Contains(rotten.Name)&&((StaticBody3D)rotten.Body).CollisionLayer==1&&rotten.Body.Transform.Origin.DistanceTo(rotten.Rest.Origin)<.01f,"a pause holds the creaking plank where it is");
         g.SetPaused(false);await Frames(90);
-        Check(g.Sprung.Contains(rotten.Name)&&g.Player.GlobalPosition.Y<rotten.From.Y-3&&((StaticBody3D)rotten.Body).CollisionLayer==0,$"the trestle's rotten plank gives way under her {g.Player.GlobalPosition}");
+        var fell=g.Player.GlobalPosition;Check(g.Sprung.Contains(rotten.Name)&&fell.Y<rotten.From.Y-3&&Math.Abs(fell.Y-Hoshikawa.World.Height(fell.X,fell.Z))<.2f&&((StaticBody3D)rotten.Body).CollisionLayer==0,$"the trestle's rotten plank gives way under her, down past its beams to the gorge's floor {fell}");
+        // The hanging bridge's boards sag 35 cm midway, and she walks on them, not on the line between its ends.
+        var hanging=g.World.GetNode<Node3D>("Hanging bridge");var span=Hoshikawa.World.Decks.Single(d=>d.Name=="Hanging bridge");
+        float spanLength=new Vector3(span.B.X-span.A.X,Hoshikawa.World.Height(span.B.X,span.B.Y)-Hoshikawa.World.Height(span.A.X,span.A.Y),span.B.Y-span.A.Y).Length();
+        Place(g.Player,hanging.ToGlobal(new(0,.3f,2.5f)));await Frames(20);var onBoards=hanging.ToLocal(g.Player.GlobalPosition);
+        Check(g.Player.IsOnFloor()&&Math.Abs(onBoards.Y+.35f*(1-4*onBoards.Z*onBoards.Z/(spanLength*spanLength)))<.06f,$"on the hanging bridge she stands on its sagging boards, {-onBoards.Y:F2} m under the line between its ends");
         Place(g.Player,On(gateEast));await Frames(10);g.Interact();await Frames(130);
         Check(g.Opened.Contains(cutGate.Name)&&Down(cutGate)&&await Head(gateWest-(gateEast-gateWest).Normalized()*3,true,240),"unbarred from the Halt's side, the gate opens the Cut through to the Crossing");
         g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);

@@ -99,8 +99,8 @@ public partial class World
     // How far a robot at `at` roams, as a share of its kind's loop: less on a narrow trail, so it keeps off the walls.
     public static float Room(Vector2 at)=>Mathf.Clamp(MazeTrails.MinBy(t=>Near(t.Points,at.X,at.Y).Gap).Half/3.5f,.35f,1);
     // The forest railway's line, broken where the trestle carries it over the Gorge's head.
-    public static readonly Vector2[][] Railway={new Vector2[]{new(161,-166),new(171,-165.2f),new(184,-165),new(200,-167),new(214,-168.5f),new(226,-169),new(258,-170),new(264,-170.4f)},
-        new Vector2[]{new(280,-171),new(284.5f,-171)}};
+    public static readonly Vector2[][] Railway={new Vector2[]{new(161.5f,-167.7f),new(171,-165.2f),new(184,-165),new(200,-167),new(214,-168.5f),new(226,-169),new(258,-170),new(264,-170.4f)},
+        new Vector2[]{new(280,-171),new(285.8f,-171)}};
     public static readonly Vector2[] MazeCells={new(76.6f,-185),new(110.5f,-120.3f),new(192.5f,-100.7f),new(273,-182.5f)};
     public static readonly Vector2 KilnPouch=new(268,-27);
     private void Maze()
@@ -114,20 +114,40 @@ public partial class World
         // Drawn up, it stands on end over the brow, a mark to read from the terrace below.
         Stair("Bell stair","stair",top,new(BellFoot.X,Height(BellFoot.X,BellFoot.Y),BellFoot.Y),-Mathf.Pi/2,top-new Vector3(dir.X,0,dir.Y)*1.3f);
         Gate();
-        foreach(var (place,at) in SavePoints.Where(p=>InMaze(p.At.X,p.At.Y)))Well(place+" well",at);
         foreach(var cell in MazeCells)Cell(cell);
         Pouch(KilnPouch,"Kiln pouch","Kiln barrel");
         Vector3 Ground(float x,float z)=>new(x,Height(x,z),z);
+        // The Starwells: a shrine well carved with stars under the Court's cliff, its front to the Court, and the Halt's pump well turned to
+        // the line, under a tin roof the camera keeps below.
+        var court=SavePoints.Single(p=>p.Place=="Court").At;Piece("Court well","court_starwell",Ground(court.X,court.Y),0,2.2f);
+        var halt=SavePoints.Single(p=>p.Place=="Halt").At;var pump=Piece("Halt well","halt_well",Ground(halt.X,halt.Y),180,2.1f);
+        var roof=new Node3D{Position=new(0,2.45f,0)};pump.AddChild(roof);CameraStop(roof,new BoxShape3D{Size=new(3,.7f,3.1f)});
         // The wayside shrine on its terrace over the Court, its torii at the head of the stone steps.
         ShrineHall("Wayside shrine",new(92,-124.5f),180);Torii(Ground(96,-135.5f),0,"Wayside torii");
         foreach(var (x,z) in new[]{(90.2f,-128.6f),(93.8f,-128.6f),(87.5f,-156.5f),(96.5f,-153.5f)})StoneLantern(this,Ground(x,z));
-        // The Court's east end, where the old line's tunnel has fallen in.
-        foreach(var (x,z,size,turn) in new[]{(102.5f,-161,2.2f,.4f),(103.6f,-157.4f,1.8f,1.9f),(101.4f,-164,1.4f,.9f),(104.4f,-163.2f,2.6f,2.6f),(101.8f,-154.6f,1.2f,1.4f)})Boulder("Tunnel rubble",x,z,size,turn);
+        // The old road's tunnel at the Court's east end and the forest railway's at either end of its line, each fallen in: one Tripo portal,
+        // its rubble-filled arch on its own +Z face and 3.93 m of rock behind it that the cliff swallows. (x, z) is its front, 1.5 m out from
+        // the cliff's foot as the arch is set back in it, and the yaw its way out, square to the cliff, which at the line's west end runs
+        // askew across it, so the line bends into that arch.
+        foreach(var (x,z,yaw) in new[]{(103.5f,-159f,-90f),(161.3f,-167.8f,75f),(285.8f,-171f,-90f)})
+        {var face=Ground(x+3.93f*Mathf.Sin(Mathf.DegToRad(yaw)),z+3.93f*Mathf.Cos(Mathf.DegToRad(yaw)));Piece("Tunnel portal","tunnel_portal",new(x-3.93f*Mathf.Sin(Mathf.DegToRad(yaw)),face.Y,z-3.93f*Mathf.Cos(Mathf.DegToRad(yaw))),yaw);}
+        foreach(var (x,z,size,turn) in new[]{(101.4f,-164,1.4f,.9f),(101.8f,-154.6f,1.2f,1.4f)})Boulder("Tunnel rubble",x,z,size,turn);
         // The Row, an abandoned street of houses, three to a side, facing each other across it.
         foreach(var (x,z,yaw,style) in new[]{(216f,-121.5f,180f,"kura"),(228f,-122.5f,180f,"farmhouse"),(250f,-121.5f,180f,"clinic"),(212f,-140.5f,0f,"kura"),(226f,-140.5f,0f,"teahouse"),(251.5f,-140.5f,0f,"kura")})
             TripoHouse("Row house",new(x,z),3,yaw,style);
         // The Halt's shelter, on the platform side of the line west of the Starwell.
         Shelter("Halt shelter",new(236.5f,-174.3f));
+        // Its platform across the line, the name board and lamp facing the well, its ramp east; a log trolley left on the line at its west
+        // end, its wheels on the rails; and the line telephone at the Crossing, by the Cut.
+        Piece("Halt platform","halt_platform",Ground(244,-167.2f),0);
+        var line=(Railway[0][6]-Railway[0][5]).Normalized();var trolley=Railway[0][5]+line*4;
+        Piece("Log trolley","trolley",Ground(trolley.X,trolley.Y)+Vector3.Up*.19f,Mathf.RadToDeg(Mathf.Atan2(line.X,line.Y)));
+        Piece("Line telephone","phone_box",Ground(180,-161.5f),0);
+        // The sawmill, its back in the hollow's north wall, open to the hollow; and the charcoal kilns dug into the Kilns' sides, each mouth to
+        // the floor and a dormant scout asleep before it.
+        Piece("Sawmill","sawmill",Ground(245,-60),0,4.5f);
+        foreach(var (x,z,yaw) in new[]{(264.5f,-35f,0f),(271.5f,-25f,180f)})
+        {var mouth=Ground(x+2.17f*Mathf.Sin(Mathf.DegToRad(yaw)),z+2.17f*Mathf.Cos(Mathf.DegToRad(yaw)));Piece("Charcoal kiln","kiln",new(x,mouth.Y,z),yaw);}
         Handcart("Sawmill cart",new(229,-60.5f),20);
         var woodpile=Model(this,"Sawmill woodpile","woodpile",Ground(235.5f,-49),-80,new(1.3f,1.3f,1.3f));
         var stack=new StaticBody3D{Position=new(0,.6f,0)};woodpile.AddChild(stack);stack.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(1.77f,1.2f,1.11f)}});
@@ -135,7 +155,7 @@ public partial class World
         {Barrel(this,"Kiln barrel",Ground(x,z),x);var body=new StaticBody3D{Position=Ground(x,z)+Vector3.Up*.42f};AddChild(body);body.AddChild(new CollisionShape3D{Shape=new CylinderShape3D{Radius=.32f,Height=.84f}});}
         Kakashi("Field scarecrow",new(313,-60),200);
         // The forest railway on sleepers at a narrow gauge, from its buried west tunnel over the Crossing, along the Cut and the Halt and, past
-        // the trestle (whose rails are its deck's), to its buried east tunnel; rubble fills both mouths.
+        // the trestle (whose rails are its deck's), to its buried east tunnel.
         foreach(var points in Railway)
         {
             for(int i=0;i<points.Length-1;i++)
@@ -145,8 +165,6 @@ public partial class World
                 foreach(float side in new[]{-.53f,.53f}){var m=(a+b)/2+across*side;var rail=Box(this,"Rail",Ground(m.X,m.Y)+Vector3.Up*.14f,new(.07f,.1f,length),Mat(new("6f6a62")));rail.Rotation=new(Mathf.Atan2(Height(a.X,a.Y)-Height(b.X,b.Y),length),yaw,0);}
             }
         }
-        foreach(var (x,z,size,turn) in new[]{(159.8f,-166.4f,2.4f,.3f),(160.6f,-168.7f,1.7f,1.2f),(161.6f,-170.6f,1.2f,2.2f),(287.2f,-171.2f,2.4f,1.7f),(286.8f,-173.4f,1.5f,.6f),(286.9f,-168.9f,1.3f,2.9f)})
-            Boulder("Tunnel rubble",x,z,size,turn);
         // The Catwalk's planks, laid across it on the cliff.
         var catwalk=MazeTrails.Single(t=>t.Name=="Catwalk");
         for(int i=0;i<catwalk.Points.Length-1;i++)
@@ -179,44 +197,72 @@ public partial class World
         for(int i=0;i<5000;i++){float x=X(),z=Z(),h=r.RandfRange(.18f,.55f);if(Open(x,z))grass.Add((Ground(x,z),h));}
         Grass("Maze grass",grass,3,p=>Open(p.X,p.Y),5,.45f,new("3a5122"),new("8ea54f"),.1f,7319);
     }
+    // One of the maze's own Tripo models (assets/models/MODEL.glb), placed whole, its faces below `top` its collider.
+    private Node3D Piece(string name,string model,Vector3 at,float yaw,float top=float.MaxValue)
+    {
+        var n=Model(this,name,model,at,yaw,new(1.3f,1.3f,1.3f));var mesh=ActorVisual.Descendants(n).OfType<MeshInstance3D>().Single();
+        var local=n.GlobalTransform.AffineInverse()*mesh.GlobalTransform;var faces=mesh.Mesh.GetFaces().Select(v=>local*v).ToArray();
+        var low=Enumerable.Range(0,faces.Length/3).Where(i=>faces[(3*i)..(3*i+3)].All(v=>v.Y<top)).SelectMany(i=>faces[(3*i)..(3*i+3)]).ToArray();
+        var body=new StaticBody3D{CollisionMask=0};n.AddChild(body);body.AddChild(new CollisionShape3D{Shape=new ConcavePolygonShape3D{Data=low,BackfaceCollision=true}});
+        return n;
+    }
     private void Deck(string name,Vector2 a,Vector2 b,float half,Vector2? rotten)
     {
         var from=new Vector3(a.X,Height(a.X,a.Y),a.Y);var to=new Vector3(b.X,Height(b.X,b.Y),b.Y);var d=to-from;float length=d.Length();
         // The frame's Z runs along the deck, pitched with it, its origin at the deck's top midway.
         var frame=new Node3D{Name=name,Position=(from+to)/2,Basis=Basis.LookingAt(d,Vector3.Up,true)};AddChild(frame);
         var body=new StaticBody3D{CollisionMask=0};frame.AddChild(body);
-        void Solid(Vector3 at,Vector3 size)=>body.AddChild(new CollisionShape3D{Position=at,Shape=new BoxShape3D{Size=size}});
+        void Solid(Vector3 at,Vector3 size,float pitch=0)=>body.AddChild(new CollisionShape3D{Position=at,Rotation=new(pitch,0,0),Shape=new BoxShape3D{Size=size}});
         float rot=rotten is {} p?(p-a).Dot((b-a).Normalized())*length/a.DistanceTo(b)-length/2:float.NaN;
+        // The trestle and the hanging bridge are Tripo models, along their X, cut through where the rotten plank lies. The trestle's
+        // sleepers are 6.18 m up its legs; the hanging bridge's boards sag from 1.43 m at its posts to 1.08 m midway, 35 cm, and its
+        // boards' collision follows them in metre lengths.
+        string? art=name switch{"Trestle"=>"trestle","Hanging bridge"=>"hanging_bridge",_=>null};
+        if(art!=null)Model(frame,name,art,new(0,art=="trestle"?-6.18f:-1.43f,0),-90,new(1.3f,1.3f,1.3f)).Scale=new(length/(art=="trestle"?16.15f:15.71f),1,1);
+        // A model's faces wholly below `under`, its piers or the foot of its legs, are solid where they stand; the trestle's only from 5 m
+        // down, its last metre, so the beams and braces under its rotten plank let her fall through to the gorge's floor.
+        void Legs(Node3D model,float under)
+        {
+            var mesh=ActorVisual.Descendants(model).OfType<MeshInstance3D>().Single();var local=frame.GlobalTransform.AffineInverse()*mesh.GlobalTransform;var faces=mesh.Mesh.GetFaces().Select(v=>local*v).ToArray();
+            var piers=Enumerable.Range(0,faces.Length/3).Where(i=>faces[(3*i)..(3*i+3)].All(v=>v.Y<under)).SelectMany(i=>faces[(3*i)..(3*i+3)]).ToArray();
+            body.AddChild(new CollisionShape3D{Shape=new ConcavePolygonShape3D{Data=piers,BackfaceCollision=true}});
+        }
+        if(art=="trestle")Legs(frame.GetNode<Node3D>(name),-5);
+        float Sag(float z)=>art=="hanging_bridge"?-.35f*(1-4*z*z/(length*length)):0;
+        float Pitch(float z)=>-Mathf.Atan((Sag(z+.01f)-Sag(z-.01f))/.02f);
         // Its boards, broken round the rotten plank, where stringers along each side carry on over the gap.
         foreach(var (z0,z1) in rotten==null?new[]{(-length/2,length/2)}:new[]{(-length/2,rot-.6f),(rot+.6f,length/2)})
-        {var at=new Vector3(0,-.1f,(z0+z1)/2);var size=new Vector3(2*half,.2f,z1-z0);if(name!="Road bridge")Box(frame,"Deck boards",at,size,wood);Solid(at,size);}
-        if(rotten!=null)foreach(float x in new[]{half-.2f,.2f-half}){var at=new Vector3(x,-.1f,rot);Box(frame,"Deck stringer",at,new(.4f,.2f,1.2f),wood);Solid(at,new(.4f,.2f,1.2f));}
-        // Rails each side, solid to her waist, and their posts.
+        {
+            int n=art=="hanging_bridge"?Mathf.CeilToInt(z1-z0):1;
+            for(int i=0;i<n;i++)
+            {
+                float s0=Mathf.Lerp(z0,z1,(float)i/n),s1=Mathf.Lerp(z0,z1,(i+1f)/n);var at=new Vector3(0,(Sag(s0)+Sag(s1))/2-.1f,(s0+s1)/2);var size=new Vector3(2*half,.2f,new Vector2(s1-s0,Sag(s1)-Sag(s0)).Length());
+                if(art==null&&name!="Road bridge")Box(frame,"Deck boards",at,size,wood);Solid(at,size,-Mathf.Atan2(Sag(s1)-Sag(s0),s1-s0));
+            }
+        }
+        // The trestle's own sleepers run on past the hole either side; the hanging bridge's boards are cut through, so it needs these.
+        if(rotten!=null)foreach(float x in new[]{half-.2f,.2f-half})
+        {var at=new Vector3(x,Sag(rot)-.1f,rot);if(art!="trestle")Box(frame,"Deck stringer",at,new(.4f,.2f,1.2f),wood).Rotation=new(Pitch(rot),0,0);Solid(at,new(.4f,.2f,1.2f),Pitch(rot));}
+        // Rails each side, solid to her waist, and their posts. The models bring their own: the hanging bridge's ropes, and on the trestle,
+        // which has none, the same solid edge it always had.
         foreach(float x in new[]{half+.05f,-half-.05f})
         {
             Solid(new(x,.55f,0),new(.1f,1.1f,length));
-            if(name=="Road bridge")continue;
+            if(name=="Road bridge"||art!=null)continue;
             Box(frame,"Deck rail",new(x,1,0),new(.08f,.08f,length),wood);
             for(float z=-length/2;z<=length/2+.01f;z+=2)Box(frame,"Deck rail post",new(x,.5f,z),new(.1f,1,.1f),wood);
         }
         if(name=="Road bridge")
         {
             // The Tripo bridge (13.26 m along its Z, deck 4.03 m over its pier feet) stretched to the span; its piers stand in the Wash.
-            var model=Model(frame,"Timber bridge","bridge",new(0,-4.03f,0),0,new(1.3f,1.3f,1.3f));model.Scale=new(1,1,(length+.5f)/13.26f);
-            var mesh=ActorVisual.Descendants(model).OfType<MeshInstance3D>().Single();var local=frame.GlobalTransform.AffineInverse()*mesh.GlobalTransform;var faces=mesh.Mesh.GetFaces().Select(v=>local*v).ToArray();
-            var piers=Enumerable.Range(0,faces.Length/3).Where(i=>faces[(3*i)..(3*i+3)].All(v=>v.Y<-.6f)).SelectMany(i=>faces[(3*i)..(3*i+3)]).ToArray();
-            body.AddChild(new CollisionShape3D{Shape=new ConcavePolygonShape3D{Data=piers,BackfaceCollision=true}});
+            var model=Model(frame,"Timber bridge","bridge",new(0,-4.03f,0),0,new(1.3f,1.3f,1.3f));model.Scale=new(1,1,(length+.5f)/13.26f);Legs(model,-.6f);
         }
-        if(name=="Trestle")foreach(float x in new[]{-.53f,.53f})Box(frame,"Rail",new(x,.1f,0),new(.07f,.1f,length),Mat(new("6f6a62")));
-        // The trestle's legs stand on the gorge's floor, each on the lowest ground under it.
-        if(name=="Trestle")for(float z=-length/2+2;z<length/2-1;z+=3)foreach(float x in new[]{-half+.15f,half-.15f})
-        {var top=frame.ToGlobal(new(x,-.2f,z));float ground=Height(top.X,top.Z)-.3f;Box(this,"Trestle leg",new(top.X,(top.Y+ground)/2,top.Z),new(.24f,top.Y-ground,.24f),wood,true);}
         if(rotten is {} at2)
         {
             // The rotten plank, darker than the rest, a body of its own that Game drops away under her.
-            var plank=new StaticBody3D{Name=name+" rotten plank",Position=new(0,-.1f,rot),CollisionMask=0};frame.AddChild(plank);
+            var plank=new StaticBody3D{Name=name+" rotten plank",Position=new(0,Sag(rot)-.1f,rot),Rotation=new(Pitch(rot),0,0),CollisionMask=0};frame.AddChild(plank);
             plank.AddChild(new MeshInstance3D{Mesh=new BoxMesh{Size=new(2*half-.8f,.2f,1.2f)},MaterialOverride=Mat(new("3d3227"))});plank.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(2*half-.8f,.2f,1.2f)}});
-            Parts.Add(new(plank.Name,"plank",plank,frame.ToGlobal(new(0,0,rot)),Size:.8f));
+            Parts.Add(new(plank.Name,"plank",plank,frame.ToGlobal(new(0,Sag(rot),rot)),Size:.8f));
         }
     }
     private void Load(string name,string kind,Vector2 a,Vector2 b)
@@ -241,11 +287,9 @@ public partial class World
         var hinge=CutGate-across*reach;
         var leaf=new AnimatableBody3D{Name="Cut gate",Position=new(hinge.X,floor,hinge.Y),CollisionMask=0};AddChild(leaf);
         leaf.AddChild(new CollisionShape3D{Position=new(0,1.5f,reach),Shape=new BoxShape3D{Size=new(.24f,3,2*reach)}});
-        var timber=Mat(new("4a3a2c"));
-        leaf.AddChild(Combined("Gate boards",timber,(new(0,1.45f,reach),new(.12f,2.7f,2*reach)),(new(-.1f,.6f,reach),new(.1f,.22f,2*reach)),(new(-.1f,2.3f,reach),new(.1f,.22f,2*reach))));
-        // The bar, on the leaf's east face, the Halt's side.
-        leaf.AddChild(Combined("Gate bar",Mat(new("6f6a62")),(new(.14f,1.4f,reach),new(.12f,.16f,2*reach-.4f))));
-        foreach(float s in new[]{-reach,reach}){var post=CutGate+across*s;Box(this,"Gate post",new(post.X,floor+1.7f,post.Y),new(.4f,3.4f,.4f),timber,true);}
+        // The Tripo leaf (5.12 m along its X, hinged at -X, barred on both faces) stretched along the leaf's Z from the hinge.
+        Model(leaf,"Gate leaf","cut_gate",new(0,0,reach),-90,new(1.3f,1.3f,1.3f)).Scale=new(2*reach/5.12f,1.2f,1.2f);
+        foreach(float s in new[]{-reach,reach}){var post=CutGate+across*s;Box(this,"Gate post",new(post.X,floor+1.7f,post.Y),new(.4f,3.4f,.4f),Mat(new("4a3a2c")),true);}
         var gate=new Part("Cut gate","gate",leaf,new(CutGate.X+dir.X*2.2f,floor,CutGate.Y+dir.Y*2.2f),new(CutGate.X-dir.X*2.2f,floor,CutGate.Y-dir.Y*2.2f),0,-1.66f,yaw);
         gate.Swing(0);Parts.Add(gate);
     }

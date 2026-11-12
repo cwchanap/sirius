@@ -1,0 +1,44 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://cv65fwxgbjg25"
+path.s3tc="res://.godot/imported/phone_box_rustic_payphone_3d_model_basecolor-13b85d1312c1.jpg-338c0c410d0f224830c9f0b36c1f03e7.s3tc.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "7d54471001aa2abc4a481fed43314e25"
+}
+
+[deps]
+
+source_file="res://assets/models/phone_box_rustic_payphone_3d_model_basecolor-13b85d1312c1.jpg"
+dest_files=["res://.godot/imported/phone_box_rustic_payphone_3d_model_basecolor-13b85d1312c1.jpg-338c0c410d0f224830c9f0b36c1f03e7.s3tc.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/uastc_level=0
+compress/rdo_quality_loss=0.0
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/channel_remap/red=0
+process/channel_remap/green=1
+process/channel_remap/blue=2
+process/channel_remap/alpha=3
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=1
