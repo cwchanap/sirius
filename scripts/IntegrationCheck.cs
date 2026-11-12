@@ -1086,7 +1086,7 @@ public static class IntegrationCheck
             var nameFace=Localization.NameFont(code)!;var lackingName=name.Where(c=>!nameFace.HasChar(c)).ToArray();
             Check(lackingName.Length==0,$"{name}: the face its language button is drawn in has every character of the button's own name {new string(lackingName)}");
             float Width(string english,int size,Font? face=null)=>(face??sans).GetStringSize(Localization.T(english),fontSize:size).X;
-            var tight=new (string Text,int Size,float Room)[]{("BEGIN JOURNEY     →",17,288),("Return to Hoshikawa",17,288),("Resume journey",17,278),("Recover at the village",17,278),("Restart prologue",17,278),
+            var tight=new (string Text,int Size,float Room)[]{("BEGIN JOURNEY     →",17,288),("Return to the Starwell",17,288),("Resume journey",17,278),("Recover at the Starwell",17,278),("Restart prologue",17,278),
                 ("Quit game",17,278),("Quit",17,78),("WASD  Move      SHIFT  Run      SPACE  Jump",13,334),("LMB / J  Attack     RMB / K  Guard & deflect",13,334),
                 ("CTRL / ALT  Dodge     TAB  Lock     Q  Skill",13,334),("E  Interact    H  Remedy    I  Items    ESC  Pause",12,334),
                 ("Items",17,278),("Settings",17,278),("Use",17,138),("Back",17,138),("Supplies",13,378),("Key items",13,378),("The train with no passengers",19,360),
