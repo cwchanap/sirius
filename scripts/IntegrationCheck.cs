@@ -1032,8 +1032,27 @@ public static class IntegrationCheck
         Check(!await Head(gateEast,true,200)&&g.Player.GlobalPosition.X<Hoshikawa.World.CutGate.X,$"the closed Cut gate stops her at the Crossing's end of the Cut {g.Player.GlobalPosition}");
         Place(g.Player,On(gateWest));await Frames(10);g.Interact();
         Check(g.Interaction()==("ladder",Localization.T("GATE"))&&!g.Opened.Contains(cutGate.Name)&&g.ToastTitle=="IT WILL NOT OPEN FROM THIS SIDE","from that side the gate will not open");
-        // A rotten plank on the trestle from the Halt gives way under her into the gorge's head; a rest puts it back.
-        var rotten=g.World.Parts.Single(p=>p.Name=="Trestle rotten plank");Place(g.Player,rotten.From+Vector3.Up*.1f);await Frames(5);
+        // Leg 2, the long way round to the Halt: from the canyon over the weir into the Mill ravine, past the sawmill, the kilns and the fields,
+        // down the field path into the gorge, up the back stair to the Row, over the hanging bridge to Bench 1, down the terrace stair and over
+        // the trestle. Each bridge is crossed on a stringer beside its rotten plank; the logs and barrels roll at her, but she is spared them,
+        // and the maze's robots are set aside: the walk is of the ground and the built colliders on it.
+        var hangingPlank=g.World.Parts.Single(p=>p.Name=="Hanging bridge rotten plank");var rotten=g.World.Parts.Single(p=>p.Name=="Trestle rotten plank");
+        var layers=mazeRobots.ToDictionary(e=>e,e=>e.CollisionLayer);foreach(var e in mazeRobots)e.CollisionLayer=0;g.Player.Invulnerable=1e9f;
+        Place(g.Player,On(new(145,-101)));await Frames(10);
+        await Walk((157,-100),(169,-98),(181,-99),(186,-97),(188,-93),(190,-87),(198,-75),(210,-65),(216,-60),(228,-59),(240,-47),(249,-39),(253,-37),(265,-31),(277,-30),(289,-34),(294,-36),
+            (304,-46),(309,-53),(308,-64),(304,-67),(292,-73),(286,-77),(285,-78),(274,-89),(269,-94),(266,-98),(260,-104),(248,-101),(236,-99),(230,-99),(230,-104),(235,-109),(235,-112),(242,-117),(242,-125),(248,-130),(258,-131.5f),(264,-133));
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-20)<.6f&&g.Sprung.Contains("Ravine logs")&&g.Sprung.Contains("Back stair barrels"),$"leg 2 climbs by the Mill ravine, the fields and the gorge up the back stair to the Row's bridgehead, past the ravine's logs and the stair's barrels {g.Player.GlobalPosition}");
+        await Walk((266,-133),(270.5f,-132.2f),(275.5f,-132.2f),(282,-133),(286,-133));
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-18)<.6f&&g.Sprung.Contains(hangingPlank.Name),$"over the hanging bridge on a stringer, its rotten plank giving way beside her, to Bench 1 {g.Player.GlobalPosition}");
+        await Walk((289,-138),(288,-150),(288,-158),(283,-170),(280.5f,-171),(275,-169.8f),(269,-169.6f),(264,-170.4f),(252,-170));
+        var haltWell=Hoshikawa.World.SavePoints[3].At;await WalkTo(haltWell+new Vector2(2,0));
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-14.5f)<.6f&&g.ToastTitle=="TO BE CONTINUED",$"down the terrace stair and over the trestle beside its rotten plank, the way runs out at the Halt, where the maze's north half will begin {g.Player.GlobalPosition}");
+        foreach(var e in mazeRobots)e.CollisionLayer=layers[e];g.Player.Invulnerable=0;
+        // The Halt's well is the second Starwell. Resting there re-arms the traps, and a defeat brings her back to it.
+        await Tap(Key.E);await Tap(Key.Escape);
+        Check(g.RestedAt==3&&!g.Sprung.Any()&&rotten.Body.Visible&&hangingPlank.Body.Visible&&((StaticBody3D)hangingPlank.Body).CollisionLayer==1&&hairpin.Body.Visible&&hairpin.Body.Position.DistanceTo(hairpin.From)<.01f,"resting at the Halt re-arms the planks, the logs, the barrels and the rocks");
+        // The trestle's rotten plank, stepped on in its middle, gives way under her into the gorge's head.
+        Place(g.Player,rotten.From+Vector3.Up*.1f);await Frames(5);
         // A pause the moment it creaks holds it: it gives way only while she plays.
         g.SetPaused(true);await Frames(60);
         Check(g.Sprung.Contains(rotten.Name)&&((StaticBody3D)rotten.Body).CollisionLayer==1&&rotten.Body.Transform.Origin.DistanceTo(rotten.Rest.Origin)<.01f,"a pause holds the creaking plank where it is");
@@ -1041,12 +1060,6 @@ public static class IntegrationCheck
         Check(g.Sprung.Contains(rotten.Name)&&g.Player.GlobalPosition.Y<rotten.From.Y-3&&((StaticBody3D)rotten.Body).CollisionLayer==0,$"the trestle's rotten plank gives way under her {g.Player.GlobalPosition}");
         Place(g.Player,On(gateEast));await Frames(10);g.Interact();await Frames(130);
         Check(g.Opened.Contains(cutGate.Name)&&Down(cutGate)&&await Head(gateWest-(gateEast-gateWest).Normalized()*3,true,240),"unbarred from the Halt's side, the gate opens the Cut through to the Crossing");
-        // The Halt's well is the second Starwell, where Tunnel Mountain's first part ends for now. Resting there re-arms the traps, and a defeat
-        // brings her back to it.
-        var haltWell=Hoshikawa.World.SavePoints[3].At;Place(g.Player,On(haltWell+new Vector2(2,0)));await Frames(10);
-        Check(g.Player.IsOnFloor()&&g.ToastTitle=="TO BE CONTINUED","the way runs out at the Halt, where the maze's north half will begin");
-        await Tap(Key.E);await Tap(Key.Escape);
-        Check(g.RestedAt==3&&!g.Sprung.Any()&&rotten.Body.Visible&&((StaticBody3D)rotten.Body).CollisionLayer==1&&hairpin.Body.Visible&&hairpin.Body.Position.DistanceTo(hairpin.From)<.01f,"resting at the Halt re-arms the plank and the rocks");
         g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);
         bool felled=g.Mode==GameMode.Defeated;g.Retry();await Frames(5);
         Check(felled&&g.Player.GlobalPosition.DistanceTo(On(haltWell+new Vector2(0,2)))<.5f&&g.ToastTitle=="BACK AT THE STARWELL"&&g.Opened.Contains(cutGate.Name)&&g.Opened.Contains(bellStair.Name),"a defeat brings Mio back to the Starwell she last rested at, the Bell stair and the gate still open");
@@ -1086,7 +1099,7 @@ public static class IntegrationCheck
             var nameFace=Localization.NameFont(code)!;var lackingName=name.Where(c=>!nameFace.HasChar(c)).ToArray();
             Check(lackingName.Length==0,$"{name}: the face its language button is drawn in has every character of the button's own name {new string(lackingName)}");
             float Width(string english,int size,Font? face=null)=>(face??sans).GetStringSize(Localization.T(english),fontSize:size).X;
-            var tight=new (string Text,int Size,float Room)[]{("BEGIN JOURNEY     →",17,288),("Return to the Starwell",17,288),("Resume journey",17,278),("Recover at the Starwell",17,278),("Restart prologue",17,278),
+            var tight=new (string Text,int Size,float Room)[]{("BEGIN JOURNEY     →",17,288),("Rise again",17,288),("Resume journey",17,278),("Rest and recover",17,278),("Restart prologue",17,278),
                 ("Quit game",17,278),("Quit",17,78),("WASD  Move      SHIFT  Run      SPACE  Jump",13,334),("LMB / J  Attack     RMB / K  Guard & deflect",13,334),
                 ("CTRL / ALT  Dodge     TAB  Lock     Q  Skill",13,334),("E  Interact    H  Remedy    I  Items    ESC  Pause",12,334),
                 ("Items",17,278),("Settings",17,278),("Use",17,138),("Back",17,138),("Supplies",13,378),("Key items",13,378),("The train with no passengers",19,360),

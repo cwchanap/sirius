@@ -516,7 +516,7 @@ public partial class Hud : Control
             Button("Resume journey",new(w/2-155,h*.40f),new(310,52),()=>Game.SetPaused(false),true);
             Button("Items",new(w/2-155,h*.40f+65),new(310,48),()=>Game.ShowItems(true),false);
             Button("Settings",new(w/2-155,h*.40f+126),new(310,48),()=>Game.ShowSettings(true),false);
-            Button("Recover at the Starwell",new(w/2-155,h*.40f+187),new(310,48),Game.Retry,false);
+            Button("Rest and recover",new(w/2-155,h*.40f+187),new(310,48),Game.Retry,false);
             Button("Restart prologue",new(w/2-155,h*.40f+248),new(310,48),Game.Restart,false);
             Button("Quit game",new(w/2-155,h*.40f+309),new(310,48),()=>GetTree().Quit(),false);
             LanguageButtons(w/2-155,h*.40f+372,98,40,8);
@@ -543,7 +543,7 @@ public partial class Hud : Control
             sliders[0].GrabFocus();
         }
         if(Game.Mode==GameMode.Defeated)
-            Button("Return to the Starwell",new(w/2-160,h*.43f),new(320,55),Game.Retry,true);
+            Button("Rise again",new(w/2-160,h*.43f),new(320,55),Game.Retry,true);
         if(Game.Mode==GameMode.Rest)
         {
             // Focus stays on the row last pressed, else the first that can be pressed, else Back.
