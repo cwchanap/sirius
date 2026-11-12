@@ -16,11 +16,14 @@ func run():
 	for spot in [Vector3(0,.1,31),Vector3(0,.1,16),Vector3(-3,2.5,58),Vector3(92,10.1,-154),Vector3(232,20.1,-128)]:
 		mio.position=spot
 		mio.velocity=Vector3.ZERO
+		# The Row's spot stands a few metres from a patrol: keep Mio unhurt so every sample is of live play.
+		mio.set("Invulnerable",1e9)
 		for i in range(90): await process_frame
 		var cpu=[]
 		for i in range(240):
 			await process_frame
 			cpu.append(RenderingServer.viewport_get_measured_render_time_cpu(vp))
 		cpu.sort()
+		assert(game.get("Mode")==1,"the sample left live play")
 		print("RENDER ",spot," draws=",Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)," prims=",Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)," cpu_ms_median=",snapped(cpu[120],.01)," fps=",Engine.get_frames_per_second())
 	quit()

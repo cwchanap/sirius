@@ -6,9 +6,11 @@ namespace Hoshikawa;
 // Far robots are not simulated: beyond FarOff metres one stops and hides until she comes back within NearBy.
 public partial class Game
 {
-    public const float Roll=6.5f,FarOff=75,NearBy=70;
+    public const float Roll=6.5f,Give=.3f,FarOff=75,NearBy=70;
     public readonly HashSet<string> Sprung=new();
-    // How far each load now rolling has come, and those that have struck her on this run.
+    // How long each sprung plank has been giving way, ticked only in play so a pause holds it, how far each load now rolling has come,
+    // and the loads that have struck her on this run.
+    private readonly Dictionary<string,float> giving=new();
     private readonly Dictionary<string,float> rolling=new();
     private readonly HashSet<string> struckBy=new();
     private void Traps(float dt)
@@ -16,11 +18,13 @@ public partial class Game
         var mio=Player.GlobalPosition;static float Flat(Vector3 v)=>new Vector2(v.X,v.Z).Length();
         foreach(var t in World.Parts)
         {
-            if(t.Kind=="plank"&&!Sprung.Contains(t.Name)&&Flat(t.From-mio)<t.Size&&Math.Abs(mio.Y-t.From.Y)<.6f)
+            if(t.Kind=="plank")
             {
-                Sprung.Add(t.Name);Sound("guard");
-                GetTree().CreateTimer(.3,false).Timeout+=()=>{if(!Sprung.Contains(t.Name))return;var body=(StaticBody3D)t.Body;body.CollisionLayer=0;
-                    var fall=CreateTween();fall.TweenProperty(body,"position:y",body.Position.Y-8,1).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.In);fall.TweenCallback(Callable.From(()=>body.Visible=false));};
+                if(!Sprung.Contains(t.Name)&&Flat(t.From-mio)<t.Size&&Math.Abs(mio.Y-t.From.Y)<.6f){Sprung.Add(t.Name);giving[t.Name]=0;Sound("guard");}
+                if(!giving.TryGetValue(t.Name,out float g))continue;
+                g+=dt;giving[t.Name]=g;var body=(StaticBody3D)t.Body;if(g<Give)continue;
+                float f=Math.Min(1,g-Give);body.CollisionLayer=0;body.Position=t.Rest.Origin+Vector3.Down*8*f*f;
+                if(f>=1){giving.Remove(t.Name);body.Visible=false;}
             }
             if(!t.Rolls)continue;
             if(!Sprung.Contains(t.Name)&&Flat(t.To-mio)<2.4f){Sprung.Add(t.Name);rolling[t.Name]=0;((StaticBody3D)t.Body).CollisionLayer=0;Sound("slam");CameraShake=.12f;}
@@ -35,7 +39,7 @@ public partial class Game
     // A rest, a recovery or a restart puts every trap back as it was built.
     public void Arm()
     {
-        Sprung.Clear();rolling.Clear();struckBy.Clear();
+        Sprung.Clear();giving.Clear();rolling.Clear();struckBy.Clear();
         foreach(var t in World.Parts.Where(p=>p.Kind=="plank"||p.Rolls))
         {
             t.Body.Transform=t.Rest;t.Body.Visible=true;((StaticBody3D)t.Body).CollisionLayer=1;
