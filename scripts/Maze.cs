@@ -171,6 +171,7 @@ public partial class World
         new Vector2[]{new(280,-171),new(285.8f,-171)}};
     // The main line, from the Station tunnel's mouth across the Signal yard and west along the old track bed, over the girder bridge (whose
     // deck carries it) and onto the viaduct, whose spans bring their own rails.
+    public const float MainGauge=.72f;
     public static readonly Vector2[][] MainLine={new Vector2[]{new(139,-176),new(93,-176),new(88,-175.5f),new(84.5f,-174)},new Vector2[]{new(68,-174),new(61,-171.5f),new(50,-170.5f),new(40,-168.5f),new(34,-168)}};
     public static readonly Vector2[] MazeCells={new(76.6f,-185),new(110.5f,-120.3f),new(192.5f,-100.7f),new(273,-182.5f),
         new(337,-125.3f),new(322.6f,-165.4f),new(329,-254.5f),new(235,-250),new(272.4f,-267.4f),new(218.4f,-224.4f),new(174.6f,-181.5f)};
@@ -234,7 +235,7 @@ public partial class World
         Kakashi("Field scarecrow",new(313,-60),200);
         // The forest railway on sleepers at a narrow gauge, from its buried west tunnel over the Crossing, along the Cut and the Halt and, past
         // the trestle (whose rails are its deck's), to its buried east tunnel; and the main line at its standard gauge.
-        foreach(var (track,gauge) in Railway.Select(l=>(l,.53f)).Concat(MainLine.Select(l=>(l,.72f))))
+        foreach(var (track,gauge) in Railway.Select(l=>(l,.53f)).Concat(MainLine.Select(l=>(l,MainGauge))))
         {
             for(int i=0;i<track.Length-1;i++)
             {
@@ -367,6 +368,12 @@ public partial class World
         // The trestle's own sleepers run on past the hole either side; the hanging bridge's boards are cut through, so it needs these.
         if(rotten!=null)foreach(float x in new[]{half-.2f,.2f-half})
         {var at=new Vector3(x,Sag(rot)-.1f,rot);if(art!="trestle")Box(frame,"Deck stringer",at,new(.4f,.2f,1.2f),wood).Rotation=new(Pitch(rot),0,0);Solid(at,new(.4f,.2f,1.2f),Pitch(rot));}
+        // The main line runs on across the girder bridge on sleepers of its own, its rails spanning the rotten plank's hole.
+        if(name=="Girder bridge")
+        {
+            for(float z=.4f-length/2;z<length/2;z+=.9f)if(!(Math.Abs(z-rot)<.6f))Box(frame,"Rail sleeper",new(0,.04f,z),new(MainGauge*3.8f,.12f,.24f),wood);
+            foreach(float side in new[]{-MainGauge,MainGauge})Box(frame,"Rail",new(side,.14f,0),new(.07f,.1f,length),Mat(new("6f6a62")));
+        }
         // Rails each side, solid to her waist, and their posts. The models bring their own: the hanging bridge's ropes, and on the trestle,
         // which has none, the same solid edge it always had.
         foreach(float x in new[]{half+.05f,-half-.05f})
