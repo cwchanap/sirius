@@ -1077,7 +1077,11 @@ public static class IntegrationCheck
         var drying=g.World.Parts.Where(p=>p.Yard=="Drying yard").ToArray();var dryers=mazeRobots.Where(e=>Hoshikawa.World.InYard("Drying yard",e.Home)).ToArray();
         await Walk((252,-170),(264,-170.4f),(269,-169.6f),(275,-169.8f),(280.5f,-171),(283,-170),(285,-167.5f),(287,-160),(288,-152),(289.5f,-135),(289.5f,-118),(288,-100),(289.5f,-92.5f),(295.5f,-93),(297,-100),(298.5f,-118));
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-22)<.6f&&drying.Length==2&&drying.All(Raised),$"leg 3 climbs back over the trestle and up the terraces to the Drying yard, its gates raised over the bench {g.Player.GlobalPosition}");
+        // Its patrol sees her at the gate but keeps to its yard, so it can never be left outside when the gates drop; once she is in, it comes.
+        var guard=dryers.Single(e=>e.Kind==Enemy.Patrol);guard.SetPhysicsProcess(true);await Frames(60);
+        Check(guard.State=="PATROL"&&Hoshikawa.World.InYard("Drying yard",guard.GlobalPosition,2),$"the Drying yard's patrol, in sight of her at its gate, keeps to its yard {guard.GlobalPosition}");
         await WalkTo(new(298.5f,-123));await Frames(30);
+        Check(guard.State!="PATROL",$"once she is in the yard its patrol comes for her ({guard.State})");guard.SetPhysicsProcess(false);
         Check(drying.All(Lowered)&&dryers.Length==3&&dryers.Count(e=>e.Asleep)==2&&!await Head(new(298.5f,-116),true,120)&&drying.All(Lowered),"stepping into the Drying yard drops its gates behind her, shutting her in with a patrol and two dormant scouts");
         foreach(var e in dryers)e.Execute();await Frames(110);
         Check(g.Cleared.Contains("Drying yard")&&drying.All(Raised),"once they are shut down its gates lift");

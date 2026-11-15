@@ -12,7 +12,6 @@ public partial class Game
     // The lock-in yards whose robots she has shut down, open until the prologue restarts, and how far each gate has dropped, 0 to 1.
     public readonly HashSet<string> Cleared=new();
     private readonly Dictionary<string,float> lowered=new();
-    private Dictionary<string,Enemy[]>? guards;
     // How long each sprung plank has been giving way, ticked only in play so a pause holds it, how far each load now rolling has come,
     // and the loads that have struck her on this run.
     private readonly Dictionary<string,float> giving=new();
@@ -40,10 +39,9 @@ public partial class Game
             if(!struckBy.Contains(t.Name)&&Math.Abs(d.Dot(along))<t.Size+.4f&&Math.Abs(d.Dot(across))<t.Span+.3f&&d.Y>-1&&d.Y<2*t.Size+.6f){struckBy.Add(t.Name);Player.Crush(along);}
             if(run>=length){rolling.Remove(t.Name);t.Body.Visible=false;Dust(p,1.6f,14);Sound("break");}
         }
-        guards??=Hoshikawa.World.Locks.ToDictionary(l=>l.Yard,l=>Enemies.Where(e=>e.Maze&&Hoshikawa.World.InYard(l.Yard,e.Home)).ToArray());
         foreach(var (yard,_) in Hoshikawa.World.Locks)
         {
-            if(!Cleared.Contains(yard)&&guards[yard].All(e=>e.Dead)){Cleared.Add(yard);Sound("guard");}
+            if(!Cleared.Contains(yard)&&Enemies.Where(e=>e.Yard==yard).All(e=>e.Dead)){Cleared.Add(yard);Sound("guard");}
             // The gates drop once she is a step past them all, clear of their leaves, and stay down while she is anywhere on the yard's side.
             var gates=World.Parts.Where(p=>p.Yard==yard).ToArray();bool down=gates.Any(p=>lowered.GetValueOrDefault(p.Name)>0);
             bool shut=!Cleared.Contains(yard)&&Hoshikawa.World.InYard(yard,mio,down?0:.8f),slam=false;

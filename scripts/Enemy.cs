@@ -24,6 +24,8 @@ public partial class Enemy : CharacterBody3D
     // for a dormant scout, is the way it lies facing, in degrees, until Mio comes near or strikes it. Asleep it can be shut down from behind.
     public bool Maze;
     public float Reach=1;
+    // The lock-in yard it guards, if any: it keeps to the yard, coming for Mio only once she is in it, so it never stands outside when the gates drop.
+    public string? Yard;
     public float? Sleeps;
     private bool asleep;
     public bool Asleep=>asleep&&!Dead;
@@ -106,7 +108,7 @@ public partial class Enemy : CharacterBody3D
         else if(recovery>0){State="RECOVER";Visual.Play("guard");}
         // Only on its own level: a patrol on the teahouse terrace never walks off its cliff after Mio in the junction below.
         else if(distance<13&&Math.Abs(Game.Player.GlobalPosition.Y-GlobalPosition.Y)<2.5f&&Game.Player.GlobalPosition.Z<World.RelaySouth&&GlobalPosition.DistanceTo(Home)<20
-                &&Game.ClearSight(GlobalPosition+Vector3.Up,Game.Player.GlobalPosition+Vector3.Up))
+                &&(Yard==null||World.InYard(Yard,Game.Player.GlobalPosition))&&Game.ClearSight(GlobalPosition+Vector3.Up,Game.Player.GlobalPosition+Vector3.Up))
         {
             State="PURSUE";
             if(distance>2.2f){movement=to.Normalized()*2.8f;Visual.Play(Kind.Flies?"idle":"run",.8f);}
