@@ -4,19 +4,23 @@ namespace Hoshikawa;
 // Tunnel Mountain, the relay road's extension east of its rockfall: a maze cut into a block of mountain by the relay road's own carving
 // rule (Carve() in RelayRoad.cs), its trails here. A ring of legs round two Starwells: the way in over the Wash to the Court and Starwell 1,
 // leg 1 round by the shrine, the canyon, the Catwalk and the Hairpin to the Bell ledge over the shrine (the Bell stair), leg 2 the long way
-// round by the Gorge, the logging valley and the Row to the Halt and Starwell 2 (the Cut gate). The north half stays mountain for now.
+// round by the Gorge, the logging valley and the Row to the Halt and Starwell 2 (the Cut gate), leg 3 up the terraces through the Drying
+// yard, past the Station overlook and over the Mast to the Signalman's ledge over the Halt (the Halt stair), and leg 4 round the north wood
+// and along the Long ledge to the Signal yard on the cliff over the Court (the Great stair), where the Station tunnel's mouth ends the map.
+// Off the route, the east side runs down to the East yard, and the old line west over the girder bridge onto the viaduct's last spans.
 public partial class World
 {
     public const string MazeName="Tunnel Mountain";
     // The 1 m ground and its collider east of Fine, over the maze; Fine's own east edge runs through the Wash.
-    public static readonly Rect2I MazeFine=new(104,-200,240,188);
+    public static readonly Rect2I MazeFine=new(104,-300,268,288);
     public static bool IsFine(Vector2I p)=>Fine.HasPoint(p)||MazeFine.HasPoint(p);
     // The maze from the rockfall's gate east, the region the HUD names.
-    public static bool InMaze(float x,float z)=>x>52&&z<RelaySouth&&z>MazeFine.Position.Y;
-    // East of the play area the maze's carved ground cuts down into the mountain, the rivers' gorges and all, wherever it lies lower:
+    public static bool InMaze(float x,float z)=>x>52&&z<RelaySouth&&z>MazeFine.Position.Y&&(x>HalfWidth||z>RelayNorth);
+    // East of the play area the maze's carved ground cuts down into the mountain `y`, the rivers' gorges and all, wherever it lies lower:
     // within 18 m of a maze floor that is Carve()'s ground, and past that it climbs 2 m a metre back into the ranges, so their ridges, the
-    // rivers' springs and their gorges stand as they were.
-    public static float MazeCut(float x,float z){var (ground,_,maze,_)=Carve(x,z);return ground+2*Math.Max(0,maze-18);}
+    // rivers' springs and their gorges stand as they were. Where the mountain lies lower than a floor's own walls, as over the north wood,
+    // they stand up out of it, Carve()'s within 10 m of the floor and falling away 1.5 m a metre beyond, so no floor runs out onto it.
+    public static float MazeCut(float x,float z,float y){var (ground,_,maze,_)=Carve(x,z);return Math.Min(Math.Max(y,ground-1.5f*Math.Max(0,maze-10)),ground+2*Math.Max(0,maze-18));}
     // How far (x, z) lies outside the nearest of the maze's floors, as RelayEdge() does for every floor.
     public static float MazeEdge(float x,float z)=>Carve(x,z).Maze;
     // The maze's trails, as Trails: (x, ground level, z) points, the half width of their floors and of their paint. The old road in is
@@ -68,26 +72,82 @@ public partial class World
         ("Fields",7,1.1f,new Vector3[]{new(310,14,-58),new(316,14,-63)}),
         ("Field path",1.8f,1.1f,new Vector3[]{new(305,13.6f,-67),new(294,12.6f,-72),new(283,11.4f,-79),new(274,10,-88),new(267,8.6f,-96.5f),new(262.5f,7.9f,-103)}),
         ("Bench 1",3,1.1f,new Vector3[]{new(288,18,-152),new(289.5f,18,-135),new(289.5f,18,-118),new(288,18,-100)}),
+        ("Ramp 1-2",2,1.1f,new Vector3[]{new(288,18,-100),new(289.5f,19.4f,-92.5f),new(295.5f,21.2f,-93),new(297,22,-100)}),
+        ("Bench 2",3,1.1f,new Vector3[]{new(297,22,-100),new(298.5f,22,-118),new(298.5f,22,-135),new(297,22,-150)}),
+        ("Drying yard",4.5f,0,new Vector3[]{new(298.5f,22,-129),new(298.5f,22,-125)}),
+        ("Ramp 2-3",2,1.1f,new Vector3[]{new(297,22,-150),new(298.5f,23.4f,-157.5f),new(304.5f,25.2f,-158),new(306,26,-150)}),
+        ("Bench 3",3,1.1f,new Vector3[]{new(306,26,-150),new(307.5f,26,-135),new(307.5f,26,-118),new(306,26,-100)}),
+        ("Overlook road",1.8f,1.1f,new Vector3[]{new(308,26,-112),new(317,26.6f,-113.5f),new(325,27.2f,-117),new(331.5f,27.5f,-121.5f)}),
+        ("Station overlook",3.5f,1.1f,new Vector3[]{new(335.5f,27.5f,-126),new(335.5f,27.5f,-122)}),
+        ("Shelf",1.8f,1.1f,new Vector3[]{new(324.5f,34,-159),new(327,32.4f,-151.5f),new(329.5f,30.6f,-142.5f),new(331.5f,28.8f,-134.5f),new(333.5f,27.8f,-129.5f)}),
+        ("The Mast",5.5f,1.1f,new Vector3[]{new(318.5f,34,-161),new(320.5f,34,-164)}),
+        ("Shelf turn",1.8f,0,new Vector3[]{new(336,27,-118.5f),new(337.5f,25,-113),new(341,23,-110.5f),new(343.5f,20.8f,-115.5f)}),
+        ("Shelf lower",1.8f,0,new Vector3[]{new(343.5f,20.8f,-115.5f),new(343,18.6f,-125),new(342.5f,16.2f,-137),new(343,13.8f,-150),new(344.5f,12.4f,-160),new(346,12.1f,-165)}),
+        ("East yard",9,0,new Vector3[]{new(347,12,-172),new(348,12,-172)}),
+        ("Buried path",2.5f,0,new Vector3[]{new(356,12,-172),new(361,11.6f,-172.6f)}),
+        ("East rim",1.6f,0,new Vector3[]{new(343.5f,20.8f,-115.5f),new(346,19.6f,-104),new(345,18.4f,-93),new(339,17.4f,-83),new(331,16.8f,-75),new(324,16.3f,-70)}),
+        ("Ridge path",1.8f,1.1f,new Vector3[]{new(315,33.6f,-170),new(310,32.2f,-180),new(302,30.4f,-190),new(293,28,-196),new(284,26,-199)}),
+        ("Signalman's ledge",1.9f,1.1f,new Vector3[]{new(284,26,-199),new(275,24.5f,-200),new(266,23,-197),new(258,22,-190),new(252,21.5f,-183.5f),new(242,21.5f,-182.5f)}),
+        ("Wood gate",1.8f,1.1f,new Vector3[]{new(284,26,-199),new(286,26.5f,-212),new(292,27.2f,-224)}),
+        ("Rim way",1.8f,1.1f,new Vector3[]{new(292,27.2f,-224),new(304,28.5f,-234),new(314,30,-246),new(320,30.5f,-254)}),
+        ("Ropeway head",8,1.1f,new Vector3[]{new(322,30.5f,-258),new(326,30.5f,-258)}),
+        ("Rim way N",1.8f,1.1f,new Vector3[]{new(318,30.7f,-263),new(312,31,-270),new(298,31.5f,-280),new(278,32,-288),new(258,32,-290),new(240,31.5f,-286),new(224,30.5f,-278),new(212,29.5f,-268)}),
+        ("Wood road",1.8f,1.1f,new Vector3[]{new(212,29.5f,-268),new(202,29,-256),new(196,28,-242),new(192,27,-228),new(188,26.5f,-214),new(184,26.2f,-202),new(180,26,-194)}),
+        ("Deer track",1.6f,0,new Vector3[]{new(240,28,-253),new(246,28.2f,-250),new(262,28.6f,-244),new(278,29,-236),new(288,29.4f,-228.5f)}),
+        ("Jizo hollow",7,0,new Vector3[]{new(232,28,-254),new(238,28,-254)}),
+        ("Lane end",1.8f,0,new Vector3[]{new(228,28.2f,-257),new(219,29,-263),new(212,29.5f,-268)}),
+        ("Hollow path",1.6f,0,new Vector3[]{new(236,28,-248),new(238,27,-234),new(240,25.6f,-218),new(241,24.2f,-203),new(241,23.6f,-187.5f)}),
+        ("Stump stair",1.6f,0,new Vector3[]{new(234,28.4f,-260),new(236,30,-270),new(240,31.4f,-284)}),
+        ("Hut path",1.6f,0,new Vector3[]{new(262,28.6f,-244),new(268,28.4f,-254),new(272,28.2f,-262)}),
+        ("Woodcutter's hut",4.5f,0,new Vector3[]{new(274,28.2f,-266),new(276,28.2f,-266)}),
+        ("Pit path",1.6f,0,new Vector3[]{new(196,28,-242),new(206,27.6f,-238),new(214,27.2f,-232)}),
+        ("Charcoal pits",5.5f,0,new Vector3[]{new(218,27.2f,-228),new(222,27.2f,-228)}),
+        ("Long ledge",2,1.1f,new Vector3[]{new(180,26,-194),new(164,24.5f,-193.5f),new(146,22.8f,-194),new(128,21.2f,-193.5f),new(122,21,-193.5f)}),
+        ("Signal spur",1.6f,0,new Vector3[]{new(176,25.6f,-193.8f),new(175,24.5f,-186),new(174.5f,24,-180)}),
+        ("Yard ramp",1.8f,1.1f,new Vector3[]{new(122,21,-193.5f),new(115,19,-192),new(110,17.4f,-188),new(107.5f,16.6f,-184.5f)}),
+        ("Signal yard",7.5f,1.1f,new Vector3[]{new(100,16.5f,-176),new(121,16.5f,-176)}),
+        // The Great stair's head, a landing out from the yard's end so its brow drops clean to the Court below, with no rib of rock beside it.
+        ("Great stair head",2.5f,0,new Vector3[]{new(97,16.5f,-172),new(97,16.5f,-169)}),
+        ("Station tunnel",2.6f,1.1f,new Vector3[]{new(128,16.5f,-176),new(135,16.5f,-176)}),
+        ("Old line E",2,0,new Vector3[]{new(93,16.5f,-176),new(88,15,-175.5f),new(84.5f,14.3f,-174)}),
+        ("Old line W",2,0,new Vector3[]{new(68,14,-174),new(61,13.85f,-171.5f),new(50,13.7f,-170.5f),new(40,13.55f,-168.5f)}),
+        ("Viaduct apron",3.5f,0,new Vector3[]{new(40,13.55f,-168.5f),new(36,13.55f,-168)}),
     };
-    // Where part 1 of the maze ends for now: at Starwell 2 on the Halt, where TO BE CONTINUED shows.
-    public Vector3 MazeEnd{get{var p=SavePoints.Single(s=>s.Place=="Halt").At;return new(p.X,Height(p.X,p.Y),p.Y);}}
+    // Where the maze ends for now: at the Station tunnel's mouth, the door to the station, where TO BE CONTINUED shows.
+    public static readonly Vector2 StationMouth=new(134,-176);
+    public Vector3 MazeEnd=>new(StationMouth.X,Height(StationMouth.X,StationMouth.Y),StationMouth.Y);
     // The built crossings, each a deck from A to B pitched between the ground at its ends: the old road's bridge over the Wash, the rail
-    // trestle from the Halt over the Gorge's head, and the hanging bridge from the Row's bridgehead to Bench 1's landing. A rotten plank, one
-    // of the traps in Parts, gives way under her between stringers she can still cross on.
+    // trestle from the Halt over the Gorge's head, the hanging bridge from the Row's bridgehead to Bench 1's landing, and the old line's girder
+    // bridge over the Wash's head. A rotten plank, one of the traps in Parts, gives way under her between stringers she can still cross on.
     public static readonly (string Name,Vector2 A,Vector2 B,float Half,Vector2? Rotten)[] Decks={
         ("Road bridge",new(65,-160),new(83,-160),2.9f,null),
         ("Trestle",new(264,-170.4f),new(280,-171),1.1f,new(272,-170.6f)),
-        ("Hanging bridge",new(266,-133),new(282,-133),.9f,new(273,-133))};
+        ("Hanging bridge",new(266,-133),new(282,-133),.9f,new(273,-133)),("Girder bridge",new(84.5f,-174),new(68,-174),1.6f,new(76,-174))};
     // The rolling loads, each parked at From, the head of its run, until Mio comes within reach of To, its foot: rocks off the Hairpin's
-    // corner down the pass road, logs down the Mill ravine, barrels down the back stair.
+    // corner down the pass road, logs down the Mill ravine and the Rim way, barrels down the back stair, and a cable drum down the Shelf.
     public static readonly (string Name,string Kind,Vector2 From,Vector2 To)[] Loads={
-        ("Hairpin rocks","rocks",new(146,-117.6f),new(134,-118.4f)),("Ravine logs","logs",new(207,-66.8f),new(192,-83.5f)),("Back stair barrels","barrels",new(241.5f,-117.8f),new(230,-103))};
-    // The Bell stair is let down from the Bell ledge's brow, where the ledge runs out to the shrine terrace's edge so the two meet at a clean
-    // drop rather than over a ridge, onto the terrace; and the Cut gate is unbarred from the Halt's side.
-    // The stair's foot lies far enough out on the terrace for it to climb at 38 degrees from the brow, under Mio's 50 degree floor limit.
-    public static readonly Vector2 BellTop=new(104.5f,-137.5f),BellFoot=new(95.4f,-128.9f),CutGate=new(190,-165.7f);
+        ("Hairpin rocks","rocks",new(146,-117.6f),new(134,-118.4f)),("Ravine logs","logs",new(207,-66.8f),new(192,-83.5f)),("Back stair barrels","barrels",new(241.5f,-117.8f),new(230,-103)),
+        ("Shelf drum","drum",new(325,-157.5f),new(331,-136.5f)),("Rim way logs","logs",new(313.5f,-245.5f),new(303,-233.2f))};
+    // The stairs, each let down from a high floor's brow, where it runs out to a low floor's edge so the two meet at a clean drop rather than
+    // over a ridge: the Bell stair from the Bell ledge onto the shrine terrace, the Halt stair from the Signalman's ledge onto the Halt and
+    // the Great stair from the Signal yard into the Court. The Cut gate is unbarred from the Halt's side.
+    // Each stair's foot lies far enough out for it to climb at under 40 degrees from the brow, under Mio's 50 degree floor limit.
+    public static readonly (string Name,Vector2 Top,Vector2 Foot)[] Stairs={("Bell stair",new(104.5f,-137.5f),new(95.4f,-128.9f)),("Halt stair",new(242,-182.5f),new(242,-171)),("Great stair",new(97,-172),new(97,-158.5f))};
+    public static readonly Vector2 BellTop=Stairs[0].Top,BellFoot=Stairs[0].Foot,CutGate=new(190,-165.7f);
+    // The lock-in yards, each a trail's floor whose ways in are barred by gates that hang raised over them until she steps in: each gate a
+    // point on the trail it bars.
+    public static readonly (string Yard,(Vector2 At,string Trail)[] Gates)[] Locks={
+        ("Drying yard",new[]{(new Vector2(298.5f,-119.8f),"Bench 2"),(new Vector2(298.5f,-134.2f),"Bench 2")}),("Charcoal pits",new[]{(new Vector2(212.8f,-232.9f),"Pit path")})};
+    // Whether `p` stands in a lock-in yard, `past` metres beyond each of its gates: on its floor or within 2 m of it, at its level.
+    public static bool InYard(string yard,Vector3 p,float past=0)
+    {
+        var t=MazeTrails.Single(t=>t.Name==yard);var (gap,level)=Near(t.Points,p.X,p.Z);if(gap>t.Half+2||Math.Abs(p.Y-level)>3)return false;
+        var middle=new Vector2(t.Points[0].X+t.Points[^1].X,t.Points[0].Z+t.Points[^1].Z)/2;var at=new Vector2(p.X,p.Z);
+        return Locks.Single(l=>l.Yard==yard).Gates.All(g=>(at-g.At).Dot((middle-g.At).Normalized())>past);
+    }
     // Tunnel Mountain's robots: a kind, a home and, for a scout lying dormant until Mio comes near, the way it faces in degrees. The patrols
-    // hold the Narrows, the Lone Cedar saddle, the Crossing, the Sawmill hollow and the Row; none of them is the relay mission's.
+    // hold the Narrows, the Lone Cedar saddle, the Crossing, the Sawmill hollow, the Row, the Drying yard, the Mast, the East yard, the
+    // Ropeway head and, two of them, the Signal yard; none of them is the relay mission's. The second half's rows follow the first's.
     public static readonly (string Kind,Vector2 At,float? Sleeps)[] MazeRobots={
         ("patrol",new(99,-100.2f),null),("patrol",new(122,-146),null),("patrol",new(174,-164),null),("patrol",new(231,-55),null),("patrol",new(234,-131),null),
         ("scout",new(75.2f,-168),null),("scout",new(76.5f,-129.5f),null),("scout",new(145.5f,-101),null),("scout",new(150,-125),null),("scout",new(166,-98.3f),null),("scout",new(225,-51.5f),null),
@@ -95,27 +155,44 @@ public partial class World
         ("scout",new(81.5f,-125),-135),("scout",new(117.5f,-98.5f),-90),("scout",new(265,-32),-90),("scout",new(271,-28.2f),114),("scout",new(315.5f,-62.5f),-113),("scout",new(216,-126.4f),180),("scout",new(251.5f,-135.4f),0),
         ("drone",new(76.3f,-181),null),("drone",new(122,-96.7f),null),("drone",new(132,-97.2f),null),("drone",new(140.5f,-105.9f),null),("drone",new(129,-102.9f),null),("drone",new(137,-132.1f),null),
         ("drone",new(182,-99.2f),null),("drone",new(193,-82.2f),null),("drone",new(270,-51),null),("drone",new(291.5f,-35),null),("drone",new(288.5f,-75.5f),null),("drone",new(232,-98.2f),null),
-        ("drone",new(262,-133),null),("drone",new(283.5f,-133),null),("drone",new(207,-167.8f),null)};
+        ("drone",new(262,-133),null),("drone",new(283.5f,-133),null),("drone",new(207,-167.8f),null),
+        ("patrol",new(298.5f,-127),null),("patrol",new(319.5f,-162.5f),null),("patrol",new(349,-173),null),("patrol",new(324,-258),null),("patrol",new(107,-176),null),("patrol",new(117,-176),null),
+        ("scout",new(298.4f,-112),null),("scout",new(307.4f,-140),null),("scout",new(316,-163.6f),null),("scout",new(306,-185),null),("scout",new(266.5f,-197.2f),null),("scout",new(344,-176.5f),null),
+        ("scout",new(286,-212),null),("scout",new(318.6f,-256.2f),null),("scout",new(298,-280),null),("scout",new(240,-286),null),("scout",new(192,-228),null),("scout",new(150,-193.9f),null),
+        ("scout",new(298.5f,-130.7f),0),("scout",new(298.5f,-123.3f),180),("scout",new(254.5f,-186),135),("scout",new(230,-251.5f),117),("scout",new(236.5f,-258.5f),-18),("scout",new(240.5f,-252),-110),
+        ("scout",new(275,-264.8f),-160),("scout",new(216.5f,-226),130),("scout",new(223.5f,-229.5f),-60),
+        ("drone",new(307.4f,-112),null),("drone",new(321,-115.2f),null),("drone",new(330.5f,-138.5f),null),("drone",new(326,-154.5f),null),("drone",new(297.5f,-193),null),("drone",new(345.5f,-98.5f),null),
+        ("drone",new(298,-229),null),("drone",new(309,-240),null),("drone",new(278,-288),null),("drone",new(258,-290),null),("drone",new(262,-244),null),("drone",new(198,-247),null),
+        ("drone",new(170,-193.7f),null),("drone",new(134,-193.7f),null),("drone",new(55.5f,-171),null)};
     // How far a robot at `at` roams, as a share of its kind's loop: less on a narrow trail, so it keeps off the walls.
     public static float Room(Vector2 at)=>Mathf.Clamp(MazeTrails.MinBy(t=>Near(t.Points,at.X,at.Y).Gap).Half/3.5f,.35f,1);
     // The forest railway's line, broken where the trestle carries it over the Gorge's head.
     public static readonly Vector2[][] Railway={new Vector2[]{new(161.5f,-167.7f),new(171,-165.2f),new(184,-165),new(200,-167),new(214,-168.5f),new(226,-169),new(258,-170),new(264,-170.4f)},
         new Vector2[]{new(280,-171),new(285.8f,-171)}};
-    public static readonly Vector2[] MazeCells={new(76.6f,-185),new(110.5f,-120.3f),new(192.5f,-100.7f),new(273,-182.5f)};
-    public static readonly Vector2 KilnPouch=new(268,-27);
+    // The main line, from the Station tunnel's mouth across the Signal yard and west along the old track bed, over the girder bridge (whose
+    // deck carries it) and onto the viaduct, whose spans bring their own rails.
+    public static readonly Vector2[][] MainLine={new Vector2[]{new(136,-176),new(93,-176),new(88,-175.5f),new(84.5f,-174)},new Vector2[]{new(68,-174),new(61,-171.5f),new(50,-170.5f),new(40,-168.5f),new(34,-168)}};
+    public static readonly Vector2[] MazeCells={new(76.6f,-185),new(110.5f,-120.3f),new(192.5f,-100.7f),new(273,-182.5f),
+        new(337,-125.3f),new(322.6f,-165.4f),new(329,-254.5f),new(235,-250),new(272.4f,-267.4f),new(218.4f,-224.4f),new(174.6f,-181.5f)};
+    public static readonly Vector2 KilnPouch=new(268,-27),EastPouch=new(353,-176);
     private void Maze()
     {
         foreach(var (name,a,b,half,rotten) in Decks)Deck(name,a,b,half,rotten);
         foreach(var (name,kind,from,to) in Loads)Load(name,kind,from,to);
-        // The Bell stair hangs from the ledge's brow, found by walking from the ledge's end toward its foot until the ground falls away.
-        var dir=(BellFoot-BellTop).Normalized();float ledge=Height(BellTop.X,BellTop.Y);var brow=BellTop;
-        while(Height(brow.X+dir.X*.1f,brow.Y+dir.Y*.1f)>ledge-.3f)brow+=dir*.1f;
-        var top=new Vector3(brow.X,Height(brow.X,brow.Y),brow.Y);
-        // Drawn up, it stands on end over the brow, a mark to read from the terrace below.
-        Stair("Bell stair","stair",top,new(BellFoot.X,Height(BellFoot.X,BellFoot.Y),BellFoot.Y),-Mathf.Pi/2,top-new Vector3(dir.X,0,dir.Y)*1.3f);
+        // Each stair hangs from its floor's brow, found by walking from the floor's end toward its foot until the ground falls away.
+        foreach(var (name,at,foot) in Stairs)
+        {
+            var dir=(foot-at).Normalized();float ledge=Height(at.X,at.Y);var brow=at;
+            // Its hinge stays on the level floor: past it the 1 m ground mesh already slopes toward the drop, a lip she could not climb off the stair.
+            while(Height(brow.X+dir.X*.1f,brow.Y+dir.Y*.1f)>ledge-.05f)brow+=dir*.1f;
+            var top=new Vector3(brow.X,ledge,brow.Y);
+            // Drawn up, it stands on end over the brow, a mark to read from the floor below.
+            Stair(name,"stair",top,new(foot.X,Height(foot.X,foot.Y),foot.Y),-Mathf.Pi/2,top-new Vector3(dir.X,0,dir.Y)*1.3f);
+        }
         Gate();
+        foreach(var (yard,gates) in Locks)foreach(var (at,trail) in gates)Lock(yard,at,trail);
         foreach(var cell in MazeCells)Cell(cell);
-        Pouch(KilnPouch,"Kiln pouch","Kiln barrel");
+        Pouch(KilnPouch,"Kiln pouch","Kiln barrel");Pouch(EastPouch,"East yard pouch","Yard barrel");
         Vector3 Ground(float x,float z)=>new(x,Height(x,z),z);
         // The Starwells: a shrine well carved with stars under the Court's cliff, its front to the Court, and the Halt's pump well turned to
         // the line, under a tin roof the camera keeps below.
@@ -125,11 +202,12 @@ public partial class World
         // The wayside shrine on its terrace over the Court, its torii at the head of the stone steps.
         ShrineHall("Wayside shrine",new(92,-124.5f),180);Torii(Ground(96,-135.5f),0,"Wayside torii");
         foreach(var (x,z) in new[]{(90.2f,-128.6f),(93.8f,-128.6f),(87.5f,-156.5f),(96.5f,-153.5f)})StoneLantern(this,Ground(x,z));
-        // The old road's tunnel at the Court's east end and the forest railway's at either end of its line, each fallen in: one Tripo portal,
+        // The old road's tunnel at the Court's east end, the forest railway's at either end of its line and again where it comes out at the
+        // East yard, and the main line's Station tunnel at the Signal yard's east end, each fallen in: one Tripo portal,
         // its rubble-filled arch on its own +Z face and 3.93 m of rock behind it that the cliff swallows. (x, z) is its front, 1.5 m out from
         // the cliff's foot as the arch is set back in it, and the yaw its way out, square to the cliff, which at the line's west end runs
         // askew across it, so the line bends into that arch.
-        foreach(var (x,z,yaw) in new[]{(103.5f,-159f,-90f),(161.3f,-167.8f,75f),(285.8f,-171f,-90f)})
+        foreach(var (x,z,yaw) in new[]{(103.5f,-159f,-90f),(161.3f,-167.8f,75f),(285.8f,-171f,-90f),(338.6f,-172f,90f),(137.1f,-176f,-90f)})
         {var face=Ground(x+3.93f*Mathf.Sin(Mathf.DegToRad(yaw)),z+3.93f*Mathf.Cos(Mathf.DegToRad(yaw)));Piece("Tunnel portal","tunnel_portal",new(x-3.93f*Mathf.Sin(Mathf.DegToRad(yaw)),face.Y,z-3.93f*Mathf.Cos(Mathf.DegToRad(yaw))),yaw);}
         foreach(var (x,z,size,turn) in new[]{(101.4f,-164,1.4f,.9f),(101.8f,-154.6f,1.2f,1.4f)})Boulder("Tunnel rubble",x,z,size,turn);
         // The Row, an abandoned street of houses, three to a side, facing each other across it.
@@ -155,14 +233,14 @@ public partial class World
         {Barrel(this,"Kiln barrel",Ground(x,z),x);var body=new StaticBody3D{Position=Ground(x,z)+Vector3.Up*.42f};AddChild(body);body.AddChild(new CollisionShape3D{Shape=new CylinderShape3D{Radius=.32f,Height=.84f}});}
         Kakashi("Field scarecrow",new(313,-60),200);
         // The forest railway on sleepers at a narrow gauge, from its buried west tunnel over the Crossing, along the Cut and the Halt and, past
-        // the trestle (whose rails are its deck's), to its buried east tunnel.
-        foreach(var points in Railway)
+        // the trestle (whose rails are its deck's), to its buried east tunnel; and the main line at its standard gauge.
+        foreach(var (track,gauge) in Railway.Select(l=>(l,.53f)).Concat(MainLine.Select(l=>(l,.72f))))
         {
-            for(int i=0;i<points.Length-1;i++)
+            for(int i=0;i<track.Length-1;i++)
             {
-                var a=points[i];var b=points[i+1];float length=a.DistanceTo(b),yaw=Mathf.Atan2(b.X-a.X,b.Y-a.Y);var across=new Vector2(a.Y-b.Y,b.X-a.X)/length;
-                for(float t=.4f;t<length;t+=.9f){var p=a.Lerp(b,t/length);Box(this,"Rail sleeper",Ground(p.X,p.Y)+Vector3.Up*.04f,new(2,.12f,.24f),wood).Rotation=new(0,yaw,0);}
-                foreach(float side in new[]{-.53f,.53f}){var m=(a+b)/2+across*side;var rail=Box(this,"Rail",Ground(m.X,m.Y)+Vector3.Up*.14f,new(.07f,.1f,length),Mat(new("6f6a62")));rail.Rotation=new(Mathf.Atan2(Height(a.X,a.Y)-Height(b.X,b.Y),length),yaw,0);}
+                var a=track[i];var b=track[i+1];float length=a.DistanceTo(b),yaw=Mathf.Atan2(b.X-a.X,b.Y-a.Y);var across=new Vector2(a.Y-b.Y,b.X-a.X)/length;
+                for(float t=.4f;t<length;t+=.9f){var p=a.Lerp(b,t/length);Box(this,"Rail sleeper",Ground(p.X,p.Y)+Vector3.Up*.04f,new(gauge*3.8f,.12f,.24f),wood).Rotation=new(0,yaw,0);}
+                foreach(float side in new[]{-gauge,gauge}){var m=(a+b)/2+across*side;var rail=Box(this,"Rail",Ground(m.X,m.Y)+Vector3.Up*.14f,new(.07f,.1f,length),Mat(new("6f6a62")));rail.Rotation=new(Mathf.Atan2(Height(a.X,a.Y)-Height(b.X,b.Y),length),yaw,0);}
             }
         }
         // The Catwalk's planks, laid across it on the cliff.
@@ -172,12 +250,7 @@ public partial class World
             var a=new Vector2(catwalk.Points[i].X,catwalk.Points[i].Z);var b=new Vector2(catwalk.Points[i+1].X,catwalk.Points[i+1].Z);float length=a.DistanceTo(b),yaw=Mathf.Atan2(b.X-a.X,b.Y-a.Y);
             for(float t=.2f;t<length;t+=.38f){var p=a.Lerp(b,t/length);Box(this,"Catwalk plank",Ground(p.X,p.Y)+Vector3.Up*.03f,new(2*catwalk.Half-.3f,.06f,.32f),wood).Rotation=new(Mathf.Atan2(Height(a.X,a.Y)-Height(b.X,b.Y),length),yaw,0);}
         }
-        // Bench 1 runs on toward the north half of the maze, closed for now.
-        foreach(float x in new[]{285f,288,291})
-        {
-            var n=Model(this,"Bench barricade","barricade",Ground(x,-101.5f),90,new(1.3f,1.3f,1.3f));
-            var body=new StaticBody3D();n.AddChild(body);body.AddChild(new CollisionShape3D{Position=new(0,.65f,0),Shape=new BoxShape3D{Size=new(.4f,1.3f,3)}});
-        }
+        NorthHalf();
         // The maze's own scatter, so nothing it places moves the relay road's or the countryside's.
         var r=new RandomNumberGenerator{Seed=7313};var area=MazeFine;var trees=new List<Vector2>();
         float X()=>r.RandfRange(area.Position.X,area.End.X);float Z()=>r.RandfRange(area.Position.Y,area.End.Y);
@@ -196,6 +269,57 @@ public partial class World
         var grass=new List<(Vector3 P,float H)>();
         for(int i=0;i<5000;i++){float x=X(),z=Z(),h=r.RandfRange(.18f,.55f);if(Open(x,z))grass.Add((Ground(x,z),h));}
         Grass("Maze grass",grass,3,p=>Open(p.X,p.Y),5,.45f,new("3a5122"),new("8ea54f"),.1f,7319);
+    }
+    // A lock-in gate across `trail` at `at`, hung raised over it: the Tripo leaf, reaching a metre into the rock either side, between posts
+    // and under a lintel, that Game drops to the floor while Mio is in its yard and its robots are not all shut down.
+    private void Lock(string yard,Vector2 at,string trail)
+    {
+        var t=MazeTrails.Single(t=>t.Name==trail);var reach=t.Points.Zip(t.Points.Skip(1)).Select(p=>(A:new Vector2(p.First.X,p.First.Z),B:new Vector2(p.Second.X,p.Second.Z)))
+            .MinBy(r=>Near(new Vector3(r.A.X,0,r.A.Y),new Vector3(r.B.X,0,r.B.Y),at.X,at.Y).Gap);
+        var dir=(reach.B-reach.A).Normalized();var across=new Vector2(-dir.Y,dir.X);float half=t.Half+1,yaw=Mathf.Atan2(across.X,across.Y),floor=Height(at.X,at.Y);
+        // Built down, so its Part's Rest is the floor, then raised.
+        var leaf=new AnimatableBody3D{Name=yard+" gate",Position=new(at.X,floor,at.Y),Rotation=new(0,yaw,0),CollisionMask=0};AddChild(leaf);
+        leaf.AddChild(new CollisionShape3D{Position=new(0,1.4f,0),Shape=new BoxShape3D{Size=new(.24f,2.8f,2*half)}});
+        Model(leaf,"Gate leaf","cut_gate",Vector3.Zero,-90,new(1.3f,1.3f,1.3f)).Scale=new(2*half/5.12f,1.05f,1.2f);
+        var dark=Mat(new("4a3a2c"));
+        foreach(float s in new[]{-half,half}){var post=at+across*s;Box(this,"Lock gate post",new(post.X,floor+3.2f,post.Y),new(.4f,6.4f,.4f),dark,true);}
+        Box(this,"Lock gate lintel",new(at.X,floor+6.2f,at.Y),new(.4f,.4f,2*half+.4f),dark).Rotation=new(0,yaw,0);
+        var gate=new Part(leaf.Name,"lock",leaf,new(at.X,floor,at.Y),Open:3.3f,Yaw:yaw,Yard:yard);leaf.Position+=Vector3.Up*gate.Open;Parts.Add(gate);
+    }
+    // The north half's placeholders, from models the game already has, until its own art comes.
+    private void NorthHalf()
+    {
+        Vector3 Ground(float x,float z)=>new(x,Height(x,z),z);
+        var steel=Mat(new("829b91"));
+        void Solid(Node3D n,Vector3 at,Vector3 size){var body=new StaticBody3D{CollisionMask=0};n.AddChild(body);body.AddChild(new CollisionShape3D{Position=at,Shape=new BoxShape3D{Size=size}});}
+        // The Drying yard's rack along its east side, and the Station overlook's deck at the east face's brow.
+        Hasa(new(302,-127),90);
+        Overlook("Station overlook",new(336.6f,-121.6f));
+        // On the Mast's pad, an old signal mast; at the Ropeway head, the ropeway's pylon, its sheave still on its beam.
+        var mast=Ground(324.5f,-166.5f);Box(this,"Mast footing",mast+Vector3.Up*.3f,new(1.2f,.6f,1.2f),stone,true);
+        Cylinder(this,"Signal mast",mast+Vector3.Up*6.6f,.16f,12,steel);
+        for(int i=0;i<3;i++)Box(this,"Mast crossbar",mast+Vector3.Up*(10.4f+i*.7f),new(3.2f-i*.7f,.08f,.08f),steel).Rotation=new(0,Mathf.Pi/4,0);
+        var pylon=Ground(331,-261);
+        foreach(float z in new[]{-1.6f,1.6f})Box(this,"Pylon leg",pylon+new Vector3(0,5,z),new(.45f,10,.45f),steel,true);
+        Box(this,"Pylon beam",pylon+new Vector3(0,10,0),new(.5f,.5f,4.6f),steel);
+        Cylinder(this,"Pylon sheave",pylon+new Vector3(.4f,10.6f,0),.55f,.18f,Mat(new("5d5246"))).Rotation=new(0,0,Mathf.Pi/2);
+        // The Wood gate's torii at the wood's edge, the Jizo hollow's two lanterns, and the woodcutter's hut, its woodpile by it.
+        Torii(Ground(285.2f,-205.5f),171,"Wood gate torii");
+        foreach(var (x,z) in new[]{(230f,-248.5f),(241.5f,-258f)})StoneLantern(this,Ground(x,z));
+        Shelter("Woodcutter's hut",new(275,-266));
+        var woodpile=Model(this,"Hut woodpile","woodpile",Ground(279.5f,-264),0,new(1.3f,1.3f,1.3f));Solid(woodpile,new(0,.6f,0),new(1.77f,1.2f,1.11f));
+        // The charcoal pits' kilns, dug into the pits' north and east sides, each mouth to the floor.
+        foreach(var (x,z,yaw) in new[]{(220f,-233.5f,0f),(227.5f,-228f,-90f)})
+        {var mouth=Ground(x+2.17f*Mathf.Sin(Mathf.DegToRad(yaw)),z+2.17f*Mathf.Cos(Mathf.DegToRad(yaw)));Piece("Charcoal kiln","kiln",new(x,mouth.Y,z),yaw);}
+        // The signalman's telephone on the ledge over the Halt.
+        Piece("Signal telephone","phone_box",Ground(249.5f,-185.3f),0);
+        // The Signal yard: lamps along its north side, its signpost, and barrels in its north-east corner.
+        foreach(float x in new[]{104f,116})Lamp(Ground(x,-182.5f));
+        Signpost(new(124,-171),StationSign,Mathf.Pi/2);
+        foreach(var (x,z,turn) in new[]{(119f,-181.5f,.4f),(120.2f,-182.4f,2.1f),(118.6f,-182.7f,1.2f)})
+        {Barrel(this,"Yard barrel",Ground(x,z),turn);var body=new StaticBody3D{Position=Ground(x,z)+Vector3.Up*.42f};AddChild(body);body.AddChild(new CollisionShape3D{Shape=new CylinderShape3D{Radius=.32f,Height=.84f}});}
+        // The East yard's older way on to the station, buried under the mountain's fall.
+        foreach(var (x,z,size,turn) in new[]{(362.6f,-172.6f,2.6f,.6f),(361.4f,-170.4f,1.7f,1.9f),(361.8f,-174.9f,1.9f,2.7f)})Boulder("Buried rubble",x,z,size,turn);
     }
     // One of the maze's own Tripo models (assets/models/MODEL.glb), placed whole, its faces below `top` its collider.
     private Node3D Piece(string name,string model,Vector3 at,float yaw,float top=float.MaxValue)
@@ -268,13 +392,19 @@ public partial class World
     private void Load(string name,string kind,Vector2 a,Vector2 b)
     {
         var dir=(b-a).Normalized();float yaw=Mathf.Atan2(dir.X,dir.Y);
-        float radius=kind switch{"rocks"=>.75f,"logs"=>.35f,_=>.32f},span=kind switch{"rocks"=>.75f,"logs"=>1.3f,_=>.42f};
+        float radius=kind switch{"rocks"=>.75f,"logs"=>.35f,"drum"=>.6f,_=>.32f},span=kind switch{"rocks"=>.75f,"logs"=>1.3f,"drum"=>.55f,_=>.42f};
         var body=new StaticBody3D{Name=name,Position=new(a.X,Height(a.X,a.Y),a.Y),Rotation=new(0,yaw,0),CollisionMask=0};AddChild(body);
         body.AddChild(new CollisionShape3D{Position=new(0,radius,0),Shape=new BoxShape3D{Size=new(2*span,2*radius,2*radius)}});
         // It turns about Spin, at its middle, as it rolls along its Z.
         var spin=new Node3D{Name="Spin",Position=new(0,radius,0)};body.AddChild(spin);
         if(kind=="rocks")Model(spin,"Rock","boulder",new(0,-radius*.8f,0),0,new(1.05f,1.05f,1.05f)).Scale=Vector3.One*2*radius/1.58f;
         else if(kind=="logs")Cylinder(spin,"Log",Vector3.Zero,radius,2*span,wood).Rotation=new(0,0,Mathf.Pi/2);
+        // A cable drum: its barrel wound with rusted cable between two wooden flanges, the flanges its rims.
+        else if(kind=="drum")
+        {
+            Cylinder(spin,"Drum cable",Vector3.Zero,radius*.72f,2*span-.12f,Mat(new("5d5246"))).Rotation=new(0,0,Mathf.Pi/2);
+            foreach(float x in new[]{span-.04f,.04f-span})Cylinder(spin,"Drum flange",new(x,0,0),radius,.08f,wood).Rotation=new(0,0,Mathf.Pi/2);
+        }
         else{var barrel=Model(spin,"Barrel","village_barrel",new(span,0,0),0,new(1.3f,1.3f,1.3f));barrel.Rotation=new(0,0,Mathf.Pi/2);}
         Parts.Add(new(name,kind,body,body.Position,new(b.X,Height(b.X,b.Y),b.Y),Yaw:yaw,Size:radius,Span:span));
     }

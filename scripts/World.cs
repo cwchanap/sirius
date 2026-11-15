@@ -459,6 +459,17 @@ public partial class World : Node3D
         foreach(float x in new[]{-2.31f,2.31f})foreach(float z in new[]{-2.2f,2.18f})Solid(shelter.Position+new Vector3(x,1.5f,z),Vector3.Zero,new(.3f,3,.3f));
         return shelter;
     }
+    // The Tripo deck, sunk to stand 3 cm proud, railed on its east and north sides with its bench along the east rail.
+    private Node3D Overlook(string name,Vector2 at)
+    {
+        var lookout=new Node3D {Name=name,Position=new(at.X,Height(at.X,at.Y),at.Y)};AddChild(lookout);
+        Model(lookout,"Tripo overlook","overlook",new(0,-.7f,0),-90,new(1.3f,1.3f,1.3f));
+        Solid(lookout.Position+new Vector3(0,-.12f,0),Vector3.Zero,new(6,.3f,6));
+        Solid(lookout.Position+new Vector3(2.75f,.57f,0),Vector3.Zero,new(.25f,1.1f,5.8f));
+        Solid(lookout.Position+new Vector3(0,.57f,-2.55f),Vector3.Zero,new(5.8f,1.1f,.25f));
+        Solid(lookout.Position+new Vector3(2.21f,.3f,.46f),Vector3.Zero,new(.56f,.54f,3.67f));
+        return lookout;
+    }
     private void Solid(Vector3 p,Vector3 turn,Vector3 size){var body=new StaticBody3D{Position=p,Rotation=turn,CollisionMask=0};AddChild(body);body.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=size}});}
     private void Lamp(Vector3 p)=>Model(this,"Lantern pole","street_lamp",p,0,new(1.3f,1.3f,1.3f));
     private void Barrel(Node3D parent,string name,Vector3 p,float yaw,float scale=1)=>Model(parent,name,"village_barrel",p,Mathf.RadToDeg(yaw),new(1.3f,1.3f,1.3f)).Scale=Vector3.One*scale;
@@ -526,14 +537,8 @@ public partial class World : Node3D
         Label(shelter,"CEDAR PASS SHELTER",new(0,3.3f,2.72f),Gold,26);
         Footpath(new(RoadX(-189),-189),new(-12,-187),1.2f);
         Footpath(new(-12,-187),new(-12,-188f),1.2f);
-        var lookout=new Node3D {Name="Valley Overlook",Position=new(29,Height(29,-226),-226)};AddChild(lookout);
-        // The Tripo deck, sunk to stand 3 cm proud, railed on its east and north sides with its bench along the east rail; the plaque is
-        // the signpost model at two thirds size.
-        Model(lookout,"Tripo overlook","overlook",new(0,-.7f,0),-90,new(1.3f,1.3f,1.3f));
-        Solid(lookout.Position+new Vector3(0,-.12f,0),Vector3.Zero,new(6,.3f,6));
-        Solid(lookout.Position+new Vector3(2.75f,.57f,0),Vector3.Zero,new(.25f,1.1f,5.8f));
-        Solid(lookout.Position+new Vector3(0,.57f,-2.55f),Vector3.Zero,new(5.8f,1.1f,.25f));
-        Solid(lookout.Position+new Vector3(2.21f,.3f,.46f),Vector3.Zero,new(.56f,.54f,3.67f));
+        // The plaque is the signpost model at two thirds size.
+        var lookout=Overlook("Valley Overlook",new(29,-226));
         Model(lookout,"Vista plaque","signpost",new(-2,0,-2),90,new(1.3f,1.3f,1.3f)).Scale=Vector3.One*.67f;
         foreach(float x in new[]{-2.96f,-1.04f})Solid(lookout.Position+new Vector3(x,.6f,-2),Vector3.Zero,new(.15f,1.2f,.15f));
         var plaque=Label(lookout,"CEDAR RIVER\nTHE OFFLINE VALLEY",new(-2,1.25f,-1.93f),Gold,24);

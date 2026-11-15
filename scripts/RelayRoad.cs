@@ -18,6 +18,9 @@ public partial class World
         ("High road",3.5f,2,new Vector3[]{new(28,7.5f,-54),new(27,7.6f,-62),new(28,8.2f,-78),new(28,8.8f,-98),new(22,9.4f,-118),new(16,7.5f,-130),new(8,4.5f,-140),new(5,3,-147),new(2,3,-156)}),
         ("Relay plaza",12,2,new Vector3[]{new(2,3,-156),new(1.5f,3,-174)}),
         ("Station road",3.5f,2,new Vector3[]{new(12,3,-160.5f),new(30,3.6f,-161),new(44,4.3f,-159.7f)}),
+        // A cutting off the station road under the viaduct's last span, where the old line's embankment has slid away, so the old line's
+        // apron ends over it in a clean drop instead of a rib of rock standing up through the deck.
+        ("Viaduct cutting",1.5f,0,new Vector3[]{new(29.5f,3.58f,-162),new(29.5f,3.58f,-170.5f)}),
         ("Rockfall",3.5f,0,new Vector3[]{new(44,4.3f,-159.7f),new(51.5f,8.5f,-160)}),
         ("Forest valley",6,1.1f,new Vector3[]{new(3,1.2f,-24),new(-6,1.4f,-34),new(-14,2,-58),new(-4,2.6f,-80),new(16,3,-96),new(2,3.4f,-112),new(-14,3.8f,-122),new(-28,4.2f,-128)}),
         ("Old quarry",9,0,new Vector3[]{new(-28,4.2f,-128),new(-36,4.4f,-134)}),
@@ -72,7 +75,7 @@ public partial class World
     // square Carve() is asked about, the reaches that can count anywhere in it: any that close in the blend, and any that can be the nearest
     // of all, of the maze's or of the relay road's. A gap changes by at most a square's half diagonal across it, so the lists give what the
     // whole table would, and Carve() runs a few dozen reaches instead of every one.
-    private const float Faint=16;private const int Square=16;private static readonly Rect2I Squares=new(-112,-272,560,304);
+    private const float Faint=16;private const int Square=16;private static readonly Rect2I Squares=new(-112,-320,560,352);
     private static int[][]? listed;private static int[]? every;
     private static int[] Listed(float x,float z)
     {
@@ -109,11 +112,12 @@ public partial class World
     // its Body, turned Yaw about the vertical, swings from its Closed angle to its Open one, a ladder or stair about its own X axis, a gate
     // about the vertical; Game keeps which are open through defeats, until the prologue restarts. A trap (a rotten plank, or a rolling load of
     // rocks, logs or barrels) is sprung by a step, at its plank or within reach of To, the foot of a load's run from From, and a rest re-arms
-    // it: Size is a plank's reach, or a load's radius, and Span half a load's length across its run.
-    public record Part(string Name,string Kind,Node3D Body,Vector3 From,Vector3 To=default,float Closed=0,float Open=0,float Yaw=0,float Size=0,float Span=0)
+    // it: Size is a plank's reach, or a load's radius, and Span half a load's length across its run. A lock-in gate hangs Open metres over
+    // From, its place on the floor, and drops while Mio is in its Yard and the robots there are not all shut down.
+    public record Part(string Name,string Kind,Node3D Body,Vector3 From,Vector3 To=default,float Closed=0,float Open=0,float Yaw=0,float Size=0,float Span=0,string? Yard=null)
     {
         public bool Shortcut=>Kind is "ladder" or "stair" or "gate";
-        public bool Rolls=>Kind is "rocks" or "logs" or "barrels";
+        public bool Rolls=>Kind is "rocks" or "logs" or "barrels" or "drum";
         public Transform3D Rest {get;}=Body.Transform;
         public void Swing(float angle)=>Body.Quaternion=new Quaternion(Vector3.Up,Yaw)*new Quaternion(Kind=="gate"?Vector3.Up:Vector3.Right,angle);
     }
@@ -240,6 +244,13 @@ public partial class World
             // ballast and parapets 1.4 m deep over the piers.
             if(i!=4&&i<8)Model(this,"Viaduct span","viaduct_span",new(x+4.5f,deck-.5f,Viaduct),0,new(1.3f,1.3f,1.3f)).Scale=new(9/11.84f,1,3.6f/4.62f);
         }
+        // East of the gap the old line's track bed runs out onto the last three spans, a deck Mio walks to its broken end over the plaza: the
+        // spans' ballast 1.05 m over their foot, 2.7 m wide between parapets she is kept from stepping over, solid to her waist. A resonance
+        // cell lies near the end.
+        const float gap=6.5f,abutment=33.5f;var walk=new StaticBody3D{Name="Viaduct deck",CollisionMask=0};AddChild(walk);
+        walk.AddChild(new CollisionShape3D{Position=new((gap+abutment)/2,deck+.45f,Viaduct),Shape=new BoxShape3D{Size=new(abutment-gap,.2f,2.7f)}});
+        foreach(float z in new[]{-1.45f,1.45f})walk.AddChild(new CollisionShape3D{Position=new((gap+abutment)/2,deck+1.1f,Viaduct+z),Shape=new BoxShape3D{Size=new(abutment-gap,1.1f,.2f)}});
+        Cell(new(10,Viaduct),deck+.55f);
     }
     // The Tripo boulder (assets/models/boulder.glb, 1.58 m across), size metres across. Its flat base rests on the lowest ground under
     // its footprint, sunk a little, so no air shows under it on a slope. Scatter boulders stay walk-through, as their spheres were.
@@ -290,9 +301,9 @@ public partial class World
         var barrel=new StaticBody3D{Position=pouch.Position+new Vector3(0,.42f,0)};AddChild(barrel);barrel.AddChild(new CollisionShape3D{Shape=new CylinderShape3D{Radius=.32f,Height=.84f}});
         pouch.AddChild(Combined("Pouch",Mat(new("c9a25a"),.25f),(new(0,.96f,0),new(.34f,.24f,.26f)),(new(0,1.12f,0),new(.14f,.1f,.12f))));Pickups.Add(new("pouch",pouch));
     }
-    private void Cell(Vector2 at)
+    private void Cell(Vector2 at,float? y=null)
     {
-        var cell=new Node3D{Name="Resonance cell",Position=new(at.X,Height(at.X,at.Y),at.Y)};AddChild(cell);
+        var cell=new Node3D{Name="Resonance cell",Position=new(at.X,y??Height(at.X,at.Y),at.Y)};AddChild(cell);
         cell.AddChild(Combined("Cell",Mat(Jade,.9f),(new(0,.14f,0),new(.13f,.28f,.13f)),(new(0,.31f,0),new(.07f,.06f,.07f))));Pickups.Add(new("cell",cell));
     }
     // Boxes baked into one mesh that Merge() leaves alone, for parts that move or vanish.

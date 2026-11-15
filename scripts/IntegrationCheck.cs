@@ -182,8 +182,8 @@ public static class IntegrationCheck
         var relayRobots=g.Enemies.Where(e=>!e.Maze).ToArray();var mazeRobots=g.Enemies.Where(e=>e.Maze).ToArray();
         Check(g.Patrols.Count()==3&&relayRobots.Count(e=>e.Kind==Enemy.Scout)==4&&relayRobots.Count(e=>e.Kind==Enemy.Drone)==5&&relayRobots.All(e=>Hoshikawa.World.RegionAt(e.Home)=="Old Relay Road"),
             "three patrol robots, four scouts and five drones on the relay road");
-        Check(mazeRobots.Length==39&&mazeRobots.Count(e=>e.Kind==Enemy.Patrol)==5&&mazeRobots.Count(e=>e.Kind==Enemy.Drone)==15&&mazeRobots.Count(e=>e.Asleep&&e.State=="ASLEEP")==7&&mazeRobots.All(e=>Hoshikawa.World.RegionAt(e.Home)==Hoshikawa.World.MazeName),
-            "Tunnel Mountain holds 39 robots of its own, five patrols, nineteen scouts (seven of them dormant) and fifteen drones");
+        Check(mazeRobots.Length==81&&mazeRobots.Count(e=>e.Kind==Enemy.Patrol)==11&&mazeRobots.Count(e=>e.Kind==Enemy.Drone)==30&&mazeRobots.Count(e=>e.Asleep&&e.State=="ASLEEP")==16
+            &&mazeRobots.All(e=>Hoshikawa.World.RegionAt(e.Home)==Hoshikawa.World.MazeName),"Tunnel Mountain holds 81 robots of its own, eleven patrols, forty scouts (sixteen of them dormant) and thirty drones");
         // Far from Mio and culled, a dormant scout must already lie at its death clip's end, its hips well down, not stand in the clip's first frame.
         float Hips(Enemy e,bool rest){var skeleton=ActorVisual.Descendants(e.Model).OfType<Skeleton3D>().Single();int hip=skeleton.FindBone("Hips");
             return skeleton.ToGlobal((rest?skeleton.GetBoneGlobalRest(hip):skeleton.GetBoneGlobalPose(hip)).Origin).Y-e.GlobalPosition.Y;}
@@ -464,7 +464,7 @@ public static class IntegrationCheck
         Check(!pouch.Visible&&bag.Count("pouch")==1&&bag.Capacity("remedy")==4&&bag.Count("remedy")==4&&g.Interaction().Icon!="remedy"&&g.ToastIcon=="remedy",
             "taking the remedy pouch adds it to Mio's key items and raises the remedies she carries to four");
         // Two resonance cells lie on the relay road, each on standable ground and taken once.
-        var cells=g.World.Pickups.Where(p=>p.Item=="cell"&&!Hoshikawa.World.InMaze(p.Node.Position.X,p.Node.Position.Z)).Select(p=>p.Node).ToArray();
+        var cells=g.World.Pickups.Where(p=>p.Item=="cell"&&!Hoshikawa.World.InMaze(p.Node.Position.X,p.Node.Position.Z)&&p.Node.Position.Y<10).Select(p=>p.Node).ToArray();
         foreach(var found in cells)
         {
             var by=found.GlobalPosition+Vector3.Back*1.3f;by.Y=Hoshikawa.World.Height(by.X,by.Z)+.1f;Place(g.Player,by);await Frames(10);
@@ -982,7 +982,7 @@ public static class IntegrationCheck
         while(g.Beat<Prologue.Cleared&&g.Mode==GameMode.Dialogue)await Tap(Key.E);
         Check(g.Blackout>.5f&&g.World.Rockfall.All(n=>!n.Visible&&(n is not StaticBody3D b||b.CollisionLayer==0))&&g.World.RockfallSign.All(l=>l.Text==World.StationSign),"as the narration says, the barrier and the boulders are cleared under a moment's black, and the sign only points the way");
         g.EndDialogue();
-        Check(gardener.GlobalPosition.DistanceTo(komaHome)<.01f&&g.Objective=="Take the station road east"&&g.ObjectivePosition==g.World.MazeEnd,"KOMA-7 goes back to its tomatoes, and the station road is open, on to Tunnel Mountain's Halt");
+        Check(gardener.GlobalPosition.DistanceTo(komaHome)<.01f&&g.Objective=="Take the station road east"&&g.ObjectivePosition==g.World.MazeEnd,"KOMA-7 goes back to its tomatoes, and the station road is open, on to Tunnel Mountain's Station tunnel");
         var through=new Vector3(41,Hoshikawa.World.Height(41,-160)+.1f,-160);Place(g.Player,through);await Frames(10);
         Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-41,g.Player.GlobalPosition.Z+160).Length()<.2f,"Mio can stand where the barrier stood");
         // Tunnel Mountain, the relay road's extension. Its robots stand still here: the walk is of the ground, its parts and its traps.
@@ -1046,7 +1046,7 @@ public static class IntegrationCheck
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-18)<.6f&&g.Sprung.Contains(hangingPlank.Name),$"over the hanging bridge on a stringer, its rotten plank giving way beside her, to Bench 1 {g.Player.GlobalPosition}");
         await Walk((289,-138),(288,-150),(288,-158),(283,-170),(280.5f,-171),(275,-169.8f),(269,-169.6f),(264,-170.4f),(252,-170));
         var haltWell=Hoshikawa.World.SavePoints[3].At;await WalkTo(haltWell+new Vector2(2,0));
-        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-14.5f)<.6f&&g.ToastTitle=="TO BE CONTINUED",$"down the terrace stair and over the trestle beside its rotten plank, the way runs out at the Halt, where the maze's north half will begin {g.Player.GlobalPosition}");
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-14.5f)<.6f&&g.ToastTitle!="TO BE CONTINUED",$"down the terrace stair and over the trestle beside its rotten plank to the Halt, where the maze runs on {g.Player.GlobalPosition}");
         foreach(var e in mazeRobots)e.CollisionLayer=layers[e];g.Player.Invulnerable=0;
         // The Halt's well is the second Starwell. Resting there re-arms the traps, and a defeat brings her back to it.
         await Tap(Key.E);await Tap(Key.Escape);
@@ -1068,6 +1068,69 @@ public static class IntegrationCheck
         g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);
         bool felled=g.Mode==GameMode.Defeated;g.Retry();await Frames(5);
         Check(felled&&g.Player.GlobalPosition.DistanceTo(On(haltWell+new Vector2(0,2)))<.5f&&g.ToastTitle=="BACK AT THE STARWELL"&&g.Opened.Contains(cutGate.Name)&&g.Opened.Contains(bellStair.Name),"a defeat brings Mio back to the Starwell she last rested at, the Bell stair and the gate still open");
+        // Leg 3, the heights: back over the trestle, up the terrace stair and the three benches, through the Drying yard, whose gates drop
+        // behind her on its robots and lift for good once they are shut down, along the east face to the Station overlook, up the Shelf past
+        // its cable drum to the Mast, and down the Ridge path to the Signalman's ledge over the Halt, where she lets the Halt stair down.
+        foreach(var e in mazeRobots)e.CollisionLayer=0;g.Player.Invulnerable=1e9f;
+        static bool Raised(World.Part gate)=>gate.Body.Position.DistanceTo(gate.Rest.Origin+Vector3.Up*gate.Open)<.01f&&((AnimatableBody3D)gate.Body).CollisionLayer==0;
+        static bool Lowered(World.Part gate)=>gate.Body.Position.DistanceTo(gate.Rest.Origin)<.01f&&((AnimatableBody3D)gate.Body).CollisionLayer==1;
+        var drying=g.World.Parts.Where(p=>p.Yard=="Drying yard").ToArray();var dryers=mazeRobots.Where(e=>Hoshikawa.World.InYard("Drying yard",e.Home)).ToArray();
+        await Walk((252,-170),(264,-170.4f),(269,-169.6f),(275,-169.8f),(280.5f,-171),(283,-170),(285,-167.5f),(287,-160),(288,-152),(289.5f,-135),(289.5f,-118),(288,-100),(289.5f,-92.5f),(295.5f,-93),(297,-100),(298.5f,-118));
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-22)<.6f&&drying.Length==2&&drying.All(Raised),$"leg 3 climbs back over the trestle and up the terraces to the Drying yard, its gates raised over the bench {g.Player.GlobalPosition}");
+        await WalkTo(new(298.5f,-123));await Frames(30);
+        Check(drying.All(Lowered)&&dryers.Length==3&&dryers.Count(e=>e.Asleep)==2&&!await Head(new(298.5f,-116),true,120)&&drying.All(Lowered),"stepping into the Drying yard drops its gates behind her, shutting her in with a patrol and two dormant scouts");
+        foreach(var e in dryers)e.Execute();await Frames(110);
+        Check(g.Cleared.Contains("Drying yard")&&drying.All(Raised),"once they are shut down its gates lift");
+        await Walk((298.5f,-116),(298.5f,-126));await Frames(30);Check(drying.All(Raised),"and they never drop again");
+        var drum=g.World.Parts.Single(p=>p.Name=="Shelf drum");
+        await Walk((298.5f,-135),(297,-150),(298.5f,-157.5f),(304.5f,-158),(306,-150),(307.5f,-135),(307.5f,-118),(308,-112),(317,-113.5f),(325,-117),(331.5f,-121.5f),(333,-125));
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-27.5f)<.6f&&!g.Sprung.Contains(drum.Name),$"from the top bench the overlook road runs along the east face to the Station overlook {g.Player.GlobalPosition}");
+        await Walk((333.5f,-129.5f),(331.5f,-134.5f),(329.5f,-142.5f),(327,-151.5f),(324.5f,-159),(320,-163));
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-34)<.6f&&g.Sprung.Contains(drum.Name),$"up the Shelf, its cable drum rolling down at her, to the Mast at the top of the map {g.Player.GlobalPosition}");
+        var haltStair=g.World.Parts.Single(p=>p.Name=="Halt stair");var haltFoot=new Vector2(haltStair.To.X,haltStair.To.Z);var haltBrow=new Vector2(haltStair.Body.Position.X,haltStair.Body.Position.Z);
+        await Walk((315,-170),(310,-180),(302,-190),(293,-196),(284,-199),(275,-200),(266,-197),(258,-190),(252,-183.5f),(haltStair.From.X,haltStair.From.Z));
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-21.5f)<.6f&&g.Interaction()==("ladder",Localization.T("STAIR")),$"down the Ridge path and along the Signalman's ledge to the Halt stair's head, over the Halt {g.Player.GlobalPosition}");
+        g.Interact();await Frames(130);
+        Check(g.Opened.Contains(haltStair.Name)&&Down(haltStair),"letting the Halt stair down opens the third shortcut");
+        await WalkTo(haltBrow,false);await WalkTo(haltFoot+(haltFoot-haltBrow).Normalized()*1.5f,false);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-14.5f)<.6f&&new Vector2(g.Player.GlobalPosition.X,g.Player.GlobalPosition.Z).DistanceTo(haltWell)<7,$"the Halt stair walks down onto the Halt, a few steps from its Starwell {g.Player.GlobalPosition}");
+        // Leg 4, the north wood: up the Halt stair, through the Wood gate and up the Rim way past its logs to the Ropeway head, round the wood
+        // by the Rim way north and down the Wood road. The charcoal pits off it shut her in too, and a defeat there lifts their gate.
+        await WalkTo(haltBrow);await Walk((246,-183),(252,-183.5f),(258,-190),(266,-197),(275,-200),(284,-199),(286,-212),(292,-224),(304,-234),(314,-246),(320,-254),(324,-258));
+        var rimLogs=g.World.Parts.Single(p=>p.Name=="Rim way logs");
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-30.5f)<.6f&&g.Sprung.Contains(rimLogs.Name),$"leg 4 climbs the Halt stair and the Rim way, its logs rolling down at her, to the Ropeway head {g.Player.GlobalPosition}");
+        await Walk((318,-263),(312,-270),(298,-280),(278,-288),(258,-290),(240,-286),(224,-278),(212,-268),(202,-256),(196,-242));
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-28)<.6f,$"round the north wood by the Rim way north to the Wood road {g.Player.GlobalPosition}");
+        var pits=g.World.Parts.Single(p=>p.Yard=="Charcoal pits");
+        await Walk((206,-238),(212,-233.5f),(217,-229.5f));await Frames(30);
+        Check(Lowered(pits)&&!await Head(new(206,-238),true,120),"stepping into the charcoal pits drops their gate behind her");
+        g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);felled=g.Mode==GameMode.Defeated;g.Retry();await Frames(5);
+        Check(felled&&Raised(pits)&&!g.Cleared.Contains("Charcoal pits")&&g.RestedAt==3&&g.Opened.Contains(haltStair.Name),"a defeat in the pits lifts their gate, and the Halt stair stays down");
+        foreach(var e in mazeRobots)e.CollisionLayer=0;g.Player.Invulnerable=1e9f;
+        // Down the Wood road and along the Long ledge, high over the Crossing, to the Signal yard on the cliff over the Court, where she lets
+        // the Great stair down; the Station tunnel's mouth at the yard's east end is where the maze ends for now.
+        Place(g.Player,On(new(196,-242)));await Frames(10);
+        await Walk((192,-228),(188,-214),(184,-202),(180,-194),(164,-193.5f),(146,-194),(128,-193.5f),(122,-193.5f),(115,-192),(110,-188),(107.5f,-184.5f),(104,-178));
+        var great=g.World.Parts.Single(p=>p.Name=="Great stair");var greatFoot=new Vector2(great.To.X,great.To.Z);var greatBrow=new Vector2(great.Body.Position.X,great.Body.Position.Z);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-16.5f)<.6f&&g.ToastTitle!="TO BE CONTINUED",$"down the Wood road and along the Long ledge into the Signal yard {g.Player.GlobalPosition}");
+        await WalkTo(new(great.From.X,great.From.Z));Check(g.Interaction()==("ladder",Localization.T("STAIR")),"the Great stair waits drawn up at the yard's edge over the Court");
+        g.Interact();await Frames(130);
+        Check(g.Opened.Contains(great.Name)&&Down(great),"letting the Great stair down opens the last shortcut");
+        await WalkTo(greatBrow,false);await WalkTo(greatFoot+(greatFoot-greatBrow).Normalized()*1.5f,false);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-10)<.5f&&new Vector2(g.Player.GlobalPosition.X,g.Player.GlobalPosition.Z).DistanceTo(courtWell)<9,$"the Great stair walks down into the Court, beside the first Starwell {g.Player.GlobalPosition}");
+        await WalkTo(greatBrow+(greatBrow-greatFoot).Normalized()*2.5f);await Walk((104,-176),(120,-176),(133,-176));
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-16.5f)<.6f&&g.ToastTitle=="TO BE CONTINUED"&&g.Region==Hoshikawa.World.MazeName,$"back up it and across the yard to the Station tunnel's mouth, where the maze ends for now {g.Player.GlobalPosition}");
+        // The old line west of the yard: down onto the old track bed, over the girder bridge beside its rotten sleepers, along the ledge and
+        // out onto the viaduct's last spans, to the cell near its broken end and a leap into the relay plaza.
+        await Walk((93,-176),(88,-175.5f),(84.5f,-174),(80,-172.7f),(72,-172.7f),(68,-174),(61,-171.5f),(50,-170.5f),(40,-168.5f),(34,-168),(24,-168),(11.5f,-168));
+        var viaductCell=g.World.Pickups.Single(p=>p.Item=="cell"&&p.Node.Position.X<30&&p.Node.Position.Y>10).Node;
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-13.55f)<.3f&&!g.Sprung.Contains("Girder bridge rotten plank")&&g.Interaction().Icon=="resonance"&&g.Region=="Old Relay Road",
+            $"the old line runs west over the girder bridge and onto the viaduct, its resonance cell by its broken end {g.Player.GlobalPosition}");
+        while(g.Player.Inventory.Count("cell")>=g.Player.Inventory.Capacity("cell"))g.Player.Inventory.Take("cell");
+        g.Interact();Check(!viaductCell.Visible,"and she takes it");
+        await WalkTo(new(3,-168));await Frames(60);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-3)<.3f&&g.Region=="Old Relay Road",$"from the broken end she leaps down into the relay plaza {g.Player.GlobalPosition}");
+        foreach(var e in mazeRobots)e.CollisionLayer=e.Dead?0u:4u;g.Player.Invulnerable=0;
         await TalkTo(renji,Vector3.Left*1.6f);Check(g.Script.SequenceEqual(Prologue.RenjiSeesOff),"Renji, staying at the plaza, sees them off");g.EndDialogue();
         if(DisplayServer.GetName()!="headless"){g.SaveScreenshot("res://artifacts/mission-complete.png");await Frames(5);}
         var chaser=g.Enemies.First(e=>e.Kind==Enemy.Scout&&!e.Dead);chaser.SetPhysicsProcess(true);Place(g.Player,chaser.GlobalPosition+Vector3.Back*6);await Frames(30);

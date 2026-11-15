@@ -35,7 +35,7 @@ public class ItemsTest
     {
         var bag=new Inventory();
         AssertThat(bag.Add("pouch")).IsTrue();AssertThat(bag.Capacity("remedy")).IsEqual(4);AssertThat(bag.Add("remedy")).IsTrue();AssertThat(bag.Count("remedy")).IsEqual(4);
-        AssertThat(bag.Add("pouch")).IsTrue();AssertThat(bag.Add("pouch")).IsFalse();AssertThat(bag.Capacity("remedy")).IsEqual(5);
+        AssertThat(bag.Add("pouch")).IsTrue();AssertThat(bag.Add("pouch")).IsTrue();AssertThat(bag.Add("pouch")).IsFalse();AssertThat(bag.Capacity("remedy")).IsEqual(6);
     }
     [TestCase]
     public void ASpentItemKeepsItsSlotUntilAReset()
