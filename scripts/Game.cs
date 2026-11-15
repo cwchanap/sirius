@@ -179,7 +179,7 @@ public partial class Game : Node3D
                 previousRegion=Region;Toast(Region.ToUpperInvariant(),seconds:3.5f);
             }
             if(Locked!=null&&(Locked.Dead||Locked.GlobalPosition.DistanceTo(Player.GlobalPosition)>22))Locked=null;
-            // Tunnel Mountain's first part ends at the Halt's Starwell, where its north half will begin.
+            // Tunnel Mountain ends for now at the Station tunnel's mouth, the door to the station.
             if(QuestStage==Quest.Beyond&&!arrived&&Player.GlobalPosition.DistanceTo(World.MazeEnd)<4){arrived=true;Toast("TO BE CONTINUED",seconds:6);}
             Traps(dt);Cull();
             if(Locked!=null)
@@ -231,7 +231,7 @@ public partial class Game : Node3D
     public void Restart()
     {
         QuestStage=Quest.Renji;Heard.Clear();Log.Clear();arrived=false;foreach(var e in Enemies)e.Reset();
-        opening?.Kill();Opened.Clear();RestedAt=0;foreach(var s in World.Parts.Where(p=>p.Shortcut))s.Swing(s.Closed);World.ClearRockfall(false);
+        opening?.Kill();Opened.Clear();Cleared.Clear();RestedAt=0;foreach(var s in World.Parts.Where(p=>p.Shortcut))s.Swing(s.Closed);World.ClearRockfall(false);
         foreach(var pickup in World.Pickups)pickup.Node.Visible=true;Player.Inventory.Reset();
         Player.Growth.Reset();
         Retry();PlaceCast();Opening();

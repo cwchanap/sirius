@@ -3,11 +3,16 @@ namespace Hoshikawa;
 
 // Tunnel Mountain's traps, World.Parts rows: a rotten plank gives way a moment after Mio steps on it, and a rolling load, parked in plain
 // sight at the head of its run, rumbles and rolls down it once she comes near its foot. Each stays sprung until a rest re-arms them all.
-// Far robots are not simulated: beyond FarOff metres one stops and hides until she comes back within NearBy.
+// A lock-in yard's gates drop behind her as she steps in and lift once its robots are all shut down, for good, or once she is out of it
+// again, by a drop or a defeat. Far robots are not simulated: beyond FarOff metres one stops and hides until she comes back within NearBy.
 public partial class Game
 {
     public const float Roll=6.5f,Give=.3f,FarOff=75,NearBy=70;
     public readonly HashSet<string> Sprung=new();
+    // The lock-in yards whose robots she has shut down, open until the prologue restarts, and how far each gate has dropped, 0 to 1.
+    public readonly HashSet<string> Cleared=new();
+    private readonly Dictionary<string,float> lowered=new();
+    private Dictionary<string,Enemy[]>? guards;
     // How long each sprung plank has been giving way, ticked only in play so a pause holds it, how far each load now rolling has come,
     // and the loads that have struck her on this run.
     private readonly Dictionary<string,float> giving=new();
@@ -35,7 +40,24 @@ public partial class Game
             if(!struckBy.Contains(t.Name)&&Math.Abs(d.Dot(along))<t.Size+.4f&&Math.Abs(d.Dot(across))<t.Span+.3f&&d.Y>-1&&d.Y<2*t.Size+.6f){struckBy.Add(t.Name);Player.Crush(along);}
             if(run>=length){rolling.Remove(t.Name);t.Body.Visible=false;Dust(p,1.6f,14);Sound("break");}
         }
+        guards??=Hoshikawa.World.Locks.ToDictionary(l=>l.Yard,l=>Enemies.Where(e=>e.Maze&&Hoshikawa.World.InYard(l.Yard,e.Home)).ToArray());
+        foreach(var (yard,_) in Hoshikawa.World.Locks)
+        {
+            if(!Cleared.Contains(yard)&&guards[yard].All(e=>e.Dead)){Cleared.Add(yard);Sound("guard");}
+            // The gates drop once she is a step past them all, clear of their leaves, and stay down while she is anywhere on the yard's side.
+            var gates=World.Parts.Where(p=>p.Yard==yard).ToArray();bool down=gates.Any(p=>lowered.GetValueOrDefault(p.Name)>0);
+            bool shut=!Cleared.Contains(yard)&&Hoshikawa.World.InYard(yard,mio,down?0:.8f),slam=false;
+            foreach(var t in gates)
+            {
+                // Each falls in a third of a second and winds back up over a second and a half.
+                float was=lowered.GetValueOrDefault(t.Name),f=Math.Clamp(was+(shut?dt/.35f:-dt/1.6f),0,1);if(f==was)continue;
+                lowered[t.Name]=f;Drop(t,f);if(f==1){slam=true;Dust(t.From,1.4f,10);}
+            }
+            if(slam){Sound("slam");CameraShake=.15f;}
+        }
     }
+    // A gate f of the way down from where it hangs, solid once it is half down.
+    private static void Drop(Hoshikawa.World.Part gate,float f){var body=(AnimatableBody3D)gate.Body;body.Position=gate.Rest.Origin+Vector3.Up*gate.Open*(1-f*f);body.CollisionLayer=f>.5f?1u:0;}
     // A rest, a recovery or a restart puts every trap back as it was built.
     public void Arm()
     {
@@ -45,6 +67,7 @@ public partial class Game
             t.Body.Transform=t.Rest;t.Body.Visible=true;((StaticBody3D)t.Body).CollisionLayer=1;
             if(t.Rolls)t.Body.GetNode<Node3D>("Spin").Rotation=Vector3.Zero;
         }
+        lowered.Clear();foreach(var t in World.Parts.Where(p=>p.Kind=="lock"))Drop(t,0);
     }
     private void Cull()
     {

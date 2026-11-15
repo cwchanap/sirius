@@ -269,7 +269,21 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [x] Metal on the Mac: the self-test passes, the maze holds 120 Hz, the spring ravine's rim has no gap; dormant scouts now lie down while culled and get up over half a second with no pop, checked again under Metal.
 - [ ] The dormant scout's get-up: the hips start up only after a quarter second of the slump unwinding, and the right arm flicks down and up into the guard; the notch and stepped crest the cut leaves in the ridge beside the Hoshikawa's spring hollow, seen from the headwater; a straight 6 m step in the mountains east of the maze's north-east corner, seen only from the air.
 - [x] The maze's own Tripo Studio models (the owner's, 2026-11-11): both Starwells, three tunnel mouths, the trestle and the hanging bridge with holes for their rotten planks, the Cut gate, the Bell stair, the Halt's platform, a log trolley, the line telephone, the sawmill and two charcoal kilns.
-- [ ] Separate tasks: the north half (HPA-701); the Row's houses, the wayside shrine and the Halt's shelter, still the valleys' models; the maze's sound and story.
+- [x] The north half (HPA-701), below.
+- [ ] Separate tasks: the Row's houses, the wayside shrine and the Halt's shelter, still the valleys' models; the maze's sound and story.
+
+## Tunnel Mountain, part 2: the north half (HPA-701)
+
+- [x] Leg 3 from the Halt over the trestle and up the terraces' three benches, through the Drying yard, by the Station overlook and up the Shelf to the Mast, down the Ridge path to the Signalman's ledge; leg 4 by the Wood gate and the Rim way round the north wood, past the Ropeway head, the Jizo hollow, the woodcutter's hut and the charcoal pits, along the Long ledge to the Signal yard; the Station tunnel's mouth at its end, where TO BE CONTINUED shows and the last objective points (the Bench 1 barricade is gone).
+- [x] Two more stairs, one table (`World.Stairs`): the Halt stair from the Signalman's ledge onto the Halt and the Great stair from the Signal yard into the Court, each under 40°, its hinge on the level floor.
+- [x] Lock-in gates (`World.Locks`, `lock` parts) at the Drying yard and the charcoal pits: they drop behind Mio, lift for good once the robots inside are shut down, and lift on a defeat inside.
+- [x] A cable drum down the Shelf and logs down the Rim way; a rotten plank on the old line's girder bridge.
+- [x] The east side down to the East yard and a third pouch (the pouch limit is now 3); the old line west from the Signal yard over the girder bridge to the viaduct's last spans, now a deck she walks, a cell by its broken end and a drop into the relay plaza.
+- [x] 42 more robots (81 in the maze, 93 in all): 11 patrols, 40 scouts (16 dormant), 30 drones; seven more cells.
+- [x] Stand-ins until the art task: the Mast and the ropeway pylon of boxes and cylinders, the lock-in gates and the girder bridge from the Cut gate's model and the Road bridge's boards, the valley's overlook, torii, lanterns, shelter, woodpile and kilns placed again.
+- [x] `MazeTest` floods the whole map leg by leg (no leg can be skipped, each stair a shortcut that saves over a long walk) and measures legs 3 and 4 against the plan; the self-test walks both legs, both lock-in yards, the Halt and Great stairs, the way to the Station tunnel and the old line, in all three languages.
+- [ ] Metal on the Mac: the self-test graphically, all 93 robots in play, the north half's look and frame rate.
+- [ ] Separate tasks: the art (the Station tunnel's mouth, the Halt and Great stairs' own models, the girder bridge, the Mast, the ropeway pylon, Jizo statues, the lock-in gates) and the sound (a lock-in gate's drop, a stair let down, the ridge's wind).
 
 ## A longer opening (開場劇情)
 
