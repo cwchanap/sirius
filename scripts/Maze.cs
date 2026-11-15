@@ -108,7 +108,7 @@ public partial class World
         ("Signal yard",7.5f,1.1f,new Vector3[]{new(100,16.5f,-176),new(121,16.5f,-176)}),
         // The Great stair's head, a landing out from the yard's end so its brow drops clean to the Court below, with no rib of rock beside it.
         ("Great stair head",2.5f,0,new Vector3[]{new(97,16.5f,-172),new(97,16.5f,-169)}),
-        ("Station tunnel",2.6f,1.1f,new Vector3[]{new(128,16.5f,-176),new(135,16.5f,-176)}),
+        ("Station tunnel",2.6f,1.1f,new Vector3[]{new(128,16.5f,-176),new(136,16.5f,-176)}),
         ("Old line E",2,0,new Vector3[]{new(93,16.5f,-176),new(88,15,-175.5f),new(84.5f,14.3f,-174)}),
         ("Old line W",2,0,new Vector3[]{new(68,14,-174),new(61,13.85f,-171.5f),new(50,13.7f,-170.5f),new(40,13.55f,-168.5f)}),
         ("Viaduct apron",3.5f,0,new Vector3[]{new(40,13.55f,-168.5f),new(36,13.55f,-168)}),
@@ -171,7 +171,7 @@ public partial class World
         new Vector2[]{new(280,-171),new(285.8f,-171)}};
     // The main line, from the Station tunnel's mouth across the Signal yard and west along the old track bed, over the girder bridge (whose
     // deck carries it) and onto the viaduct, whose spans bring their own rails.
-    public static readonly Vector2[][] MainLine={new Vector2[]{new(136,-176),new(93,-176),new(88,-175.5f),new(84.5f,-174)},new Vector2[]{new(68,-174),new(61,-171.5f),new(50,-170.5f),new(40,-168.5f),new(34,-168)}};
+    public static readonly Vector2[][] MainLine={new Vector2[]{new(139,-176),new(93,-176),new(88,-175.5f),new(84.5f,-174)},new Vector2[]{new(68,-174),new(61,-171.5f),new(50,-170.5f),new(40,-168.5f),new(34,-168)}};
     public static readonly Vector2[] MazeCells={new(76.6f,-185),new(110.5f,-120.3f),new(192.5f,-100.7f),new(273,-182.5f),
         new(337,-125.3f),new(322.6f,-165.4f),new(329,-254.5f),new(235,-250),new(272.4f,-267.4f),new(218.4f,-224.4f),new(174.6f,-181.5f)};
     public static readonly Vector2 KilnPouch=new(268,-27),EastPouch=new(353,-176);
