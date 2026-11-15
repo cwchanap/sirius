@@ -149,9 +149,9 @@ public partial class World
         for(int i=0;i<200;i++)
         {
             float x=X(),z=Z(),s=r.RandfRange(.8f,1.4f);var (_,_,maze,edge)=Carve(x,z);
-            // Chosen by the relay road's own trails, so the stream runs as before the maze; one that would stand on the maze's way in is
-            // drawn and dropped.
-            if(edge>3.5f&&edge<16&&trees.All(c=>c.DistanceTo(new(x,z))>3)){trees.Add(new(x,z));if(maze>3.5f)Tree(new(x,Height(x,z),z),s,"countryside",r);else for(int k=0;k<3;k++)r.Randf();}
+            // Chosen by the relay road's own trails, so the stream runs as before the maze; one that would stand on the maze's way in, or
+            // reach its crown up through the viaduct's deck, where the old line comes out onto it, is drawn and dropped.
+            if(edge>3.5f&&edge<16&&trees.All(c=>c.DistanceTo(new(x,z))>3)){trees.Add(new(x,z));if(maze>3.5f&&!(x<40&&Math.Abs(z+168)<6))Tree(new(x,Height(x,z),z),s,"countryside",r);else for(int k=0;k<3;k++)r.Randf();}
         }
         // Cedars down the forest valley either side of its path, on its own floor and narrow enough that their boughs keep off its walls.
         for(int i=0;i<48;i++)

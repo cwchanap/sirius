@@ -282,7 +282,7 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [x] 42 more robots (81 in the maze, 93 in all): 11 patrols, 40 scouts (16 dormant), 30 drones; seven more cells.
 - [x] Stand-ins until the art task: the Mast and the ropeway pylon of boxes and cylinders, the lock-in gates and the girder bridge from the Cut gate's model and the Road bridge's boards, the valley's overlook, torii, lanterns, shelter, woodpile and kilns placed again.
 - [x] `MazeTest` floods the whole map leg by leg (no leg can be skipped, each stair a shortcut that saves over a long walk) and measures legs 3 and 4 against the plan; the self-test walks both legs, both lock-in yards, the Halt and Great stairs, the way to the Station tunnel and the old line, in all three languages.
-- [ ] Metal on the Mac: the self-test graphically, all 93 robots in play, the north half's look and frame rate.
+- [x] Metal on the Mac: the self-test passes graphically, the north half holds about 170 fps with every robot in play; its captures found the Station tunnel's portal buried in the cliff and a tree growing through the viaduct's deck, both fixed.
 - [ ] Separate tasks: the art (the Station tunnel's mouth, the Halt and Great stairs' own models, the girder bridge, the Mast, the ropeway pylon, Jizo statues, the lock-in gates) and the sound (a lock-in gate's drop, a stair let down, the ridge's wind).
 
 ## A longer opening (開場劇情)
