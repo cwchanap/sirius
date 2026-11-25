@@ -1,5 +1,14 @@
 # MVP verification
 
+## Hoshikawa Station audio — 2026-11-25
+
+HPA-1258 adds two music loops, two ambience loops and two one-shot effects. The owner approved the station and Conductor music previews. Both committed OGGs match those previews byte for byte.
+
+- **File checks:** both OGGs decode as stereo Vorbis at 44.1 kHz and run for about one minute. All four WAVs are mono 44.1 kHz signed 16-bit PCM and peak below −1 dBFS.
+- **Godot 4.6.2 Mono:** headless import and resource loading confirmed two looping OGGs with zero offset, two forward-looping WAVs spanning all samples, and two WAVs with looping disabled (`STATION_AUDIO_IMPORT_PASS`). Running `tools/build_audio.py` on an isolated copy preserved all six files byte for byte.
+- **Unit tests:** all 69 passed with `just unit`.
+- **Listening and integration:** effect takes were selected by waveform and spectrum. In-game playback and mix are part of HPA-1257 and HPA-1259.
+
 ## Hoshikawa Station 2D art — 2026-11-24
 
 Linear HPA-1256: generated station textures, a painted valley view, blank boards, pictogram signs, posters and the sealed B2 shutter. The art is not wired into the game in this change.
