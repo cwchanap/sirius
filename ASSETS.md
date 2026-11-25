@@ -408,6 +408,10 @@ The dialogue box and the Starwell screen wear Codex art made the same way (`code
 
 `assets/art/room/` holds the art for Mio's room, the opening's first map, made with `codex exec` and its built-in image tool after the owner found the flat-coloured room plain: five seamless textures (`tatami`, `plaster`, `cedar`, `shoji` paper and the indigo asanoha `futon` quilt), `view.png`, a painted backdrop of the rain-wet paddies and misty wooded hills seen through the open shoji on an early-summer morning, and `photo.png`, the old photograph of Shio with Mio as a child for the north wall. The futon is cropped to whole repeats of its pattern so it tiles; the rest are unedited. [room-art-generation.md](assets/art/room/room-art-generation.md) records every prompt, raw hash and the crop. `World.Room()` lays the textures triplanar, hangs the photograph on a quad and draws the view through `assets/shaders/view.gdshader`.
 
+## Hoshikawa Station 2D art — 2026-11-24
+
+`assets/art/station/` contains the station's eight material textures, daylight valley backdrop, blank station and shop boards, four pictogram wayfinding signs, three picture-only posters and the sealed B2 shutter. The art was generated with the OpenAI Image API; [station-art-generation.md](assets/art/station/station-art-generation.md) records every prompt and raw-output hash. The platform texture is intended to repeat along its length and the other materials in both directions; a small join remains visible in the wall grid texture. The files are not yet wired into the game.
+
 ## Mio's bedding — 2026-10-31
 
 - `assets/models/props/bedding.glb`: the futon (6,780 triangles), a buckwheat pillow (1,344) and the cover (11,360, with `sit` and `folded` shape keys), built by `tools/build_bedding.py` in background Blender 4.0 (no source .blend; two rebuilds were byte-identical) after the owner found the boxes primitive. Each is a quilted shell round a sheet: the cover puffs to 6 cm between stitch lines 35 × 39 cm apart and thins to 2.4 cm at its edges, the 1 × 2.2 m futon is 6 cm deep with tufts, and the 50 × 30 cm pillow is domed to 10 cm.
