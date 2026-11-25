@@ -457,6 +457,95 @@ The owner asked for livelier music on the relay road and a battle track, in Falc
 
 The full takes and the cuts with their intros stay on the owner's Mac in `artifacts/music/`. The prompts omit any composer or game name because ElevenLabs refuses prompts that include one.
 
+## Hoshikawa Station audio (HPA-1258) — 2026-11-25
+
+The six files are in `assets/audio/`. HPA-1257 wires the station region and effects, and HPA-1259 wires the Conductor cue.
+
+### Production cuts
+
+Effects are mono 44.1 kHz, 16-bit PCM. The two ambience loops overlap the first 882 decoded samples into the end with a 20 ms raised cosine crossfade. The chime and train use a 3 ms fade in and a 40 ms fade out. The station ambience was selected for its variation and wider spectral content, the B2 hum for its stable 120 Hz tone, the chime for its four prominent pitches and clean decay, and the freight take for its approach, sustained high-frequency brake section and decaying tail. These selections were made from the waveforms and spectra.
+
+| File | Take | Decoded sample range (end exclusive) | Length | Gain | Peak | Godot playback |
+| --- | --- | --- | ---: | ---: | ---: | --- |
+| `station_ambience.wav` | `station_ambience-2` | 882–882,000 | 19.98 s | +15.56 dB | -5.53 dBFS | Forward loop from sample 0 |
+| `station_b2_hum.wav` | `b2_hum-1` | 882–882,000 | 19.98 s | +7.67 dB | -19.32 dBFS | Forward loop from sample 0 |
+| `station_platform_chime.wav` | `platform_chime-1` | 0–180,810 | 4.10 s | +2.84 dB | -1.50 dBFS | One-shot |
+| `station_freight_train.wav` | `freight_train-2` | 13,230–961,380 | 21.50 s | -2.45 dB | -1.50 dBFS | One-shot |
+
+Both music files are the approved previews copied byte for byte. Each contains one cycle and is encoded with `oggenc -q 3` at 44.1 kHz stereo. Cuts were matched by waveform near the start of the repeated source in the inpainting output. The last 11,025 samples (250 ms) blend into the audio immediately preceding the start sample. Godot imports each with `loop=true` and zero offset.
+
+| File | Source take | Decoded sample range (end exclusive) | Length |
+| --- | --- | --- | ---: |
+| `station.ogg` | `station_loop-short-glue.mp3` | 17,640–2,663,334 | 59.993061 s |
+| `station_conductor.ogg` | `boss_power_metal-short-glue.mp3` | 61,740–2,707,852 | 60.002540 s |
+
+### Sound effect requests
+
+All 16 requests used the ElevenLabs Sound Effects API, `eleven_text_to_sound_v2`, prompt influence 0.3 and `mp3_44100_128`. Each row has four takes with the same settings.
+
+| Sound | Duration | Loop | Prompt |
+| --- | ---: | --- | --- |
+| Station ambience | 20 s | true | Inside an abandoned Japanese railway station, gentle wind through broken windows, occasional distant water drips and old building creaks, empty spacious hall, no people, no voices, no music |
+| B2 hum | 20 s | true | A low steady electric power hum in a sealed underground railway sorting room, faint transformer vibration, no voices, no music |
+| Platform chime | 5 s | false | A short original four-note Japanese railway platform departure chime, clear gentle electronic bell tones, one melody only, no announcement, no voices, no background music |
+| Freight train | 22 s | false | A heavy freight train approaches an empty outdoor railway platform, grows louder, long steel brake squeal, wagons clank and compress, wheels slow to a complete stop, no horn, no voices, no music |
+
+The API returned trace IDs for the takes below except the first B2 take. The SHA-256 identifies each downloaded source.
+
+| Take | Trace ID | Source SHA-256 |
+| --- | --- | --- |
+| `station_ambience-1` | `084b48f878895817806257ff20434d6f` | `033854ddf4d416af2292c63ff60a1cf8df2955a90f548032035f8f9d9839fd60` |
+| `station_ambience-2` | `50418f2bfab2b4f7452f3b28dea7d66b` | `0bf44fb8832f82aa60185495a74f5db3c2a1dd1dc7e117f53fa8920f10506b38` |
+| `station_ambience-3` | `0b2e852b4fefc78fd91b8da239cbd06c` | `31e8965ee9f294a7e8e6ff13d8166fbdb7e4514a12f9e85af33ca12f3d6cc506` |
+| `station_ambience-4` | `e441bfee94f6697d967c3f9f91c70ac5` | `ade93a01c7c787f63434a36f04d6432c0789c6c60979fe7a90ae676002cd2a00` |
+| `sfx-1` | Unavailable | `591a400712d1cf29c947604933195b3a883827a282b14ef7832648ab01a4a234` |
+| `b2_hum-1` | `b397299dcd0485854032243993fd0b35` | `e1b8fff9cee1972a6519e6408a9a3f8ff38dbbbadea382a2c7ae4941aa110177` |
+| `b2_hum-2` | `72ce853f86fb804e8f6bb0f84d335e15` | `a1cffaad63dfa73946bc26d94ebad25d472fc036b0fe06975de34bcd0bebbc1d` |
+| `b2_hum-3` | `bde5fe2ada1902e9f2f79e7ca374ddbd` | `83cd40057fd6ee921a9d002c5011fa41cb9a866b4bd3e70abd7154176977bcd0` |
+| `platform_chime-1` | `76afdb54c6b9493049d8b295a3538005` | `566937d7f5f1cadf03cfed1810878a3b81fd30bccf58beecbce6b85a543bf901` |
+| `platform_chime-2` | `af4a0b28ce80b937d8440fdfaebe89ce` | `f8cf931991170cd06313c990f5ec1452a741f5f0bc466f709cd25003c3cdc4f4` |
+| `platform_chime-3` | `c26e40a52fa55d88adbd14c62d8419dd` | `996efe9f31ae555e61218dc3884ee75d22dabac299d0430df3ece6bdfdc02c96` |
+| `platform_chime-4` | `c88fbd3c4003991de8f8a271a0abcd1f` | `efd31f52210282f8872779de21821dc70e311d23f90c6027d48c8a227317e256` |
+| `freight_train-1` | `12b3326640cdb55c4839977b8d477160` | `9759354003e20a925a4cd71f9a247f191561742d2594770f965329146ada63e7` |
+| `freight_train-2` | `c744a476d29265117a50003ee0254480` | `152910e89d5152f74807af924c3cbda9d8e5c1000be0f7d414ecbea9d95b0b81` |
+| `freight_train-3` | `2638fa9bf609299bb2a4c1bbe830cc8a` | `f184de671a10924e41fb7ffbb57c58c5ce3758b41bce64ea1c5d59fde5e96770` |
+| `freight_train-4` | `f9a67a1fded28c0f83d1511127e387ed` | `c655c78fdab5d16449a80e5564f5c00a5737dd9db8525119420f019cbdf55450` |
+
+### Music requests and audition cuts
+
+The twelve music requests below used the ElevenLabs Music API and `mp3_44100_192`. The first two used `music_v1`. The rest used `music_v2_5` with inpainting. The four prompt generations requested instrumental audio. Plans reference saved audio and request instrumental transitions. No seed or finetune was sent.
+
+- `music-1` (song ID unavailable, source SHA-256 `dcc11659ff25ca952803d04d1634119f69b0616a647b036b24e48029e4a07253`) used `music_v1` for 90 s. “Instrumental orchestral Japanese action-RPG exploration theme for an abandoned railway station, quiet and uneasy, 96 BPM, 4/4, minor key. Sparse piano and soft strings, distant woodwinds and restrained low pulses, a delicate melancholic melody, mystery and stillness, no voices, no percussion solo. A repeating coherent musical phrase, no final cadence or fade.”
+- `boss-1` (song ID `ykuaYDU40VAoYZAV4OCf`) used `music_v1` for 90 s. “Instrumental orchestral Japanese action-RPG boss battle theme, a relentless mechanical conductor guarding a deserted railway platform, 150 BPM, 4/4, minor key. Driving sixteenth-note strings and urgent piano over powerful rock drums and electric bass, sharp brass and timpani, distorted electric guitar answering a dramatic violin melody. Threatening, determined and heroic, with rhythmic mechanical momentum and recurring melodic phrases. No vocals, no fade-out, no final cadence.”
+- `station_loop-source` (song ID `W36iKW6mBBF6xU4OAok7`) used `music_v2_5` for 40 s, stored for inpainting. “Instrumental orchestral Japanese action-RPG exploration music for a deserted railway station, quiet and uneasy, 96 BPM in 4/4, minor key. Sparse piano, soft strings, distant woodwinds, a restrained low pulse and a melancholic melody, mysterious and still. Consistent tempo and recurring phrases, no vocals, no spoken words, no ending cadence or fade.”
+- `boss_power_metal-source` (song ID `3gf8swsP8pfar9RdkUcd`) used `music_v2_5` for 40 s, stored for inpainting. “Instrumental Japanese power metal boss battle theme for a relentless mechanical railway conductor. Fast 160 BPM in 4/4, minor key. Soaring melodic twin lead guitars and virtuoso melodic runs, galloping rhythm guitar, double-kick drums, energetic bass, symphonic strings and brass, heroic and dangerous, vivid memorable melody, polished game soundtrack production. Consistent tempo and recurring phrases, no vocals, no spoken words, no ending cadence or fade.”
+- `station_loop-glue` (song ID `XpLZg1Ih5pAV5KtKw059`) used `W36iKW6mBBF6xU4OAok7` at 8,000–28,000 ms, then 5,000 ms of [Instrumental transition] with styles “instrumental orchestral Japanese action RPG, soft strings, sparse piano, quiet uneasy atmosphere, restrained pulse, smooth transition”, avoiding “vocals, fade out”, with high context adherence, then `W36iKW6mBBF6xU4OAok7` at 8,000–28,000 ms.
+- `station_loop-60s-glue` (song ID `8lkDM4ruULmwhW2WUl1E`) used `W36iKW6mBBF6xU4OAok7` at 8,000–28,000 ms, then 40,000 ms of [Instrumental development and transition] with styles “instrumental orchestral Japanese action RPG, soft strings, sparse piano, quiet uneasy atmosphere, restrained pulse, smooth transition”, avoiding “vocals, fade out”, with high context adherence, then `W36iKW6mBBF6xU4OAok7` at 8,000–28,000 ms.
+- `station_loop-extended` (song ID `bXkghP9vGJGVf9zd3aVr`) used `W36iKW6mBBF6xU4OAok7` at 0–35,000 ms, then 32,000 ms of [Instrumental continuation] with styles “instrumental orchestral Japanese action RPG, soft strings, sparse piano, quiet uneasy atmosphere, restrained pulse, steady 96 bpm”, avoiding “vocals, fade out, ending cadence”, with high context adherence. Stored for inpainting.
+- `station_loop-short-glue` (song ID `sOi439BP4MjxS1t5jU8u`) used `bXkghP9vGJGVf9zd3aVr` at 5,000–60,000 ms, then 5,000 ms of [Instrumental transition] with styles “instrumental orchestral Japanese action RPG, soft strings, sparse piano, quiet uneasy atmosphere, restrained pulse, steady 96 bpm, smooth transition back to main theme”, avoiding “vocals, fade out, ending cadence”, with high context adherence, then `bXkghP9vGJGVf9zd3aVr` at 5,000–60,000 ms.
+- `boss_power_metal-glue` (song ID `1fTqp1lejn1gP3tXtkWU`) used `3gf8swsP8pfar9RdkUcd` at 8,000–20,000 ms, then 3,000 ms of [Instrumental transition] with styles “instrumental Japanese power metal, galloping guitars, double kick drums, symphonic strings, driving bass, smooth rhythmic transition”, avoiding “vocals, fade out”, with high context adherence, then `3gf8swsP8pfar9RdkUcd` at 8,000–20,000 ms.
+- `boss_power_metal-60s-glue` (song ID `yQY4OnQt3paFeUd6BndD`) used `3gf8swsP8pfar9RdkUcd` at 8,000–20,000 ms, then 48,000 ms of [Instrumental development and transition] with styles “instrumental Japanese power metal, galloping guitars, double kick drums, symphonic strings, driving bass, smooth rhythmic transition”, avoiding “vocals, fade out”, with high context adherence, then `3gf8swsP8pfar9RdkUcd` at 8,000–20,000 ms.
+- `boss_power_metal-extended` (song ID `jfDFMkbLf858pinlAA3e`) used `3gf8swsP8pfar9RdkUcd` at 0–35,000 ms, then 32,000 ms of [Instrumental continuation] with styles “instrumental Japanese power metal, melodic electric guitars, double kick drums, symphonic strings, driving bass, steady 160 bpm”, avoiding “vocals, fade out, ending cadence”, with high context adherence. Stored for inpainting.
+- `boss_power_metal-short-glue` (song ID `uLSMvoyiK0moupp97wZ3`) used `jfDFMkbLf858pinlAA3e` at 5,000–62,000 ms, then 3,000 ms of [Instrumental transition] with styles “instrumental Japanese power metal, melodic electric guitars, double kick drums, symphonic strings, driving bass, steady 160 bpm, smooth transition back to main theme”, avoiding “vocals, fade out, ending cadence”, with high context adherence, then `jfDFMkbLf858pinlAA3e` at 5,000–62,000 ms.
+
+Earlier loop previews used the same 250 ms crossfade and encoding as the production cuts. Each join preview plays the final four seconds followed by the first four seconds of its production loop.
+
+| Audition | Source take | Decoded sample range (end exclusive) |
+| --- | --- | --- |
+| `station_loop-loop` | `station_loop-glue.mp3` | 88,200–1,190,473 |
+| `station_loop-60s` | `station_loop-60s-glue.mp3` | 88,200–2,734,200 |
+| `boss_power_metal-loop` | `boss_power_metal-glue.mp3` | 88,200–749,425 |
+| `boss_power_metal-60s` | `boss_power_metal-60s-glue.mp3` | 88,200–2,734,200 |
+
+Final file SHA-256:
+
+- `station.ogg` — `fe39383c7e9c93863f3e5a27d4e25002d076cba0884d557b6a21310a612e02fb`
+- `station_conductor.ogg` — `f346eb6be01fc20b40ba7af06d07237e9add30ff8949613938103cf6a0f79ca2`
+- `station_ambience.wav` — `fcd5d439a99e6894ee62ad2dde59c7e45644e8e4ebf8f9b7c5a29b34148d028f`
+- `station_b2_hum.wav` — `b3782a3258c69857b1df488053a7ac35f125691a1c7a173c2d4de8ea1097f359`
+- `station_platform_chime.wav` — `14f31292ac5136787f5372418b241e0758cba3c12b2613a5ce38b8e9057869a4`
+- `station_freight_train.wav` — `6f532abd5df9fb40e9233a28f8c4291256f5e033853946bd2d6ecaa958f7753c`
+
 ## Japanese and Traditional Chinese text — 2026-10-21
 
 Claude translated the prologue and the interface; no native speaker has reviewed either yet. `assets/dialogue/zh_TW.json` is the 70 beats of `scripts/Prologue.cs` in Traditional Chinese (Taiwan usage), `ja.json` gained the 39 beats it lacked (Ren, the narration, Zero's relay reminders, the first meetings and the Komorebi residents), and `ui.ja.json` / `ui.zh_TW.json` hold the 121 HUD, menu, sign, name and role strings, keyed by their English text. The existing 31 Japanese lines and their `tts` markup are unchanged, so the voiced audio is not stale. `assets/dialogue/glossary.md` lists the names (kanji names for the Chinese are proposals, marked), places, game terms and tone rules, with three open questions for the owner. Zero's six new relay reminders have Japanese text but no voice (`Prologue.Unvoiced`).
