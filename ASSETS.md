@@ -410,7 +410,7 @@ The dialogue box and the Starwell screen wear Codex art made the same way (`code
 
 ## Hoshikawa Station 2D art — 2026-11-24
 
-`assets/art/station/` contains the station's eight material textures, daylight valley backdrop, blank station and shop boards, four pictogram wayfinding signs, three picture-only posters and the sealed B2 shutter. The art was generated with the OpenAI Image API; [station-art-generation.md](assets/art/station/station-art-generation.md) records every prompt and raw-output hash. The platform texture is intended to repeat along its length and the other materials in both directions; a small join remains visible in the wall grid texture. The files are not yet wired into the game.
+`assets/art/station/` contains the station's eight material textures, daylight valley backdrop, blank station and shop boards, four pictogram wayfinding signs, three picture-only posters and the sealed B2 shutter. The art was generated with the OpenAI Image API; [station-art-generation.md](assets/art/station/station-art-generation.md) records every prompt and raw-output hash. The platform texture repeats along its length and the other materials in both directions; the wall tile is cropped to whole repeats. The files are not yet wired into the game.
 
 ## Mio's bedding — 2026-10-31
 

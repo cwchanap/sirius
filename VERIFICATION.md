@@ -5,7 +5,7 @@
 Linear HPA-1256: generated station textures, a painted valley view, blank boards, pictogram signs, posters and the sealed B2 shutter. The art is not wired into the game in this change.
 
 - **Asset checks:** all 19 PNGs decoded and matched the SHA-256 hashes recorded in `assets/art/station/station-art-generation.md`. Godot 4.6.2 Mono on the owner's Mac imported the files; a headless resource-load check loaded all 19 textures and confirmed mipmaps on the eight material textures (`STATION_IMPORT_PASS 19 textures; 8 with mipmaps`). The check script is local at `artifacts/station-art/check-imports.gd`.
-- **Visual review:** the contact sheet and repeat previews were inspected. The wall-tile texture retains a small visible repeat join; seamlessness and owner art approval remain open.
+- **Visual review:** the contact sheet and repeat previews were inspected. The wall tile was cropped at matching grout boundaries and a flush 2×2 repeat inspected at native size; owner art approval remains open.
 - **Not yet:** in-game station rendering was not tested, because this art-only change does not wire the assets into a station scene; integration is HPA-1257.
 
 ## Tunnel Mountain, part 2: the north half — 2026-11-15
