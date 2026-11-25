@@ -1,17 +1,17 @@
 # Hoshikawa Station — generation record
 
-Generated on 2026-11-24 on the owner’s Mac using the OpenAI Image API (`gpt-image-2`, quality `medium`, PNG), via the imagegen skill CLI. The floor grid had one additional generation and the wall grid had four to assess their repeats; the better floor and original wall are retained. Each committed file is one raw output, unchanged; the SHA-256 hashes below are of both the raw output and the committed file. Raw outputs and working previews are in the gitignored `artifacts/station-art/` on the generating machine.
+Generated on 2026-11-24 on the owner’s Mac using the OpenAI Image API (`gpt-image-2`, quality `medium`, PNG), via the imagegen skill CLI. The floor grid had one additional generation and the wall grid had four to assess their repeats; the better floor and original wall are retained. Each committed file is a raw output, unchanged except for the wall-tile crop described below. The table records raw SHA-256 hashes; the wall tile’s final hash is recorded separately. Raw outputs and working previews are in the gitignored `artifacts/station-art/` on the generating machine.
 
 The eight material textures are intended to repeat; the platform surface repeats along its horizontal axis, so the tactile strip stays continuous. All eight import losslessly with mipmaps. The view is a 3:2 daylight painting for `view.gdshader`; the signs and posters contain no intended lettering. The four wayfinding faces point right; later integration must choose their placement and orientation. No assets are wired into the game here.
 
-Repeat previews were inspected at native size. The wall grid texture has a small visible join, so seamlessness still needs art review or replacement before this ticket is complete.
+Repeat previews were inspected at native size. `wall-tiles.png` was cropped from the raw 1024×1024 image to x 85–940 and y 85–938 (right and bottom exclusive), matching grout-line boundaries around ten tiles in each direction, without resampling. A flush 2×2 native-size repeat was inspected. Its final SHA-256 is `03949d24df002ac5794a52a4b4f78c8183e56e63bf861db3645a26aa8a7cd9f5`. Owner art approval remains open.
 
 | File | Dimensions | Raw SHA-256 | Edits |
 | --- | --- | --- | --- |
 | `floor-tiles.png` | 1024×1024 | `05461b5daf452111ba196ef780cb35c3e7e400b1f33502c4944da0bdcef2f667` | none |
 | `concrete-plain.png` | 1024×1024 | `57919d3679ccf77ae08e3fcdf779b3de395256ef7f4039701d22140aec661f9c` | none |
 | `concrete-stained.png` | 1024×1024 | `21cb759c2600ec426b6a5b45fde08ae958e0ff353b905bdaa999d70a42db7817` | none |
-| `wall-tiles.png` | 1024×1024 | `0366de84056b4c4bb3a0c0027c05638be4d6e97371b87da63d4ceffbd80d1cbe` | none |
+| `wall-tiles.png` | 855×853 | `0366de84056b4c4bb3a0c0027c05638be4d6e97371b87da63d4ceffbd80d1cbe` | crop to ten repeats |
 | `plaster.png` | 1024×1024 | `764aa22ea46372061a40a4924102eaa0b262502dcbce6fe82ab645614cdef623` | none |
 | `wood-panelling.png` | 1024×1024 | `da3700de6ea46a22cad11f31ddaa82fd165434f5316d0f87dc9bbc8f6421884a` | none |
 | `shop-shutter.png` | 1024×1024 | `6861bbf4fe729a8ce577efa91920c859d3426f1d892d71e39eba3903800f95f8` | none |
