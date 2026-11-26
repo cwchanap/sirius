@@ -40,9 +40,9 @@ public class WildsTest
                 AssertThat(dry).OverrideFailureMessage($"{name} reach {i} runs dry at {string.Join(", ",dry)}").IsEmpty();
             }
     }
-    // The 1 m ground with its collider, over the play area's margin and Tunnel Mountain, and which of its cells are standable floor (under
-    // 50 degrees); worked out once, on every core.
-    static readonly Rect2I Area=World.Fine.Merge(World.MazeFine);
+    // The 1 m ground with its collider, over the play area's margin, Tunnel Mountain and the station, and which of its cells are standable
+    // floor (under 50 degrees); worked out once, on every core.
+    internal static readonly Rect2I Area=World.FineAreas.Skip(1).Aggregate(World.FineAreas[0],(a,b)=>a.Merge(b));
     static readonly Lazy<(float[,] Height,bool[,] Floor)> Ground=new(()=>
     {
         int w=Area.Size.X+1,h=Area.Size.Y+1;var height=new float[w,h];var floor=new bool[w,h];

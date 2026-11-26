@@ -45,7 +45,6 @@ public partial class Game : Node3D
     // The stardust last earned, shown rising over the HUD's count.
     public int Gained;
     private readonly List<Node3D> savePointGlows=new();
-    private bool arrived;
     public bool SelfTest;
     private Node3D cameraRig=null!;
     private SpringArm3D spring=null!;
@@ -179,8 +178,6 @@ public partial class Game : Node3D
                 previousRegion=Region;Toast(Region.ToUpperInvariant(),seconds:3.5f);
             }
             if(Locked!=null&&(Locked.Dead||Locked.GlobalPosition.DistanceTo(Player.GlobalPosition)>22))Locked=null;
-            // Tunnel Mountain ends for now at the Station tunnel's mouth, the door to the station.
-            if(QuestStage==Quest.Beyond&&!arrived&&Player.GlobalPosition.DistanceTo(World.MazeEnd)<4){arrived=true;Toast("TO BE CONTINUED",seconds:6);}
             Traps(dt);Cull();
             if(Locked!=null)
             {var to=Locked.GlobalPosition-Player.GlobalPosition;CameraYaw=Mathf.LerpAngle(CameraYaw,Mathf.Atan2(-to.X,-to.Z),dt*3.8f);}
@@ -230,7 +227,7 @@ public partial class Game : Node3D
     }
     public void Restart()
     {
-        QuestStage=Quest.Renji;Heard.Clear();Log.Clear();arrived=false;foreach(var e in Enemies)e.Reset();
+        QuestStage=Quest.Renji;Heard.Clear();Log.Clear();foreach(var e in Enemies)e.Reset();
         opening?.Kill();Opened.Clear();Cleared.Clear();RestedAt=0;foreach(var s in World.Parts.Where(p=>p.Shortcut))s.Swing(s.Closed);World.ClearRockfall(false);
         foreach(var pickup in World.Pickups)pickup.Node.Visible=true;Player.Inventory.Reset();
         Player.Growth.Reset();
@@ -271,7 +268,7 @@ public partial class Game : Node3D
         _=>"Take the station road east"
     };
     public string ObjectiveText=>F(Objective,ErrandsDone);
-    public Vector3 ObjectivePosition=>InRoom?Room!.GlobalPosition+(MendPhone?Hoshikawa.World.Telephone:Hoshikawa.World.Door):QuestStage switch
+    public Vector3 ObjectivePosition=>InRoom?Room!.GlobalPosition+(MendPhone?Hoshikawa.World.Telephone:Hoshikawa.World.RoomDoor):QuestStage switch
     {
         Quest.Road=>Patrols.FirstOrDefault(e=>!e.Dead)?.GlobalPosition??World.RelayPosition,
         Quest.Relay=>World.RelayPosition,
@@ -291,6 +288,7 @@ public partial class Game : Node3D
         if(World.RelayPosition.DistanceTo(Player.GlobalPosition)<3.3f)return ("repair",T("MANUAL RELAY"));
         if(AtSavePoint)return (Hud.StardustIcon,T(Hoshikawa.World.SavePointName).ToUpperInvariant());
         if(AtHome)return ("",T("DOOR"));
+        if(DoorHere() is {} door)return (door.Icon,T(door.Label).ToUpperInvariant());
         if(ShortcutHere() is {} part)return ("ladder",T(part.Kind.ToUpperInvariant()));
         if(PickupHere() is {} pickup){var item=Items.Get(pickup.Item);return (item.Icon,T(item.Name).ToUpperInvariant());}
         return ("","");
@@ -310,6 +308,12 @@ public partial class Game : Node3D
         if(AtSavePoint){Rest();return;}
         // Home on the second night, she talks with Zero and sleeps, and wakes on the third morning.
         if(AtHome){EnterRoom(false);if(QuestStage==Quest.Home){QuestStage=Quest.Rockfall;Play(Prologue.NightTwo);}return;}
+        // The tunnel is a blackout door: it puts her on the other side facing out, the run she was in still running.
+        if(DoorHere() is {} door)
+        {
+            var at=Hoshikawa.World.DoorLanding(door);Place(at,door.Yaw,door.CameraYaw);
+            Blackout=1;Locked=null;danger=0;return;
+        }
         if(ShortcutHere() is {} shortcut)
         {
             // A gate is unbarred from one side only.
@@ -363,6 +367,7 @@ public partial class Game : Node3D
         return r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition)<3.1f?r:null;
     }
     private World.Part? ShortcutHere()=>World.Parts.FirstOrDefault(s=>s.Shortcut&&!Opened.Contains(s.Name)&&(s.From.DistanceTo(Player.GlobalPosition)<2.2f||s.Kind=="gate"&&s.To.DistanceTo(Player.GlobalPosition)<2.2f));
+    private World.Door? DoorHere()=>World.Doors.FirstOrDefault(d=>World.DoorPoint(d).DistanceTo(Player.GlobalPosition)<2.2f);
     private World.Pickup? PickupHere()=>World.Pickups.FirstOrDefault(p=>p.Node.Visible&&p.Node.GlobalPosition.DistanceTo(Player.GlobalPosition)<2.2f);
     public void Play(params (string Speaker,string Text)[] beats)
     {

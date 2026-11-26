@@ -635,7 +635,7 @@ public static class IntegrationCheck
         await To(Prologue.Intro.Length);
         Check(g.Mode==GameMode.Playing&&presses==2*Prologue.Intro.Length&&g.InRoom&&g.Objective=="Head outside"&&g.Staged,
             $"the waking scene plays every line, two presses each ({presses}), and leaves Mio to head outside while the camera swings back");
-        await Frames((int)(Game.CameraBack*60)+10);var ahead=-g.Camera.GlobalBasis.Z;var door=g.Room!.GlobalPosition+Hoshikawa.World.Door-g.Player.GlobalPosition;
+        await Frames((int)(Game.CameraBack*60)+10);var ahead=-g.Camera.GlobalBasis.Z;var door=g.Room!.GlobalPosition+Hoshikawa.World.RoomDoor-g.Player.GlobalPosition;
         Check(g.GetViewport().GetCamera3D()==g.Camera&&new Vector2(ahead.X,ahead.Z).Normalized().Dot(new Vector2(door.X,door.Z).Normalized())>.95f,
             "the follow camera takes over behind her, looking at the door out");
         Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Y>Hoshikawa.World.RoomAt.Y-.1f,"she stands on the tatami");
@@ -650,7 +650,7 @@ public static class IntegrationCheck
         Indoors(Hoshikawa.World.Photo);await Frames(5);
         Check(g.Interaction()==("",Localization.T("PHOTO")),"the photograph on the wall can be looked at");
         g.Interact();Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Photo)&&g.Speaker=="Mio","Mio greets her mother's photograph, and Zero hurries her on");g.EndDialogue();
-        Indoors(Hoshikawa.World.Door);await Frames(5);
+        Indoors(Hoshikawa.World.RoomDoor);await Frames(5);
         Check(g.Interaction()==("",Localization.T("DOOR"))&&g.Objective=="Head outside","the door out is her objective");
         g.Interact();var yui=g.Actor("Yui");
         Check(!g.InRoom&&g.World.Visible&&!Sheathed()&&g.Player.GlobalPosition.DistanceTo(new(Hoshikawa.World.MioDoor.X,Hoshikawa.World.Height(Hoshikawa.World.MioDoor.X,Hoshikawa.World.MioDoor.Z)+.1f,Hoshikawa.World.MioDoor.Z))<.01f,
@@ -898,7 +898,7 @@ public static class IntegrationCheck
         await Tap(Key.Escape);Check(g.Mode==GameMode.Playing,"escape leaves the save point's screen back to play");
         // Komorebi's well is the second Starwell, the same screen.
         var northern=Hoshikawa.World.SavePoints[1].At;Place(g.Player,new(northern.X+2,Hoshikawa.World.Height(northern.X+2,northern.Y)+.1f,northern.Y));await Frames(10);
-        Check(Hoshikawa.World.SavePoints.Length==4&&Hoshikawa.World.RegionAt(g.Player.GlobalPosition)=="Komorebi"&&g.Player.IsOnFloor()&&g.Interaction()==(Hud.StardustIcon,Localization.T(Hoshikawa.World.SavePointName).ToUpperInvariant())
+        Check(Hoshikawa.World.SavePoints.Length==5&&Hoshikawa.World.RegionAt(g.Player.GlobalPosition)=="Komorebi"&&g.Player.IsOnFloor()&&g.Interaction()==(Hud.StardustIcon,Localization.T(Hoshikawa.World.SavePointName).ToUpperInvariant())
             &&g.GetNode<OmniLight3D>("Save point light Komorebi").GlobalPosition.DistanceTo(new(northern.X,g.Player.GlobalPosition.Y,northern.Y))<1.5f,"Komorebi's well is the other Starwell, lit, its name on the prompt");
         g.Player.Health=20;await Tap(Key.E);Check(g.Mode==GameMode.Rest&&g.Player.Health==g.Player.MaxHealth,"and E there rests Mio and opens the same screen");
         await Tap(Key.Escape);
@@ -955,7 +955,7 @@ public static class IntegrationCheck
         Check(g.ObjectivePosition.DistanceTo(new(Hoshikawa.World.MioDoor.X,g.ObjectivePosition.Y,Hoshikawa.World.MioDoor.Z))<.01f,"the last errand left is at home");
         var doorstep=new Vector3(Hoshikawa.World.MioDoor.X,Hoshikawa.World.Height(Hoshikawa.World.MioDoor.X,Hoshikawa.World.MioDoor.Z)+.1f,Hoshikawa.World.MioDoor.Z);Place(g.Player,doorstep);await Frames(10);
         Check(g.AtHome&&g.Interaction()==("",Localization.T("DOOR")),"from the second day her own door takes her home");
-        g.Interact();Check(g.InRoom&&g.Mode==GameMode.Playing&&g.Objective=="Mend Renji's telephone"&&g.Player.Facing.X<-.9f&&g.Player.GlobalPosition.DistanceTo(g.Room!.GlobalPosition+Hoshikawa.World.Door)<1,"in at her door, facing into her room, she is to mend the telephone");
+        g.Interact();Check(g.InRoom&&g.Mode==GameMode.Playing&&g.Objective=="Mend Renji's telephone"&&g.Player.Facing.X<-.9f&&g.Player.GlobalPosition.DistanceTo(g.Room!.GlobalPosition+Hoshikawa.World.RoomDoor)<1,"in at her door, facing into her room, she is to mend the telephone");
         Indoors(Hoshikawa.World.Telephone+Vector3.Left*.6f);await Frames(5);
         Check(g.Interaction()==("repair",Localization.T("TELEPHONE"))&&g.ObjectivePosition==g.Room!.GlobalPosition+Hoshikawa.World.Telephone,"Renji's telephone on the floor is the objective, to repair");
         g.Interact();Check(g.Script.SequenceEqual(Prologue.PhoneFixed)&&g.QuestStage==Quest.Handover&&g.ToastTitle=="READY TO SET OUT","mending it is the fourth errand: Mio is ready to set out");
@@ -1112,7 +1112,7 @@ public static class IntegrationCheck
         Check(felled&&Raised(pits)&&!g.Cleared.Contains("Charcoal pits")&&g.RestedAt==3&&g.Opened.Contains(haltStair.Name),"a defeat in the pits lifts their gate, and the Halt stair stays down");
         foreach(var e in mazeRobots)e.CollisionLayer=0;g.Player.Invulnerable=1e9f;
         // Down the Wood road and along the Long ledge, high over the Crossing, to the Signal yard on the cliff over the Court, where she lets
-        // the Great stair down; the Station tunnel's mouth at the yard's east end is where the maze ends for now.
+        // the Great stair down; the Station tunnel's mouth at the yard's east end is the door to the station.
         Place(g.Player,On(new(196,-242)));await Frames(10);
         await Walk((192,-228),(188,-214),(184,-202),(180,-194),(164,-193.5f),(146,-194),(128,-193.5f),(122,-193.5f),(115,-192),(110,-188),(107.5f,-184.5f),(104,-178));
         var great=g.World.Parts.Single(p=>p.Name=="Great stair");var greatFoot=new Vector2(great.To.X,great.To.Z);var greatBrow=new Vector2(great.Body.Position.X,great.Body.Position.Z);
@@ -1123,7 +1123,39 @@ public static class IntegrationCheck
         await WalkTo(greatBrow,false);await WalkTo(greatFoot+(greatFoot-greatBrow).Normalized()*1.5f,false);
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-10)<.5f&&new Vector2(g.Player.GlobalPosition.X,g.Player.GlobalPosition.Z).DistanceTo(courtWell)<9,$"the Great stair walks down into the Court, beside the first Starwell {g.Player.GlobalPosition}");
         await WalkTo(greatBrow+(greatBrow-greatFoot).Normalized()*2.5f);await Walk((104,-176),(120,-176),(133,-176));
-        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-16.5f)<.6f&&g.ToastTitle=="TO BE CONTINUED"&&g.Region==Hoshikawa.World.MazeName,$"back up it and across the yard to the Station tunnel's mouth, where the maze ends for now {g.Player.GlobalPosition}");
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-16.5f)<.6f&&g.Region==Hoshikawa.World.MazeName&&g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),
+            $"across the yard to the Station tunnel's mouth, where E now leads through the tunnel {g.Player.GlobalPosition}");
+        // The station's two portals: through the blackout door to the hillside above Hoshikawa Station and back, with no premature end.
+        var mountainSideDoor=Hoshikawa.World.Doors.Single(d=>d.At.X<200);var stationSideDoor=Hoshikawa.World.Doors.Single(d=>d.At.X>200);
+        // Each row's landing is the other side's: through the mountain row she arrives on the station's hillside, and back through the
+        // station row she arrives at the Signal yard's mouth.
+        var stationLanding=Hoshikawa.World.DoorLanding(mountainSideDoor);var mountainLanding=Hoshikawa.World.DoorLanding(stationSideDoor);
+        g.Interact();await Frames(10);
+        Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-stationLanding.X,g.Player.GlobalPosition.Z-stationLanding.Z).Length()<.5f,
+            $"E at the tunnel mouth sets her down on the station's hillside {g.Player.GlobalPosition}");
+        Check(g.Region==Hoshikawa.World.StationName&&g.QuestStage==Quest.Beyond&&g.Mode==GameMode.Playing,$"the station's hillside is its own region {g.Region}");
+        Check(g.ToastTitle=="HOSHIKAWA STATION",$"the station's name is toasted as she arrives ({g.ToastTitle})");
+        Check(Music.Track(g.Region,false)=="relay"&&Music.Track(g.Region,true)=="battle","the station falls back to the relay track, a fight still to the battle track");
+        Check(g.Interaction().Label=="","the landing is far enough from the door that E does not immediately take her back");
+        await WalkTo(new(384,-146));await Frames(5);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-19.2f)<.5f,$"the lineman's path leaves the portal shelf downhill {g.Player.GlobalPosition}");
+        // The station's Starwell is the Forecourt's; resting there sets it as the checkpoint and its respawn spot is clear.
+        var forecourt=Hoshikawa.World.SavePoints[4].At;Check(Hoshikawa.World.SavePoints[4]==("Forecourt",forecourt)&&Hoshikawa.World.RegionAt(new Vector3(forecourt.X,0,forecourt.Y))==Hoshikawa.World.StationName,"the Forecourt's well is the station's checkpoint, the fifth Starwell");
+        Place(g.Player,On(forecourt+new Vector2(2,0)));await Frames(10);
+        Check(g.Player.IsOnFloor()&&g.Interaction()==(Hud.StardustIcon,Localization.T(Hoshikawa.World.SavePointName).ToUpperInvariant())&&g.GetNode<OmniLight3D>("Save point light Forecourt").GlobalPosition.DistanceTo(new(forecourt.X,g.Player.GlobalPosition.Y,forecourt.Y))<1.5f,
+            "the Forecourt's well is lit and prompts like the villages' and the maze's");
+        await Tap(Key.E);Check(g.Mode==GameMode.Rest&&g.RestedAt==4,"Mio rests at the Forecourt's Starwell");await Tap(Key.Escape);
+        g.Player.Respawn();await Frames(10);
+        Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-forecourt.X,g.Player.GlobalPosition.Z-(forecourt.Y+2)).Length()<.5f,"the Forecourt's respawn spot 2 m from the well is clear");
+        // Resting sent every robot home and put its collider back; the Signal yard's patrols are not fought here, so they stay out of the walk.
+        foreach(var e in mazeRobots)e.CollisionLayer=0;
+        // Back through the door: the landing is more than 2.2 m from the door, so she steps up to it again to return.
+        Place(g.Player,On(new Vector2(380,-149.5f)));await Frames(10);
+        Check(g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),"at the station's end of the tunnel E leads back");
+        g.Interact();await Frames(10);
+        Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-mountainLanding.X,g.Player.GlobalPosition.Z-mountainLanding.Z).Length()<.5f&&g.Region==Hoshikawa.World.MazeName
+            &&g.ToastTitle=="TUNNEL MOUNTAIN"&&g.ToastTitle!="TO BE CONTINUED"&&g.Interaction().Label=="",
+            $"E there returns her to the Signal yard's mouth, facing Tunnel Mountain, with no early TO BE CONTINUED {g.Player.GlobalPosition}");
         // The old line west of the yard: down onto the old track bed, over the girder bridge beside its rotten sleepers, along the ledge and
         // out onto the viaduct's last spans, to the cell near its broken end and a leap into the relay plaza.
         await Walk((93,-176),(88,-175.5f),(84.5f,-174),(80,-172.7f),(72,-172.7f),(68,-174),(61,-171.5f),(50,-170.5f),(40,-168.5f),(34,-168),(24,-168),(11.5f,-168));

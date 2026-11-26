@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using GdUnit4;
+using Godot;
 using static GdUnit4.Assertions;
 namespace Hoshikawa.Tests;
 
@@ -78,6 +79,19 @@ public class LocalizationTest
     {
         var literals=Literals();
         AssertThat(Ui(lang).Keys.Where(k=>!literals.Contains(k))).IsEmpty();
+    }
+    [TestCase]
+    public void TheStationRegionAndItsDoorsHaveTheirOwnTranslations()
+    {
+        var drawn=new[]{World.StationName,World.StationName.ToUpperInvariant(),"STATION TUNNEL"};
+        foreach(var lang in new[]{"ja","zh_TW"})
+        {
+            var ui=Ui(lang);
+            AssertThat(drawn.Where(k=>!ui.ContainsKey(k))).OverrideFailureMessage($"{lang} lacks {string.Join(", ",drawn.Where(k=>!ui.ContainsKey(k)))}").IsEmpty();
+            AssertThat(World.Doors.Where(d=>!ui.ContainsKey(d.Label)).Select(d=>d.Label)).IsEmpty();
+            AssertThat(World.RegionAt(new Vector3(500,0,-100)).ToUpperInvariant()).IsEqual(World.StationToast);
+        }
+        AssertThat(World.StationToast).IsEqual(World.StationName.ToUpperInvariant());
     }
     [TestCase]
     public void LanguageComesFromTheFlagThenTheSavedChoiceThenTheSystem()

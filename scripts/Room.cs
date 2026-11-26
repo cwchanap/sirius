@@ -9,7 +9,7 @@ public partial class World
 {
     public static readonly Vector3 RoomAt=new(31,300,7.5f);
     // Mio's hips on the futon, her feet toward the shoji; the door out in the east wall; the photograph of her mother on the north wall.
-    public static readonly Vector3 Bed=new(-.6f,0,-.2f),Door=new(1.6f,0,.65f),Photo=new(.9f,0,-1.3f),Telephone=new(.4f,0,.05f);
+    public static readonly Vector3 Bed=new(-.6f,0,-.2f),RoomDoor=new(1.6f,0,.65f),Photo=new(.9f,0,-1.3f),Telephone=new(.4f,0,.05f);
     public Node3D Room()
     {
         var room=new Node3D {Name="Mio's room",Position=RoomAt};

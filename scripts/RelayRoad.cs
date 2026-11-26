@@ -38,13 +38,13 @@ public partial class World
         Vector2 p=new(x,z),from=new(a.X,a.Z),to=new(b.X,b.Z);float t=Mathf.Clamp((p-from).Dot(to-from)/(to-from).LengthSquared(),0,1);
         return (p.DistanceTo(from.Lerp(to,t)),Mathf.Lerp(a.Y,b.Y,t));
     }
-    // Every trail the carving rule cuts, the relay road's and the maze's, and each of their reaches with its floor's half width, built on
-    // first use: the two tables live in two files, whose static fields initialize in no set order.
-    public static IEnumerable<(string Name,float Half,float Paint,Vector3[] Points)> AllTrails=>Trails.Concat(MazeTrails);
+    // Every trail the carving rule cuts, the relay road's, the maze's and the station's, and each of their reaches with its floor's half
+    // width, built on first use: the tables live in three files, whose static fields initialize in no set order.
+    public static IEnumerable<(string Name,float Half,float Paint,Vector3[] Points)> AllTrails=>Trails.Concat(MazeTrails).Concat(StationTrails);
     // Flat, since Height() runs the whole table at every point and the maze's 1 m ground has it run a few hundred thousand times.
     private readonly record struct Reach(float Ax,float Az,float Dx,float Dz,float Inverse,float Ay,float Dy,float Half,float Paint,bool Maze);
     private static Reach[]? cut;
-    private static Reach[] Cut=>cut??=Trails.Select(t=>(Trail:t,Maze:false)).Concat(MazeTrails.Select(t=>(Trail:t,Maze:true))).SelectMany(p=>p.Trail.Points.Zip(p.Trail.Points.Skip(1),
+    private static Reach[] Cut=>cut??=Trails.Select(t=>(Trail:t,Maze:false)).Concat(MazeTrails.Select(t=>(Trail:t,Maze:true))).Concat(StationTrails.Select(t=>(Trail:t,Maze:true))).SelectMany(p=>p.Trail.Points.Zip(p.Trail.Points.Skip(1),
         (a,b)=>new Reach(a.X,a.Z,b.X-a.X,b.Z-a.Z,1/((b.X-a.X)*(b.X-a.X)+(b.Z-a.Z)*(b.Z-a.Z)),a.Y,b.Y-a.Y,p.Trail.Half,p.Trail.Paint,p.Maze))).ToArray();
     // How far (x, z) lies from a reach's line, and the level at its nearest point.
     private static float Gap(in Reach r,float x,float z,out float level)
@@ -75,7 +75,10 @@ public partial class World
     // square Carve() is asked about, the reaches that can count anywhere in it: any that close in the blend, and any that can be the nearest
     // of all, of the maze's or of the relay road's. A gap changes by at most a square's half diagonal across it, so the lists give what the
     // whole table would, and Carve() runs a few dozen reaches instead of every one.
-    private const float Faint=16;private const int Square=16;private static readonly Rect2I Squares=new(-112,-320,560,352);
+    private const float Faint=16;private const int Square=16;
+    // The squares Carve()'s per-square reach lists cover: the play area, Tunnel Mountain and the station site east to the new far edge.
+    private static readonly Rect2I Squares=new(-112,-320,832,352);
+    public static Rect2I SquareArea=>Squares;
     private static int[][]? listed;private static int[]? every;
     private static int[] Listed(float x,float z)
     {

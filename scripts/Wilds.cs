@@ -7,7 +7,7 @@ public partial class World
 {
     // The 1 m terrain and its collider reach this far past the play area, over the cliffs, gorges and beach; 4 m mountains carry on to Far.
     public const int Margin = 40;
-    public static readonly Rect2I Fine = new(-HalfWidth-Margin,NorthEdge-Margin,2*(HalfWidth+Margin),SouthEdge-NorthEdge+2*Margin), Far = new(-180,NorthEdge-100,620,SouthEdge-NorthEdge+200);
+    public static readonly Rect2I Fine = new(-HalfWidth-Margin,NorthEdge-Margin,2*(HalfWidth+Margin),SouthEdge-NorthEdge+2*Margin), Far = new(-180,NorthEdge-100,884,SouthEdge-NorthEdge+200);
     public static bool InPlay(float x,float z)=>Math.Abs(x)<=HalfWidth&&z>=NorthEdge&&z<=SouthEdge;
     // The rivers beyond the play area, upstream first: (x, water level, z) points whose levels never rise downstream, a fall being two
     // points a metre apart with straight reaches either side. Each course meets a play-area river at its edge with that river's level,

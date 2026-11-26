@@ -39,7 +39,7 @@ public class MazeTest
     static bool[,] From(Vector2 start,IEnumerable<(Vector2,Vector2)>? links=null,params (float X,float Z,float R)[] shut)=>
         WildsTest.Reach(new((int)Mathf.Round(start.X),(int)Mathf.Round(start.Y)),(x,z)=>shut.Any(s=>new Vector2(x-s.X,z-s.Z).Length()<=s.R),links).Seen;
     static bool Has(bool[,] seen,string place){var p=Places[place];return seen[(int)Mathf.Round(p.X)-Area.Position.X,(int)Mathf.Round(p.Y)-Area.Position.Y];}
-    static readonly Rect2I Area=World.Fine.Merge(World.MazeFine);
+    static readonly Rect2I Area=WildsTest.Area;
     static void Every(bool[,] seen,string what,params string[] places)=>AssertThat(places.Where(p=>!Has(seen,p))).OverrideFailureMessage($"{what}: not reached {string.Join(", ",places.Where(p=>!Has(seen,p)))}").IsEmpty();
     static void None(bool[,] seen,string what,params string[] places)=>AssertThat(places.Where(p=>Has(seen,p))).OverrideFailureMessage($"{what}: reached {string.Join(", ",places.Where(p=>Has(seen,p)))}").IsEmpty();
     [TestCase]

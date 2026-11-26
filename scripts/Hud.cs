@@ -347,7 +347,8 @@ public partial class Hud : Control
         DrawCircle(center,r+4,new Color(ink,.93f));DrawArc(center,r,0,Mathf.Tau,64,new Color(gold,.7f),1);
         Text("N",center+new Vector2(-5,-90),11,gold);
         Vector2 Map(Vector3 p)=>new((p.X-Game.Player.GlobalPosition.X)*1.5f,(p.Z-Game.Player.GlobalPosition.Z)*1.5f);
-        foreach(float riverZ in new[]{-8f,World.CedarZ})
+        // The two full-circle river bands belong to the valley's map; the station lies far east of both rivers.
+        if(Game.Region!=World.StationName)foreach(float riverZ in new[]{-8f,World.CedarZ})
         {
             float y=(riverZ-Game.Player.GlobalPosition.Z)*1.5f;
             if(Math.Abs(y)<r-3){float width=Mathf.Sqrt((r-3)*(r-3)-y*y);DrawLine(center+new Vector2(-width,y),center+new Vector2(width,y),new Color(.24f,.57f,.58f,.7f),5);}

@@ -13,7 +13,11 @@ public partial class World
     public const string MazeName="Tunnel Mountain";
     // The 1 m ground and its collider east of Fine, over the maze; Fine's own east edge runs through the Wash.
     public static readonly Rect2I MazeFine=new(104,-300,268,288);
-    public static bool IsFine(Vector2I p)=>Fine.HasPoint(p)||MazeFine.HasPoint(p);
+    public static bool IsFine(Vector2I p)
+    {
+        foreach(var f in FineAreas)if(f.HasPoint(p))return true;
+        return false;
+    }
     // The maze from the rockfall's gate east, the region the HUD names.
     public static bool InMaze(float x,float z)=>x>52&&z<RelaySouth&&z>MazeFine.Position.Y&&(x>HalfWidth||z>RelayNorth);
     // East of the play area the maze's carved ground cuts down into the mountain `y`, the rivers' gorges and all, wherever it lies lower:
@@ -113,7 +117,7 @@ public partial class World
         ("Old line W",2,0,new Vector3[]{new(68,14,-174),new(61,13.85f,-171.5f),new(50,13.7f,-170.5f),new(40,13.55f,-168.5f)}),
         ("Viaduct apron",3.5f,0,new Vector3[]{new(40,13.55f,-168.5f),new(36,13.55f,-168)}),
     };
-    // Where the maze ends for now: at the Station tunnel's mouth, the door to the station, where TO BE CONTINUED shows.
+    // The maze's east end, at the Station tunnel's mouth: the door to Hoshikawa Station and the objective's last mark.
     public static readonly Vector2 StationMouth=new(134,-176);
     public Vector3 MazeEnd=>new(StationMouth.X,Height(StationMouth.X,StationMouth.Y),StationMouth.Y);
     // The built crossings, each a deck from A to B pitched between the ground at its ends: the old road's bridge over the Wash, the rail
@@ -165,7 +169,7 @@ public partial class World
         ("drone",new(298,-229),null),("drone",new(309,-240),null),("drone",new(278,-288),null),("drone",new(258,-290),null),("drone",new(262,-244),null),("drone",new(198,-247),null),
         ("drone",new(170,-193.7f),null),("drone",new(134,-193.7f),null),("drone",new(55.5f,-171),null)};
     // How far a robot at `at` roams, as a share of its kind's loop: less on a narrow trail, so it keeps off the walls.
-    public static float Room(Vector2 at)=>Mathf.Clamp(MazeTrails.MinBy(t=>Near(t.Points,at.X,at.Y).Gap).Half/3.5f,.35f,1);
+    public static float Room(Vector2 at)=>Mathf.Clamp(SiteTrails.MinBy(t=>Near(t.Points,at.X,at.Y).Gap).Half/3.5f,.35f,1);
     // The forest railway's line, broken where the trestle carries it over the Gorge's head.
     public static readonly Vector2[][] Railway={new Vector2[]{new(161.5f,-167.7f),new(171,-165.2f),new(184,-165),new(200,-167),new(214,-168.5f),new(226,-169),new(258,-170),new(264,-170.4f)},
         new Vector2[]{new(280,-171),new(285.8f,-171)}};

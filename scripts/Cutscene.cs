@@ -152,7 +152,7 @@ public partial class Game
         else if(ended is "Intro" or "DayTwo" or "DayThree"&&Room!=null)
         {
             tuck?.Kill();tuck=null;if(Room.GetNodeOrNull<MeshInstance3D>("Blanket") is {} cover){cover.Set("blend_shapes/sit",0f);cover.Set("blend_shapes/folded",1f);}
-            var to=Room.GlobalPosition+Hoshikawa.World.Door-Player.GlobalPosition;CameraYaw=Mathf.Atan2(-to.X,-to.Z);
+            var to=Room.GlobalPosition+Hoshikawa.World.RoomDoor-Player.GlobalPosition;CameraYaw=Mathf.Atan2(-to.X,-to.Z);
         }
         // Sent to find two companions, she settles on them with Zero before she asks either.
         else if(ended=="HalfDone")Play(Prologue.PickTwo);
@@ -173,7 +173,7 @@ public partial class Game
     {
         ExitRoom();Room=World.Room();AddChild(Room);World.Visible=false;Player.Visible=true;Sword(false);
         if(Heard.Contains("PhoneFixed"))Room.GetNode<Node3D>("Telephone").Visible=false;
-        if(asleep)Place(Room.GlobalPosition+Hoshikawa.World.Bed,0,Mathf.Pi*.8f);else Place(Room.GlobalPosition+Hoshikawa.World.Door+Vector3.Left*.6f,-Mathf.Pi/2,Mathf.Pi/2);
+        if(asleep)Place(Room.GlobalPosition+Hoshikawa.World.Bed,0,Mathf.Pi*.8f);else Place(Room.GlobalPosition+Hoshikawa.World.RoomDoor+Vector3.Left*.6f,-Mathf.Pi/2,Mathf.Pi/2);
         spring.SpringLength=2.2f;Blackout=1;
     }
     // Out of the door: the valley comes back with Mio on her doorstep, and Yui at the gate the first time.
@@ -191,7 +191,7 @@ public partial class Game
     // The sword stays on its rack at home.
     private void Sword(bool shown){foreach(var m in ActorVisual.Descendants(Player.Model).OfType<MeshInstance3D>().Where(m=>m.Name.ToString().StartsWith("Sword")))m.Visible=shown;}
     private bool Near(Vector3 local,float reach){var p=Player.GlobalPosition-Room!.GlobalPosition;return new Vector2(p.X-local.X,p.Z-local.Z).Length()<reach;}
-    public bool AtDoor=>InRoom&&Near(Hoshikawa.World.Door,1.3f);
+    public bool AtDoor=>InRoom&&Near(Hoshikawa.World.RoomDoor,1.3f);
     public bool AtPhoto=>InRoom&&Near(Hoshikawa.World.Photo,1.1f);
     public bool AtPhone=>MendPhone&&InRoom&&Near(Hoshikawa.World.Telephone,1.1f);
     private void Walk(string name,Vector3[] path,string clip,float speed,float yaw)

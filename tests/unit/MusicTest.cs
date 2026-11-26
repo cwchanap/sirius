@@ -6,12 +6,14 @@ namespace Hoshikawa.Tests;
 [TestSuite]
 public class MusicTest
 {
-    // Only the relay road has music of its own; a fight overrides every region's.
+    // Only the relay road and the station have music of their own; a fight overrides every region's.
     [TestCase]
     public void EachRegionAndAFightPickTheirTrack()
     {
         foreach(var (z,track) in new[]{(30f,"valley"),(-100f,"relay"),(-210f,"valley"),(-250f,"valley")})
             AssertThat(Music.Track(World.RegionAt(new Vector3(0,0,z)),false)).IsEqual(track);
+        AssertThat(Music.Track(World.StationName,false)).IsEqual("relay");
+        AssertThat(Music.Track(World.StationName,true)).IsEqual("battle");
         AssertThat(Music.Track("Old Relay Road",true)).IsEqual("battle");
         AssertThat(Music.Track("Hoshikawa",true)).IsEqual("battle");
     }
