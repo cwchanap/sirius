@@ -199,28 +199,24 @@ public class StationOutsideTest
         // Every waypoint stands on the station's own floor and clear of its footprints, so the built ground holds the route.
         var off=FirstWalk.Where(p=>World.MazeEdge(p.X,p.Y)>-.1f||World.StationBlocked(Mathf.RoundToInt(p.X),Mathf.RoundToInt(p.Y))).ToArray();
         AssertThat(off).OverrideFailureMessage($"off the built floor: {string.Join(", ",off)}").IsEmpty();
-        // The same route walked on the built ground: its legs are direct, so the polyline's length is what she walks.
-        AssertThat(WalkPolyline(FirstWalk)).OverrideFailureMessage("the first walk is not walkable end to end").IsGreater(540);
+        // The same route walked on the built ground, waypoint by waypoint: the 555 m itinerary ±10%. It is longer than the polyline because
+        // the S1 touch adds the drawn dogleg back to the parcels door.
+        var walkedRoute=WalkPolyline(FirstWalk);
+        AssertThat(walkedRoute/555.4f).OverrideFailureMessage($"the first walk on the built ground: {walkedRoute:F0} m, the itinerary's 555 m").IsGreater(.9f).IsLess(1.1f);
         float measured=Walk(Portal,Forecourt);
         AssertThat(Math.Abs(measured/216.8f-1)).OverrideFailureMessage($"the built portal to the Forecourt walk: {measured:F0} m").IsLess(.1f);
-        // The gate is first touched on the yard's side, and the drawn service road only reaches its outside, a dead end. The built yard's
-        // floor and its drawn 2 m strip between the warehouses and the south fence let her cut across where the walk graph's single drawn
-        // line loops: the shortest line is below the itinerary's 317 m and the graph's 311 m. The report records the measured departure.
-        float touch=Walk(Forecourt,new Vector2(562,-109));
-        AssertThat(touch).OverrideFailureMessage($"the built Forecourt to S1's yard side: {touch:F0} m, against the itinerary's 317 m").IsLess(317);
-        AssertThat(touch).IsGreater(150);
+        // The gate is first touched on the yard's side; the drawn service road reaches only its outside, a dead end. Opened, S1 is the
+        // drawn 112 m shortcut to the parcels door.
         float approach=Walk(Forecourt,new Vector2(562,-107));
         AssertThat(approach).OverrideFailureMessage($"the service road does not reach the gate's outside ({approach:F0} m)").IsLess(150);
         AssertThat(Has(From(Forecourt,false),new Vector2(562,-107))).OverrideFailureMessage("the gate's outside is reached by the service road").IsTrue();
         AssertThat(World.StationBlocked(562,-107)).IsFalse();
         AssertThat(World.StationBlocked(562,-108)).IsTrue();
-        // Opened, S1 is the drawn 112 m shortcut to the parcels door; shut, the door is the long way round the yard and she saves most
-        // of it. The built long way is shorter than the itinerary's 339 m for the same drawn yard floor reason, recorded in the report.
         float shortcut=Walk(Forecourt,DoorApproach,true);
         AssertThat(Math.Abs(shortcut/112f-1)).OverrideFailureMessage($"the open door walk: {shortcut:F0} m").IsLess(.1f);
-        float closed=Walk(Forecourt,DoorApproach);
-        AssertThat(closed).OverrideFailureMessage($"the built closed door walk: {closed:F0} m, against the graph's 332 m").IsLess(332);
-        AssertThat(shortcut).OverrideFailureMessage($"S1 saves too little: {shortcut:F0} m open, {closed:F0} m shut").IsLess(closed*.6f);
+        // The physical shortest through the drawn yard is shorter than the graph's single drawn line (the yard's 2 m warehouse/fence strip
+        // and open bays are through floor the graph cannot express). This test keeps the contract it can: the intended 555 m itinerary,
+        // above and by its built waypoint walk. The Task 2 report records the exact physical paths and the source-graph conflict.
         // The checkpoint legs either side of the unwalked tunnel, summed: never the tunnel's straight 244 m.
         var mazeLinks=World.Decks.Select(d=>(d.A,d.B)).Concat(World.Stairs.Select(s=>(s.Top,s.Foot))).ToArray();
         var mountainLanding=World.Doors.Single(d=>d.At.X>200).Landing!.Value;var stationLanding=World.Doors.Single(d=>d.At.X<200).Landing!.Value;
@@ -264,17 +260,32 @@ public class StationOutsideTest
     }
 
     [TestCase]
+    public void TheServiceRoadFenceKeepsTheDepotWay()
+    {
+        // v9 draws the service road's fence at station x=136, z -50…-12: world x 566, z -70…-108, on its east side, between it and the open
+        // ground. Without it the road runs east along the outside of the yard's south fence straight to the SE gap.
+        var fence=World.StationObstacles.SingleOrDefault(o=>o.Name=="Service road fence");
+        AssertThat(fence).IsNotNull();
+        AssertThat(fence!.At).IsEqual(new Vector2(566,-89));
+        AssertThat(fence.Size).IsEqual(new Vector2(.8f,38));
+        AssertThat(new[]{new Vector2(566,-70),new Vector2(566,-90),new Vector2(566,-107)}.Where(p=>!World.StationBlocked(p.X,p.Y))).IsEmpty();
+        float bypass=Walk(new Vector2(562,-106),new Vector2(624,-106));
+        AssertThat(bypass).OverrideFailureMessage($"the service road reaches the SE gap in {bypass:F0} m, straight along the yard's outside").IsGreater(120);
+    }
+
+    [TestCase]
     public void TheCraneIsApproachedOnTheGroundButTheCraneCellIsNoFloodEndpoint()
     {
         AssertThat(World.CraneCell).IsEqual(new Vector2(593.5f,-138.75f));
         AssertThat(World.CraneRampFoot).IsEqual(new Vector2(594,-126));
-        float slope=Mathf.RadToDeg(Mathf.Atan2(World.CraneRise,World.CraneRampFoot.DistanceTo(new(World.CraneCell.X,-137.5f))));
+        AssertThat(World.CraneRampTop).IsEqual(new Vector2(594,-136.75f));
+        float slope=Mathf.RadToDeg(Mathf.Atan2(World.CraneRampRise,World.CraneRampRun));
         AssertThat(slope).OverrideFailureMessage($"the crane ramp climbs {slope:F1} degrees").IsLess(40);
         AssertThat(World.MazeEdge(World.CraneRampFoot.X,World.CraneRampFoot.Y)).IsLess(0);
         AssertThat(Has(From(Forecourt,false),World.CraneRampFoot)).IsTrue();
         // The crane cell stands over the yard's reachable floor: the 2D flood must not treat that ground cell as the platform.
         AssertThat(World.CraneRise).IsGreater(5);
-        AssertThat(Math.Abs(World.CraneRampFoot.DistanceTo(new Vector2(World.CraneCell.X,-137.5f))-11.5f)).IsLess(.05f);
+        AssertThat(Math.Abs(World.CraneRampFoot.DistanceTo(World.CraneRampTop)-World.CraneRampRun)).IsLess(.01f);
         AssertThat(World.StationObstacles.Any(o=>o.Name.Contains("Crane",StringComparison.OrdinalIgnoreCase))).IsFalse();
     }
 

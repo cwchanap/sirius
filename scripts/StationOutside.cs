@@ -20,8 +20,10 @@ public partial class World
     // The anchors named by the approved drawings, in world (x, z).
     public static readonly Vector2 StationPortal=new(377,-149.5f),Forecourt=new(508,-70),ParcelsDoor=new(558,-130),
         CraneCell=new(593.5f,-138.75f),CraneRampFoot=new(594,-126);
-    // The gantry's cell stands this far over the yard; its ramp climbs from the foot to the bridge in 11.5 m, under 40 degrees.
-    public const float CraneRise=6;
+    // The gantry's cell stands this far over the yard; its ramp climbs from the foot to the bridge's south edge in 10.75 m, 29.6 degrees,
+    // its top a tenth over the deck so she steps down onto it rather than into the deck's face.
+    public const float CraneRise=6,CraneRampRun=10.75f,CraneRampRise=6.1f;
+    public static readonly Vector2 CraneRampTop=new(594,-136.75f);
     // S1 is the 4 m aperture x 560..564 in the yard's south fence at z -108; S5 is the 5.2 m old-line gate at x 421, z -164.5.
     public static readonly (Vector2 At,float Span) S1Gate=(new(562,-108),4),S5Gate=(new(421,-164.5f),5.2f);
     public const string S1Name="Yard gate S1",S5Name="Old line gate S5";
@@ -57,6 +59,7 @@ public partial class World
         new("Signal room south wall west",new(614,-151),new(4,.8f),4),new("Signal room south wall east",new(622,-151),new(4,.8f),4),
         new("B2 ramp",new(575,-156.5f),new(18,5),2.5f),new("Yard north-west strip",new(561,-157.3f),new(6,6.6f),2.2f),
         new("Yard north fence",new(599,-160.6f),new(70,.8f),1.7f),new("Yard east fence",new(628,-134.3f),new(.8f,52.6f),1.7f),
+        new("Service road fence",new(566,-89),new(.8f,38),1.7f),
         new("Yard south fence west",new(559,-108),new(2,.8f),1.7f),new("Yard south fence",new(592.5f,-108),new(57,.8f),1.7f),new("Yard south fence east",new(627,-108),new(2,.8f),1.7f),
         new(S1Name,new(562,-108),new(4,.8f),1.7f,true),
         new(S5Name,new(421,-164.5f),new(.8f,5.2f),2.6f),
@@ -93,7 +96,7 @@ public partial class World
         ("Bus depot north",12,0,new Vector3[]{new(548,6,-58),new(562,6,-58)}),("Bus depot",12,0,new Vector3[]{new(548,6,-34),new(562,6,-34)}),
         ("Service road",5,1.1f,new Vector3[]{new(536,6,-70),new(548,6,-76),new(562,6,-76),new(562,6,-108)}),
         ("Depot road",4,0,new Vector3[]{new(568,6,-36),new(582,6,-46),new(598,6,-64),new(612,6,-82),new(620,6,-96),new(624,6,-108)}),
-        ("Freight yard south",10,0,new Vector3[]{new(568,6,-114),new(618,6,-114)}),("Freight yard",10,0,new Vector3[]{new(568,6,-132),new(618,6,-132)}),
+        ("Freight yard south",10,0,new Vector3[]{new(568,6,-118),new(618,6,-118)}),("Freight yard",10,0,new Vector3[]{new(568,6,-132),new(618,6,-132)}),
         ("Freight yard north",10,0,new Vector3[]{new(568,6,-150),new(618,6,-150)}),("Freight yard east",4,0,new Vector3[]{new(624,6,-110),new(624,6,-158)}),
         ("Loading dock",3,0,new Vector3[]{new(561,6.25f,-124),new(561,6.25f,-154)}),
         ("Station shell south",13,0,new Vector3[]{new(443,6.5f,-97),new(545,6.5f,-97)}),("Station shell",13,0,new Vector3[]{new(443,6.5f,-121),new(545,6.5f,-121)}),
@@ -113,6 +116,16 @@ public partial class World
             var n=Box(this,name,new((x0+x1)/2,y+high/2,(z0+z1)/2),new(x1-x0,high,z1-z0),m??Mat(new("57584f")));
             CameraStop(n,new BoxShape3D{Size=new(x1-x0,high,z1-z0)});
         }
+        // A track on the ground along `points`: sleepers and two rails, as the maze's own lines are laid.
+        void Track(string name,Vector3[] points)
+        {
+            for(int i=0;i<points.Length-1;i++)
+            {
+                var a=points[i];var b=points[i+1];float length=new Vector2(b.X-a.X,b.Z-a.Z).Length(),yaw=Mathf.Atan2(b.X-a.X,b.Z-a.Z);var across=new Vector2(a.Z-b.Z,b.X-a.X)/length;
+                for(float t=.4f;t<length;t+=.9f){var p=new Vector2(a.X,a.Z).Lerp(new(b.X,b.Z),t/length);Box(this,$"{name} sleeper {i} {(int)t}",Ground(p.X,p.Y)+Vector3.Up*.04f,new(MainGauge*3.8f,.12f,.24f),wood).Rotation=new(0,yaw,0);}
+                foreach(float side in new[]{-MainGauge,MainGauge}){var m=new Vector2((a.X+b.X)/2,(a.Z+b.Z)/2)+across*side;var rail=Box(this,$"{name} rail {i} {side}",Ground(m.X,m.Y)+Vector3.Up*.14f,new(.07f,.1f,length),Mat(new("6f6a62")));rail.Rotation=new(Mathf.Atan2(Height(a.X,a.Z)-Height(b.X,b.Z),length),yaw,0);}
+            }
+        }
         // The paving, gravel and platforms: the terrain under each is the flat trail's, so one plane carries the surface's colour.
         Pad("Forecourt paving",new Rect2(438,-82,98,36),new("b3a88d"));
         Pad("Arcade paving",new Rect2(438,-38,98,9),new("a2947a"));
@@ -128,6 +141,8 @@ public partial class World
         Box(this,"Old local train",new(481,8.05f,-164.2f),new(98,3.3f,3.4f),Mat(new("8e9aa0")));
         foreach(float x in new[]{436,449,462,475,488,501,514,527})Box(this,"Train window",new(x,8.6f,-162.45f),new(8,.9f,.12f),Mat(new("354046")));
         Box(this,"Train skirt",new(481,6.7f,-164.2f),new(98,.5f,3.5f),Mat(new("3e4649")));
+        // The old line's own rails and sleepers from the portal down its bends to S5 and the track bed, following the trail's waypoints.
+        Track("Old line",StationTrails.Single(t=>t.Name=="Old line").Points.Take(7).ToArray());
         // The station's shell: a solid footprint under four walls and a roof, its main doors barred from inside and the parcels door
         // on the yard's side, both shut this chapter.
         var shell=StationObstacles.Single(o=>o.Name=="Station building");float y=Height(shell.At.X,shell.At.Y);
@@ -180,12 +195,15 @@ public partial class World
         var bridge=new StaticBody3D{Name="Gantry bridge",Position=new(593.5f,deck-.1f,-138.75f),CollisionMask=0};AddChild(bridge);
         bridge.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(7,.2f,4)}});
         bridge.AddChild(new MeshInstance3D{Mesh=new BoxMesh{Size=new(7,.2f,4)},MaterialOverride=steel});
-        foreach(float z in new[]{-140.6f,-136.9f})Box(bridge,"Gantry parapet",new(0,.55f,z),new(7,.9f,.12f),steel);
+        // The south rail splits round the ramp, which enters through the gap; the north edge is open for the one-way drop.
+        foreach(var (name,x) in new[]{("Gantry parapet south west",-2.3f),("Gantry parapet south east",2.3f)})Box(bridge,name,new(x,.55f,1.9f),new(2.2f,.9f,.12f),steel);
         foreach(float x in new[]{-3.4f,3.4f})Box(bridge,"Gantry end rail",new(x,.55f,0),new(.12f,.9f,4),steel);
-        var ramp=new StaticBody3D{Name="Gantry ramp",Position=new(594,Height(594,-126)+CraneRise/2,-131.25f),CollisionMask=0};AddChild(ramp);
-        ramp.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(2.4f,.18f,11.5f)}});
-        var rampMesh=new MeshInstance3D{Mesh=new BoxMesh{Size=new(2.4f,.18f,11.5f)},MaterialOverride=steel};ramp.AddChild(rampMesh);
-        ramp.Basis=new Basis(Vector3.Right,Mathf.Atan2(CraneRise,11.5f));
+        // The ramp's 6.1 m rise over 10.75 m: its top end meets the bridge's south edge at z -136.75, a tenth over the 12 m deck.
+        float rampLength=Mathf.Sqrt(CraneRampRun*CraneRampRun+CraneRampRise*CraneRampRise);
+        var ramp=new StaticBody3D{Name="Gantry ramp",Position=new(594,Height(594,CraneRampFoot.Y)+CraneRampRise/2,(CraneRampFoot.Y+CraneRampTop.Y)/2),CollisionMask=0};AddChild(ramp);
+        ramp.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(2.4f,.18f,rampLength)}});
+        var rampMesh=new MeshInstance3D{Mesh=new BoxMesh{Size=new(2.4f,.18f,rampLength)},MaterialOverride=steel};ramp.AddChild(rampMesh);
+        ramp.Basis=new Basis(Vector3.Right,Mathf.Atan2(CraneRampRise,CraneRampRun));
         // The tunnel's east portal in the hillside, its label, and the same label over the Signal yard's mouth.
         Piece("Station tunnel portal","tunnel_portal",new(377-3.93f,Height(377,-149.5f),-149.5f),90);
         Label(this,"STATION TUNNEL",new(376,Height(377,-149.5f)+3.4f,-149.5f),Gold,27);

@@ -367,7 +367,7 @@ public partial class Game : Node3D
         return r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition)<3.1f?r:null;
     }
     private World.Part? ShortcutHere()=>World.Parts.FirstOrDefault(s=>s.Shortcut&&!Opened.Contains(s.Name)&&(s.From.DistanceTo(Player.GlobalPosition)<2.2f||s.Kind=="gate"&&s.To.DistanceTo(Player.GlobalPosition)<2.2f));
-    private World.Door? DoorHere()=>World.Doors.FirstOrDefault(d=>World.DoorPoint(d).DistanceTo(Player.GlobalPosition)<2.2f);
+    private World.Door? DoorHere()=>QuestStage<Quest.Beyond?null:World.Doors.FirstOrDefault(d=>World.DoorPoint(d).DistanceTo(Player.GlobalPosition)<2.2f);
     private World.Pickup? PickupHere()=>World.Pickups.FirstOrDefault(p=>p.Node.Visible&&p.Node.GlobalPosition.DistanceTo(Player.GlobalPosition)<2.2f);
     public void Play(params (string Speaker,string Text)[] beats)
     {

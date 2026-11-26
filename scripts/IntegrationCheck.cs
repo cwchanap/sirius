@@ -1123,13 +1123,21 @@ public static class IntegrationCheck
         await WalkTo(greatBrow,false);await WalkTo(greatFoot+(greatFoot-greatBrow).Normalized()*1.5f,false);
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-10)<.5f&&new Vector2(g.Player.GlobalPosition.X,g.Player.GlobalPosition.Z).DistanceTo(courtWell)<9,$"the Great stair walks down into the Court, beside the first Starwell {g.Player.GlobalPosition}");
         await WalkTo(greatBrow+(greatBrow-greatFoot).Normalized()*2.5f);await Walk((104,-176),(120,-176),(133,-176));
-        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-16.5f)<.6f&&g.Region==Hoshikawa.World.MazeName&&g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),
-            $"across the yard to the Station tunnel's mouth, where E now leads through the tunnel {g.Player.GlobalPosition}");
         // The station's two portals: through the blackout door to the hillside above Hoshikawa Station and back, with no premature end.
         var mountainSideDoor=Hoshikawa.World.Doors.Single(d=>d.At.X<200);var stationSideDoor=Hoshikawa.World.Doors.Single(d=>d.At.X>200);
         // Each row's landing is the other side's: through the mountain row she arrives on the station's hillside, and back through the
         // station row she arrives at the Signal yard's mouth.
         var stationLanding=Hoshikawa.World.DoorLanding(mountainSideDoor);var mountainLanding=Hoshikawa.World.DoorLanding(stationSideDoor);
+        // The rockfall is not the only guard: before Beyond the mouth neither prompts nor opens.
+        var stageBefore=g.QuestStage;g.QuestStage=Quest.Rockfall;await Frames(2);
+        Check(g.Player.GlobalPosition.DistanceTo(Hoshikawa.World.DoorPoint(mountainSideDoor))<2.2f&&g.Interaction().Label=="",
+            "before the rockfall is cleared the Station tunnel's mouth offers nothing");
+        var beforeMouth=g.Player.GlobalPosition;g.Interact();await Frames(5);
+        Check(g.Player.GlobalPosition.DistanceTo(beforeMouth)<.5f&&g.Region==Hoshikawa.World.MazeName&&g.Mode==GameMode.Playing,
+            $"and E there does not take her through before Beyond {g.Player.GlobalPosition}");
+        g.QuestStage=stageBefore;await Frames(2);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-16.5f)<.6f&&g.Region==Hoshikawa.World.MazeName&&g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),
+            $"once Beyond, the Station tunnel's mouth leads through {g.Player.GlobalPosition}");
         g.Interact();await Frames(10);
         Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-stationLanding.X,g.Player.GlobalPosition.Z-stationLanding.Z).Length()<.5f,
             $"E at the tunnel mouth sets her down on the station's hillside {g.Player.GlobalPosition}");
@@ -1139,6 +1147,24 @@ public static class IntegrationCheck
         Check(g.Interaction().Label=="","the landing is far enough from the door that E does not immediately take her back");
         await WalkTo(new(384,-146));await Frames(5);
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-19.2f)<.5f,$"the lineman's path leaves the portal shelf downhill {g.Player.GlobalPosition}");
+        // The gantry's bridge, ramp and the old line's rails, by their built world coordinates; then a real walk up the ramp, no flags.
+        var bridge=g.World.GetNode<Node3D>("Gantry bridge");
+        var parapets=bridge.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().Contains("Gantry parapet")).ToArray();
+        Check(parapets.Length==2&&parapets.All(p=>Math.Abs(p.Position.Z)<3&&p.GlobalPosition.DistanceTo(bridge.GlobalPosition)<4),
+            "the gantry's two parapets sit on its bridge deck");
+        var ramp=g.World.GetNode<StaticBody3D>("Gantry ramp");
+        float rampLength=Mathf.Sqrt(Hoshikawa.World.CraneRampRun*Hoshikawa.World.CraneRampRun+Hoshikawa.World.CraneRampRise*Hoshikawa.World.CraneRampRise);
+        float gantryDeck=Hoshikawa.World.Height(593.5f,-138.75f)+Hoshikawa.World.CraneRise;
+        var rampTop=ramp.ToGlobal(new Vector3(0,0,-rampLength/2));
+        Check(rampTop.DistanceTo(new Vector3(Hoshikawa.World.CraneRampTop.X,gantryDeck,Hoshikawa.World.CraneRampTop.Y))<.6f,$"the gantry ramp's top meets the bridge deck ({rampTop})");
+        Place(g.Player,On(Hoshikawa.World.CraneRampFoot));await Frames(10);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-6)<.6f,"the gantry ramp's foot stands on the yard floor");
+        await WalkTo(new(594,-138.5f));await Frames(5);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-gantryDeck)<.6f,$"under her own input she walks the gantry ramp up onto its bridge {g.Player.GlobalPosition}");
+        var oldRails=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().Contains("Old line rail")).ToArray();
+        bool OnOld(Vector2 p)=>oldRails.Any(r=>{float half=r.Mesh is BoxMesh b?b.Size.Z/2:0;return new[]{-half,half}.Any(s=>{var e=r.ToGlobal(new Vector3(0,0,s));return new Vector2(e.X-p.X,e.Z-p.Y).Length()<1.5f;});});
+        Check(oldRails.Length>0&&new[]{new Vector2(386,-151.5f),new Vector2(394,-154),new Vector2(406,-159),new Vector2(416,-162.5f),new Vector2(421,-164.5f)}.All(OnOld),
+            "the old line's rails run from the portal down to S5");
         // The station's Starwell is the Forecourt's; resting there sets it as the checkpoint and its respawn spot is clear.
         var forecourt=Hoshikawa.World.SavePoints[4].At;Check(Hoshikawa.World.SavePoints[4]==("Forecourt",forecourt)&&Hoshikawa.World.RegionAt(new Vector3(forecourt.X,0,forecourt.Y))==Hoshikawa.World.StationName,"the Forecourt's well is the station's checkpoint, the fifth Starwell");
         Place(g.Player,On(forecourt+new Vector2(2,0)));await Frames(10);
