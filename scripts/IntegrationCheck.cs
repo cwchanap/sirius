@@ -1210,6 +1210,18 @@ public static class IntegrationCheck
         Place(g.Player,On(new(562,-109)));await Frames(10);await WalkTo(new(559.2f,-109));await WalkTo(new(559.2f,-129));await Frames(5);
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-6.2f)<.45f&&g.Player.GlobalPosition.X<560.5f,
             $"the parcels bay's fence turns the door's approach behind S1, in from the gate's side {g.Player.GlobalPosition}");
+        // The future parcels key door's 2.2 m proximity: in-bay reach from inside, and no stance north of the return within reach.
+        Place(g.Player,On(new(558.8f,-131.7f)));await Frames(10);
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Z>-132.8f&&new Vector2(g.Player.GlobalPosition.X-558,g.Player.GlobalPosition.Z+130).Length()<2.2f,
+            $"the parcels approach is used from inside the bay, within the door's reach {g.Player.GlobalPosition}");
+        Place(g.Player,On(new(558.8f,-133.5f)));await Frames(10);
+        Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-558,g.Player.GlobalPosition.Z+130).Length()>2.2f,
+            $"north of the bay's return the parcels door is out of reach {g.Player.GlobalPosition}");
+        using(var returnRay=PhysicsRayQueryParameters3D.Create(new(559,7.2f,-134),new(559,7.2f,-132),1))
+        {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(returnRay);Check(hit.Count>0&&hit["collider"].As<Node>().Name.ToString().Contains("Parcels bay return"),"the bay's return fence stands between the north dock and the door");}
+        g.CameraYaw=Mathf.Pi;Hold("run");Hold("forward");await Press("jump",2);await Frames(40);Release("forward");Release("run");await Frames(10);
+        Check(g.Player.GlobalPosition.Z<-132.8f&&new Vector2(g.Player.GlobalPosition.X-558,g.Player.GlobalPosition.Z+130).Length()>2.2f,
+            $"a jump from the north dock does not clear the bay's return into the door's reach {g.Player.GlobalPosition}");
         // The warehouse's yard-facing stair is the bank's one way up: from the yard through the north wall's opening to Warehouse 2's door.
         Place(g.Player,On(new(611,-126)));await Frames(10);
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-6)<.4f,"the warehouse stair's foot stands on the yard floor");

@@ -12,6 +12,9 @@ public class StationOutsideTest
 {
     static readonly Rect2I Area=WildsTest.Area;
     static readonly Vector2 Portal=World.StationPortal,Forecourt=World.Forecourt,Parcels=World.ParcelsDoor,DoorApproach=new(559,-130);
+    // The source's first walk enters the old signal room at (618,-153.5) for the parcels key. Its final straight return, (561,-114) to the
+    // door, is replaced by the parcels bay's adjustable mouth at (559,-112); both are walked in the ordered itinerary below.
+    static readonly Vector2 SignalKeyPoint=new(618,-153.5f),BayMouth=new(559,-112);
     // The first walk's waypoints as the v9 drawing gives them, world (x, z): the portal shelf down the lineman's path to the Forecourt,
     // then the long way round the depot and the yard fence to S1 and back to the parcels door.
     static readonly Vector2[] FirstWalk={
@@ -30,6 +33,12 @@ public class StationOutsideTest
     static float Walk(Vector2 from,Vector2 to,bool s1=false,params (Vector2 A,Vector2 B)[] links)
         => WildsTest.Walk(from,to,(x,z)=>World.StationBlocked(x,z,s1),links);
     static float Polyline(IEnumerable<Vector2> points){var p=points.ToArray();return Enumerable.Range(0,p.Length-1).Sum(i=>p[i].DistanceTo(p[i+1]));}
+    static float WalkPolyline(IEnumerable<Vector2> points,bool s1=false)
+    {
+        var p=points.ToArray();float sum=0;
+        for(int i=0;i<p.Length-1;i++){float leg=Walk(p[i],p[i+1],s1);if(float.IsInfinity(leg))return leg;sum+=leg;}
+        return sum;
+    }
     static readonly (Vector2 A,Vector2 B) Tunnel=(World.Doors.Single(d=>d.At.X<200).Landing!.Value,World.Doors.Single(d=>d.At.X>200).Landing!.Value);
     static readonly Vector2 Court=World.SavePoints.Single(s=>s.Place=="Court").At,Halt=World.SavePoints.Single(s=>s.Place=="Halt").At;
 
@@ -205,8 +214,8 @@ public class StationOutsideTest
         AssertThat(World.StationBlocked(562,-107)).IsFalse();
         AssertThat(World.StationBlocked(562,-108)).IsTrue();
         // All three real physical walks against the graph, measured on the built ground with the station's own footprints. The parcels bay's
-        // fence (asserted below) encloses the door's 21 m approach to the station wall, so the shortest closed door is entered from S1's yard
-        // side as the graph's S1 to door edge has it, while the dock's own corridor and the drawn route along it stay clear.
+        // fence encloses the door's approach to the station wall, so the closed door is entered from S1's yard side as the graph's S1 to door
+        // edge has it; its south end stops 4 m short of S1 to open the mouth diagonally, and its return sits 2.5 m north of the door.
         float s1=Walk(Forecourt,new Vector2(562,-109));
         AssertThat(Math.Abs(s1/311f-1)).OverrideFailureMessage($"the physical Forecourt to S1's yard side: {s1:F0} m, the graph's 311 m").IsLess(.1f);
         float shortcutNow=Walk(Forecourt,DoorApproach,true);
@@ -214,18 +223,44 @@ public class StationOutsideTest
         float physicalDoor=Walk(Forecourt,DoorApproach);
         AssertThat(Math.Abs(physicalDoor/332f-1)).OverrideFailureMessage($"the physical closed parcels door: {physicalDoor:F0} m, the graph's 332 m").IsLess(.1f);
         AssertThat(physicalDoor).OverrideFailureMessage($"the closed parcels door is {physicalDoor:F0} m but S1 is {s1:F0} m: the door is no longer entered past the gate").IsGreater(s1);
-        AssertThat(Math.Abs((physicalDoor-s1)/21f-1)).OverrideFailureMessage($"S1's yard side to the parcels door: {physicalDoor-s1:F0} m, the graph's 21 m").IsLess(.25f);
-        // The whole first walk on the built ground: the portal-Forecourt leg plus the physical door, against the 555 m itinerary.
-        AssertThat((measured+physicalDoor)/555.4f).OverrideFailureMessage($"the first walk on the built ground: {measured+physicalDoor:F0} m, the itinerary's 555 m").IsGreater(.9f).IsLess(1.1f);
-        // The parcels bay: a 21 m fence 1.9 m off the station wall, its return closing the north end, so the door is entered from the S1
-        // end alone. The dock's corridor (x 561..564) stays clear, and the fence is too tall to jump.
+        // The graph's own S1 to door edge, walked directly on the built ground, not a difference of two unrelated shortest paths.
+        float direct=Walk(new Vector2(562,-109),DoorApproach);
+        AssertThat(Math.Abs(direct/21f-1)).OverrideFailureMessage($"the direct S1 yard side to parcels approach: {direct:F1} m, the graph's 21 m").IsLess(.1f);
+        // The source's first walk, ordered and obstacle-aware: the portal, lineman's path, Forecourt, garage, yard, the old signal room's key
+        // point (618,-153.5) and S1's yard side, then the bay's adjusted mouth (559,-112) where the drawn straight return (561,-114) to the
+        // door is now fenced, and the parcels approach. Every leg is walked on the built ground, in this order.
+        var itinerary=FirstWalk.Take(40).Concat(new[]{BayMouth,DoorApproach}).ToArray();
+        float walkedRoute=WalkPolyline(itinerary);
+        AssertThat(walkedRoute/555.4f).OverrideFailureMessage($"the ordered first walk on the built ground: {walkedRoute:F0} m, the itinerary's 555 m").IsGreater(.9f).IsLess(1.1f);
+        AssertThat(FirstWalk.Contains(SignalKeyPoint)).OverrideFailureMessage("the source's key point is not in the first walk").IsTrue();
+        AssertThat(FirstWalk[39]).IsEqual(new Vector2(562,-109));
+        AssertThat(FirstWalk[40]).IsEqual(new Vector2(561,-114));
+        AssertThat(FirstWalk[41]).IsEqual(DoorApproach);
+        AssertThat(World.StationBlocked(560,-123)).OverrideFailureMessage("the bay's fence no longer blocks the source's straight final approach").IsTrue();
+        AssertThat(itinerary[40]).IsEqual(BayMouth);
+        AssertThat(itinerary[41]).IsEqual(DoorApproach);
+        // The parcels bay's facts: the fence's 19.5 m run, its return, the clear dock corridor, the closed direct north crossing, and the
+        // future key door's 2.2 m proximity. The bay's only mouth is on S1's yard side; every reachable cell within the door's reach is
+        // inside it, and every reachable position north of its return is beyond that reach.
         var bayFence=World.StationObstacles.Single(o=>o.Name=="Parcels bay fence");
-        AssertThat(bayFence.Size).IsEqual(new Vector2(.6f,21));
+        var bayReturn=World.StationObstacles.Single(o=>o.Name=="Parcels bay return fence");
+        AssertThat(bayFence.Size).IsEqual(new Vector2(.6f,19.5f));
         AssertThat(bayFence.High).OverrideFailureMessage("the parcels bay's fence is low enough to jump").IsGreater(1.24f);
+        AssertThat(bayReturn.At).IsEqual(new Vector2(559.1f,-132.5f));
         AssertThat(World.StationBlocked(560,-120)).OverrideFailureMessage("the parcels bay's fence is missing").IsTrue();
         AssertThat(World.StationBlocked(561,-120)||World.StationBlocked(559,-120)).OverrideFailureMessage("the parcels bay's fence closes the dock's corridor or the door's approach").IsFalse();
+        AssertThat(World.StationBlocked(BayMouth.X,BayMouth.Y)).OverrideFailureMessage("the bay's adjusted mouth is blocked").IsFalse();
         AssertThat(Walk(new Vector2(561,-130),DoorApproach)).OverrideFailureMessage("the parcels door is still reached straight off the dock's north end").IsGreater(30);
-        AssertThat(Walk(new Vector2(562,-109),DoorApproach)).OverrideFailureMessage($"the S1 yard side to the parcels door: {Walk(new Vector2(562,-109),DoorApproach):F1} m").IsGreater(20).IsLess(28);
+        var reach=From(Forecourt,false);
+        var doorAt=World.ParcelsDoor;
+        AssertThat(Has(reach,DoorApproach)).OverrideFailureMessage("the parcels approach is not reached with S1 shut").IsTrue();
+        float northFace=bayReturn.At.Y-bayReturn.Size.Y/2;
+        var reachable=Cells(reach).Select(c=>new Vector2(c.X,c.Y)).ToArray();
+        var near=reachable.Where(p=>p.DistanceTo(doorAt)<=2.2f).ToArray();
+        AssertThat(near).OverrideFailureMessage("no position within the door's reach is reached with S1 shut").IsNotEmpty();
+        AssertThat(near.All(p=>p.X<=BayMouth.X&&p.Y>=northFace)).OverrideFailureMessage($"a door-range position lies outside the bay: {string.Join(", ",near.Where(p=>p.X>BayMouth.X||p.Y<northFace))}").IsTrue();
+        AssertThat(reachable.Where(p=>p.Y<=northFace).Select(p=>p.DistanceTo(doorAt)).DefaultIfEmpty(0).Min()).OverrideFailureMessage("a reachable position north of the bay's return is within the door's 2.2 m reach").IsGreater(2.2f);
+        AssertThat(new Vector2(doorAt.X+.3f,northFace-.3f).DistanceTo(doorAt)).OverrideFailureMessage("the return's north face leaves a stance within the door's 2.2 m reach").IsGreater(2.2f);
         // The checkpoint legs either side of the unwalked tunnel, summed: never the tunnel's straight 244 m.
         var mazeLinks=World.Decks.Select(d=>(d.A,d.B)).Concat(World.Stairs.Select(s=>(s.Top,s.Foot))).ToArray();
         var mountainLanding=World.Doors.Single(d=>d.At.X>200).Landing!.Value;var stationLanding=World.Doors.Single(d=>d.At.X<200).Landing!.Value;

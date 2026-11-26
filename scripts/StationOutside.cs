@@ -76,10 +76,11 @@ public partial class World
         new("B2 ramp",new(575,-156.5f),new(18,5),2.5f),new("Yard north-west strip",new(561,-157.3f),new(6,6.6f),2.2f),
         new("Yard north fence",new(599,-160.6f),new(70,.8f),2.2f),new("Yard east fence",new(628,-134.3f),new(.8f,52.6f),2.2f),
         new("Service road fence",new(566,-89),new(.8f,38),2.2f),new("Loading dock wall",new(564.4f,-136.5f),new(.8f,25),2.2f),
-        // The parcels bay's fence: a 21 m fence 1.9 m off the station wall encloses the parcels door's approach, so that door is entered
-        // from S1's yard side, as the v9 graph's S1 to door edge has it, never straight off the dock's north end. The dock's own corridor
-        // (x 561..564) and the drawn route along it stay clear.
-        new("Parcels bay fence",new(560.2f,-120.5f),new(.6f,21),1.8f),new("Parcels bay return fence",new(559.1f,-131),new(2.4f,.6f),1.8f),
+        // The parcels bay's fence: a 19.5 m fence 1.9 m off the station wall encloses the parcels door's approach, so that door is entered
+        // from S1's yard side, as the v9 graph's S1 to door edge has it, never straight off the dock's north end. Its south end stops 4 m
+        // short of S1 so the mouth opens diagonally (the 21 m S1 to door leg stays inside its band); its return sits 2.5 m north of the
+        // door, so no position outside it is within the door's 2.2 m reach. The dock's corridor (x 561..564) stays clear.
+        new("Parcels bay fence",new(560.2f,-122.75f),new(.6f,19.5f),1.8f),new("Parcels bay return fence",new(559.1f,-132.5f),new(2.4f,.6f),1.8f),
         // The warehouses' loading bank is walled on its yard faces; Warehouse 2's north-door stair is its one opening, and the apron west of
         // it stays sealed, so the bank is no route round the yard.
         new("Warehouse bank west wall",new(564,-116),new(.8f,16),1.5f),new("Warehouse bank north wall west",new(586.5f,-124),new(45,.8f),1.5f),new("Warehouse bank north wall east",new(617.5f,-124),new(9,.8f),1.5f),new("Warehouse bank east wall",new(622,-116),new(.8f,16),1.5f),
