@@ -74,7 +74,8 @@ public partial class World
             float bank=Mathf.Lerp(floor,level+.5f,Mathf.SmoothStep(half,half+2,gap))-(1-Mathf.SmoothStep(level+.5f,level+1.5f,y))*Math.Max(0,gap-half-4);
             y=sea>0?Math.Min(y,gorge):Math.Max(gorge,bank);
         }
-        return x>HalfWidth&&z<RelaySouth+40&&z>MazeFine.Position.Y-60?MazeCut(x,z,y):y;
+        y=x>HalfWidth&&z<RelaySouth+40&&z>MazeFine.Position.Y-60?MazeCut(x,z,y):y;
+        float loadingBank=StationBank(x,z);return loadingBank>0?Math.Max(y,loadingBank):y;
     }
     // The play area's edge height at (x, z), remembered for the last few points asked: a terrain row runs along one edge point but for
     // its normals' samples either side, and on the relay road's edge each costs a Carve().

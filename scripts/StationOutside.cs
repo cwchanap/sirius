@@ -17,6 +17,14 @@ public partial class World
     private static Rect2I[]? fineAreas;
     public static Rect2I[] FineAreas=>fineAreas??=new[]{Fine,MazeFine,StationFine};
     public static bool InStation(float x,float z)=>x>=StationWest&&x<=StationFine.End.X&&z>=StationFine.Position.Y&&z<StationFine.End.Y;
+    // The freight warehouses stand on their drawn southern loading bank, 1.35 m over the yard, its south fence the yard's. A trail cannot
+    // raise it: the yard's deeper floor wins Carve()'s blend over the same footprint. This named local Height() feature is that bank alone,
+    // a rectangle x 564..622, z -124..-108 rising from the 6 m yard to 7.35 over 60 cm; the bank's walls and the yard's own fences stand on it.
+    public static float StationBank(float x,float z)
+    {
+        float d=Math.Min(Math.Min(x-564,622-x),Math.Min(z+124,-108-z));if(d<0)return 0;
+        return Mathf.Lerp(6,7.35f,Mathf.SmoothStep(0,.6f,d));
+    }
     // The anchors named by the approved drawings, in world (x, z).
     public static readonly Vector2 StationPortal=new(377,-149.5f),Forecourt=new(508,-70),ParcelsDoor=new(558,-130),
         CraneCell=new(593.5f,-138.75f),CraneRampFoot=new(594,-126);
@@ -58,12 +66,20 @@ public partial class World
         new("Signal room north wall",new(618,-159),new(12,.8f),4),new("Signal room west wall",new(612,-155),new(.8f,8),4),new("Signal room east wall",new(624,-155),new(.8f,8),4),
         new("Signal room south wall west",new(614,-151),new(4,.8f),4),new("Signal room south wall east",new(622,-151),new(4,.8f),4),
         new("B2 ramp",new(575,-156.5f),new(18,5),2.5f),new("Yard north-west strip",new(561,-157.3f),new(6,6.6f),2.2f),
-        new("Yard north fence",new(599,-160.6f),new(70,.8f),1.7f),new("Yard east fence",new(628,-134.3f),new(.8f,52.6f),1.7f),
-        new("Service road fence",new(566,-89),new(.8f,38),1.7f),
-        new("Yard south fence west",new(559,-108),new(2,.8f),1.7f),new("Yard south fence",new(592.5f,-108),new(57,.8f),1.7f),new("Yard south fence east",new(627,-108),new(2,.8f),1.7f),
+        new("Yard north fence",new(599,-160.6f),new(70,.8f),2.2f),new("Yard east fence",new(628,-134.3f),new(.8f,52.6f),2.2f),
+        new("Service road fence",new(566,-89),new(.8f,38),2.2f),new("Loading dock wall",new(564.4f,-136.5f),new(.8f,25),2.2f),
+        // The warehouses' loading bank is walled on its yard faces; its only edge is the drawn south fence, so the yard's route stays on
+        // the dock and the SE gap and the bank cannot be climbed from the yard.
+        new("Warehouse bank west wall",new(564,-116),new(.8f,16),1.5f),new("Warehouse bank north wall",new(593,-124),new(58,.8f),1.5f),new("Warehouse bank east wall",new(622,-116),new(.8f,16),1.5f),
+        new("Yard south fence west",new(559,-108),new(2,.8f),2.2f),new("Yard south fence",new(592.5f,-108),new(57,.8f),2.2f),new("Yard south fence east",new(627,-108),new(2,.8f),2.2f),
         new(S1Name,new(562,-108),new(4,.8f),1.7f,true),
         new(S5Name,new(421,-164.5f),new(.8f,5.2f),2.6f),
         new("Signal cabin",new(433,-177),new(10,10),5),new("Hump",new(624,-138.75f),new(6,3.5f),1.2f),
+        // The six stationary wagons on the drawn sidings, each 11 m by 3.2 m; the later hump trap is not built here.
+        new("Wagon 1",new(577.5f,-128),new(11,3.2f),3.2f),new("Wagon 2",new(601.5f,-128),new(11,3.2f),3.2f),
+        new("Wagon 3",new(579.5f,-142),new(11,3.2f),3.2f),new("Wagon 4",new(603.5f,-142),new(11,3.2f),3.2f),
+        new("Wagon 5",new(583.5f,-149),new(11,3.2f),3.2f),new("Wagon 6",new(604.5f,-149),new(11,3.2f),3.2f),
+        new("Gantry leg west",new(590,-138.5f),new(.7f,.7f),6),new("Gantry leg east",new(597,-138.5f),new(.7f,.7f),6),
     };
     // Whether a 1 m cell at (x, z) lies in a solid footprint. The square overlap, not its centre, so a fence thinner than a cell still
     // bars the cell it stands on; S1 is skipped when the test opens the gate.
@@ -81,6 +97,16 @@ public partial class World
         var o=StationObstacles.Single(o=>o.Name==name);
         return x+.5f>o.At.X-o.Size.X/2&&x-.5f<o.At.X+o.Size.X/2&&z+.5f>o.At.Y-o.Size.Y/2&&z-.5f<o.At.Y+o.Size.Y/2;
     }
+    // The lowest and highest ground under a footprint's corners and centre: a solid's collider is seated on the lowest so no gap opens
+    // beneath it and rises to the highest plus its own height, so a fence on a bank stays above a jump from either side.
+    public static (float Low,float High) StationFootprint(Obstacle o)
+    {
+        float low=float.MaxValue,high=float.MinValue;
+        for(int i=-1;i<=1;i++)for(int j=-1;j<=1;j++){float h=Height(o.At.X+i*o.Size.X/2,o.At.Y+j*o.Size.Y/2);low=Math.Min(low,h);high=Math.Max(high,h);}
+        return (low,high);
+    }
+    // S1's one static leaf, kept so the chapter that makes it operable can replace this body instead of adding a second collider.
+    public StaticBody3D? S1Leaf {get;private set;}
     // The station's trails, world (x, level, z), the half width of their level floors and of their road paint: the portal shelf, the
     // old line and the lineman's path down the hillside; the forecourt, its way and the arcade; the depot, garage and its drive; the
     // service road to S1; the open ground round the yard fence; the yard, its loading dock, the station shell, its platforms and track bed.
@@ -106,6 +132,14 @@ public partial class World
     };
     // The maze's trails and the station's share the carving rule and Tunnel Mountain's robot reach.
     public static IEnumerable<(string Name,float Half,float Paint,Vector3[] Points)> SiteTrails=>MazeTrails.Concat(StationTrails);
+    // The four drawn sidings from x 570 to the hump at (624,-138.5), converging there, and the drawn continuation to (634,-147).
+    public static readonly (string Name,Vector3[] Points)[] StationSidings={
+        ("Siding 1",new Vector3[]{new(570,6,-128),new(612,6,-128),new(624,6,-138.5f)}),
+        ("Siding 2",new Vector3[]{new(570,6,-135),new(612,6,-135),new(624,6,-138.5f)}),
+        ("Siding 3",new Vector3[]{new(570,6,-142),new(612,6,-142),new(624,6,-138.5f)}),
+        ("Siding 4",new Vector3[]{new(570,6,-149),new(612,6,-149),new(624,6,-138.5f)}),
+        ("Hump line",new Vector3[]{new(624,6,-138.5f),new(634,6,-147)}),
+    };
     private void StationOutside()
     {
         var r=new RandomNumberGenerator{Seed=8103};
@@ -116,14 +150,29 @@ public partial class World
             var n=Box(this,name,new((x0+x1)/2,y+high/2,(z0+z1)/2),new(x1-x0,high,z1-z0),m??Mat(new("57584f")));
             CameraStop(n,new BoxShape3D{Size=new(x1-x0,high,z1-z0)});
         }
-        // A track on the ground along `points`: sleepers and two rails, as the maze's own lines are laid.
+        // A track along `points`: sleepers at the ground and two rails built from shared 3D side points. Each waypoint's mitered across
+        // offset is used by both segments meeting there, so each rail is continuous through the bends and across the track-bed join.
         void Track(string name,Vector3[] points)
         {
+            var across=new Vector2[points.Length];
+            for(int i=0;i<points.Length;i++)
+            {
+                var prev=i>0?new Vector2(points[i].X-points[i-1].X,points[i].Z-points[i-1].Z).Normalized():Vector2.Zero;
+                var next=i<points.Length-1?new Vector2(points[i+1].X-points[i].X,points[i+1].Z-points[i].Z).Normalized():Vector2.Zero;
+                var dir=prev+next;if(dir.LengthSquared()<1e-6f)dir=next+prev;if(dir.LengthSquared()<1e-6f)dir=Vector2.Right;dir=dir.Normalized();
+                across[i]=new Vector2(-dir.Y,dir.X);
+            }
+            Vector3 Side(int i,float side){var p=points[i];return new Vector3(p.X+across[i].X*side*MainGauge,Height(p.X,p.Z)+.14f,p.Z+across[i].Y*side*MainGauge);}
             for(int i=0;i<points.Length-1;i++)
             {
-                var a=points[i];var b=points[i+1];float length=new Vector2(b.X-a.X,b.Z-a.Z).Length(),yaw=Mathf.Atan2(b.X-a.X,b.Z-a.Z);var across=new Vector2(a.Z-b.Z,b.X-a.X)/length;
+                var a=points[i];var b=points[i+1];float length=new Vector2(b.X-a.X,b.Z-a.Z).Length(),yaw=Mathf.Atan2(b.X-a.X,b.Z-a.Z);
                 for(float t=.4f;t<length;t+=.9f){var p=new Vector2(a.X,a.Z).Lerp(new(b.X,b.Z),t/length);Box(this,$"{name} sleeper {i} {(int)t}",Ground(p.X,p.Y)+Vector3.Up*.04f,new(MainGauge*3.8f,.12f,.24f),wood).Rotation=new(0,yaw,0);}
-                foreach(float side in new[]{-MainGauge,MainGauge}){var m=new Vector2((a.X+b.X)/2,(a.Z+b.Z)/2)+across*side;var rail=Box(this,$"{name} rail {i} {side}",Ground(m.X,m.Y)+Vector3.Up*.14f,new(.07f,.1f,length),Mat(new("6f6a62")));rail.Rotation=new(Mathf.Atan2(Height(a.X,a.Z)-Height(b.X,b.Z),length),yaw,0);}
+                foreach(float side in new[]{-1f,1f})
+                {
+                    var p0=Side(i,side);var p1=Side(i+1,side);var d=p1-p0;
+                    var rail=Box(this,$"{name} rail {i} {side}",(p0+p1)/2,new(.07f,.1f,d.Length()),Mat(new("6f6a62")));
+                    rail.Basis=Basis.LookingAt(d,Vector3.Up,true);
+                }
             }
         }
         // The paving, gravel and platforms: the terrain under each is the flat trail's, so one plane carries the surface's colour.
@@ -135,14 +184,14 @@ public partial class World
         Pad("Track bed ballast",new Rect2(426,-168,136,8),new("6d685e"));
         Box(this,"Platform 1 slab",new(494,7.25f,-159),new(136,.3f,6),stone);
         Box(this,"Platform 2 slab",new(496,7.25f,-177),new(112,.3f,10),stone);
-        foreach(var (z,level) in new[]{(-164.5f,6.3f),(-169.5f,6.3f),(-184.5f,6.3f)})
+        foreach(var (z,level) in new[]{(-169.5f,6.3f),(-184.5f,6.3f)})
             foreach(float side in new[]{-.72f,.72f})Box(this,"Running rail",new(496,level+.16f,z+side),new(136,.1f,.07f),Mat(new("6f6a62")));
         // The old local train, fenced in on track 1 beyond S5: a backdrop, not walked.
         Box(this,"Old local train",new(481,8.05f,-164.2f),new(98,3.3f,3.4f),Mat(new("8e9aa0")));
         foreach(float x in new[]{436,449,462,475,488,501,514,527})Box(this,"Train window",new(x,8.6f,-162.45f),new(8,.9f,.12f),Mat(new("354046")));
         Box(this,"Train skirt",new(481,6.7f,-164.2f),new(98,.5f,3.5f),Mat(new("3e4649")));
-        // The old line's own rails and sleepers from the portal down its bends to S5 and the track bed, following the trail's waypoints.
-        Track("Old line",StationTrails.Single(t=>t.Name=="Old line").Points.Take(7).ToArray());
+        // The old line's own rails and sleepers from the portal down its bends, through S5 and the track bed to its east end.
+        Track("Old line",StationTrails.Single(t=>t.Name=="Old line").Points);
         // The station's shell: a solid footprint under four walls and a roof, its main doors barred from inside and the parcels door
         // on the yard's side, both shut this chapter.
         var shell=StationObstacles.Single(o=>o.Name=="Station building");float y=Height(shell.At.X,shell.At.Y);
@@ -184,14 +233,12 @@ public partial class World
             float by=Height(bus.At.X,bus.At.Y);
             Box(this,"Dead bus window",new(bus.At.X,by+1.9f,bus.At.Y),new(bus.Size.X*.8f,1,bus.Size.Y+.06f),Mat(new("3a4145")));
         }
-        // The freight yard's sidings, converging on the hump; their rails lie on the ground, not in its footprints.
-        foreach(float z in new[]{-128f,-135f,-142f,-149f})
-            foreach(float side in new[]{-.53f,.53f})Box(this,"Siding rail",new(591,6.16f,z+side),new(62,.08f,.07f),Mat(new("6f6a62")));
-        Box(this,"Hump rail",new(630,6.3f,-141.5f),new(18,.1f,.07f),Mat(new("6f6a62")));
-        // The gantry over the sidings: two legs, the bridge deck with its crane cell, and the ramp up from the yard's floor, 11.5 m for
-        // its 6 m rise (27.5 degrees). The deck and ramp are bodies of their own, so the 2D flood only knows the ramp's foot.
+        // The freight yard's four sidings, drawn from x 570 to the hump at (624,-138.5) and on to (634,-147), converging as v9 draws them.
+        foreach(var siding in StationSidings)Track(siding.Name,siding.Points);
+        // The gantry over the sidings: two legs, the bridge deck with its crane cell, and the ramp up from the yard's floor. The legs are
+        // StationObstacles rows, so their colliders and the test's blocked cells are the same footprint; the deck and ramp are bodies of
+        // their own, so the 2D flood only knows the ramp's foot.
         var steel=Mat(new("7f8983"));float deck=Height(593.5f,-138.75f)+CraneRise;
-        foreach(float x in new[]{590,597})Box(this,"Gantry leg",new(x,Height(x,-138.5f)+3,-138.5f),new(.7f,6,.7f),steel,true);
         var bridge=new StaticBody3D{Name="Gantry bridge",Position=new(593.5f,deck-.1f,-138.75f),CollisionMask=0};AddChild(bridge);
         bridge.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(7,.2f,4)}});
         bridge.AddChild(new MeshInstance3D{Mesh=new BoxMesh{Size=new(7,.2f,4)},MaterialOverride=steel});
@@ -210,17 +257,22 @@ public partial class World
         Label(this,"STATION TUNNEL",new(133,Height(134,-176)+2.6f,-176),Gold,27);
         // The Forecourt Starwell, its well lit and rested at as the villages' are.
         Well("Forecourt well",Forecourt);
-        // Every footprint is a collider of its own, and the one its test blocks; the two gate leaves stay unmerged for the chapter that
-        // makes them open. The station's shell is drawn above, so it only needs its body here.
+        // Every footprint is one collider of its own, seated on the lowest ground under it and reaching its own height over the highest,
+        // and the one its test blocks. S5's leaf stays unmerged under its body; S1 is the one static leaf the later gate replaces.
         foreach(var o in StationObstacles)
         {
-            float gy=Height(o.At.X,o.At.Y);
-            var body=new StaticBody3D{Name="Station footprint "+o.Name,Position=new(o.At.X,gy+o.High/2,o.At.Y),CollisionMask=0};AddChild(body);
-            body.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(o.Size.X,o.High,o.Size.Y)}});
-            if(o.Name is S1Name or S5Name)body.AddChild(new MeshInstance3D{Mesh=new BoxMesh{Size=new(o.Size.X,o.High,o.Size.Y)},MaterialOverride=Mat(o.Name==S1Name?new("4b3a2c"):new("5c4a36"))});
-            else if(o.Name!="Station building"&&o.Name!="Clock tower")Box(this,"Station "+o.Name,new(o.At.X,gy+o.High/2,o.At.Y),new(o.Size.X,o.High,o.Size.Y),
-                o.Name.Contains("fence")||o.Name.Contains("strip")?Mat(new("6b625a")):o.Name.StartsWith("Dead bus")?Mat(new("7d5a44")):o.Name.Contains("wall")?Mat(new("b9b19d")):stone);
+            if(o.Gate)continue;
+            var (low,high)=StationFootprint(o);float tall=(high-low)+o.High;
+            var body=new StaticBody3D{Name="Station footprint "+o.Name,Position=new(o.At.X,low+tall/2,o.At.Y),CollisionMask=0};AddChild(body);
+            body.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(o.Size.X,tall,o.Size.Y)}});
+            if(o.Name==S5Name)body.AddChild(new MeshInstance3D{Mesh=new BoxMesh{Size=new(o.Size.X,tall,o.Size.Y)},MaterialOverride=Mat(new("5c4a36"))});
+            else if(o.Name!="Station building"&&o.Name!="Clock tower")Box(this,"Station "+o.Name,new(o.At.X,low+tall/2,o.At.Y),new(o.Size.X,tall,o.Size.Y),
+                o.Name.Contains("fence")||o.Name.Contains("wall")||o.Name.Contains("strip")?Mat(new("6b625a")):o.Name.StartsWith("Dead bus")?Mat(new("7d5a44")):o.Name.StartsWith("Wagon")?Mat(new("5b4434")):o.Name.StartsWith("Gantry leg")?steel:stone);
         }
+        var s1=StationObstacles.Single(o=>o.Gate);var (s1Low,s1High)=StationFootprint(s1);float s1Tall=(s1High-s1Low)+s1.High;
+        S1Leaf=new StaticBody3D{Name="S1 static leaf",Position=new(s1.At.X,s1Low+s1Tall/2,s1.At.Y),CollisionMask=0};AddChild(S1Leaf);
+        S1Leaf.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(s1.Size.X,s1Tall,s1.Size.Y)}});
+        S1Leaf.AddChild(new MeshInstance3D{Mesh=new BoxMesh{Size=new(s1.Size.X,s1Tall,s1.Size.Y)},MaterialOverride=Mat(new("4b3a2c"))});
         // The station's own scatter, on the hillsides beyond its floors and footprints, from its own seeded stream.
         for(int i=0;i<160;i++)
         {

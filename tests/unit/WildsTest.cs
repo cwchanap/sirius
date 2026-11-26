@@ -92,7 +92,7 @@ public class WildsTest
             foreach(var (di,dj) in new[]{(1,0),(-1,0),(0,1),(0,-1),(1,1),(1,-1),(-1,1),(-1,-1)})
             {
                 int a=i+di,b=j+dj;if(a<0||b<0||a>=w||b>=h||float.IsNaN(height[a,b])||blocked?.Invoke(Area.Position.X+a,Area.Position.Y+b)==true||!Step(i,j,a,b))continue;
-                if(di!=0&&dj!=0&&!(floor[a,j]&&floor[i,b]))continue;
+                if(di!=0&&dj!=0&&(!(floor[a,j]&&floor[i,b])||blocked?.Invoke(Area.Position.X+a,Area.Position.Y+j)==true||blocked?.Invoke(Area.Position.X+i,Area.Position.Y+b)==true))continue;
                 float n=d+(di!=0&&dj!=0?Mathf.Sqrt2:1);if(n<dist[a,b]){dist[a,b]=n;queue.Enqueue((a,b),n);}
             }
             foreach(var ((a,b),dd) in joined.GetValueOrDefault((i,j))??[])
@@ -103,6 +103,14 @@ public class WildsTest
     internal static IEnumerable<Vector2I> Cells((bool[,] Seen,Rect2I Area) reach)
     {
         for(int i=0;i<reach.Seen.GetLength(0);i++)for(int j=0;j<reach.Seen.GetLength(1);j++)if(reach.Seen[i,j])yield return reach.Area.Position+new Vector2I(i,j);
+    }
+    [TestCase]
+    public void WalkWillNotCutABlockedCorner()
+    {
+        // A diagonal between two blocked orthogonal cells is a corner cut, not a move: the direct 1.41 m step must go round.
+        bool Blocked(int x,int z)=>(x==562&&z==-109)||(x==563&&z==-110);
+        float d=Walk(new(562,-110),new(563,-109),Blocked);
+        AssertThat(d).OverrideFailureMessage($"the walk cut the blocked corner in {d:F2} m").IsGreater(1.5f);
     }
     // From the village square Mio reaches no further than the cliff foot, the beach and the gorges below their falls, but for Tunnel
     // Mountain's floors and the cliffs she slides down off them (MazeTest keeps her to those).

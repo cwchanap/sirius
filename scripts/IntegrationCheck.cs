@@ -1152,6 +1152,8 @@ public static class IntegrationCheck
         var parapets=bridge.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().Contains("Gantry parapet")).ToArray();
         Check(parapets.Length==2&&parapets.All(p=>Math.Abs(p.Position.Z)<3&&p.GlobalPosition.DistanceTo(bridge.GlobalPosition)<4),
             "the gantry's two parapets sit on its bridge deck");
+        Check(Hoshikawa.World.StationObstacles.Count(o=>o.Name.StartsWith("Gantry leg"))==2&&g.World.GetNodeOrNull<StaticBody3D>("Station footprint Gantry leg west") is { } westLeg&&westLeg.GetChildren().OfType<CollisionShape3D>().Count()==1,
+            "the gantry's two solid legs are their shared footprint rows");
         var ramp=g.World.GetNode<StaticBody3D>("Gantry ramp");
         float rampLength=Mathf.Sqrt(Hoshikawa.World.CraneRampRun*Hoshikawa.World.CraneRampRun+Hoshikawa.World.CraneRampRise*Hoshikawa.World.CraneRampRise);
         float gantryDeck=Hoshikawa.World.Height(593.5f,-138.75f)+Hoshikawa.World.CraneRise;
@@ -1165,6 +1167,43 @@ public static class IntegrationCheck
         bool OnOld(Vector2 p)=>oldRails.Any(r=>{float half=r.Mesh is BoxMesh b?b.Size.Z/2:0;return new[]{-half,half}.Any(s=>{var e=r.ToGlobal(new Vector3(0,0,s));return new Vector2(e.X-p.X,e.Z-p.Y).Length()<1.5f;});});
         Check(oldRails.Length>0&&new[]{new Vector2(386,-151.5f),new Vector2(394,-154),new Vector2(406,-159),new Vector2(416,-162.5f),new Vector2(421,-164.5f)}.All(OnOld),
             "the old line's rails run from the portal down to S5");
+        // The two rails share their 3D side points through every bend and across the track-bed join: each segment's end meets the next's start.
+        bool RailsContinuous()
+        {
+            var rails=oldRails.Select(r=>{float half=r.Mesh is BoxMesh b?b.Size.Z/2:0;return (Mesh:r,Ends:new[]{r.ToGlobal(new Vector3(0,0,-half)),r.ToGlobal(new Vector3(0,0,half))});}).ToArray();
+            for(int i=0;i<6;i++)
+            {
+                var thisSide=oldRails.Where(r=>r.Name.ToString().StartsWith($"Old line rail {i} ")).ToArray();
+                var nextSide=oldRails.Where(r=>r.Name.ToString().StartsWith($"Old line rail {i+1} ")).ToArray();
+                if(thisSide.Length!=2||nextSide.Length!=2)return false;
+                foreach(var a in thisSide)
+                {
+                    float halfA=a.Mesh is BoxMesh ba?ba.Size.Z/2:0;var endA=a.ToGlobal(new Vector3(0,0,halfA));
+                    if(!nextSide.Any(b=>{float hb=b.Mesh is BoxMesh bb?bb.Size.Z/2:0;return b.ToGlobal(new Vector3(0,0,-hb)).DistanceTo(endA)<.001f;}))return false;
+                }
+            }
+            return true;
+        }
+        Check(RailsContinuous(),"both old-line rails share their 3D endpoints through every bend and the track-bed join");
+        // The gate and fence joins, the bank at a jump and dodge, and the dock's return step: the real colliders and physics.
+        var s1Leaf=g.World.S1Leaf;
+        Check(s1Leaf!=null&&s1Leaf.Name=="S1 static leaf"&&s1Leaf.GetChildren().OfType<CollisionShape3D>().Count()==1,"S1's one static leaf is the gate's only collider, ready to be replaced");
+        using(var s1Ray=PhysicsRayQueryParameters3D.Create(new(562,6.6f,-107),new(562,6.6f,-109),1))
+        {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(s1Ray);Check(hit.Count>0&&hit["collider"].As<Node>().Name=="S1 static leaf","the shut S1 leaf closes the service road to the yard side");}
+        using(var eastRay=PhysicsRayQueryParameters3D.Create(new(626,8.2f,-160),new(630,8.2f,-160),1))
+        {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(eastRay);Check(hit.Count>0&&hit["collider"].As<Node>().Name.ToString().Contains("fence"),"the east fence and north boundary meet across the six-tenths join");}
+        using(var stripRay=PhysicsRayQueryParameters3D.Create(new(561,7f,-152),new(561,7f,-162),1))
+        {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(stripRay);Check(hit.Count>0&&hit["collider"].As<Node>().Name.ToString().Contains("strip")||hit.Count>0&&hit["collider"].As<Node>().Name.ToString().Contains("fence"),"the north-west strip closes the yard's west side");}
+        Place(g.Player,On(new(600,-125)));await Frames(10);g.CameraYaw=Mathf.Pi;Hold("run");Hold("forward");await Press("jump",2);await Frames(40);Release("forward");Release("run");await Frames(10);
+        Check(g.Player.GlobalPosition.Z<-124.3f&&g.Player.GlobalPosition.Y<7.3f,$"a jump does not clear the warehouse bank's 1.35 m face and wall {g.Player.GlobalPosition}");
+        Place(g.Player,On(new(600,-125)));await Frames(10);g.CameraYaw=Mathf.Pi;Hold("forward");await Press("dodge",4);await Frames(30);Release("forward");
+        Check(g.Player.GlobalPosition.Z<-124.3f&&g.Player.GlobalPosition.Y<7.3f,$"a dodge does not clear the bank either {g.Player.GlobalPosition}");
+        Place(g.Player,On(new(630,-140)));await Frames(10);g.CameraYaw=Mathf.Pi/2;Hold("run");Hold("forward");await Press("jump",2);await Frames(40);Release("forward");Release("run");await Frames(10);
+        Check(g.Player.GlobalPosition.X>628.3f,$"a jump from outside the east fence does not clear it {g.Player.GlobalPosition}");
+        Place(g.Player,On(new(562,-109)));await Frames(10);await WalkTo(new(561,-124));await Frames(5);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-6.25f)<.4f,$"the S1 strip steps back up onto the loading dock {g.Player.GlobalPosition}");
+        await WalkTo(new(559,-130));await Frames(5);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-6.25f)<.4f,"and on to the parcels approach, so the route returns");
         // The station's Starwell is the Forecourt's; resting there sets it as the checkpoint and its respawn spot is clear.
         var forecourt=Hoshikawa.World.SavePoints[4].At;Check(Hoshikawa.World.SavePoints[4]==("Forecourt",forecourt)&&Hoshikawa.World.RegionAt(new Vector3(forecourt.X,0,forecourt.Y))==Hoshikawa.World.StationName,"the Forecourt's well is the station's checkpoint, the fifth Starwell");
         Place(g.Player,On(forecourt+new Vector2(2,0)));await Frames(10);

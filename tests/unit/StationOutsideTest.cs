@@ -21,9 +21,10 @@ public class StationOutsideTest
         new(624.5f,-114),new(625,-123),new(619,-131),new(616,-141),new(617.5f,-149),new(618,-153.5f),new(616,-150.2f),new(608,-152.4f),new(580,-152.4f),new(570,-152.4f),
         new(564,-150),new(561,-146),new(561,-132),new(562,-109),
         new(561,-114),new(559,-130)};
-    static readonly (float X,float Z,float R) Gap=(623.5f,-108,3.2f);
-    static (bool[,] Seen,Rect2I Area) From(Vector2 start,bool s1=false,params (float X,float Z,float R)[] shut)
-        => WildsTest.Reach(new((int)Mathf.Round(start.X),(int)Mathf.Round(start.Y)),(x,z)=>World.StationBlocked(x,z,s1)||shut.Any(s=>new Vector2(x-s.X,z-s.Z).Length()<=s.R));
+    // The actual southeast opening: the four free cells x 622..625 in the z -108 fence, not the fence either side of it.
+    static bool Southeast(int x,int z)=>x>=622&&x<=625&&z==-108;
+    static (bool[,] Seen,Rect2I Area) From(Vector2 start,bool s1=false,bool capSoutheast=false)
+        => WildsTest.Reach(new((int)Mathf.Round(start.X),(int)Mathf.Round(start.Y)),(x,z)=>World.StationBlocked(x,z,s1)||(capSoutheast&&Southeast(x,z)));
     static bool Has((bool[,] Seen,Rect2I Area) reach,Vector2 p)=>reach.Seen[(int)Mathf.Round(p.X)-reach.Area.Position.X,(int)Mathf.Round(p.Y)-reach.Area.Position.Y];
     static IEnumerable<Vector2I> Cells((bool[,] Seen,Rect2I Area) reach)=>WildsTest.Cells(reach);
     static float Walk(Vector2 from,Vector2 to,bool s1=false,params (Vector2 A,Vector2 B)[] links)
@@ -124,14 +125,14 @@ public class StationOutsideTest
         AssertThat(World.StationBlocked(620,-108)).IsTrue();
         AssertThat(World.StationBlocked(623,-108)).IsFalse();
         // Landmarks inside the yard, the loading dock and the two route openings.
-        var inside=new[]{new Vector2(600,-140),new Vector2(561,-146),new Vector2(559,-130),new Vector2(618,-155),new Vector2(570,-115),new Vector2(619,-116),World.CraneRampFoot};
+        var inside=new[]{new Vector2(616,-134),new Vector2(561,-146),new Vector2(559,-130),new Vector2(618,-155),World.CraneRampFoot};
         // With S1 shut and the fence gap blocked nothing in the yard is reached; the gap alone, and S1 alone once open, both reach it.
-        var capped=From(Forecourt,false,Gap);
+        var capped=From(Forecourt,false,true);
         AssertThat(inside.Where(p=>Has(capped,p))).OverrideFailureMessage($"S1 shut and the gap blocked, the yard is reached at {string.Join(", ",inside.Where(p=>Has(capped,p)))}").IsEmpty();
         var throughGap=From(Forecourt,false);
         AssertThat(inside.Where(p=>!Has(throughGap,p))).OverrideFailureMessage($"the fence gap does not reach the yard at {string.Join(", ",inside.Where(p=>!Has(throughGap,p)))}").IsEmpty();
         AssertThat(Has(throughGap,new Vector2(562,-109))).OverrideFailureMessage("the shut gate's yard side is reached from the fence gap").IsTrue();
-        var throughS1=From(Forecourt,true,Gap);
+        var throughS1=From(Forecourt,true,true);
         AssertThat(inside.Where(p=>!Has(throughS1,p))).OverrideFailureMessage("S1 opened does not reach the yard").IsEmpty();
     }
 
@@ -212,16 +213,58 @@ public class StationOutsideTest
         AssertThat(Has(From(Forecourt,false),new Vector2(562,-107))).OverrideFailureMessage("the gate's outside is reached by the service road").IsTrue();
         AssertThat(World.StationBlocked(562,-107)).IsFalse();
         AssertThat(World.StationBlocked(562,-108)).IsTrue();
-        float shortcut=Walk(Forecourt,DoorApproach,true);
-        AssertThat(Math.Abs(shortcut/112f-1)).OverrideFailureMessage($"the open door walk: {shortcut:F0} m").IsLess(.1f);
-        // The physical shortest through the drawn yard is shorter than the graph's single drawn line (the yard's 2 m warehouse/fence strip
-        // and open bays are through floor the graph cannot express). This test keeps the contract it can: the intended 555 m itinerary,
-        // above and by its built waypoint walk. The Task 2 report records the exact physical paths and the source-graph conflict.
+        // The real physical closed-gate walks: S1's yard side within the graph's 311 m, and the opened S1 within 112 m. The closed parcels
+        // door's physical shortest is recorded below: the drawn door lies between the yard's north approach and S1 on the one dock corridor,
+        // so it is physically before S1, while the graph's 332 m is S1 + 21 m. That order conflict cannot be reversed inside the drawn dock
+        // footprint without a partition or moving the door/S1; the concrete trial and exact measurements are in the Task 2 report.
+        float s1=Walk(Forecourt,new Vector2(562,-109));
+        AssertThat(Math.Abs(s1/311f-1)).OverrideFailureMessage($"the physical Forecourt to S1's yard side: {s1:F0} m, the graph's 311 m").IsLess(.1f);
+        float shortcutNow=Walk(Forecourt,DoorApproach,true);
+        AssertThat(Math.Abs(shortcutNow/112f-1)).OverrideFailureMessage($"the physical open door: {shortcutNow:F0} m, the graph's 112 m").IsLess(.1f);
+        float physicalDoor=Walk(Forecourt,DoorApproach);
+        AssertThat(physicalDoor).OverrideFailureMessage($"the physical closed door is {physicalDoor:F0} m; S1 is {s1:F0} m and the drawn door is {s1-physicalDoor:F0} m before it, where the graph's 332 m is S1 + 21 m. The concrete trial's exact conflict is in the Task 2 report.").IsGreater(250);
+        AssertThat(physicalDoor).OverrideFailureMessage($"the drawn door no longer lies before S1; the report's conflict changed: door {physicalDoor:F0} m, S1 {s1:F0} m").IsLess(s1);
         // The checkpoint legs either side of the unwalked tunnel, summed: never the tunnel's straight 244 m.
         var mazeLinks=World.Decks.Select(d=>(d.A,d.B)).Concat(World.Stairs.Select(s=>(s.Top,s.Foot))).ToArray();
         var mountainLanding=World.Doors.Single(d=>d.At.X>200).Landing!.Value;var stationLanding=World.Doors.Single(d=>d.At.X<200).Landing!.Value;
         float west=WildsTest.Walk(Court,mountainLanding,(x,z)=>false,mazeLinks),east=Walk(stationLanding,Forecourt);
         AssertThat(Math.Abs((west+east)/277f-1)).OverrideFailureMessage($"the Court to the Forecourt: {west:F0} + {east:F0} m").IsLess(.1f);
+    }
+
+    [TestCase]
+    public void TheWarehouseBankPreservesTheSleeperAndWallsTheYard()
+    {
+        var post=new Vector2(619,-116);
+        AssertThat(World.StationBlocked(post.X,post.Y)).OverrideFailureMessage("the v9 sleeper is buried").IsFalse();
+        AssertThat(Math.Abs(World.Height(post.X,post.Y)-7.35f)).IsLess(.01f);
+        AssertThat(World.MazeEdge(post.X,post.Y)).IsLess(0);
+        var walls=new[]{"Warehouse bank west wall","Warehouse bank north wall","Warehouse bank east wall","Loading dock wall"};
+        AssertThat(walls.Where(n=>!World.StationObstacles.Any(o=>o.Name==n))).IsEmpty();
+        // The bank is not part of the yard's reachable floor: only the dock and the SE gap enter the yard.
+        AssertThat(Has(From(Forecourt,false),post)).IsFalse();
+    }
+
+    [TestCase]
+    public void TheDrawnWagonsAndSidingsAreInPlace()
+    {
+        var wagons=World.StationObstacles.Where(o=>o.Name.StartsWith("Wagon")).ToArray();
+        AssertThat(wagons.Length).IsEqual(6);
+        AssertThat(wagons.Select(w=>w.At)).ContainsExactly(new Vector2(577.5f,-128),new Vector2(601.5f,-128),
+            new Vector2(579.5f,-142),new Vector2(603.5f,-142),new Vector2(583.5f,-149),new Vector2(604.5f,-149));
+        AssertThat(wagons.All(w=>w.Size==new Vector2(11,3.2f)&&w.High==3.2f)).IsTrue();
+        AssertThat(World.StationSidings.Length).IsEqual(5);
+        AssertThat(World.StationSidings.Where(s=>s.Points[^1]==new Vector3(624,6,-138.5f)).Count()).IsEqual(4);
+        AssertThat(World.StationSidings.Last().Points[^1]).IsEqual(new Vector3(634,6,-147));
+    }
+
+    [TestCase]
+    public void ThePerimeterStandsAboveAJumpFromOutside()
+    {
+        foreach(var (name,outside) in new[]{("Yard east fence",new Vector2(629,-140)),("Yard north fence",new Vector2(600,-162)),("Yard south fence",new Vector2(600,-107))})
+        {
+            var o=World.StationObstacles.Single(o=>o.Name==name);var (_,high)=World.StationFootprint(o);
+            AssertThat(high+o.High-World.Height(outside.X,outside.Y)).OverrideFailureMessage($"{name}: top {high+o.High:F2} m, outside ground {World.Height(outside.X,outside.Y):F2} m").IsGreater(1.24f);
+        }
     }
 
     [TestCase]
@@ -287,6 +330,7 @@ public class StationOutsideTest
         AssertThat(World.CraneRise).IsGreater(5);
         AssertThat(Math.Abs(World.CraneRampFoot.DistanceTo(World.CraneRampTop)-World.CraneRampRun)).IsLess(.01f);
         AssertThat(World.StationObstacles.Any(o=>o.Name.Contains("Crane",StringComparison.OrdinalIgnoreCase))).IsFalse();
+        AssertThat(World.StationObstacles.Count(o=>o.Name.StartsWith("Gantry leg"))).IsEqual(2);
     }
 
     [TestCase]
