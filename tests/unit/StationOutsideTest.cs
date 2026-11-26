@@ -30,11 +30,6 @@ public class StationOutsideTest
     static float Walk(Vector2 from,Vector2 to,bool s1=false,params (Vector2 A,Vector2 B)[] links)
         => WildsTest.Walk(from,to,(x,z)=>World.StationBlocked(x,z,s1),links);
     static float Polyline(IEnumerable<Vector2> points){var p=points.ToArray();return Enumerable.Range(0,p.Length-1).Sum(i=>p[i].DistanceTo(p[i+1]));}
-    static float WalkPolyline(Vector2[] points,bool s1=false)
-    {
-        float sum=0;for(int i=0;i<points.Length-1;i++){float leg=Walk(points[i],points[i+1],s1);if(float.IsInfinity(leg))return leg;sum+=leg;}
-        return sum;
-    }
     static readonly (Vector2 A,Vector2 B) Tunnel=(World.Doors.Single(d=>d.At.X<200).Landing!.Value,World.Doors.Single(d=>d.At.X>200).Landing!.Value);
     static readonly Vector2 Court=World.SavePoints.Single(s=>s.Place=="Court").At,Halt=World.SavePoints.Single(s=>s.Place=="Halt").At;
 
@@ -200,10 +195,6 @@ public class StationOutsideTest
         // Every waypoint stands on the station's own floor and clear of its footprints, so the built ground holds the route.
         var off=FirstWalk.Where(p=>World.MazeEdge(p.X,p.Y)>-.1f||World.StationBlocked(Mathf.RoundToInt(p.X),Mathf.RoundToInt(p.Y))).ToArray();
         AssertThat(off).OverrideFailureMessage($"off the built floor: {string.Join(", ",off)}").IsEmpty();
-        // The same route walked on the built ground, waypoint by waypoint: the 555 m itinerary ±10%. It is longer than the polyline because
-        // the S1 touch adds the drawn dogleg back to the parcels door.
-        var walkedRoute=WalkPolyline(FirstWalk);
-        AssertThat(walkedRoute/555.4f).OverrideFailureMessage($"the first walk on the built ground: {walkedRoute:F0} m, the itinerary's 555 m").IsGreater(.9f).IsLess(1.1f);
         float measured=Walk(Portal,Forecourt);
         AssertThat(Math.Abs(measured/216.8f-1)).OverrideFailureMessage($"the built portal to the Forecourt walk: {measured:F0} m").IsLess(.1f);
         // The gate is first touched on the yard's side; the drawn service road reaches only its outside, a dead end. Opened, S1 is the
@@ -213,17 +204,28 @@ public class StationOutsideTest
         AssertThat(Has(From(Forecourt,false),new Vector2(562,-107))).OverrideFailureMessage("the gate's outside is reached by the service road").IsTrue();
         AssertThat(World.StationBlocked(562,-107)).IsFalse();
         AssertThat(World.StationBlocked(562,-108)).IsTrue();
-        // The real physical closed-gate walks: S1's yard side within the graph's 311 m, and the opened S1 within 112 m. The closed parcels
-        // door's physical shortest is recorded below: the drawn door lies between the yard's north approach and S1 on the one dock corridor,
-        // so it is physically before S1, while the graph's 332 m is S1 + 21 m. That order conflict cannot be reversed inside the drawn dock
-        // footprint without a partition or moving the door/S1; the concrete trial and exact measurements are in the Task 2 report.
+        // All three real physical walks against the graph, measured on the built ground with the station's own footprints. The parcels bay's
+        // fence (asserted below) encloses the door's 21 m approach to the station wall, so the shortest closed door is entered from S1's yard
+        // side as the graph's S1 to door edge has it, while the dock's own corridor and the drawn route along it stay clear.
         float s1=Walk(Forecourt,new Vector2(562,-109));
         AssertThat(Math.Abs(s1/311f-1)).OverrideFailureMessage($"the physical Forecourt to S1's yard side: {s1:F0} m, the graph's 311 m").IsLess(.1f);
         float shortcutNow=Walk(Forecourt,DoorApproach,true);
         AssertThat(Math.Abs(shortcutNow/112f-1)).OverrideFailureMessage($"the physical open door: {shortcutNow:F0} m, the graph's 112 m").IsLess(.1f);
         float physicalDoor=Walk(Forecourt,DoorApproach);
-        AssertThat(physicalDoor).OverrideFailureMessage($"the physical closed door is {physicalDoor:F0} m; S1 is {s1:F0} m and the drawn door is {s1-physicalDoor:F0} m before it, where the graph's 332 m is S1 + 21 m. The concrete trial's exact conflict is in the Task 2 report.").IsGreater(250);
-        AssertThat(physicalDoor).OverrideFailureMessage($"the drawn door no longer lies before S1; the report's conflict changed: door {physicalDoor:F0} m, S1 {s1:F0} m").IsLess(s1);
+        AssertThat(Math.Abs(physicalDoor/332f-1)).OverrideFailureMessage($"the physical closed parcels door: {physicalDoor:F0} m, the graph's 332 m").IsLess(.1f);
+        AssertThat(physicalDoor).OverrideFailureMessage($"the closed parcels door is {physicalDoor:F0} m but S1 is {s1:F0} m: the door is no longer entered past the gate").IsGreater(s1);
+        AssertThat(Math.Abs((physicalDoor-s1)/21f-1)).OverrideFailureMessage($"S1's yard side to the parcels door: {physicalDoor-s1:F0} m, the graph's 21 m").IsLess(.25f);
+        // The whole first walk on the built ground: the portal-Forecourt leg plus the physical door, against the 555 m itinerary.
+        AssertThat((measured+physicalDoor)/555.4f).OverrideFailureMessage($"the first walk on the built ground: {measured+physicalDoor:F0} m, the itinerary's 555 m").IsGreater(.9f).IsLess(1.1f);
+        // The parcels bay: a 21 m fence 1.9 m off the station wall, its return closing the north end, so the door is entered from the S1
+        // end alone. The dock's corridor (x 561..564) stays clear, and the fence is too tall to jump.
+        var bayFence=World.StationObstacles.Single(o=>o.Name=="Parcels bay fence");
+        AssertThat(bayFence.Size).IsEqual(new Vector2(.6f,21));
+        AssertThat(bayFence.High).OverrideFailureMessage("the parcels bay's fence is low enough to jump").IsGreater(1.24f);
+        AssertThat(World.StationBlocked(560,-120)).OverrideFailureMessage("the parcels bay's fence is missing").IsTrue();
+        AssertThat(World.StationBlocked(561,-120)||World.StationBlocked(559,-120)).OverrideFailureMessage("the parcels bay's fence closes the dock's corridor or the door's approach").IsFalse();
+        AssertThat(Walk(new Vector2(561,-130),DoorApproach)).OverrideFailureMessage("the parcels door is still reached straight off the dock's north end").IsGreater(30);
+        AssertThat(Walk(new Vector2(562,-109),DoorApproach)).OverrideFailureMessage($"the S1 yard side to the parcels door: {Walk(new Vector2(562,-109),DoorApproach):F1} m").IsGreater(20).IsLess(28);
         // The checkpoint legs either side of the unwalked tunnel, summed: never the tunnel's straight 244 m.
         var mazeLinks=World.Decks.Select(d=>(d.A,d.B)).Concat(World.Stairs.Select(s=>(s.Top,s.Foot))).ToArray();
         var mountainLanding=World.Doors.Single(d=>d.At.X>200).Landing!.Value;var stationLanding=World.Doors.Single(d=>d.At.X<200).Landing!.Value;
@@ -238,10 +240,20 @@ public class StationOutsideTest
         AssertThat(World.StationBlocked(post.X,post.Y)).OverrideFailureMessage("the v9 sleeper is buried").IsFalse();
         AssertThat(Math.Abs(World.Height(post.X,post.Y)-7.35f)).IsLess(.01f);
         AssertThat(World.MazeEdge(post.X,post.Y)).IsLess(0);
-        var walls=new[]{"Warehouse bank west wall","Warehouse bank north wall","Warehouse bank east wall","Loading dock wall"};
+        var walls=new[]{"Warehouse bank west wall","Warehouse bank north wall west","Warehouse bank north wall east","Warehouse bank east wall","Loading dock wall",
+            "Warehouse stair side west","Warehouse stair side east","Warehouse 2 west wall"};
         AssertThat(walls.Where(n=>!World.StationObstacles.Any(o=>o.Name==n))).IsEmpty();
-        // The bank is not part of the yard's reachable floor: only the dock and the SE gap enter the yard.
-        AssertThat(Has(From(Forecourt,false),post)).IsFalse();
+        // The yard-facing stair climbs the bank's north face through its wall opening to Warehouse 2's north door: the warehouse interior is
+        // the bank's one approach, and the apron west of it stays sealed, so the bank is not a route round the yard.
+        var (bottom,top)=World.WarehouseStair;
+        AssertThat(new[]{bottom,top}).ContainsExactly(new Vector2(611,-124),new Vector2(611,-122));
+        AssertThat(Math.Abs(World.Height(bottom.X,bottom.Y)-6)<.01f&&Math.Abs(World.Height(611,-123)-6.675f)<.01f&&Math.Abs(World.Height(top.X,top.Y)-7.35f)<.01f).IsTrue();
+        AssertThat(World.StationBlocked(611,-123)).OverrideFailureMessage("the stairwell is blocked").IsFalse();
+        AssertThat(World.StationBlocked(609,-123)&&World.StationBlocked(613,-123)).OverrideFailureMessage("the stair's side walls are open").IsTrue();
+        AssertThat(Has(From(Forecourt,false),post)).OverrideFailureMessage("the sleeping scout is cut off from the yard with S1 shut").IsTrue();
+        AssertThat(Has(From(Forecourt,false,true),post)).OverrideFailureMessage("the sleeping scout is reached without the southeast gap").IsFalse();
+        AssertThat(Has(From(Forecourt,false),new Vector2(580,-116))).OverrideFailureMessage("the bank's apron is a route round the yard").IsFalse();
+        AssertThat(Walk(Forecourt,post)).IsLess(300);
     }
 
     [TestCase]

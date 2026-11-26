@@ -1200,10 +1200,24 @@ public static class IntegrationCheck
         Check(g.Player.GlobalPosition.Z<-124.3f&&g.Player.GlobalPosition.Y<7.3f,$"a dodge does not clear the bank either {g.Player.GlobalPosition}");
         Place(g.Player,On(new(630,-140)));await Frames(10);g.CameraYaw=Mathf.Pi/2;Hold("run");Hold("forward");await Press("jump",2);await Frames(40);Release("forward");Release("run");await Frames(10);
         Check(g.Player.GlobalPosition.X>628.3f,$"a jump from outside the east fence does not clear it {g.Player.GlobalPosition}");
-        Place(g.Player,On(new(562,-109)));await Frames(10);await WalkTo(new(561,-124));await Frames(5);
+        Place(g.Player,On(new(562,-109)));await Frames(10);await WalkTo(new(562,-124));await Frames(5);
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-6.25f)<.4f,$"the S1 strip steps back up onto the loading dock {g.Player.GlobalPosition}");
-        await WalkTo(new(559,-130));await Frames(5);
-        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-6.25f)<.4f,"and on to the parcels approach, so the route returns");
+        // The parcels bay's fence, its return and the approach it forces: in from the gate's side, up the bay to the door.
+        using(var bayRay=PhysicsRayQueryParameters3D.Create(new(561,7.2f,-120),new(559.4f,7.2f,-120),1))
+        {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(bayRay);Check(hit.Count>0&&hit["collider"].As<Node>().Name.ToString().Contains("Parcels bay"),"the parcels bay's fence stands between the dock and the door");}
+        Place(g.Player,On(new(562,-120)));await Frames(10);g.CameraYaw=Mathf.Pi/2;Hold("run");Hold("forward");await Press("jump",2);await Frames(40);Release("forward");Release("run");await Frames(10);
+        Check(g.Player.GlobalPosition.X>560.4f,$"a jump from the dock does not clear the parcels bay's fence {g.Player.GlobalPosition}");
+        Place(g.Player,On(new(562,-109)));await Frames(10);await WalkTo(new(559.2f,-109));await WalkTo(new(559.2f,-129));await Frames(5);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-6.2f)<.45f&&g.Player.GlobalPosition.X<560.5f,
+            $"the parcels bay's fence turns the door's approach behind S1, in from the gate's side {g.Player.GlobalPosition}");
+        // The warehouse's yard-facing stair is the bank's one way up: from the yard through the north wall's opening to Warehouse 2's door.
+        Place(g.Player,On(new(611,-126)));await Frames(10);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-6)<.4f,"the warehouse stair's foot stands on the yard floor");
+        await WalkTo(new(611,-120),false);await Frames(5);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-7.35f)<.4f,$"under her own input she climbs the warehouse stair into its north door {g.Player.GlobalPosition}");
+        await WalkTo(new(618,-117),false);await Frames(5);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-7.35f)<.4f&&new Vector2(g.Player.GlobalPosition.X-619,g.Player.GlobalPosition.Z+116).Length()<2,
+            $"the warehouse floor reaches the sleeping scout's post {g.Player.GlobalPosition}");
         // The station's Starwell is the Forecourt's; resting there sets it as the checkpoint and its respawn spot is clear.
         var forecourt=Hoshikawa.World.SavePoints[4].At;Check(Hoshikawa.World.SavePoints[4]==("Forecourt",forecourt)&&Hoshikawa.World.RegionAt(new Vector3(forecourt.X,0,forecourt.Y))==Hoshikawa.World.StationName,"the Forecourt's well is the station's checkpoint, the fifth Starwell");
         Place(g.Player,On(forecourt+new Vector2(2,0)));await Frames(10);

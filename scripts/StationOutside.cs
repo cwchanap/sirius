@@ -19,9 +19,13 @@ public partial class World
     public static bool InStation(float x,float z)=>x>=StationWest&&x<=StationFine.End.X&&z>=StationFine.Position.Y&&z<StationFine.End.Y;
     // The freight warehouses stand on their drawn southern loading bank, 1.35 m over the yard, its south fence the yard's. A trail cannot
     // raise it: the yard's deeper floor wins Carve()'s blend over the same footprint. This named local Height() feature is that bank alone,
-    // a rectangle x 564..622, z -124..-108 rising from the 6 m yard to 7.35 over 60 cm; the bank's walls and the yard's own fences stand on it.
+    // a rectangle x 564..622, z -124..-108 rising from the 6 m yard to 7.35 over 60 cm, except Warehouse 2's north-door stair cut; the
+    // bank's walls and the yard's own fences stand on it.
     public static float StationBank(float x,float z)
     {
+        // Warehouse 2's stair cut into the bank's north face: a 2 m ramp (34 degrees) from the yard up to its north door, between the ends
+        // of the bank's north wall; it is the one way onto the bank, so the warehouse's sleeping post stays reachable from the yard.
+        if(x>=609&&x<=613&&z>=-124&&z<=-122)return Mathf.Lerp(6,7.35f,(z+124)/2);
         float d=Math.Min(Math.Min(x-564,622-x),Math.Min(z+124,-108-z));if(d<0)return 0;
         return Mathf.Lerp(6,7.35f,Mathf.SmoothStep(0,.6f,d));
     }
@@ -32,6 +36,9 @@ public partial class World
     // its top a tenth over the deck so she steps down onto it rather than into the deck's face.
     public const float CraneRise=6,CraneRampRun=10.75f,CraneRampRise=6.1f;
     public static readonly Vector2 CraneRampTop=new(594,-136.75f);
+    // The warehouse's yard-facing stair: from the yard at (611,-124) up 1.35 m over 2 m (34 degrees) to its north door at (611,-122),
+    // the only way onto the bank and to the v9 sleeper inside Warehouse 2. The stairwell's side walls keep the bank's apron out of reach.
+    public static readonly (Vector2 Bottom,Vector2 Top) WarehouseStair=(new(611,-124),new(611,-122));
     // S1 is the 4 m aperture x 560..564 in the yard's south fence at z -108; S5 is the 5.2 m old-line gate at x 421, z -164.5.
     public static readonly (Vector2 At,float Span) S1Gate=(new(562,-108),4),S5Gate=(new(421,-164.5f),5.2f);
     public const string S1Name="Yard gate S1",S5Name="Old line gate S5";
@@ -61,16 +68,22 @@ public partial class World
         new("Dead bus 1",new(544,-65.5f),new(12,3),3),new("Dead bus 2",new(558,-67.5f),new(12,3),3),new("Dead bus 3",new(546,-60),new(12,3),3),
         new("Dead bus 4",new(560,-59.5f),new(12,3),3),new("Dead bus 5",new(544,-54.5f),new(12,3),3),new("Dead bus 6",new(558,-53),new(12,3),3),
         new("Lineman's hut",new(583,-64),new(14,8),4),new("Warehouse 1",new(580,-115),new(16,10),6),
-        new("Warehouse 2 north wall",new(611,-122),new(22,.8f),6),new("Warehouse 2 south wall",new(611,-110),new(22,.8f),6),
-        new("Warehouse 2 east wall",new(622,-116),new(.8f,12),6),new("Warehouse 2 west wall south",new(600,-112),new(.8f,4),6),new("Warehouse 2 west wall north",new(600,-120),new(.8f,4),6),
+        new("Warehouse 2 north wall west",new(604.5f,-122),new(9,.8f),6),new("Warehouse 2 north wall east",new(617.5f,-122),new(9,.8f),6),
+        new("Warehouse 2 south wall",new(611,-110),new(22,.8f),6),
+        new("Warehouse 2 east wall",new(622,-116),new(.8f,12),6),new("Warehouse 2 west wall",new(600,-116),new(.8f,12),6),
         new("Signal room north wall",new(618,-159),new(12,.8f),4),new("Signal room west wall",new(612,-155),new(.8f,8),4),new("Signal room east wall",new(624,-155),new(.8f,8),4),
         new("Signal room south wall west",new(614,-151),new(4,.8f),4),new("Signal room south wall east",new(622,-151),new(4,.8f),4),
         new("B2 ramp",new(575,-156.5f),new(18,5),2.5f),new("Yard north-west strip",new(561,-157.3f),new(6,6.6f),2.2f),
         new("Yard north fence",new(599,-160.6f),new(70,.8f),2.2f),new("Yard east fence",new(628,-134.3f),new(.8f,52.6f),2.2f),
         new("Service road fence",new(566,-89),new(.8f,38),2.2f),new("Loading dock wall",new(564.4f,-136.5f),new(.8f,25),2.2f),
-        // The warehouses' loading bank is walled on its yard faces; its only edge is the drawn south fence, so the yard's route stays on
-        // the dock and the SE gap and the bank cannot be climbed from the yard.
-        new("Warehouse bank west wall",new(564,-116),new(.8f,16),1.5f),new("Warehouse bank north wall",new(593,-124),new(58,.8f),1.5f),new("Warehouse bank east wall",new(622,-116),new(.8f,16),1.5f),
+        // The parcels bay's fence: a 21 m fence 1.9 m off the station wall encloses the parcels door's approach, so that door is entered
+        // from S1's yard side, as the v9 graph's S1 to door edge has it, never straight off the dock's north end. The dock's own corridor
+        // (x 561..564) and the drawn route along it stay clear.
+        new("Parcels bay fence",new(560.2f,-120.5f),new(.6f,21),1.8f),new("Parcels bay return fence",new(559.1f,-131),new(2.4f,.6f),1.8f),
+        // The warehouses' loading bank is walled on its yard faces; Warehouse 2's north-door stair is its one opening, and the apron west of
+        // it stays sealed, so the bank is no route round the yard.
+        new("Warehouse bank west wall",new(564,-116),new(.8f,16),1.5f),new("Warehouse bank north wall west",new(586.5f,-124),new(45,.8f),1.5f),new("Warehouse bank north wall east",new(617.5f,-124),new(9,.8f),1.5f),new("Warehouse bank east wall",new(622,-116),new(.8f,16),1.5f),
+        new("Warehouse stair side west",new(609,-123),new(.8f,2),2.2f),new("Warehouse stair side east",new(613,-123),new(.8f,2),2.2f),
         new("Yard south fence west",new(559,-108),new(2,.8f),2.2f),new("Yard south fence",new(592.5f,-108),new(57,.8f),2.2f),new("Yard south fence east",new(627,-108),new(2,.8f),2.2f),
         new(S1Name,new(562,-108),new(4,.8f),1.7f,true),
         new(S5Name,new(421,-164.5f),new(.8f,5.2f),2.6f),
@@ -223,6 +236,12 @@ public partial class World
             Box(this,"Arcade post",new(x,Height(x,z)+1.8f,z),new(.18f,3.6f,.18f),stone);
         // The depot's garage: its walls are their own footprints, open west and east for the through way, under a roof.
         Roof("Garage roof",542,568,-46,-26,Height(555,-36)+4,.6f);
+        // The warehouse's yard-facing stair: a paved ramp on the bank's own cut, between the wall's ends and the stair's side walls.
+        {
+            var (bottom,top)=WarehouseStair;float low=Height(bottom.X,bottom.Y),high=Height(top.X,top.Y);float run=top.DistanceTo(bottom),rise=high-low;
+            var warehouseRamp=new MeshInstance3D{Name="Warehouse stair",Mesh=new BoxMesh{Size=new(3,.12f,Mathf.Sqrt(run*run+rise*rise))},MaterialOverride=Mat(new("7f8983"))};
+            warehouseRamp.Position=new((bottom.X+top.X)/2,(low+high)/2-.055f,(bottom.Y+top.Y)/2);warehouseRamp.Rotation=new(-Mathf.Atan2(rise,run),0,0);AddChild(warehouseRamp);
+        }
         // The lineman's hut, the warehouses and the signal room, each a roof on walls that keep the route's openings.
         var hut=StationObstacles.Single(o=>o.Name=="Lineman's hut");Roof("Lineman's hut roof",hut.At.X-7,hut.At.X+7,hut.At.Y-4,hut.At.Y+4,Height(hut.At.X,hut.At.Y)+4,.7f);
         Roof("Warehouse 2 roof",600,622,-122,-110,Height(611,-116)+6,.8f);
