@@ -1,8 +1,8 @@
 extends SceneTree
 
 # The map's edges and waters: the sea and its capes, the river mouths, both rivers' falls, gorges and headwaters, the Cedar River's outlet
-# and the mountain walls; then Hoshikawa Station from above (north up, with its extent printed) and at ground level from its portal,
-# forecourt, yard, warehouse stair and parcels bay.
+# and the mountain walls; then Hoshikawa Station from above (north up, with its extent printed) and at ground level from its arrival
+# portal, forecourt, yard, warehouse stair, parcels bay and the parcels approach's final turn and both of its sides.
 # Writes artifacts/map/NAME.png; -- --out=<subdir> --only=sea-from-shrine,aerial-south
 func _initialize():
 	call_deferred("review")
@@ -43,12 +43,16 @@ func review():
 		["aerial-north",Vector3(10,230,-20),Vector3(0,0,-200)],
 		["aerial-station",Vector3(504,176,-110),Vector3(504,6,-110)],
 		["aerial-station-world",Vector3(330,364,-155),Vector3(330,6,-155)],
-		["station-portal",Vector3(381.5,22.5,-149.5),Vector3(500,12,-122)],
+		["station-portal",Vector3(375,23.3,-149.5),Vector3(432.5,6.1,-149.5),59],
 		["station-city-bearing",Vector3(381.5,22.5,-149.5),Vector3(270,55,-332)],
 		["station-forecourt",Vector3(508,8.5,-52),Vector3(496,9,-84)],
 		["station-yard",Vector3(618,8.5,-132),Vector3(592,10,-139)],
 		["station-warehouse-stair",Vector3(611,8.5,-131),Vector3(611,8,-122)],
-		["station-parcels-bay",Vector3(559,8.5,-112),Vector3(558,8,-130)]]
+		["station-parcels-bay",Vector3(559,8.5,-112),Vector3(558,8,-130)],
+		["parcels-mouth",Vector3(559.7,9.0,-109.5),Vector3(559.2,6.8,-128)],
+		["parcels-turn",Vector3(559.6,7.6,-114),Vector3(558.5,7.1,-129)],
+		["parcels-west",Vector3(562.8,11.5,-120),Vector3(559.2,6.5,-128)],
+		["parcels-east",Vector3(558.8,8.5,-122),Vector3(561.5,7.5,-118)]]
 	# The aerials look down through 150 m of air, which the valley's depth fog would wash out.
 	var environment=game.find_children("*","WorldEnvironment",true,false)[0].environment
 	# Straight-down aerials use a north-oriented up vector: the default +y up is degenerate with a vertical view.
@@ -57,6 +61,7 @@ func review():
 		if only.size()>0 and not view[0] in only: continue
 		environment.fog_enabled=not view[0].begins_with("aerial")
 		camera.position=view[1]
+		camera.fov = view[3] if view.size()>3 else 60
 		camera.look_at(view[2],Vector3(0,0,-1) if view[0] in north_up else Vector3.UP)
 		for i in range(5): await process_frame
 		RenderingServer.force_draw()

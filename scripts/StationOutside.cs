@@ -273,7 +273,7 @@ public partial class World
         ramp.Basis=new Basis(Vector3.Right,Mathf.Atan2(CraneRampRise,CraneRampRun));
         // The tunnel's east portal in the hillside, its label, and the same label over the Signal yard's mouth.
         Piece("Station tunnel portal","tunnel_portal",new(377-3.93f,Height(377,-149.5f),-149.5f),90);
-        Label(this,"STATION TUNNEL",new(376,Height(377,-149.5f)+3.4f,-149.5f),Gold,27);
+        Label(this,"STATION TUNNEL",new(373.2f,Height(377,-149.5f)+4.4f,-149.5f),Gold,27);
         Label(this,"STATION TUNNEL",new(133,Height(134,-176)+2.6f,-176),Gold,27);
         // The Forecourt Starwell, its well lit and rested at as the villages' are.
         Well("Forecourt well",Forecourt);
@@ -287,23 +287,44 @@ public partial class World
             body.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(o.Size.X,tall,o.Size.Y)}});
             if(o.Name==S5Name)body.AddChild(new MeshInstance3D{Mesh=new BoxMesh{Size=new(o.Size.X,tall,o.Size.Y)},MaterialOverride=Mat(new("5c4a36"))});
             else if(o.Name!="Station building"&&o.Name!="Clock tower")Box(this,"Station "+o.Name,new(o.At.X,low+tall/2,o.At.Y),new(o.Size.X,tall,o.Size.Y),
-                o.Name.Contains("fence")||o.Name.Contains("wall")||o.Name.Contains("strip")?Mat(new("6b625a")):o.Name.StartsWith("Dead bus")?Mat(new("7d5a44")):o.Name.StartsWith("Wagon")?Mat(new("5b4434")):o.Name.StartsWith("Gantry leg")?steel:stone);
+                o.Name.StartsWith("Parcels bay")?wall:o.Name.Contains("fence")||o.Name.Contains("wall")||o.Name.Contains("strip")?Mat(new("6b625a")):o.Name.StartsWith("Dead bus")?Mat(new("7d5a44")):o.Name.StartsWith("Wagon")?Mat(new("5b4434")):o.Name.StartsWith("Gantry leg")?steel:stone);
+        }
+        // The parcels bay reads as a dock-side approach, not a fence: a masonry outer wall with its coping and kerb, a paved apron and
+        // a ramp over the 25 cm dock step, a door awning and lamp, and a service door in the return. The separating footprints are
+        // unchanged, so the graph walks, the 21 m S1-to-door leg and the north-side door reach stay as tested.
+        {
+            var bay=StationObstacles.Single(o=>o.Name=="Parcels bay fence");var (bayLow,bayHigh)=StationFootprint(bay);float bayTop=bayLow+(bayHigh-bayLow)+bay.High;
+            var ret=StationObstacles.Single(o=>o.Name=="Parcels bay return fence");var (retLow,retHigh)=StationFootprint(ret);float retTop=retLow+(retHigh-retLow)+ret.High;
+            Box(this,"Parcels bay coping",new(bay.At.X,bayTop+.06f,bay.At.Y),new(.8f,.12f,bay.Size.Y+.4f),Mat(new("d8cfb6")));
+            Box(this,"Parcels bay kerb",new(bay.At.X,bayLow+.1f,bay.At.Y),new(.8f,.2f,bay.Size.Y+.2f),Mat(new("8f8677")));
+            Box(this,"Parcels return coping",new(ret.At.X,retTop+.06f,ret.At.Y),new(ret.Size.X+.4f,.12f,.8f),Mat(new("d8cfb6")));
+            Box(this,"Parcels wall plinth",new(558.05f,6.25f,-121),new(.5f,.5f,22.4f),Mat(new("b6ae9a")));
+            Box(this,"Parcels return service door",new(ret.At.X,6.9f,ret.At.Y+ret.Size.Y/2+.04f),new(1.0f,1.3f,.08f),dark);
+            Box(this,"Parcels apron paving",new(559.3f,6.08f,-116),new(3,.04f,16),Mat(new("aca08a")));
+            var wallApron=new MeshInstance3D{Name="Parcels wall apron",Mesh=new BoxMesh{Size=new(.75f,.06f,16)},MaterialOverride=Mat(new("aca08a"))};
+            wallApron.Position=new(558.65f,6.18f,-116);wallApron.Rotation=new(0,0,-Mathf.Atan2(.3f,.75f));AddChild(wallApron);
+            var apronRamp=new MeshInstance3D{Name="Parcels apron ramp",Mesh=new BoxMesh{Size=new(3,.10f,Mathf.Sqrt(1.2f*1.2f+.25f*.25f))},MaterialOverride=Mat(new("aca08a"))};
+            apronRamp.Position=new(559.3f,6.105f,-124);apronRamp.Rotation=new(Mathf.Atan2(.25f,1.2f),0,0);AddChild(apronRamp);
+            Roof("Parcels door awning",557.6f,560.6f,-132.8f,-127.4f,Height(559,-130)+4.0f,.2f,Mat(new("57584f")));
+            Box(this,"Parcels door lamp",new(558.7f,Height(559,-130)+3.8f,-130),new(.3f,.16f,.3f),Mat(new("ffe6b0"),1f));
         }
         var s1=StationObstacles.Single(o=>o.Gate);var (s1Low,s1High)=StationFootprint(s1);float s1Tall=(s1High-s1Low)+s1.High;
         S1Leaf=new StaticBody3D{Name="S1 static leaf",Position=new(s1.At.X,s1Low+s1Tall/2,s1.At.Y),CollisionMask=0};AddChild(S1Leaf);
         S1Leaf.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(s1.Size.X,s1Tall,s1.Size.Y)}});
         S1Leaf.AddChild(new MeshInstance3D{Mesh=new BoxMesh{Size=new(s1.Size.X,s1Tall,s1.Size.Y)},MaterialOverride=Mat(new("4b3a2c"))});
-        // The station's own scatter, on the hillsides beyond its floors and footprints, from its own seeded stream.
+        // The station's own scatter, on the hillsides beyond its floors and footprints, from its own seeded stream. The parcels bay
+        // (x 557.5..561.5, z -133..-107) is kept clear, so no tree or boulder stands on the dock approach's paving.
+        bool InParcelsBay(float x,float z)=>x>=557.5f&&x<=561.5f&&z>=-133&&z<=-107;
         for(int i=0;i<160;i++)
         {
             float x=r.RandfRange(374,632),z=r.RandfRange(-198,-22),s=r.RandfRange(.7f,1.3f);int kind=i%3;
-            if(!StationBlocked(x,z)&&MazeEdge(x,z)>3.5f&&MazeEdge(x,z)<14&&RoadGap(x,z)>3.5f)Tree(Ground(x,z),s,kind==0?"sugi":"countryside",r);
+            if(!InParcelsBay(x,z)&&!StationBlocked(x,z)&&MazeEdge(x,z)>3.5f&&MazeEdge(x,z)<14&&RoadGap(x,z)>3.5f)Tree(Ground(x,z),s,kind==0?"sugi":"countryside",r);
             else for(int k=0;k<3;k++)r.Randf();
         }
         for(int i=0;i<90;i++)
         {
             float x=r.RandfRange(374,632),z=r.RandfRange(-198,-22),s=r.RandfRange(.4f,1.3f),turn=r.Randf()*Mathf.Tau;
-            if(!StationBlocked(x,z)&&MazeEdge(x,z)>1.2f&&MazeEdge(x,z)<4.5f)Boulder("Station boulder",x,z,s,turn,false);
+            if(!InParcelsBay(x,z)&&!StationBlocked(x,z)&&MazeEdge(x,z)>1.2f&&MazeEdge(x,z)<4.5f)Boulder("Station boulder",x,z,s,turn,false);
         }
     }
 }

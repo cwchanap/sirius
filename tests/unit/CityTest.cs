@@ -72,7 +72,8 @@ public class CityTest
         AssertThat(Pitch(cityEye,cityAt)).IsEqualApprox(Mathf.RadToDeg(Mathf.Atan2(-14,new Vector2(120,144).Length())),.01f);
         AssertThat(new Vector2(skyAt.X-skyEye.X,skyAt.Z-skyEye.Z).Length()).IsEqualApprox(new Vector2(120,144).Length(),.01f);
         AssertThat(new Vector2(cityAt.X-cityEye.X,cityAt.Z-cityEye.Z).Length()).IsEqualApprox(new Vector2(120,144).Length(),.01f);
-        // The scene camera's one 500 m far reaches the whole row; the old 320 m clipped it on the shot's forward depth.
+        // The scene camera's one 500 m far reaches the whole row; the old 320 m clipped it on the shot's forward depth. These corner
+        // projections are a flat estimate; the engine self-test checks the built merged skyline against the real camera frustum.
         AssertThat(Game.SceneFar).IsEqual(500f);
         var dir=new Vector2(City.X-OpeningEye.X,City.Y-OpeningEye.Y).Normalized();
         float Forward(Vector2 p)=>new Vector2(p.X-OpeningEye.X,p.Y-OpeningEye.Y).Dot(dir);

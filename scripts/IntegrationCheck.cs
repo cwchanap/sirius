@@ -595,15 +595,24 @@ public static class IntegrationCheck
         g.Begin();
         Check(g.Mode==GameMode.Dialogue&&g.Speaker==""&&g.Script.SequenceEqual(Prologue.Opening)&&!g.Player.Visible&&g.Blackout>0&&g.GetViewport().GetCamera3D()!=g.Camera,
             "the journey opens from black on narration, the scene camera over the valley");
-        // The city moved to the north-west ridge beyond the station: its nine columns stand there, and the scene camera's one 500 m far
-        // reaches them, where the old 320 m cut the city's silhouette on the shot's forward depth.
-        Check(g.GetViewport().GetCamera3D().Far==Game.SceneFar&&Game.SceneFar==500,$"the scene camera reaches the city at 500 m, once for every shot ({g.GetViewport().GetCamera3D().Far})");
-        var silhouettes=g.World.FindChildren("*","MeshInstance3D",true,false).Cast<MeshInstance3D>()
-            .Where(m=>m.Mesh is BoxMesh b&&b.Size.Z==3&&Math.Abs(m.Position.Z-Hoshikawa.World.City.Y)<.01f
-                &&m.Position.X>=Hoshikawa.World.City.X-12&&m.Position.X<=Hoshikawa.World.City.X+12).ToArray();
-        bool Column(int i)=>silhouettes.Any(m=>m.Position.DistanceTo(Hoshikawa.World.CityBox(i))<.01f&&m.Mesh is BoxMesh b&&b.Size.DistanceTo(Hoshikawa.World.CitySize(i))<.01f);
-        Check(silhouettes.Length==9&&Enumerable.Range(0,9).All(Column),
-            $"the city's nine columns stand on the north-west ridge at x {Hoshikawa.World.City.X-12}..{Hoshikawa.World.City.X+12}, z {Hoshikawa.World.City.Y} ({silhouettes.Length} found)");
+        // The city moved to the north-west ridge beyond the station. The opening plays the city shot itself: assert the actual scene
+        // camera's pose, then the built and merged skyline's bounds against that camera's real frustum. Finding the hidden originals or
+        // checking the far plane alone would pass even if Opening.0 cued another shot.
+        var cityCamera=g.GetViewport().GetCamera3D();
+        var (cityEye,cityAt,_,_)=Game.Shots["city"];
+        var paintedEye=new Vector3(cityEye.X,Math.Max(cityEye.Y,Hoshikawa.World.Height(cityEye.X,cityEye.Z)+3),cityEye.Z);
+        Check(cityCamera.GlobalPosition.DistanceTo(paintedEye)<.01f&&(-cityCamera.GlobalBasis.Z).Dot((new Vector3(cityAt.X,cityAt.Y,cityAt.Z)-paintedEye).Normalized())>.999f
+            &&cityCamera.Fov==50&&cityCamera.Far==Game.SceneFar,
+            $"the opening plays the city shot: the scene camera at its eye and heading, {cityCamera.Fov} degrees, far {cityCamera.Far}");
+        await Frames(2);cityCamera=g.GetViewport().GetCamera3D();
+        var cityColor=new Color("728e8c");
+        var skyline=g.World.FindChildren("*","MeshInstance3D",true,false).Cast<MeshInstance3D>()
+            .Where(m=>m.Visible&&m.Mesh is ArrayMesh&&m.MaterialOverride is StandardMaterial3D mat
+                &&Math.Abs(mat.AlbedoColor.R-cityColor.R)<.001f&&Math.Abs(mat.AlbedoColor.G-cityColor.G)<.001f&&Math.Abs(mat.AlbedoColor.B-cityColor.B)<.001f).ToArray();
+        var bounds=skyline.Length==1?skyline[0].GlobalTransform*skyline[0].Mesh.GetAabb():new Aabb();
+        var corners=Enumerable.Range(0,8).Select(i=>bounds.Position+new Vector3((i&1)==0?0:bounds.Size.X,(i&2)==0?0:bounds.Size.Y,(i&4)==0?0:bounds.Size.Z)).ToArray();
+        Check(skyline.Length==1&&bounds.Size.X>20&&Math.Abs(bounds.Size.Z-3)<.01f&&corners.All(c=>cityCamera.IsPositionInFrustum(c)),
+            $"the built city skyline is one merged mesh {bounds.Size.X:F1} x {bounds.Size.Y:F1} x {bounds.Size.Z:F1} m at {bounds.GetCenter()}, every corner in the opening camera's frustum");
         Check(g.Hud.Portrait("Mio")!=null&&g.World.Residents.All(r=>g.Hud.Portrait(r.Name)!=null)&&g.Hud.Portrait("Zero")==null,"Mio and every resident have a dialogue portrait; unseen Zero has none");
         Check(Hud.Icons.All(n=>Hud.Icon(n) is {} t&&t.GetWidth()==256&&t.GetHeight()==256)&&ResourceLoader.Exists("res://assets/art/ui/logo.png"),$"all {Hud.Icons.Length} HUD icons and the title logo load, the icons 256 px square");
         Check(g.World.Residents.All(r=>r.Body.GetChildren().OfType<Label3D>().Single() is {VisibilityRangeEnd:>0 and <20} label&&label.Layers==Hoshikawa.World.NameLayer)&&(g.GetViewport().GetCamera3D().CullMask&Hoshikawa.World.NameLayer)==0,
