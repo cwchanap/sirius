@@ -1,6 +1,6 @@
 extends SceneTree
 # Render cost at three village viewpoints, four in Tunnel Mountain (the Court, the Row, the Signal yard and the Mast) and three on
-# Hoshikawa Station's outside (the tunnel arrival facing east, the forecourt facing the station and the yard facing the gantry).
+# Hoshikawa Station's outside (the tunnel arrival facing east, the forecourt facing north to the station and the yard facing the gantry).
 # Draw calls and primitives repeat exactly, so compare those between commits;
 # fps and CPU render time drift with machine load. GPU time reads 0 under Metal Forward Mobile, so it is not sampled.
 func _initialize():
@@ -16,7 +16,7 @@ func run():
 	var mio=game.get_node("Mio")
 	# The station's samples face what the player sees there: the tunnel arrival faces east down the path, the forecourt south to the
 	# station, and the yard west-southwest to the gantry. The seven old samples keep their headings (CameraYaw is untouched for them).
-	var headings={Vector3(381.5,20.1,-149.5):-PI/2,Vector3(508,6.1,-52):PI,Vector3(618,6.1,-132):PI/2+.27}
+	var headings={Vector3(381.5,20.1,-149.5):-PI/2,Vector3(508,6.1,-52):0,Vector3(618,6.1,-132):PI/2+.27}
 	for spot in [Vector3(0,.1,31),Vector3(0,.1,16),Vector3(-3,2.5,58),Vector3(92,10.1,-154),Vector3(232,20.1,-128),Vector3(112,16.6,-178),Vector3(324,34.1,-164),Vector3(381.5,20.1,-149.5),Vector3(508,6.1,-52),Vector3(618,6.1,-132)]:
 		mio.position=spot
 		mio.velocity=Vector3.ZERO

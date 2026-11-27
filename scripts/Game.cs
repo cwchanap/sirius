@@ -23,6 +23,9 @@ public partial class Game : Node3D
     public GameMode Mode=GameMode.Title;
     public int QuestStage;
     public float CameraYaw,CameraPitch=-.29f,CameraShake,CameraPunch;
+    // A door's arrival-only camera lift and the landing it belongs to; cleared when she walks off the landing or any placement/reset.
+    public float CameraLift;
+    private Vector2 liftFrom;
     public Camera3D Camera=null!;
     public Hud Hud=null!;
     public string Speaker="",SpeakerRole="",Dialogue="",ToastTitle="",ToastBody="",ToastIcon="",FeedbackText="",FlashIcon="";
@@ -186,7 +189,8 @@ public partial class Game : Node3D
         // screen or a scene freezes the fight and keeps its music; a defeat ends it, and so does Retry() (recovering or restarting).
         if(Mode==GameMode.Playing)danger=Enemies.Any(e=>!e.Dead&&e.ProcessMode!=ProcessModeEnum.Disabled&&e.State is not ("PATROL" or "ASLEEP"))?Music.Calm:Math.Max(0,danger-dt);else if(Mode==GameMode.Defeated)danger=0;
         Music.Want(Music.Track(Region,danger>0));
-        cameraRig.Position=cameraRig.Position.Lerp(Player.GlobalPosition+Vector3.Up*1.35f,1-Mathf.Exp(-dt*10));
+        if(CameraLift>0&&new Vector2(Player.GlobalPosition.X-liftFrom.X,Player.GlobalPosition.Z-liftFrom.Y).Length()>1.6f)CameraLift=0;
+        cameraRig.Position=cameraRig.Position.Lerp(Player.GlobalPosition+Vector3.Up*(1.35f+CameraLift),1-Mathf.Exp(-dt*10));
         cameraRig.Rotation=new(CameraPitch,CameraYaw,0);
         CameraShake=Math.Max(0,CameraShake-dt);
         Camera.HOffset=CameraShake>0?Mathf.Sin((float)elapsed*100)*CameraShake*.2f:0;
@@ -223,7 +227,7 @@ public partial class Game : Node3D
     public void Retry()
     {
         ExitRoom();Player.Visible=true;Player.Respawn();Locked=null;danger=0;Regroup();Arm();
-        CameraYaw=0;FreezeAnimations(false);Start();var at=Hoshikawa.World.SavePoints[RestedAt].At;Toast(Hoshikawa.World.InMaze(at.X,at.Y)?"BACK AT THE STARWELL":"BACK AT THE VILLAGE");
+        CameraYaw=0;CameraLift=0;CameraPitch=-.29f;FreezeAnimations(false);Start();var at=Hoshikawa.World.SavePoints[RestedAt].At;Toast(Hoshikawa.World.InMaze(at.X,at.Y)?"BACK AT THE STARWELL":"BACK AT THE VILLAGE");
     }
     public void Restart()
     {
@@ -312,6 +316,7 @@ public partial class Game : Node3D
         if(DoorHere() is {} door)
         {
             var at=Hoshikawa.World.DoorLanding(door);Place(at,door.Yaw,door.CameraYaw);
+            CameraPitch=door.Pitch;CameraLift=door.Lift;liftFrom=door.Landing??door.At;
             Blackout=1;Locked=null;danger=0;return;
         }
         if(ShortcutHere() is {} shortcut)

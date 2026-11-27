@@ -189,7 +189,7 @@ public partial class Game
     private void Place(Vector3 at,float yaw,float cameraYaw)
     {
         Player.GlobalPosition=at;Player.Velocity=Vector3.Zero;Player.Model.Rotation=new(0,yaw,0);
-        CameraYaw=cameraYaw;CameraPitch=-.29f;cameraRig.Position=at+Vector3.Up*1.35f;
+        CameraYaw=cameraYaw;CameraPitch=-.29f;CameraLift=0;cameraRig.Position=at+Vector3.Up*1.35f;
     }
     // The sword stays on its rack at home.
     private void Sword(bool shown){foreach(var m in ActorVisual.Descendants(Player.Model).OfType<MeshInstance3D>().Where(m=>m.Name.ToString().StartsWith("Sword")))m.Visible=shown;}

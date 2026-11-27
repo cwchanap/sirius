@@ -1164,8 +1164,34 @@ public static class IntegrationCheck
         Check(g.ToastTitle=="HOSHIKAWA STATION",$"the station's name is toasted as she arrives ({g.ToastTitle})");
         Check(Music.Track(g.Region,false)=="relay"&&Music.Track(g.Region,true)=="battle","the station falls back to the relay track, a fight still to the battle track");
         Check(g.Interaction().Label=="","the landing is far enough from the door that E does not immediately take her back");
-        await WalkTo(new(384,-146));await Frames(5);
+        // The east arrival alone lifts the follow camera and sets its own level pitch for the station reveal. Check the actual camera, the
+        // station and old line in its frustum, and a ray to the station's upper west wall reaching the station rather than the ridge.
+        await Frames(60);
+        var revealCam=g.GetViewport().GetCamera3D();
+        var revealRay=g.GetWorld3D().DirectSpaceState.IntersectRay(PhysicsRayQueryParameters3D.Create(revealCam.GlobalPosition,new Vector3(494,10,-120),1));
+        Check(g.CameraLift>0&&revealCam.GlobalPosition.Y>31.5f&&revealCam.GlobalPosition.Y<32.5f&&revealCam.Fov==59&&revealCam.Far==260
+            &&revealRay.Count>0&&((Node)revealRay["collider"]).Name=="Station footprint Station building"
+            &&revealCam.IsPositionInFrustum(new Vector3(430,7,-156))&&revealCam.IsPositionInFrustum(new Vector3(558,7,-84))
+            &&revealCam.IsPositionInFrustum(new Vector3(494,10,-120))&&revealCam.IsPositionInFrustum(new Vector3(438,6.3f,-164.5f)),
+            $"the tunnel's east arrival lifts the camera to the station reveal, its eye {revealCam.GlobalPosition}, the station and the old line in frame and the station roof behind the ridge");
+        await WalkTo(new(384,-146));await Frames(30);
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-19.2f)<.5f,$"the lineman's path leaves the portal shelf downhill {g.Player.GlobalPosition}");
+        Check(g.CameraLift==0&&g.GetViewport().GetCamera3D().GlobalPosition.Y<25f,$"walking off the landing clears the arrival lift and returns the follow camera to its normal height {g.GetViewport().GetCamera3D().GlobalPosition}");
+        // The parcels approach: the real door stands proud of the station's east wall, the paving follows the ground over the whole
+        // walking strip, the divider is a legible curb and open railing (not a wall-height slot), and the false service panel is gone.
+        var parcelDoor=g.World.GetNode<MeshInstance3D>("Parcels door");var stationEast=g.World.GetNode<MeshInstance3D>("Station east wall");
+        float doorFace=parcelDoor.Position.X+((BoxMesh)parcelDoor.Mesh).Size.X/2,wallFace=stationEast.Position.X+((BoxMesh)stationEast.Mesh).Size.X/2;
+        Check(doorFace>wallFace+.05f,$"the parcels door stands proud of the station's east wall face ({doorFace:F2} > {wallFace:F2})");
+        Check(g.World.GetNodeOrNull("Parcels return service door")==null,"the parcels bay has no false service-panel endpoint");
+        var paving=g.World.GetNodeOrNull<MeshInstance3D>("Parcels bay paving");
+        var pavingVerts=paving is {Mesh:ArrayMesh}?paving.Mesh.SurfaceGetArrays(0)[(int)Godot.Mesh.ArrayType.Vertex].AsVector3Array():Array.Empty<Vector3>();
+        Check(paving!=null&&pavingVerts.Length>50&&pavingVerts.All(v=>Math.Abs(v.Y-(Hoshikawa.World.MeshHeight(v.X,v.Z)+.10f))<.02f)
+            &&pavingVerts.Min(v=>v.X)<=558.4f&&pavingVerts.Max(v=>v.X)>=560.2f&&pavingVerts.Min(v=>v.Z)<=-132.5f&&pavingVerts.Max(v=>v.Z)>=-108.5f,
+            $"the parcels bay paving follows the ground over the walking strip and its edges ({pavingVerts.Length} vertices)");
+        Check(g.World.FindChildren("Parcels bay railing post *","MeshInstance3D",true,false).Count>=8
+            &&g.World.FindChildren("Parcels bay railing rail *","MeshInstance3D",true,false).Count==2&&g.World.GetNodeOrNull("Parcels bay curb")!=null,
+            "the parcels divider is a legible curb and open railing, not a wall-height slot");
+        Check(Hoshikawa.World.StationObstacles.Single(o=>o.Name=="Parcels bay fence").High==1.8f,"the parcels railing's shared collision stays non-jumpable");
         // The gantry's bridge, ramp and the old line's rails, by their built world coordinates; then a real walk up the ramp, no flags.
         var bridge=g.World.GetNode<Node3D>("Gantry bridge");
         var parapets=bridge.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().Contains("Gantry parapet")).ToArray();
@@ -1263,6 +1289,7 @@ public static class IntegrationCheck
         Place(g.Player,On(new Vector2(380,-149.5f)));await Frames(10);
         Check(g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),"at the station's end of the tunnel E leads back");
         g.Interact();await Frames(10);
+        Check(g.CameraLift==0&&Math.Abs(g.GetViewport().GetCamera3D().GlobalPosition.Y-18.5f)<2f,"the return travel carries no arrival camera lift");
         Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-mountainLanding.X,g.Player.GlobalPosition.Z-mountainLanding.Z).Length()<.5f&&g.Region==Hoshikawa.World.MazeName
             &&g.ToastTitle=="TUNNEL MOUNTAIN"&&g.ToastTitle!="TO BE CONTINUED"&&g.Interaction().Label=="",
             $"E there returns her to the Signal yard's mouth, facing Tunnel Mountain, with no early TO BE CONTINUED {g.Player.GlobalPosition}");

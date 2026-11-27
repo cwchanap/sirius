@@ -102,6 +102,30 @@ public class StationOutsideTest
     }
 
     [TestCase]
+    public void TheStationArrivalLiftsTheCameraAndTheDockSeparatorsStand()
+    {
+        // The east-arrival row lifts the follow camera and sets its own level pitch for the station reveal; the return row keeps the
+        // normal camera. The lift is cleared by Game once she walks off the landing, and Place()/Retry()/Restart() clear it too.
+        var arrival=World.Doors.Single(d=>d.At.X<200);var back=World.Doors.Single(d=>d.At.X>200);
+        AssertThat(arrival.Lift).IsEqual(10.65f);
+        AssertThat(arrival.Pitch).IsEqual(0f);
+        AssertThat(back.Lift).IsEqual(0f);
+        AssertThat(back.Pitch).IsEqual(-.29f);
+        // The parcels separators keep their shared, non-jumpable footprints while their look changes to a curb and railing.
+        var bay=World.StationObstacles.Single(o=>o.Name=="Parcels bay fence");
+        AssertThat(bay.At).IsEqual(new Vector2(560.2f,-122.75f));
+        AssertThat(bay.Size).IsEqual(new Vector2(.6f,19.5f));
+        AssertThat(bay.High).IsEqual(1.8f);
+        var ret=World.StationObstacles.Single(o=>o.Name=="Parcels bay return fence");
+        AssertThat(ret.At).IsEqual(new Vector2(559.1f,-132.5f));
+        AssertThat(ret.Size).IsEqual(new Vector2(2.4f,.6f));
+        AssertThat(ret.High).IsEqual(1.8f);
+        // The real parcels door's interaction anchor is untouched by the visual door move.
+        AssertThat(World.ParcelsDoor).IsEqual(new Vector2(558,-130));
+        AssertThat(World.S1Gate).IsEqual((new Vector2(562,-108),4f));
+    }
+
+    [TestCase]
     public void TheCheckpointsGainTheForecourtWithoutMovingTheOthers()
     {
         AssertThat(World.SavePoints.Length).IsEqual(5);

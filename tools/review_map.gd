@@ -43,7 +43,7 @@ func review():
 		["aerial-north",Vector3(10,230,-20),Vector3(0,0,-200)],
 		["aerial-station",Vector3(504,176,-110),Vector3(504,6,-110)],
 		["aerial-station-world",Vector3(330,364,-155),Vector3(330,6,-155)],
-		["station-portal",Vector3(375,23.3,-149.5),Vector3(432.5,6.1,-149.5),59],
+		["station-portal",Vector3(374,32,-149.5),Vector3(434,32,-149.5),59],
 		["station-city-bearing",Vector3(381.5,22.5,-149.5),Vector3(270,55,-332)],
 		["station-forecourt",Vector3(508,8.5,-52),Vector3(496,9,-84)],
 		["station-yard",Vector3(618,8.5,-132),Vector3(592,10,-139)],
@@ -52,7 +52,12 @@ func review():
 		["parcels-mouth",Vector3(559.7,9.0,-109.5),Vector3(559.2,6.8,-128)],
 		["parcels-turn",Vector3(559.6,7.6,-114),Vector3(558.5,7.1,-129)],
 		["parcels-west",Vector3(562.8,11.5,-120),Vector3(559.2,6.5,-128)],
-		["parcels-east",Vector3(558.8,8.5,-122),Vector3(561.5,7.5,-118)]]
+		["parcels-east",Vector3(558.8,8.5,-122),Vector3(561.5,7.5,-118)],
+		["parcels-door",Vector3(559.9,7.6,-127.2),Vector3(558.6,7.4,-130.2)],
+		["parcels-floor",Vector3(559.8,7.6,-110.2),Vector3(559.4,6.4,-131.5)],
+		["city-from-valley-overlook",Vector3(29,7.0,-226),Vector3(270,55,-332)],
+		["city-from-pass-shelter",Vector3(-12,7.0,-191),Vector3(270,55,-332)],
+		["city-from-station-overlook",Vector3(336.6,29.0,-121.6),Vector3(270,55,-332)]]
 	# The aerials look down through 150 m of air, which the valley's depth fog would wash out.
 	var environment=game.find_children("*","WorldEnvironment",true,false)[0].environment
 	# Straight-down aerials use a north-oriented up vector: the default +y up is degenerate with a vertical view.
