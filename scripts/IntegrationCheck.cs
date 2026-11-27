@@ -1157,6 +1157,7 @@ public static class IntegrationCheck
         await WalkTo(greatBrow+(greatBrow-greatFoot).Normalized()*2.5f);await Walk((104,-176),(120,-176),(133,-176));
         // The station's two portals: through the blackout door to the hillside above Hoshikawa Station and back, with no premature end.
         var mountainSideDoor=Hoshikawa.World.Doors.Single(d=>d.Kind==Hoshikawa.World.DoorKind.Portal&&d.At.X<200);var stationSideDoor=Hoshikawa.World.Doors.Single(d=>d.Kind==Hoshikawa.World.DoorKind.Portal&&d.At.X>200);
+        var parcelsKey=g.World.Pickups.Single(p=>p.Item=="parcels_key").Node;
         // Each row's landing is the other side's: through the mountain row she arrives on the station's hillside, and back through the
         // station row she arrives at the Signal yard's mouth.
         var stationLanding=Hoshikawa.World.DoorLanding(mountainSideDoor);var mountainLanding=Hoshikawa.World.DoorLanding(stationSideDoor);
@@ -1164,16 +1165,17 @@ public static class IntegrationCheck
         var stageBefore=g.QuestStage;g.QuestStage=Quest.Rockfall;await Frames(2);
         Check(g.Player.GlobalPosition.DistanceTo(Hoshikawa.World.DoorPoint(mountainSideDoor))<2.2f&&g.Interaction().Label=="",
             "before the rockfall is cleared the Station tunnel's mouth offers nothing");
-        var beforeMouth=g.Player.GlobalPosition;g.Interact();await Frames(5);
+        var beforeMouth=g.Player.GlobalPosition;await Tap(Key.E);await Frames(3);
         Check(g.Player.GlobalPosition.DistanceTo(beforeMouth)<.5f&&g.Region==Hoshikawa.World.MazeName&&g.Mode==GameMode.Playing,
-            $"and E there does not take her through before Beyond {g.Player.GlobalPosition}");
+            $"and the mapped E there does not take her through before Beyond {g.Player.GlobalPosition}");
         g.QuestStage=stageBefore;await Frames(2);
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-16.5f)<.6f&&g.Region==Hoshikawa.World.MazeName&&g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),
             $"once Beyond, the Station tunnel's mouth leads through {g.Player.GlobalPosition}");
         // The player's aim before the door must survive the arrival reveal; the reveal itself is a separate lift/pitch that the
         // existing blackout fade hands back to the normal follow camera.
         g.CameraPitch=-.45f;
-        g.Interact();await Frames(2);
+        Check(g.Mode==GameMode.Playing&&g.Player.Free,"the tunnel is entered in play, with Mio free to act");
+        await Tap(Key.E);
         Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-stationLanding.X,g.Player.GlobalPosition.Z-stationLanding.Z).Length()<.5f,
             $"E at the tunnel mouth sets her down on the station's hillside {g.Player.GlobalPosition}");
         Check(g.Region==Hoshikawa.World.StationName&&g.QuestStage==Quest.Beyond&&g.Mode==GameMode.Playing,$"the station's hillside is its own region {g.Region}");
@@ -1185,17 +1187,21 @@ public static class IntegrationCheck
         // Return through the door while the reveal is still active: it must clear, and keep her aim, before the normal camera.
         Place(g.Player,On(new(380,-149.5f)));await Frames(2);
         Check(g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),"at the station's end of the tunnel E leads back");
-        g.Interact();await Frames(5);
+        await Tap(Key.E);await Frames(3);
         Check(g.ArrivalLift==0&&Math.Abs(g.CameraPitch+.45f)<.001f&&g.GetViewport().GetCamera3D().GlobalPosition.Y<25f,
             $"returning while the reveal is active clears it and keeps the player's aim {g.GetViewport().GetCamera3D().GlobalPosition}");
         Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-mountainLanding.X,g.Player.GlobalPosition.Z-mountainLanding.Z).Length()<.5f&&g.Region==Hoshikawa.World.MazeName,
             $"the reveal's return lands at the Signal yard {g.Player.GlobalPosition}");
+        Check(g.Objective=="Take the station road east"&&g.ObjectivePosition==g.World.MazeEnd&&!g.Opened.Contains(World.ParcelsDoorRow.Name),
+            "back in Tunnel Mountain with the parcels door still locked, the objective is the station road east and its marker the Signal yard's mouth");
         // Re-enter and hold forward+run through the fade; the reveal must survive the movement and hand back to the player's aim.
         Place(g.Player,On(new(133,-176)));await Frames(2);
-        Check(g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),"the tunnel's mouth still leads through after the reveal's return");
-        g.Interact();await Frames(2);
+        Check(g.Mode==GameMode.Playing&&g.Player.Free&&g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),"the tunnel's mouth still leads through after the reveal's return");
+        await Tap(Key.E);
         Check(g.ArrivalLift>0&&new Vector2(g.Player.GlobalPosition.X-stationLanding.X,g.Player.GlobalPosition.Z-stationLanding.Z).Length()<1.5f,
             $"the re-entry begins the reveal at the station landing {g.Player.GlobalPosition}");
+        Check(g.Objective=="Find the parcels key"&&g.ObjectivePosition==parcelsKey.GlobalPosition,
+            "on the station without the key the objective marks the old signal room's key, whose marker is the pickup itself");
         Hold("forward");Hold("run");await Frames(25);
         var revealCam=g.GetViewport().GetCamera3D();
         float ActualPitch()=>Mathf.RadToDeg(Mathf.Asin(-Mathf.Clamp(g.GetViewport().GetCamera3D().GlobalBasis.Z.Y,-1,1)));
@@ -1354,16 +1360,16 @@ public static class IntegrationCheck
         // opens, so the walk that follows is the only way in.
         Place(g.Player,On(new(562,-106.2f)));await Frames(10);
         Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Z>-108.2f,"the service road ends at S1's shut leaf");
-        Check(g.Interaction()==("ladder",Localization.T("GATE")),"the shut S1 shows its ordinary gate prompt from the road side");
-        g.Interact();
-        Check(!g.Opened.Contains(World.S1Name)&&g.ToastTitle=="IT WILL NOT OPEN FROM THIS SIDE"&&g.Mode==GameMode.Playing,"from the service road S1 will not open");
+        Check(g.Mode==GameMode.Playing&&g.Player.Free&&g.Interaction()==("ladder",Localization.T("GATE")),
+            "the shut S1 shows its ordinary gate prompt from the road side, with Mio free to act");
+        await Tap(Key.E);await Frames(2);
+        Check(!g.Opened.Contains(World.S1Name)&&g.ToastTitle=="IT WILL NOT OPEN FROM THIS SIDE"&&g.Mode==GameMode.Playing,"from the service road S1 will not open on the mapped E");
         Check(!await Head(new(562,-116),true,90)&&g.Player.GlobalPosition.Z>-108.2f,$"and its shut leaf holds her out of the yard {g.Player.GlobalPosition}");
-        var parcelsKey=g.World.Pickups.Single(p=>p.Item=="parcels_key").Node;
         Place(g.Player,On(new(559.2f,-129)));await Frames(10);
-        Check(g.Interaction()==("",Localization.T("PARCELS DOOR")),"the parcels door prompts with no icon before it has its key");
-        g.Interact();await Frames(3);
+        Check(g.Mode==GameMode.Playing&&g.Player.Free&&g.Interaction()==("",Localization.T("PARCELS DOOR")),"the parcels door prompts with no icon before it has its key");
+        await Tap(Key.E);await Frames(2);
         Check(g.ToastTitle=="PARCELS DOOR LOCKED"&&!g.Opened.Contains(World.ParcelsDoorRow.Name)&&parcelsKey.Visible&&g.Mode==GameMode.Playing,
-            "without the key the parcels door reports its lock and leaves the key to be found");
+            "without the key the parcels door reports its lock on the mapped E and leaves the key to be found");
         // The drawn first walk's own last half, on her own feet: the depot road through the bus garage to the open ground, the yard's
         // southeast gap, the old signal room's key, S1 from the yard's side, and the parcels door. Every leg is walked on the built ground.
         Place(g.Player,On(new(544,-38)));await Frames(10);
@@ -1382,35 +1388,44 @@ public static class IntegrationCheck
         await WalkTo(new(618,-153.5f));await Frames(5);
         Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Z<-151.4f&&g.Interaction()==("repair",Localization.T("Parcels key").ToUpperInvariant()),
             $"inside the old signal room the parcels key is within reach {g.Player.GlobalPosition}");
-        g.Interact();await Frames(3);
+        await Tap(Key.E);await Frames(2);
         Check(!parcelsKey.Visible&&g.Player.Inventory.Count("parcels_key")==1&&g.ToastTitle=="Parcels key"&&g.Objective=="Reach the parcels door",
-            "taking the key puts it in her key items, and the objective turns to the parcels door");
-        // Back along the drawn return: out of the room, west along the yard's deep row, north up the dock corridor to S1's yard side.
+            "taking the key on the mapped E puts it in her key items, and the objective turns to the parcels door");
+        // Back along the drawn return: out of the room, west along the yard's deep row, north up the dock corridor to S1's yard side, whose
+        // gate is still shut. The parcels door is unlocked from the bay first, so S1 is proved a way through and not a second key gate.
         await WalkTo(new(618,-150.2f));await Walk((610,-150.2f),(608,-152.4f),(580,-152.4f),(570,-152.4f),(564,-150),(561,-146),(561,-138),(561,-132),(562,-109.3f));
         Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Z>-110.2f&&g.Interaction()==("ladder",Localization.T("GATE")),
-            $"the dock corridor climbs back to S1's yard side, where its gate waits {g.Player.GlobalPosition}");
-        Check(!g.Opened.Contains(World.S1Name)&&Shut(s1),"S1 is still shut through the yard's whole round");
-        g.Interact();await Frames(130);
-        Check(g.Opened.Contains(World.S1Name)&&Down(s1),"from the freight yard S1 opens, and its leaf swings out over the road");
-        Check(g.ToastTitle=="SHORTCUT OPENED"&&g.Interaction().Icon!="ladder","and its prompt goes once it is open");
-        // The bay's mouth, then the door: with the key the unlock is the chapter's end, its toast shown once and its prompt gone.
+            $"the dock corridor climbs back to S1's yard side, where its shut gate waits {g.Player.GlobalPosition}");
+        Check(!g.Opened.Contains(World.S1Name)&&Shut(s1),"S1 is still shut while she carries the key");
+        // The bay's mouth, then the door, with S1 shut throughout: the key alone ends the chapter.
         await Walk((560.5f,-109),(559.2f,-112),(559.2f,-120),(559.2f,-129));await Frames(5);
-        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.X<560.5f&&g.Interaction()==("",Localization.T("PARCELS DOOR")),
-            $"the bay's fence turns her in to the parcels door, within its reach {g.Player.GlobalPosition}");
-        g.Interact();await Frames(3);
-        Check(g.ToastTitle=="TO BE CONTINUED"&&g.Opened.Contains(World.ParcelsDoorRow.Name)&&g.Player.Inventory.Count("parcels_key")==1&&g.Mode==GameMode.Playing,
-            "with the key the parcels door opens once, ending the chapter with its own toast and keeping the key");
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.X<560.5f&&g.Mode==GameMode.Playing&&g.Player.Free&&g.Interaction()==("",Localization.T("PARCELS DOOR")),
+            $"the bay's fence turns her in to the parcels door, within its reach, with Mio free to act {g.Player.GlobalPosition}");
+        await Tap(Key.E);await Frames(2);
+        Check(g.ToastTitle=="TO BE CONTINUED"&&g.Opened.Contains(World.ParcelsDoorRow.Name)&&g.Player.Inventory.Count("parcels_key")==1&&g.Mode==GameMode.Playing&&Shut(s1),
+            "on the mapped E the key opens the parcels door with S1 shut, ending the chapter with its own toast and keeping the key");
         Check(g.Interaction()==("","")&&g.Objective=="Reach the parcels door"&&g.ObjectivePosition==World.DoorPoint(World.ParcelsDoorRow),
             "the unlocked door has no prompt left, though the objective still marks it");
-        int doorProgress=g.Opened.Count;g.Interact();await Frames(3);
-        Check(g.Opened.Count==doorProgress&&g.ToastTitle=="TO BE CONTINUED"&&g.Mode==GameMode.Playing,"and E there again awards nothing more");
+        // Let the ending's toast run down, then press E again: the same title must not be a fresh toast, and nothing more is awarded.
+        await Frames(60);
+        float toastLeft=g.ToastTime;int doorProgress=g.Opened.Count;
+        Check(toastLeft<4.9f,$"the ending's toast is running down before the second press ({toastLeft:F2} s left)");
+        await Tap(Key.E);await Frames(2);
+        Check(g.Opened.Count==doorProgress&&g.ToastTitle=="TO BE CONTINUED"&&g.ToastTime<=toastLeft&&g.Mode==GameMode.Playing,
+            $"a second E there awards nothing and does not restart the ending's toast ({toastLeft:F2} s -> {g.ToastTime:F2} s)");
+        // Back up the corridor to S1's yard side and open it there, one-way and with real input, then walk out on the drawn way.
+        await Walk((559.2f,-112),(560.5f,-109),(562,-109.3f));await Frames(5);
+        Check(g.Player.IsOnFloor()&&g.Interaction()==("ladder",Localization.T("GATE"))&&Shut(s1),"back at S1's yard side its shut gate still waits");
+        await Tap(Key.E);await Frames(130);
+        Check(g.Opened.Contains(World.S1Name)&&Down(s1),"from the freight yard S1 opens on the mapped E, and its leaf swings out over the road");
+        Check(g.ToastTitle=="SHORTCUT OPENED"&&g.Interaction().Icon!="ladder","and its prompt goes once it is open");
         // Out through the open gate onto the service road, then the arcade's pouch: the station's own, a fifth remedy slot.
-        await Walk((560.5f,-109),(562,-109),(562,-105.5f));await Frames(5);
+        await Walk((562,-105.5f));await Frames(5);
         Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Z>-107.6f,$"the open S1 lets her walk from the yard out onto the service road {g.Player.GlobalPosition}");
         var arcade=g.World.GetNode<Node3D>("Arcade pouch");var arcadeStand=arcade.GlobalPosition+Vector3.Back*1.3f;
         Place(g.Player,new(arcadeStand.X,Hoshikawa.World.Height(arcadeStand.X,arcadeStand.Z)+.1f,arcadeStand.Z));await Frames(10);
         Check(g.Player.IsOnFloor()&&g.Interaction()==("remedy",Localization.T("Remedy pouch").ToUpperInvariant()),"the arcade's pouch waits on its barrel in the covered way");
-        g.Interact();await Frames(3);
+        await Tap(Key.E);await Frames(2);
         Check(!arcade.Visible&&bag.Count("pouch")==2&&bag.Capacity("remedy")==5&&bag.Count("remedy")==5,
             $"the arcade's pouch is the walk's second, raising the remedies Mio carries to five and filling them (pouches {bag.Count("pouch")}, capacity {bag.Capacity("remedy")}, remedies {bag.Count("remedy")})");
         // A defeat on the station before its own Starwell: she wakes at the Court she last rested at, key, gate and door's unlock kept.
@@ -1440,35 +1455,44 @@ public static class IntegrationCheck
         Check(g.Player.Inventory.Count("parcels_key")==1&&g.Opened.Contains(World.S1Name)&&g.Opened.Contains(World.ParcelsDoorRow.Name)&&Down(s1),
             "and the key, S1 and the door's unlock survive that defeat too");
         foreach(var e in mazeRobots)e.CollisionLayer=0;
-        // Back through the door: the landing is more than 2.2 m from the door, so she steps up to it again to return.
+        // Every crossing below is taken on the mapped E. The checkpoint, the key and the openings are snapshotted before the first one, so a
+        // trip that reset any of them fails on the comparison rather than passing on state read after the trip.
+        var checkpoint=g.RestedAt;var heldKey=g.Player.Inventory.Count("parcels_key");var opens=g.Opened.OrderBy(n=>n).ToArray();
+        Check(heldKey==1&&opens.Contains(World.S1Name)&&opens.Contains(World.ParcelsDoorRow.Name)&&Down(s1),
+            "before leaving the station: the key held, S1 open and the parcels door unlocked");
+        // Station to Tunnel Mountain: the landing is more than 2.2 m from the door, so she steps up to it again to return.
         Place(g.Player,On(new Vector2(380,-149.5f)));await Frames(10);
-        Check(g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),"at the station's end of the tunnel E leads back");
-        g.Interact();await Frames(10);
+        Check(g.Mode==GameMode.Playing&&g.Player.Free&&g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),"at the station's end of the tunnel E leads back");
+        await Tap(Key.E);await Frames(8);
         Check(g.ArrivalLift==0&&Math.Abs(g.CameraPitch+.45f)<.001f&&g.GetViewport().GetCamera3D().GlobalPosition.Y<25f
             &&Mathf.Abs(Mathf.RadToDeg(Mathf.Asin(-Mathf.Clamp(g.GetViewport().GetCamera3D().GlobalBasis.Z.Y,-1,1)))-Mathf.RadToDeg(g.CameraPitch))<3f,
             $"the return travel carries no arrival reveal and keeps the player's aim ({Mathf.RadToDeg(g.CameraPitch):F1})");
         Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-mountainLanding.X,g.Player.GlobalPosition.Z-mountainLanding.Z).Length()<.5f&&g.Region==Hoshikawa.World.MazeName
             &&g.ToastTitle=="TUNNEL MOUNTAIN"&&g.ToastTitle!="TO BE CONTINUED"&&g.Interaction().Label=="",
             $"E there returns her to the Signal yard's mouth, facing Tunnel Mountain, with no early TO BE CONTINUED {g.Player.GlobalPosition}");
-        // Back in Tunnel Mountain the objective is the station road again, whichever the parcels door's state; and east again through the
-        // mountain mouth, the checkpoint, the key and the unlocks all come back with her.
+        Check(g.RestedAt==checkpoint&&g.Player.Inventory.Count("parcels_key")==heldKey&&g.Opened.OrderBy(n=>n).SequenceEqual(opens)&&Down(s1),
+            "the checkpoint she left with, the key and S1's and the door's openings all survive the crossing to Tunnel Mountain");
         Check(g.Objective=="Take the station road east"&&g.ObjectivePosition==g.World.MazeEnd,
             "back in Tunnel Mountain the objective is the station road east, its marker the Signal yard's mouth, unlocked or not");
-        var checkpoint=g.RestedAt;var heldKey=g.Player.Inventory.Count("parcels_key");var opens=g.Opened.OrderBy(n=>n).ToArray();
+        // Tunnel Mountain to the station, on the mapped E pressed and flushed by hand: the result is read before the same frame's region
+        // toast could hide a premature ending.
         Place(g.Player,On(new Vector2(134,-176)));await Frames(10);
-        Check(g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),"the mountain mouth still leads through");
-        g.Interact();
-        Check(g.ToastTitle!="TO BE CONTINUED"&&g.Mode==GameMode.Playing,"E at the mountain mouth is the tunnel's transit, not the parcels terminal: no ending before the station");
+        Check(g.Mode==GameMode.Playing&&g.Player.Free&&g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),"the mountain mouth still leads through");
+        Input.ParseInputEvent(new InputEventKey{Keycode=Key.E,PhysicalKeycode=Key.E,Pressed=true});Input.FlushBufferedEvents();
+        Check(g.ToastTitle!="TO BE CONTINUED"&&g.Mode==GameMode.Playing
+            &&new Vector2(g.Player.GlobalPosition.X-stationLanding.X,g.Player.GlobalPosition.Z-stationLanding.Z).Length()<.5f,
+            $"the mapped E at the mountain mouth is the tunnel's transit at once, and no ending toast stands there ({g.ToastTitle})");
+        Input.ParseInputEvent(new InputEventKey{Keycode=Key.E,PhysicalKeycode=Key.E,Pressed=false});Input.FlushBufferedEvents();
         await Frames(5);
         Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-stationLanding.X,g.Player.GlobalPosition.Z-stationLanding.Z).Length()<.5f&&g.ToastTitle=="HOSHIKAWA STATION",
             $"the tunnel sets her down on the station's hillside {g.Player.GlobalPosition}");
+        Check(g.RestedAt==checkpoint&&g.Player.Inventory.Count("parcels_key")==heldKey&&g.Opened.OrderBy(n=>n).SequenceEqual(opens)&&Down(s1),
+            "and the checkpoint, the key and both openings come back with her through the tunnel to the station");
         Check(g.Objective=="Reach the parcels door"&&g.ObjectivePosition==Hoshikawa.World.DoorPoint(Hoshikawa.World.ParcelsDoorRow),
             "on the station the objective still marks the parcels door, though it is unlocked");
-        Check(g.RestedAt==checkpoint&&g.Player.Inventory.Count("parcels_key")==heldKey&&g.Opened.OrderBy(n=>n).SequenceEqual(opens)&&Down(s1),
-            "the checkpoint, the key and S1's and the door's unlocks all come through the tunnel");
         Place(g.Player,On(new Vector2(380,-149.5f)));await Frames(10);
         Check(g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),"and the station's end still leads back for the old line");
-        g.Interact();await Frames(5);
+        await Tap(Key.E);await Frames(5);
         Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-mountainLanding.X,g.Player.GlobalPosition.Z-mountainLanding.Z).Length()<.5f&&g.Region==Hoshikawa.World.MazeName,
             $"she returns to the Signal yard to walk the old line {g.Player.GlobalPosition}");
         // The old line west of the yard: down onto the old track bed, over the girder bridge beside its rotten sleepers, along the ledge and
@@ -1511,7 +1535,7 @@ public static class IntegrationCheck
         {
             g.QuestStage=Quest.Beyond;g.CameraPitch=-.45f;
             Place(g.Player,World.DoorPoint(mountainSideDoor)+Vector3.Up*.1f);await Frames(2);
-            g.Interact();await Frames(2);
+            await Tap(Key.E);
             Check(g.Mode==GameMode.Playing&&g.Region==World.StationName&&g.RevealShare>.9f,
                 $"the recovery probe enters the station through the tunnel with the reveal active ({g.Player.GlobalPosition}, share {g.RevealShare:F2})");
         }

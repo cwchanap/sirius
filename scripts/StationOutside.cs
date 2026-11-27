@@ -98,7 +98,8 @@ public partial class World
         new("Warehouse bank west wall",new(564,-116),new(.8f,16),1.5f),new("Warehouse bank north wall west",new(586.5f,-124),new(45,.8f),1.5f),new("Warehouse bank north wall east",new(617.5f,-124),new(9,.8f),1.5f),new("Warehouse bank east wall",new(622,-116),new(.8f,16),1.5f),
         new("Warehouse stair side west",new(609,-123),new(.8f,2),2.2f),new("Warehouse stair side east",new(613,-123),new(.8f,2),2.2f),
         new("Yard south fence west",new(559,-108),new(2,.8f),2.2f),new("Yard south fence",new(592.5f,-108),new(57,.8f),2.2f),new("Yard south fence east",new(627,-108),new(2,.8f),2.2f),
-        new(S1Name,new(562,-108),new(4,.8f),1.7f,true),
+        // Its own 4 m span and fence line are S1Gate's, so the flood's footprint and the live leaf cannot drift apart.
+        new(S1Name,S1Gate.At,new(S1Gate.Span,.8f),1.7f,true),
         new(S5Name,new(421,-164.5f),new(.8f,5.2f),2.6f),
         new("Signal cabin",new(433,-177),new(10,10),5),new("Hump",new(624,-138.75f),new(6,3.5f),1.2f),
         // The six stationary wagons on the drawn sidings, each 11 m by 3.2 m; the later hump trap is not built here.
@@ -352,7 +353,6 @@ public partial class World
             Roof("Parcels door awning",557.6f,560.6f,-132.8f,-127.4f,Height(559,-130)+4.0f,.2f,Mat(new("57584f")));
             Box(this,"Parcels door lamp",new(558.7f,Height(559,-130)+3.8f,-130),new(.3f,.16f,.3f),Mat(new("ffe6b0"),1f));
         }
-        var s1=StationObstacles.Single(o=>o.Gate);
         // S1, the yard's 4 m opening x 560..564 in the z -108 fence: the Cut gate's own hinged leaf, hung on the fence's east stub and
         // barred on the service road's side. Opened from the freight yard, it swings out over the road, away from the parcels bay's mouth
         // and from the stance that works it, and lies against the fence's line open; rest, defeat and the tunnel's travel leave it open,
