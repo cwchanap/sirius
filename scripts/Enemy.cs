@@ -124,8 +124,8 @@ public partial class Enemy : CharacterBody3D
         }
         marker.Text=State=="WINDUP"?"◇":"";
         ShowBadge(Broken?"finish":Game.Player.CanShutDown(this)?"shutdown":Stunned?"stunned":State=="PERILOUS"?"perilous":"");
-        // A flyer eases back to its height over whatever ground it crosses; a walker falls to it.
-        float rise=Kind.Flies?(World.Height(GlobalPosition.X,GlobalPosition.Z)+Hover+Mathf.Sin(clock*2.4f)*.08f-GlobalPosition.Y)*6:IsOnFloor()?-.5f:Velocity.Y-22*dt;
+        // A flyer eases back to its height over whatever ground or floor it crosses; a walker falls to it.
+        float rise=Kind.Flies?(Game.Floor(GlobalPosition)+Hover+Mathf.Sin(clock*2.4f)*.08f-GlobalPosition.Y)*6:IsOnFloor()?-.5f:Velocity.Y-22*dt;
         Velocity=new(movement.X,rise,movement.Z);MoveAndSlide();
         if(GlobalPosition.Y<-8)Reset();
     }
@@ -205,7 +205,7 @@ public partial class Enemy : CharacterBody3D
         if(Kind.Flies)
         {
             knock?.Kill();fall=CreateTween().SetParallel().SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.In);
-            fall.TweenProperty(Model,"position:y",World.Height(GlobalPosition.X,GlobalPosition.Z)-GlobalPosition.Y,.45f);fall.TweenProperty(Model,"rotation:x",.5f,.45f);
+            fall.TweenProperty(Model,"position:y",Game.Floor(GlobalPosition)-GlobalPosition.Y,.45f);fall.TweenProperty(Model,"rotation:x",.5f,.45f);
         }
         Game.FloatingNumber(GlobalPosition+Vector3.Up*2,"DISABLED",World.Jade);Game.OnEnemyDefeated(this);
     }

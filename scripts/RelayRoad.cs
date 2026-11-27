@@ -116,10 +116,17 @@ public partial class World
     // From, its place on the floor, and drops while Mio is in its Yard and the robots there are not all shut down.
     public record Part(string Name,string Kind,Node3D Body,Vector3 From,Vector3 To=default,float Closed=0,float Open=0,float Yaw=0,float Size=0,float Span=0,string? Yard=null)
     {
-        public bool Shortcut=>Kind is "ladder" or "stair" or "gate";
-        public bool Rolls=>Kind is "rocks" or "logs" or "barrels" or "drum";
+        public bool Shortcut=>Kind is "ladder" or "stair" or "gate" or "plate" or "shutter";
+        // A door, worked from its From side only: from its To side it says so.
+        public bool OneWay=>Kind is "gate" or "plate" or "shutter";
+        public bool Rolls=>Kind is "rocks" or "logs" or "barrels" or "drum" or "cart" or "trolley";
         public Transform3D Rest {get;}=Body.Transform;
-        public void Swing(float angle)=>Body.Quaternion=new Quaternion(Vector3.Up,Yaw)*new Quaternion(Kind=="gate"?Vector3.Up:Vector3.Right,angle);
+        // A shutter rises its angle in metres; a plate falls about its own X, as a ladder or a stair swings down.
+        public void Swing(float angle)
+        {
+            if(Kind=="shutter")Body.Position=Rest.Origin+Vector3.Up*angle;
+            else Body.Quaternion=new Quaternion(Vector3.Up,Yaw)*new Quaternion(Kind=="gate"?Vector3.Up:Vector3.Right,angle);
+        }
     }
     public readonly List<Part> Parts=new();
     // Items lying off the road, each an Items id; Game hides each one Mio takes until the prologue restarts.
@@ -294,16 +301,18 @@ public partial class World
         var stair=new Part(name,kind,part,from,foot,closed,Mathf.Atan2(-d.Y,new Vector2(d.X,d.Z).Length()),Mathf.Atan2(d.X,d.Z));stair.Swing(stair.Closed);Parts.Add(stair);
     }
     // A remedy pouch on a barrel's lid, and a resonance cell standing lit on the ground, each one of the Pickups.
-    private void Pouch(Vector2 at,string name,string barrelName)
+    private void Pouch(Vector2 at,string name,string barrelName)=>Pouch(this,new(at.X,Height(at.X,at.Y),at.Y),name,barrelName);
+    private void Pouch(Node3D parent,Vector3 at,string name,string barrelName)
     {
-        var pouch=new Node3D{Name=name,Position=new(at.X,Height(at.X,at.Y),at.Y)};AddChild(pouch);
-        Barrel(this,barrelName,pouch.Position,.6f);
-        var barrel=new StaticBody3D{Position=pouch.Position+new Vector3(0,.42f,0)};AddChild(barrel);barrel.AddChild(new CollisionShape3D{Shape=new CylinderShape3D{Radius=.32f,Height=.84f}});
+        var pouch=new Node3D{Name=name,Position=at};parent.AddChild(pouch);
+        Barrel(parent,barrelName,pouch.Position,.6f);
+        var barrel=new StaticBody3D{Position=pouch.Position+new Vector3(0,.42f,0)};parent.AddChild(barrel);barrel.AddChild(new CollisionShape3D{Shape=new CylinderShape3D{Radius=.32f,Height=.84f}});
         pouch.AddChild(Combined("Pouch",Mat(new("c9a25a"),.25f),(new(0,.96f,0),new(.34f,.24f,.26f)),(new(0,1.12f,0),new(.14f,.1f,.12f))));Pickups.Add(new("pouch",pouch));
     }
-    private void Cell(Vector2 at,float? y=null)
+    private void Cell(Vector2 at,float? y=null)=>Cell(this,new(at.X,y??Height(at.X,at.Y),at.Y));
+    private void Cell(Node3D parent,Vector3 at)
     {
-        var cell=new Node3D{Name="Resonance cell",Position=new(at.X,y??Height(at.X,at.Y),at.Y)};AddChild(cell);
+        var cell=new Node3D{Name="Resonance cell",Position=at};parent.AddChild(cell);
         cell.AddChild(Combined("Cell",Mat(Jade,.9f),(new(0,.14f,0),new(.13f,.28f,.13f)),(new(0,.31f,0),new(.07f,.06f,.07f))));Pickups.Add(new("cell",cell));
     }
     // Boxes baked into one mesh that Merge() leaves alone, for parts that move or vanish.

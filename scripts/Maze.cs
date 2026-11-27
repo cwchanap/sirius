@@ -179,7 +179,7 @@ public partial class World
     private void Maze()
     {
         foreach(var (name,a,b,half,rotten) in Decks)Deck(name,a,b,half,rotten);
-        foreach(var (name,kind,from,to) in Loads)Load(name,kind,from,to);
+        foreach(var (name,kind,from,to) in Loads)Load(this,name,kind,new(from.X,Height(from.X,from.Y),from.Y),new(to.X,Height(to.X,to.Y),to.Y));
         // Each stair hangs from its floor's brow, found by walking from the floor's end toward its foot until the ground falls away.
         foreach(var (name,at,foot) in Stairs)
         {
@@ -323,10 +323,10 @@ public partial class World
         foreach(var (x,z,size,turn) in new[]{(362.6f,-172.6f,2.6f,.6f),(361.4f,-170.4f,1.7f,1.9f),(361.8f,-174.9f,1.9f,2.7f)})Boulder("Buried rubble",x,z,size,turn);
     }
     // One of the maze's own Tripo models (assets/models/MODEL.glb), placed whole, its faces below `top` its collider.
-    private Node3D Piece(string name,string model,Vector3 at,float yaw,float top=float.MaxValue)
+    private Node3D Piece(string name,string model,Vector3 at,float yaw,float top=float.MaxValue,Node3D? parent=null)
     {
-        var n=Model(this,name,model,at,yaw,new(1.3f,1.3f,1.3f));var mesh=ActorVisual.Descendants(n).OfType<MeshInstance3D>().Single();
-        var local=n.GlobalTransform.AffineInverse()*mesh.GlobalTransform;var faces=mesh.Mesh.GetFaces().Select(v=>local*v).ToArray();
+        var n=Model(parent??this,name,model,at,yaw,new(1.3f,1.3f,1.3f));var mesh=ActorVisual.Descendants(n).OfType<MeshInstance3D>().Single();
+        var local=Transform3D.Identity;for(Node? q=mesh;q!=n&&q is Node3D d;q=q.GetParent())local=d.Transform*local;var faces=mesh.Mesh.GetFaces().Select(v=>local*v).ToArray();
         var low=Enumerable.Range(0,faces.Length/3).Where(i=>faces[(3*i)..(3*i+3)].All(v=>v.Y<top)).SelectMany(i=>faces[(3*i)..(3*i+3)]).ToArray();
         var body=new StaticBody3D{CollisionMask=0};n.AddChild(body);body.AddChild(new CollisionShape3D{Shape=new ConcavePolygonShape3D{Data=low,BackfaceCollision=true}});
         return n;
@@ -396,13 +396,13 @@ public partial class World
             Parts.Add(new(plank.Name,"plank",plank,frame.ToGlobal(new(0,Sag(rot),rot)),Size:.8f));
         }
     }
-    private void Load(string name,string kind,Vector2 a,Vector2 b)
+    private void Load(Node3D parent,string name,string kind,Vector3 a,Vector3 b)
     {
-        var dir=(b-a).Normalized();float yaw=Mathf.Atan2(dir.X,dir.Y);
-        float radius=kind switch{"rocks"=>.75f,"logs"=>.35f,"drum"=>.6f,_=>.32f},span=kind switch{"rocks"=>.75f,"logs"=>1.3f,"drum"=>.55f,_=>.42f};
-        var body=new StaticBody3D{Name=name,Position=new(a.X,Height(a.X,a.Y),a.Y),Rotation=new(0,yaw,0),CollisionMask=0};AddChild(body);
+        var dir=new Vector2(b.X-a.X,b.Z-a.Z).Normalized();float yaw=Mathf.Atan2(dir.X,dir.Y);
+        float radius=kind switch{"rocks"=>.75f,"logs"=>.35f,"drum"=>.6f,"cart"=>.5f,"trolley"=>.45f,_=>.32f},span=kind switch{"rocks"=>.75f,"logs"=>1.3f,"drum"=>.55f,"cart"=>.6f,"trolley"=>.4f,_=>.42f};
+        var body=new StaticBody3D{Name=name,Position=a,Rotation=new(0,yaw,0),CollisionMask=0};parent.AddChild(body);
         body.AddChild(new CollisionShape3D{Position=new(0,radius,0),Shape=new BoxShape3D{Size=new(2*span,2*radius,2*radius)}});
-        // It turns about Spin, at its middle, as it rolls along its Z.
+        // It turns about Spin, at its middle, as it rolls along its Z; a cart and a trolley run on their wheels instead, and Spin holds nothing.
         var spin=new Node3D{Name="Spin",Position=new(0,radius,0)};body.AddChild(spin);
         if(kind=="rocks")Model(spin,"Rock","boulder",new(0,-radius*.8f,0),0,new(1.05f,1.05f,1.05f)).Scale=Vector3.One*2*radius/1.58f;
         else if(kind=="logs")Cylinder(spin,"Log",Vector3.Zero,radius,2*span,wood).Rotation=new(0,0,Mathf.Pi/2);
@@ -412,8 +412,13 @@ public partial class World
             Cylinder(spin,"Drum cable",Vector3.Zero,radius*.72f,2*span-.12f,Mat(new("5d5246"))).Rotation=new(0,0,Mathf.Pi/2);
             foreach(float x in new[]{span-.04f,.04f-span})Cylinder(spin,"Drum flange",new(x,0,0),radius,.08f,wood).Rotation=new(0,0,Mathf.Pi/2);
         }
+        // The station's luggage cart, its bed piled with cases, and its shopping trolley, a wire basket on a frame.
+        else if(kind=="cart")body.AddChild(Combined("Cart",Mat(new("6e6b62")),(new(0,.42f,0),new(2*span,.1f,1.6f)),(new(-span+.05f,.75f,0),new(.06f,.6f,1.6f)),(new(.1f,.62f,.2f),new(.7f,.3f,.5f)),(new(-.15f,.7f,-.4f),new(.5f,.45f,.4f)),
+            (new(span-.12f,.16f,.65f),new(.1f,.32f,.32f)),(new(.12f-span,.16f,.65f),new(.1f,.32f,.32f)),(new(span-.12f,.16f,-.65f),new(.1f,.32f,.32f)),(new(.12f-span,.16f,-.65f),new(.1f,.32f,.32f))));
+        else if(kind=="trolley")body.AddChild(Combined("Trolley",Mat(new("9aa3a6")),(new(0,.7f,0),new(2*span,.5f,.8f)),(new(0,.42f,0),new(2*span-.1f,.04f,.7f)),(new(0,.95f,-.45f),new(2*span,.04f,.04f)),
+            (new(span-.06f,.06f,.32f),new(.04f,.12f,.12f)),(new(.06f-span,.06f,.32f),new(.04f,.12f,.12f)),(new(span-.06f,.06f,-.32f),new(.04f,.12f,.12f)),(new(.06f-span,.06f,-.32f),new(.04f,.12f,.12f))));
         else{var barrel=Model(spin,"Barrel","village_barrel",new(span,0,0),0,new(1.3f,1.3f,1.3f));barrel.Rotation=new(0,0,Mathf.Pi/2);}
-        Parts.Add(new(name,kind,body,body.Position,new(b.X,Height(b.X,b.Y),b.Y),Yaw:yaw,Size:radius,Span:span));
+        Parts.Add(new(name,kind,body,body.Position,b,Yaw:yaw,Size:radius,Span:span));
     }
     // The Cut gate, across the Cut at the Crossing, barred on the Halt's side: a leaf hinged in the north wall, reaching a metre into the
     // rock either side so she cannot slip round its ends, that swings back west along the wall once Mio lifts the bar.

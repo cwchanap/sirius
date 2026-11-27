@@ -38,8 +38,11 @@ public partial class World : Node3D
     public static readonly Vector2 ShrineCenter=new(-1,63);
     // Hoshikawa's well is the valley's one save point, where Mio rests, levels up and trades. Its name is drawn through the ui tables.
     // The Starwells, where Mio rests, levels up and trades: Hoshikawa's well in the square and Komorebi's.
-    // The Starwells: the wells of both villages, then Tunnel Mountain's two, at the Court where it begins and at the Halt in its middle.
-    public static readonly (string Place,Vector2 At)[] SavePoints={("Hoshikawa",new(-3.2f,24)),("Komorebi",new(-4.8f,-249.6f)),("Court",new Vector2(92,-156)),("Halt",new Vector2(247,-173))};
+    // The Starwells: the wells of both villages, then Tunnel Mountain's two, at the Court where it begins and at the Halt in its middle,
+    // then the station's in its Machine room on B1. Each stands on the ground at At, or, inside the station, on its floor's Level.
+    public static readonly (string Place,Vector2 At,float? Level)[] SavePoints={("Hoshikawa",new(-3.2f,24),null),("Komorebi",new(-4.8f,-249.6f),null),("Court",new Vector2(92,-156),null),
+        ("Halt",new Vector2(247,-173),null),("Machine room",new(StationPoint(MachineWell,B1).X,StationPoint(MachineWell,B1).Z),StationPoint(MachineWell,B1).Y)};
+    public static float SavePointLevel(int i)=>SavePoints[i].Level??Height(SavePoints[i].At.X,SavePoints[i].At.Y);
     public const string SavePointName="Starwell";
     public static readonly (Vector2 From,Vector2 To)[] Footpaths={(new(0,15),new(17.2f,15)),(new(21.4f,15),new(34,15)),(new(34,15),new(34,20))};
     public static bool OnFootpath(Vector2 p,float margin)=>Footpaths.Any(f=>Geometry2D.GetClosestPointToSegment(p,f.From,f.To).DistanceTo(p)<1.2f+margin);
@@ -85,7 +88,7 @@ public partial class World : Node3D
         return fx+fz<=1?Height(x0,z0)+fx*(Height(x0+1,z0)-Height(x0,z0))+fz*(Height(x0,z0+1)-Height(x0,z0))
             :Height(x0+1,z0+1)+(1-fx)*(Height(x0,z0+1)-Height(x0+1,z0+1))+(1-fz)*(Height(x0+1,z0)-Height(x0+1,z0+1));
     }
-    public static string RegionAt(Vector3 p) => InMaze(p.X, p.Z) ? MazeName : p.Z < -232 ? "Komorebi" : p.Z < RelayNorth ? "Cedar Pass" : p.Z < RelaySouth ? "Old Relay Road" : "Hoshikawa";
+    public static string RegionAt(Vector3 p) => InStation(p.X, p.Z) ? StationName : InMaze(p.X, p.Z) ? MazeName : p.Z < -232 ? "Komorebi" : p.Z < RelayNorth ? "Cedar Pass" : p.Z < RelaySouth ? "Old Relay Road" : "Hoshikawa";
     public static readonly Color Jade = new("72e5cc"), Gold = new("eacb89"), Ink = new("152c33");
     private readonly RandomNumberGenerator rng = new() { Seed = 2189 };
     private Material stone = null!, roof = null!, wood = null!;
@@ -93,18 +96,19 @@ public partial class World : Node3D
     {
         stone = Atlas(new(0, 1), new(2, 2)); roof = Atlas(new(1, 1), new(5, 3));
         wood = Mat(new("594735"));
-        Environment(); Terrain(); Village(); Countryside(); RelayRoad(); Maze(); NorthernValley(); Komorebi(); Merge();
+        Environment(); Terrain(); Village(); Countryside(); RelayRoad(); Maze(); NorthernValley(); Komorebi(); Merge(this);
     }
     // The static cache would otherwise hold its materials past the engine's leak check at quit.
     public override void _ExitTree() => looks.Clear();
     // Each static box, sphere and cylinder would cost a draw call, plus another in the sun's shadow pass, so their geometry is baked
-    // into one mesh per material and 32 m cell. The originals stay, hidden, for their colliders and IntegrationCheck's lookups.
-    private void Merge()
+    // into one mesh per material and 32 m cell. The originals stay, hidden, for their colliders and IntegrationCheck's lookups. The valley is
+    // baked as it is built, the station once Game has added it.
+    public void Merge(Node3D root)
     {
         var groups=new Dictionary<(Material,GeometryInstance3D.ShadowCastingSetting,float,float),List<MeshInstance3D>>();
-        foreach(var n in FindChildren("*","MeshInstance3D",true,false).Cast<MeshInstance3D>())
+        foreach(var n in root.FindChildren("*","MeshInstance3D",true,false).Cast<MeshInstance3D>())
         {
-            bool plain=true;for(var p=n.GetParent();p!=this;p=p.GetParent())plain&=p.GetType()==typeof(Node3D);
+            bool plain=true;for(var p=n.GetParent();p!=root;p=p.GetParent())plain&=p.GetType()==typeof(Node3D);
             // Transparent surfaces sort per instance; merged, they would blend in mesh order instead.
             if(!plain||!(n.Mesh is PrimitiveMesh||propMeshes.Contains(n.Mesh))||n.MaterialOverride==null||n.Mesh is PlaneMesh||n.MaterialOverride is BaseMaterial3D{Transparency:not BaseMaterial3D.TransparencyEnum.Disabled}||n.FindChildren("*","VisualInstance3D",true,false).Count>0)continue;
             var cell=(n.GlobalPosition/32).Floor();var key=(n.MaterialOverride,n.CastShadow,cell.X,cell.Z);
@@ -117,7 +121,7 @@ public partial class World : Node3D
             foreach(var n in list)
             {
                 // Normals take the inverse transpose: the spheres are scaled unevenly.
-                var a=n.Mesh.SurfaceGetArrays(0);var x=GlobalTransform.AffineInverse()*n.GlobalTransform;var nx=x.Basis.Inverse().Transposed();int first=v.Count;
+                var a=n.Mesh.SurfaceGetArrays(0);var x=root.GlobalTransform.AffineInverse()*n.GlobalTransform;var nx=x.Basis.Inverse().Transposed();int first=v.Count;
                 v.AddRange(a[(int)Godot.Mesh.ArrayType.Vertex].AsVector3Array().Select(p=>x*p));normals.AddRange(a[(int)Godot.Mesh.ArrayType.Normal].AsVector3Array().Select(d=>(nx*d).Normalized()));
                 uv.AddRange(a[(int)Godot.Mesh.ArrayType.TexUV].AsVector2Array());index.AddRange(a[(int)Godot.Mesh.ArrayType.Index].AsInt32Array().Select(i=>first+i));
                 n.Visible=false;
@@ -125,7 +129,7 @@ public partial class World : Node3D
             var arrays=new Godot.Collections.Array();arrays.Resize((int)Godot.Mesh.ArrayType.Max);
             arrays[(int)Godot.Mesh.ArrayType.Vertex]=v.ToArray();arrays[(int)Godot.Mesh.ArrayType.Normal]=normals.ToArray();arrays[(int)Godot.Mesh.ArrayType.TexUV]=uv.ToArray();arrays[(int)Godot.Mesh.ArrayType.Index]=index.ToArray();
             var mesh=new ArrayMesh();mesh.AddSurfaceFromArrays(Godot.Mesh.PrimitiveType.Triangles,arrays);
-            Mesh(this,$"Merged statics {GetChildCount()}",mesh,Vector3.Zero,list[0].MaterialOverride).CastShadow=list[0].CastShadow;
+            Mesh(root,$"Merged statics {root.GetChildCount()}",mesh,Vector3.Zero,list[0].MaterialOverride).CastShadow=list[0].CastShadow;
         }
     }
     public static float Height(float x, float z) => InPlay(x, z) ? Inside(x, z) : Outside(x, z);

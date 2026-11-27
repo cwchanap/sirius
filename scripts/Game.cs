@@ -65,7 +65,7 @@ public partial class Game : Node3D
     public override void _Ready()
     {
         Localization.Initialize(OS.GetCmdlineUserArgs());Volume.Initialize(OS.GetCmdlineUserArgs());InputBindings();
-        World=new World();AddChild(World);
+        World=new World();AddChild(World);Station=World.Station();AddChild(Station);World.Merge(Station);
         Player=new Player {Game=this,Position=new(0,.12f,31)};AddChild(Player);
         foreach(var (homes,kind) in new[]{(Hoshikawa.World.PatrolHomes,Enemy.Patrol),(Hoshikawa.World.ScoutHomes,Enemy.Scout),(Hoshikawa.World.DroneHomes,Enemy.Drone)})for(int i=0;i<homes.Length;i++)
         {
@@ -78,10 +78,16 @@ public partial class Game : Node3D
             var enemy=new Enemy {Game=this,Home=p,Position=p,Index=Enemies.Count+1,Kind=kind switch {"patrol"=>Enemy.Patrol,"scout"=>Enemy.Scout,_=>Enemy.Drone},Maze=true,Sleeps=sleeps,Reach=Hoshikawa.World.Room(at),Yard=Hoshikawa.World.Locks.Select(l=>l.Yard).FirstOrDefault(y=>Hoshikawa.World.InYard(y,p))};
             Enemies.Add(enemy);AddChild(enemy);
         }
-        // Outside World, whose static meshes are baked: each save point's light over its well.
-        foreach(var (place,well) in Hoshikawa.World.SavePoints)
+        foreach(var (kind,floor,at,sleeps) in Hoshikawa.World.StationRobots)
         {
-            var mouth=new Vector3(well.X,Hoshikawa.World.Height(well.X,well.Y)+1.15f,well.Y);
+            var p=Hoshikawa.World.StationPoint(at,floor)+Vector3.Up*.1f;
+            var enemy=new Enemy {Game=this,Home=p,Position=p,Index=Enemies.Count+1,Kind=kind switch {"patrol"=>Enemy.Patrol,"scout"=>Enemy.Scout,_=>Enemy.Drone},Maze=true,Sleeps=sleeps,Reach=Hoshikawa.World.StationReach(at,floor)};
+            Enemies.Add(enemy);AddChild(enemy);
+        }
+        // Outside World, whose static meshes are baked: each save point's light over its well.
+        for(int i=0;i<Hoshikawa.World.SavePoints.Length;i++)
+        {
+            var (place,well,_)=Hoshikawa.World.SavePoints[i];var mouth=new Vector3(well.X,Hoshikawa.World.SavePointLevel(i)+1.15f,well.Y);
             var glow=Glow(this,"Save point glow "+place,new QuadMesh(),mouth,Fx(Hoshikawa.World.Jade,1.6f,Soft,true));glow.Scale=Vector3.One*1.6f;savePointGlows.Add(glow);
             AddChild(new OmniLight3D {Name="Save point light "+place,Position=mouth,LightColor=Hoshikawa.World.Jade,LightEnergy=1.4f,OmniRange=5});
         }
@@ -101,6 +107,7 @@ public partial class Game : Node3D
         if(args.Contains("--overview")){Player.GlobalPosition=new(0,2,49);CameraPitch=-.5f;spring.SpringLength=13;CameraYaw=-.18f;}
         if(args.Contains("--portrait")){Player.GlobalPosition=new(0,.1f,23);CameraYaw=Mathf.Pi;CameraPitch=-.13f;spring.SpringLength=3.2f;}
         if(args.Contains("--portrait-close")){Player.GlobalPosition=new(0,.1f,23);CameraYaw=Mathf.Pi+.45f;CameraPitch=-.09f;spring.SpringLength=2.1f;Camera.Fov=37;}
+        if(args.Contains("--station")){QuestStage=Quest.Beyond;EnterStation("PARCELS DOOR");}
         if(args.Contains("--komorebi")){Player.GlobalPosition=new(0,Hoshikawa.World.Height(0,-235)+.1f,-235);CameraPitch=-.3f;spring.SpringLength=11;}
         if(args.Contains("--pass-view")){Player.GlobalPosition=new(Hoshikawa.World.RoadX(-199),Hoshikawa.World.Height(Hoshikawa.World.RoadX(-199),-199)+.1f,-199);CameraPitch=-.27f;spring.SpringLength=10;}
         Stage();fov=Camera.Fov;Hud.RefreshMenu();GD.Print($"HOSHIKAWA_READY buildings={World.Buildings.Count} residents={World.Residents.Count} patrols={Patrols.Count()} scouts={Enemies.Count(e=>e.Kind==Enemy.Scout)} drones={Enemies.Count(e=>e.Kind==Enemy.Drone)}");
@@ -181,6 +188,8 @@ public partial class Game : Node3D
             if(Locked!=null&&(Locked.Dead||Locked.GlobalPosition.DistanceTo(Player.GlobalPosition)>22))Locked=null;
             // Tunnel Mountain ends for now at the Station tunnel's mouth, the door to the station.
             if(QuestStage==Quest.Beyond&&!arrived&&Player.GlobalPosition.DistanceTo(World.MazeEnd)<4){arrived=true;Toast("TO BE CONTINUED",seconds:6);}
+            // Leg 1 ends, for now, at the grand stair's bars, once the main doors are open.
+            if(!barred&&Opened.Contains("Main doors")&&Player.GlobalPosition.DistanceTo(Hoshikawa.World.StationPoint(Hoshikawa.World.StairBars,Hoshikawa.World.F1))<4){barred=true;Toast("TO BE CONTINUED",seconds:6);}
             Traps(dt);Cull();
             if(Locked!=null)
             {var to=Locked.GlobalPosition-Player.GlobalPosition;CameraYaw=Mathf.LerpAngle(CameraYaw,Mathf.Atan2(-to.X,-to.Z),dt*3.8f);}
@@ -225,12 +234,12 @@ public partial class Game : Node3D
     public void Die(){Mode=GameMode.Defeated;Input.MouseMode=Input.MouseModeEnum.Visible;Hud.RefreshMenu();}
     public void Retry()
     {
-        ExitRoom();Player.Visible=true;Player.Respawn();Locked=null;danger=0;Regroup();Arm();
-        CameraYaw=0;FreezeAnimations(false);Start();var at=Hoshikawa.World.SavePoints[RestedAt].At;Toast(Hoshikawa.World.InMaze(at.X,at.Y)?"BACK AT THE STARWELL":"BACK AT THE VILLAGE");
+        ExitRoom();Player.Visible=true;Player.Respawn();ShowStation(InStation);Locked=null;danger=0;Regroup();Arm();
+        CameraYaw=0;FreezeAnimations(false);Start();var at=Hoshikawa.World.SavePoints[RestedAt].At;Toast(Hoshikawa.World.InMaze(at.X,at.Y)||Hoshikawa.World.InStation(at.X,at.Y)?"BACK AT THE STARWELL":"BACK AT THE VILLAGE");
     }
     public void Restart()
     {
-        QuestStage=Quest.Renji;Heard.Clear();Log.Clear();arrived=false;foreach(var e in Enemies)e.Reset();
+        QuestStage=Quest.Renji;Heard.Clear();Log.Clear();arrived=barred=false;foreach(var e in Enemies)e.Reset();
         opening?.Kill();Opened.Clear();Cleared.Clear();RestedAt=0;foreach(var s in World.Parts.Where(p=>p.Shortcut))s.Swing(s.Closed);World.ClearRockfall(false);
         foreach(var pickup in World.Pickups)pickup.Node.Visible=true;Player.Inventory.Reset();
         Player.Growth.Reset();
@@ -239,11 +248,21 @@ public partial class Game : Node3D
     // Recovering at the village or resting at the save point sends every robot home and brings back the scouts and drones Mio shut down;
     // the patrols stay down, because the mission counts them.
     private void Regroup(){foreach(var e in Enemies)if(!e.Dead||e.Kind!=Enemy.Patrol)e.Reset();}
-    public bool AtSavePoint=>Hoshikawa.World.SavePoints.Any(p=>new Vector2(Player.GlobalPosition.X,Player.GlobalPosition.Z).DistanceTo(p.At)<2.4f);
+    // On its own floor: the station's floors share their x and z.
+    private int SavePointHere
+    {
+        get
+        {
+            var p=Player.GlobalPosition;
+            for(int i=0;i<Hoshikawa.World.SavePoints.Length;i++)if(new Vector2(p.X,p.Z).DistanceTo(Hoshikawa.World.SavePoints[i].At)<2.4f&&Math.Abs(p.Y-Hoshikawa.World.SavePointLevel(i))<2)return i;
+            return -1;
+        }
+    }
+    public bool AtSavePoint=>SavePointHere>=0;
     // The save point rests Mio and opens its screen, where she levels up and trades; play stays frozen under it.
     public void Rest()
     {
-        int at=Array.FindIndex(Hoshikawa.World.SavePoints,p=>new Vector2(Player.GlobalPosition.X,Player.GlobalPosition.Z).DistanceTo(p.At)<2.4f);if(at>=0)RestedAt=at;
+        int at=SavePointHere;if(at>=0)RestedAt=at;
         Player.Rest();Regroup();Arm();Sound("heal");
         Mode=GameMode.Rest;Input.MouseMode=Input.MouseModeEnum.Visible;FreezeAnimations(true);Hud.RefreshMenu();
     }
@@ -258,7 +277,7 @@ public partial class Game : Node3D
     public int ErrandsDone=>Errands.Count(e=>Heard.Contains(e.Scene));
     public bool MendPhone=>QuestStage==Quest.Ready&&!Heard.Contains("PhoneFixed");
     // English is what quest logic and the route tests read; the HUD shows the translated one, and counts the patrols in crests.
-    public string Objective=>InRoom?MendPhone?"Mend Renji's telephone":"Head outside":QuestStage switch
+    public string Objective=>InRoom?MendPhone?"Mend Renji's telephone":"Head outside":InStation?StationObjective:QuestStage switch
     {
         Quest.Renji or Quest.Morning=>"Speak to Renji at the workshop",
         Quest.Road=>"Clear the old relay road",
@@ -271,7 +290,7 @@ public partial class Game : Node3D
         _=>"Take the station road east"
     };
     public string ObjectiveText=>F(Objective,ErrandsDone);
-    public Vector3 ObjectivePosition=>InRoom?Room!.GlobalPosition+(MendPhone?Hoshikawa.World.Telephone:Hoshikawa.World.Door):QuestStage switch
+    public Vector3 ObjectivePosition=>InRoom?Room!.GlobalPosition+(MendPhone?Hoshikawa.World.Telephone:Hoshikawa.World.Door):InStation?StationObjectivePosition:QuestStage switch
     {
         Quest.Road=>Patrols.FirstOrDefault(e=>!e.Dead)?.GlobalPosition??World.RelayPosition,
         Quest.Relay=>World.RelayPosition,
@@ -292,6 +311,7 @@ public partial class Game : Node3D
         if(AtSavePoint)return (Hud.StardustIcon,T(Hoshikawa.World.SavePointName).ToUpperInvariant());
         if(AtHome)return ("",T("DOOR"));
         if(ShortcutHere() is {} part)return ("ladder",T(part.Kind.ToUpperInvariant()));
+        if(StationExitHere() is {} exit)return ("",T(exit.Name));
         if(PickupHere() is {} pickup){var item=Items.Get(pickup.Item);return (item.Icon,T(item.Name).ToUpperInvariant());}
         return ("","");
     }
@@ -312,11 +332,12 @@ public partial class Game : Node3D
         if(AtHome){EnterRoom(false);if(QuestStage==Quest.Home){QuestStage=Quest.Rockfall;Play(Prologue.NightTwo);}return;}
         if(ShortcutHere() is {} shortcut)
         {
-            // A gate is unbarred from one side only.
-            if(shortcut.To.DistanceTo(Player.GlobalPosition)<shortcut.From.DistanceTo(Player.GlobalPosition)){Sound("guard");Toast("IT WILL NOT OPEN FROM THIS SIDE",seconds:3);return;}
+            // A door is unbarred from one side only.
+            if(shortcut.OneWay&&shortcut.To.DistanceTo(Player.GlobalPosition)<shortcut.From.DistanceTo(Player.GlobalPosition)){Sound("guard");Toast("IT WILL NOT OPEN FROM THIS SIDE",seconds:3);return;}
             Opened.Add(shortcut.Name);opening=CreateTween();opening.TweenMethod(Callable.From<float>(shortcut.Swing),shortcut.Closed,shortcut.Open,1.8f).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
             Sound("guard");Toast("SHORTCUT OPENED",seconds:4);return;
         }
+        if(StationExitHere() is {} door){LeaveStation(door);return;}
         // A pickup that raises what Mio carries, the remedy pouch, refills what it raises.
         if(PickupHere() is {} pickup&&Player.Inventory.Add(pickup.Item))
         {
@@ -362,7 +383,7 @@ public partial class Game : Node3D
         var r=World.Residents.MinBy(r=>r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition));
         return r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition)<3.1f?r:null;
     }
-    private World.Part? ShortcutHere()=>World.Parts.FirstOrDefault(s=>s.Shortcut&&!Opened.Contains(s.Name)&&(s.From.DistanceTo(Player.GlobalPosition)<2.2f||s.Kind=="gate"&&s.To.DistanceTo(Player.GlobalPosition)<2.2f));
+    private World.Part? ShortcutHere()=>World.Parts.FirstOrDefault(s=>s.Shortcut&&!Opened.Contains(s.Name)&&(s.From.DistanceTo(Player.GlobalPosition)<2.2f||s.OneWay&&s.To.DistanceTo(Player.GlobalPosition)<2.2f));
     private World.Pickup? PickupHere()=>World.Pickups.FirstOrDefault(p=>p.Node.Visible&&p.Node.GlobalPosition.DistanceTo(Player.GlobalPosition)<2.2f);
     public void Play(params (string Speaker,string Text)[] beats)
     {
