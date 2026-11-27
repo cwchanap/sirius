@@ -1149,7 +1149,9 @@ public static class IntegrationCheck
         Check(g.Interaction().Icon==Hud.StardustIcon,"the Court's Starwell prompts under the Great stair");
         await Tap(Key.E);Check(g.Mode==GameMode.Rest&&g.RestedAt==2,"Mio rests at the Court's Starwell once more: the station's checkpoint");
         await Tap(Key.Escape);foreach(var e in mazeRobots)e.CollisionLayer=0;g.Player.Invulnerable=1e9f;
-        // Back up it in steps, so the ramp's low lip is met along its middle rather than at a corner.
+        // Back up it in steps along the plate's own line: the Great stair is a 1.5 m walk plate hung over the Court's flat floor, its foot
+        // flush with it and no riser to catch a walker, so a straight line aimed at the ledge from off its centre crosses the floor under the
+        // plate and dead-ends at the ledge (measured: every direct climb from the foot's centre band succeeds, starts 1.4 m off walk under it).
         await WalkTo(greatFoot+(greatFoot-greatBrow).Normalized()*1.5f);
         await WalkTo(greatFoot.Lerp(greatBrow,.2f));await WalkTo(greatFoot.Lerp(greatBrow,.55f));await WalkTo(greatFoot.Lerp(greatBrow,.85f));
         await WalkTo(greatBrow+(greatBrow-greatFoot).Normalized()*2.5f);await Walk((104,-176),(120,-176),(133,-176));
