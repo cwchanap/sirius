@@ -219,10 +219,18 @@ public partial class Hud : Control
         Bar(new(136,h-101),new(190,5),mio.Stamina/mio.MaxStamina,mio.Winded?red:cream);
         Bar(new(136,h-92),new(190,4),mio.Posture/100,gold);
         float x=136;
-        var bag=Game.Player.Inventory;
-        for(int i=0;i<bag.Capacity("remedy");i++){DrawIcon("remedy",new(x+11,h-64),26,i<bag.Count("remedy")?cream:new Color(cream,.22f));x+=26;}
+        var bag=Game.Player.Inventory;int slots=Math.Max(1,bag.Capacity("remedy"));
+        var (pitch,icon)=RemedyRow(slots,KeyWidth("H",12));
+        for(int i=0;i<slots;i++){DrawIcon("remedy",new(x+pitch/2,h-64),icon,i<bag.Count("remedy")?cream:new Color(cream,.22f));x+=pitch;}
         Keycap("H",new(x+6,h-75.4f));
         Skill(new(398,h-86));
+    }
+    // The remedy row shares the panel with the H cap (the panel's right edge is x 342, its row starting at 136): the pitch is 26 px while
+    // the slots fit, and shrinks at seven and ten, the icons with it, so the row and the cap stay inside the panel and clear of Skill at 398.
+    public static (float Pitch,float Icon) RemedyRow(int capacity,float keyWidth)
+    {
+        float pitch=Math.Min(26,(342-136-8-6-keyWidth)/Math.Max(1,capacity));
+        return (pitch,Math.Min(26,pitch));
     }
     // The stardust Mio carries, bottom right, with what she last earned rising over it.
     private void Wallet()

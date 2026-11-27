@@ -29,9 +29,10 @@ public partial class World
         float d=Math.Min(Math.Min(x-564,622-x),Math.Min(z+124,-108-z));if(d<0)return 0;
         return Mathf.Lerp(6,7.35f,Mathf.SmoothStep(0,.6f,d));
     }
-    // The anchors named by the approved drawings, in world (x, z).
+    // The anchors named by the approved drawings, in world (x, z). The parcels key is where the v9 first walk enters the old signal room
+    // (local 188, 33.5) and the arcade pouch on its side loop's shop row (local 98, -88.6).
     public static readonly Vector2 StationPortal=new(377,-149.5f),Forecourt=new(508,-70),ParcelsDoor=new(558,-130),
-        CraneCell=new(593.5f,-138.75f),CraneRampFoot=new(594,-126);
+        CraneCell=new(593.5f,-138.75f),CraneRampFoot=new(594,-126),ParcelsKey=new(618,-153.5f),ArcadePouch=new(528,-31.4f);
     // The gantry's cell stands this far over the yard; its ramp climbs from the foot to the bridge's south edge in 10.75 m, 29.6 degrees,
     // its top a tenth over the deck so she steps down onto it rather than into the deck's face.
     public const float CraneRise=6,CraneRampRun=10.75f,CraneRampRise=6.1f;
@@ -56,7 +57,13 @@ public partial class World
         new("Station tunnel (Tunnel Mountain)",DoorKind.Portal,new(134,-176),new(381.5f,-149.5f),Mathf.Pi/2,-Mathf.Pi/2,"STATION TUNNEL","",Lift:10.65f,Pitch:0f),
         // And from the station's shelf it brings her back to the yard's mouth, facing west into Tunnel Mountain.
         new("Station tunnel (Station)",DoorKind.Portal,new(379,-149.5f),new(131,-176),-Mathf.Pi/2,Mathf.Pi/2,"STATION TUNNEL",""),
+        // The parcels door on the station's east wall: a Key door, so no landing and no teleport. Its key unlocks it once (Game.Opened
+        // keeps that); the door itself stays shut, and the room behind it is HPA-1253's inside work, whose drawing marks this same door but
+        // leaves the wall cutout open, so nothing here cuts the shell.
+        new("Parcels door",DoorKind.Key,ParcelsDoor,null,0,0,"PARCELS DOOR","",Key:"parcels_key"),
     };
+    // The parcels door's row, the one Key door: Game's objective marker and its unlock read it.
+    public static Door ParcelsDoorRow=>Doors.Single(d=>d.Kind==DoorKind.Key);
     public static Vector3 DoorPoint(Door door)=>new(door.At.X,Height(door.At.X,door.At.Y),door.At.Y);
     public static Vector3 DoorLanding(Door door){var p=door.Landing??door.At;return new(p.X,Height(p.X,p.Y)+.1f,p.Y);}
     // The station's solid footprints, the one table its colliders and its tests share. A Gate row is S1, present only while it is shut.
@@ -124,8 +131,6 @@ public partial class World
         for(int i=-1;i<=1;i++)for(int j=-1;j<=1;j++){float h=Height(o.At.X+i*o.Size.X/2,o.At.Y+j*o.Size.Y/2);low=Math.Min(low,h);high=Math.Max(high,h);}
         return (low,high);
     }
-    // S1's one static leaf, kept so the chapter that makes it operable can replace this body instead of adding a second collider.
-    public StaticBody3D? S1Leaf {get;private set;}
     // The station's trails, world (x, level, z), the half width of their level floors and of their road paint: the portal shelf, the
     // old line and the lineman's path down the hillside; the forecourt, its way and the arcade; the depot, garage and its drive; the
     // service road to S1; the open ground round the yard fence; the yard, its loading dock, the station shell, its platforms and track bed.
@@ -299,8 +304,14 @@ public partial class World
         Label(this,"STATION TUNNEL",new(133,Height(134,-176)+2.6f,-176),Gold,27);
         // The Forecourt Starwell, its well lit and rested at as the villages' are.
         Well("Forecourt well",Forecourt);
+        // The parcels key where the drawn first walk enters the old signal room, and the arcade's remedy pouch on its barrel in the covered
+        // way: two more of the Pickups, taken with E like the rest.
+        var key=new Node3D{Name="Parcels key",Position=new(ParcelsKey.X,Height(ParcelsKey.X,ParcelsKey.Y),ParcelsKey.Y)};AddChild(key);
+        key.AddChild(Combined("Key",Mat(Gold,.6f),(new(0,.03f,0),new(.3f,.04f,.05f)),(new(.13f,.08f,0),new(.05f,.12f,.05f)),(new(-.16f,.07f,0),new(.1f,.14f,.05f))));
+        Pickups.Add(new("parcels_key",key));
+        Pouch(ArcadePouch,"Arcade pouch","Arcade barrel");
         // Every footprint is one collider of its own, seated on the lowest ground under it and reaching its own height over the highest,
-        // and the one its test blocks. S5's leaf stays unmerged under its body; S1 is the one static leaf the later gate replaces.
+        // and the one its test blocks. S5's leaf stays unmerged under its body; S1's is its gate Part's, below.
         foreach(var o in StationObstacles)
         {
             if(o.Gate)continue;
@@ -341,10 +352,12 @@ public partial class World
             Roof("Parcels door awning",557.6f,560.6f,-132.8f,-127.4f,Height(559,-130)+4.0f,.2f,Mat(new("57584f")));
             Box(this,"Parcels door lamp",new(558.7f,Height(559,-130)+3.8f,-130),new(.3f,.16f,.3f),Mat(new("ffe6b0"),1f));
         }
-        var s1=StationObstacles.Single(o=>o.Gate);var (s1Low,s1High)=StationFootprint(s1);float s1Tall=(s1High-s1Low)+s1.High;
-        S1Leaf=new StaticBody3D{Name="S1 static leaf",Position=new(s1.At.X,s1Low+s1Tall/2,s1.At.Y),CollisionMask=0};AddChild(S1Leaf);
-        S1Leaf.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(s1.Size.X,s1Tall,s1.Size.Y)}});
-        S1Leaf.AddChild(new MeshInstance3D{Mesh=new BoxMesh{Size=new(s1.Size.X,s1Tall,s1.Size.Y)},MaterialOverride=Mat(new("4b3a2c"))});
+        var s1=StationObstacles.Single(o=>o.Gate);
+        // S1, the yard's 4 m opening x 560..564 in the z -108 fence: the Cut gate's own hinged leaf, hung on the fence's east stub and
+        // barred on the service road's side. Opened from the freight yard, it swings out over the road, away from the parcels bay's mouth
+        // and from the stance that works it, and lies against the fence's line open; rest, defeat and the tunnel's travel leave it open,
+        // and Restart draws it shut.
+        Gate(S1Name,S1Gate.At,new Vector2(0,1),S1Gate.Span/2,new Vector2(562,-109.6f),new Vector2(562,-106.4f),Mathf.Pi/2,2.2f);
         // The station's own scatter, on the hillsides beyond its floors and footprints, from its own seeded stream. The parcels bay
         // (x 557.5..561.5, z -133..-107) is kept clear, so no tree or boulder stands on the dock approach's paving.
         bool InParcelsBay(float x,float z)=>x>=557.5f&&x<=561.5f&&z>=-133&&z<=-107;

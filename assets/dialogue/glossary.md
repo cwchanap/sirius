@@ -45,6 +45,9 @@ Chinese is Taiwan usage (臺灣用語): 軟體, 網路, 資訊, 號誌, 影片, 
 | Tunnel Mountain (the maze the station road runs into past the rockfall) | トンネル山 | 隧道山 |
 | East gate (where Chiyo lights a lantern for the travellers' return) | 東口 | 東口 |
 | Main hall (the station's concourse, under the signal box) | コンコース | 大廳 |
+| Parcels door (the station's, on the freight yard's side) | 荷物室の扉 | 行李房門 |
+| Parcels key (the old signal room's) | 荷物室の鍵 | 行李房鑰匙 |
+| Arcade (the station's covered shop row) | アーケード | 拱廊 |
 | engawa (veranda) | 縁側 | 緣廊 |
 
 ## Game terms

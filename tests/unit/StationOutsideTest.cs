@@ -39,7 +39,9 @@ public class StationOutsideTest
         for(int i=0;i<p.Length-1;i++){float leg=Walk(p[i],p[i+1],s1);if(float.IsInfinity(leg))return leg;sum+=leg;}
         return sum;
     }
-    static readonly (Vector2 A,Vector2 B) Tunnel=(World.Doors.Single(d=>d.At.X<200).Landing!.Value,World.Doors.Single(d=>d.At.X>200).Landing!.Value);
+    static readonly World.Door MountainDoor=World.Doors.Single(d=>d.Kind==World.DoorKind.Portal&&d.At.X<200),
+        StationDoor=World.Doors.Single(d=>d.Kind==World.DoorKind.Portal&&d.At.X>200);
+    static readonly (Vector2 A,Vector2 B) Tunnel=(MountainDoor.Landing!.Value,StationDoor.Landing!.Value);
     static readonly Vector2 Court=World.SavePoints.Single(s=>s.Place=="Court").At,Halt=World.SavePoints.Single(s=>s.Place=="Halt").At;
 
     [TestCase]
@@ -80,10 +82,10 @@ public class StationOutsideTest
     public void TheTwoPortalDoorsFaceEachOtherWithRoomToLand()
     {
         AssertThat(Parcels).IsEqual(new Vector2(558,-130));
-        AssertThat(World.Doors.Length).IsEqual(2);
-        AssertThat(World.Doors.All(d=>d.Kind==World.DoorKind.Portal&&d.Label=="STATION TUNNEL"&&d.Icon==""&&d.Key==null&&d.Landing!=null)).IsTrue();
-        AssertThat(World.Doors.Select(d=>d.Name).Distinct().Count()).IsEqual(2);
-        var west=World.Doors.Single(d=>d.At.X<200);var east=World.Doors.Single(d=>d.At.X>200);
+        AssertThat(World.Doors.Count(d=>d.Kind==World.DoorKind.Portal)).IsEqual(2);
+        AssertThat(World.Doors.Where(d=>d.Kind==World.DoorKind.Portal).All(d=>d.Label=="STATION TUNNEL"&&d.Icon==""&&d.Key==null&&d.Landing!=null)).IsTrue();
+        AssertThat(World.Doors.Select(d=>d.Name).Distinct().Count()).IsEqual(World.Doors.Length);
+        var west=MountainDoor;var east=StationDoor;
         AssertThat(west.At).IsEqual(new Vector2(134,-176));
         AssertThat(east.At).IsEqual(new Vector2(379,-149.5f));
         AssertThat(west.Landing!.Value.DistanceTo(east.At)).IsGreater(2.2f);
@@ -106,7 +108,7 @@ public class StationOutsideTest
     {
         // The east-arrival row lifts the follow camera and sets the reveal's own level pitch; the return row keeps the normal camera.
         // Game holds the reveal through the blackout's dark part, eases it back to the player's aim, and Place()/Retry()/Restart() clear it.
-        var arrival=World.Doors.Single(d=>d.At.X<200);var back=World.Doors.Single(d=>d.At.X>200);
+        var arrival=MountainDoor;var back=StationDoor;
         AssertThat(arrival.Lift).IsEqual(10.65f);
         AssertThat(arrival.Pitch).IsEqual(0f);
         AssertThat(back.Lift).IsEqual(0f);
@@ -207,7 +209,7 @@ public class StationOutsideTest
         var through=WildsTest.Reach(new((int)Court.X,(int)Court.Y),(x,z)=>false,court.Append(Tunnel));
         AssertThat(At(through.Seen,Forecourt)).OverrideFailureMessage("the tunnel link does not reach the Forecourt").IsTrue();
         AssertThat(At(through.Seen,Portal)).IsTrue();
-        var stationLandingPoint=World.Doors.Single(d=>d.At.X<200).Landing!.Value;
+        var stationLandingPoint=MountainDoor.Landing!.Value;
         var back=WildsTest.Reach(new((int)Mathf.Round(stationLandingPoint.X),(int)Mathf.Round(stationLandingPoint.Y)),
             (x,z)=>World.StationBlocked(x,z),new[]{Tunnel}.Concat(court));
         AssertThat(At(back.Seen,Court)).OverrideFailureMessage("the tunnel link does not reach the Court from the station").IsTrue();
@@ -287,7 +289,7 @@ public class StationOutsideTest
         AssertThat(new Vector2(doorAt.X+.3f,northFace-.3f).DistanceTo(doorAt)).OverrideFailureMessage("the return's north face leaves a stance within the door's 2.2 m reach").IsGreater(2.2f);
         // The checkpoint legs either side of the unwalked tunnel, summed: never the tunnel's straight 244 m.
         var mazeLinks=World.Decks.Select(d=>(d.A,d.B)).Concat(World.Stairs.Select(s=>(s.Top,s.Foot))).ToArray();
-        var mountainLanding=World.Doors.Single(d=>d.At.X>200).Landing!.Value;var stationLanding=World.Doors.Single(d=>d.At.X<200).Landing!.Value;
+        var mountainLanding=StationDoor.Landing!.Value;var stationLanding=MountainDoor.Landing!.Value;
         float west=WildsTest.Walk(Court,mountainLanding,(x,z)=>false,mazeLinks),east=Walk(stationLanding,Forecourt);
         AssertThat(Math.Abs((west+east)/277f-1)).OverrideFailureMessage($"the Court to the Forecourt: {west:F0} + {east:F0} m").IsLess(.1f);
     }
@@ -402,6 +404,30 @@ public class StationOutsideTest
         AssertThat(Math.Abs(World.CraneRampFoot.DistanceTo(World.CraneRampTop)-World.CraneRampRun)).IsLess(.01f);
         AssertThat(World.StationObstacles.Any(o=>o.Name.Contains("Crane",StringComparison.OrdinalIgnoreCase))).IsFalse();
         AssertThat(World.StationObstacles.Count(o=>o.Name.StartsWith("Gantry leg"))).IsEqual(2);
+    }
+
+    [TestCase]
+    public void TheParcelsDoorIsTheKeysOneWayTerminal()
+    {
+        // The one Key row: the parcels door on the station's east wall, its key a key item, its prompt speechless and its label
+        // translated (TheStationSignsAndDoorLabelsAreTranslated). No landing, so a Key door is never a portal; its own state is Opened.
+        var key=World.Doors.Single(d=>d.Kind==World.DoorKind.Key);
+        AssertThat(key.Name).IsEqual("Parcels door");
+        AssertThat(key.At).IsEqual(World.ParcelsDoor);
+        AssertThat(key.Label).IsEqual("PARCELS DOOR");
+        AssertThat(key.Icon).IsEqual("");
+        AssertThat(key.Key).IsEqual("parcels_key");
+        AssertThat(key.Landing).IsNull();
+        AssertThat(World.DoorPoint(key)).IsEqual(new Vector3(558,World.Height(558,-130),-130));
+        var item=Items.Get("parcels_key");
+        AssertThat(item.Name).IsEqual("Parcels key");
+        AssertThat(item.Kind).IsEqual(ItemKind.Key);
+        AssertThat(item.Max).IsEqual(1);
+        AssertThat(item.Use).IsNull();
+        AssertThat(item.Raises).IsNull();
+        // The door's 2.2 m reach is a stance inside the parcels bay, as the walk uses it.
+        AssertThat(new Vector2(559.2f,-129).DistanceTo(World.ParcelsDoor)).IsLess(2.2f);
+        AssertThat(World.StationBlocked(559.2f,-129)).IsFalse();
     }
 
     [TestCase]

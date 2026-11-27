@@ -1015,6 +1015,7 @@ public static class IntegrationCheck
         await Tap(Key.E);Check(g.Mode==GameMode.Rest&&g.RestedAt==2,"Mio rests at it");await Tap(Key.Escape);
         // The Bell ledge over the shrine terrace is out of reach from it until its stair is let down from the ledge.
         var bellStair=g.World.Parts.Single(p=>p.Name=="Bell stair");bool Down(World.Part part)=>part.Body.Quaternion.AngleTo(new Quaternion(Vector3.Up,part.Yaw)*new Quaternion(part.Kind=="gate"?Vector3.Up:Vector3.Right,part.Open))<.01f;
+        bool Shut(World.Part part)=>part.Body.Quaternion.AngleTo(new Quaternion(Vector3.Up,part.Yaw)*new Quaternion(part.Kind=="gate"?Vector3.Up:Vector3.Right,part.Closed))<.01f;
         var bellFoot=new Vector2(bellStair.To.X,bellStair.To.Z);var bellBrow=new Vector2(bellStair.Body.Position.X,bellStair.Body.Position.Z);var bellLedge=bellBrow+(bellBrow-bellFoot).Normalized()*1.5f;
         await Walk((96,-152),(98,-144.5f),(96,-138),(96,-131),(bellFoot.X-.6f,bellFoot.Y+.6f));
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-14)<.4f&&!await Head(bellLedge,true,200)&&g.Player.GlobalPosition.Y<16&&g.Interaction().Icon!="ladder",$"up the stone steps to the shrine terrace, where the drawn-up Bell stair leaves the ledge out of reach {g.Player.GlobalPosition}");
@@ -1046,7 +1047,7 @@ public static class IntegrationCheck
         Check(!dormant.Dead&&!dormant.Asleep&&dormant.State=="STAGGER"&&Hips(dormant,false)<Hips(dormant,true),"in front of it, it wakes and gets up");
         await Frames(30);Check(dormant.State=="RECOVER"&&Hips(dormant,false)>.8f*Hips(dormant,true),$"standing in half a second, its guard up before it comes on ({Hips(dormant,false)/Hips(dormant,true):F2})");dormant.Reset();dormant.SetPhysicsProcess(false);
         // The Cut gate is barred on the Halt's side: from the Crossing it will not open, and it closes the Cut.
-        var cutGate=g.World.Parts.Single(p=>p.Kind=="gate");var gateWest=new Vector2(cutGate.To.X,cutGate.To.Z);var gateEast=new Vector2(cutGate.From.X,cutGate.From.Z);
+        var cutGate=g.World.Parts.Single(p=>p.Name=="Cut gate");var gateWest=new Vector2(cutGate.To.X,cutGate.To.Z);var gateEast=new Vector2(cutGate.From.X,cutGate.From.Z);
         Place(g.Player,On(gateWest-(gateEast-gateWest).Normalized()*3));await Frames(10);
         Check(!await Head(gateEast,true,200)&&g.Player.GlobalPosition.X<Hoshikawa.World.CutGate.X,$"the closed Cut gate stops her at the Crossing's end of the Cut {g.Player.GlobalPosition}");
         Place(g.Player,On(gateWest));await Frames(10);g.Interact();
@@ -1142,9 +1143,18 @@ public static class IntegrationCheck
         Check(g.Opened.Contains(great.Name)&&Down(great),"letting the Great stair down opens the last shortcut");
         await WalkTo(greatBrow,false);await WalkTo(greatFoot+(greatFoot-greatBrow).Normalized()*1.5f,false);
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-10)<.5f&&new Vector2(g.Player.GlobalPosition.X,g.Player.GlobalPosition.Z).DistanceTo(courtWell)<9,$"the Great stair walks down into the Court, beside the first Starwell {g.Player.GlobalPosition}");
+        // The Court is the station's nearest Starwell, and the checkpoint until Mio rests at the Forecourt's: rest here again so the station's
+        // defeat can be read against it. (The rest regroups the maze's robots, so they are set aside again for the walks that follow.)
+        Place(g.Player,On(courtWell+new Vector2(2,0)));await Frames(10);
+        Check(g.Interaction().Icon==Hud.StardustIcon,"the Court's Starwell prompts under the Great stair");
+        await Tap(Key.E);Check(g.Mode==GameMode.Rest&&g.RestedAt==2,"Mio rests at the Court's Starwell once more: the station's checkpoint");
+        await Tap(Key.Escape);foreach(var e in mazeRobots)e.CollisionLayer=0;g.Player.Invulnerable=1e9f;
+        // Back up it in steps, so the ramp's low lip is met along its middle rather than at a corner.
+        await WalkTo(greatFoot+(greatFoot-greatBrow).Normalized()*1.5f);
+        await WalkTo(greatFoot.Lerp(greatBrow,.2f));await WalkTo(greatFoot.Lerp(greatBrow,.55f));await WalkTo(greatFoot.Lerp(greatBrow,.85f));
         await WalkTo(greatBrow+(greatBrow-greatFoot).Normalized()*2.5f);await Walk((104,-176),(120,-176),(133,-176));
         // The station's two portals: through the blackout door to the hillside above Hoshikawa Station and back, with no premature end.
-        var mountainSideDoor=Hoshikawa.World.Doors.Single(d=>d.At.X<200);var stationSideDoor=Hoshikawa.World.Doors.Single(d=>d.At.X>200);
+        var mountainSideDoor=Hoshikawa.World.Doors.Single(d=>d.Kind==Hoshikawa.World.DoorKind.Portal&&d.At.X<200);var stationSideDoor=Hoshikawa.World.Doors.Single(d=>d.Kind==Hoshikawa.World.DoorKind.Portal&&d.At.X>200);
         // Each row's landing is the other side's: through the mountain row she arrives on the station's hillside, and back through the
         // station row she arrives at the Signal yard's mouth.
         var stationLanding=Hoshikawa.World.DoorLanding(mountainSideDoor);var mountainLanding=Hoshikawa.World.DoorLanding(stationSideDoor);
@@ -1294,10 +1304,10 @@ public static class IntegrationCheck
         }
         Check(RailsContinuous(),"both old-line rails share their 3D endpoints through every bend and the track-bed join");
         // The gate and fence joins, the bank at a jump and dodge, and the dock's return step: the real colliders and physics.
-        var s1Leaf=g.World.S1Leaf;
-        Check(s1Leaf!=null&&s1Leaf.Name=="S1 static leaf"&&s1Leaf.GetChildren().OfType<CollisionShape3D>().Count()==1,"S1's one static leaf is the gate's only collider, ready to be replaced");
+        var s1=g.World.Parts.Single(p=>p.Name==Hoshikawa.World.S1Name);
+        Check(s1.Kind=="gate"&&s1.Body is AnimatableBody3D&&s1.Body.GetChildren().OfType<CollisionShape3D>().Count()==1,"S1 is a hinged gate Part, its one leaf the only collider");
         using(var s1Ray=PhysicsRayQueryParameters3D.Create(new(562,6.6f,-107),new(562,6.6f,-109),1))
-        {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(s1Ray);Check(hit.Count>0&&hit["collider"].As<Node>().Name=="S1 static leaf","the shut S1 leaf closes the service road to the yard side");}
+        {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(s1Ray);Check(hit.Count>0&&hit["collider"].As<Node>().Name==Hoshikawa.World.S1Name,"the shut S1 leaf closes the service road to the yard side");}
         using(var eastRay=PhysicsRayQueryParameters3D.Create(new(626,8.2f,-160),new(630,8.2f,-160),1))
         {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(eastRay);Check(hit.Count>0&&hit["collider"].As<Node>().Name.ToString().Contains("fence"),"the east fence and north boundary meet across the six-tenths join");}
         using(var stripRay=PhysicsRayQueryParameters3D.Create(new(561,7f,-152),new(561,7f,-162),1))
@@ -1338,15 +1348,95 @@ public static class IntegrationCheck
         await WalkTo(new(618,-117),false);await Frames(5);
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-7.35f)<.4f&&new Vector2(g.Player.GlobalPosition.X-619,g.Player.GlobalPosition.Z+116).Length()<2,
             $"the warehouse floor reaches the sleeping scout's post {g.Player.GlobalPosition}");
+        // S1 is barred from the service road and the parcels door from anyone without its key: both refuse with real E input, and neither
+        // opens, so the walk that follows is the only way in.
+        Place(g.Player,On(new(562,-106.2f)));await Frames(10);
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Z>-108.2f,"the service road ends at S1's shut leaf");
+        Check(g.Interaction()==("ladder",Localization.T("GATE")),"the shut S1 shows its ordinary gate prompt from the road side");
+        g.Interact();
+        Check(!g.Opened.Contains(World.S1Name)&&g.ToastTitle=="IT WILL NOT OPEN FROM THIS SIDE"&&g.Mode==GameMode.Playing,"from the service road S1 will not open");
+        Check(!await Head(new(562,-116),true,90)&&g.Player.GlobalPosition.Z>-108.2f,$"and its shut leaf holds her out of the yard {g.Player.GlobalPosition}");
+        var parcelsKey=g.World.Pickups.Single(p=>p.Item=="parcels_key").Node;
+        Place(g.Player,On(new(559.2f,-129)));await Frames(10);
+        Check(g.Interaction()==("",Localization.T("PARCELS DOOR")),"the parcels door prompts with no icon before it has its key");
+        g.Interact();await Frames(3);
+        Check(g.ToastTitle=="PARCELS DOOR LOCKED"&&!g.Opened.Contains(World.ParcelsDoorRow.Name)&&parcelsKey.Visible&&g.Mode==GameMode.Playing,
+            "without the key the parcels door reports its lock and leaves the key to be found");
+        // The drawn first walk's own last half, on her own feet: the depot road through the bus garage to the open ground, the yard's
+        // southeast gap, the old signal room's key, S1 from the yard's side, and the parcels door. Every leg is walked on the built ground.
+        Place(g.Player,On(new(544,-38)));await Frames(10);
+        Check(g.Region==World.StationName&&g.Objective=="Find the parcels key"&&g.ObjectivePosition==parcelsKey.GlobalPosition,
+            "on the station without the key the objective marks the old signal room's key");
+        await Walk((548,-37),(553,-36),(558,-36),(562,-36),(566,-36));await Frames(2);
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.X>544&&g.Player.GlobalPosition.X<568&&g.Player.GlobalPosition.Z>-42&&g.Player.GlobalPosition.Z<-34,
+            $"under her own input she walks into the bus garage's through way {g.Player.GlobalPosition}");
+        await Walk((570,-38),(573,-41));await Frames(2);
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.X>568,$"and out of its eastern opening onto the depot road {g.Player.GlobalPosition}");
+        await Walk((577,-43),(582,-46),(590,-55),(598,-64),(605,-73),(612,-82),(616,-89),(620,-96),(623,-102),(623.5f,-107));
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Z>-108f&&!World.StationBlocked(623.5f,-107)&&g.Region==World.StationName,
+            $"the depot road runs on to the yard's fence and its southeast gap {g.Player.GlobalPosition}");
+        await Walk((624,-113),(624.5f,-118),(622,-126),(619,-131),(616,-141),(617.5f,-149));
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Z<-108.4f,$"she passes the southeast gap into the freight yard {g.Player.GlobalPosition}");
+        await WalkTo(new(618,-153.5f));await Frames(5);
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Z<-151.4f&&g.Interaction()==("repair",Localization.T("Parcels key").ToUpperInvariant()),
+            $"inside the old signal room the parcels key is within reach {g.Player.GlobalPosition}");
+        g.Interact();await Frames(3);
+        Check(!parcelsKey.Visible&&g.Player.Inventory.Count("parcels_key")==1&&g.ToastTitle=="Parcels key"&&g.Objective=="Reach the parcels door",
+            "taking the key puts it in her key items, and the objective turns to the parcels door");
+        // Back along the drawn return: out of the room, west along the yard's deep row, north up the dock corridor to S1's yard side.
+        await WalkTo(new(618,-150.2f));await Walk((610,-150.2f),(608,-152.4f),(580,-152.4f),(570,-152.4f),(564,-150),(561,-146),(561,-138),(561,-132),(562,-109.3f));
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Z>-110.2f&&g.Interaction()==("ladder",Localization.T("GATE")),
+            $"the dock corridor climbs back to S1's yard side, where its gate waits {g.Player.GlobalPosition}");
+        Check(!g.Opened.Contains(World.S1Name)&&Shut(s1),"S1 is still shut through the yard's whole round");
+        g.Interact();await Frames(130);
+        Check(g.Opened.Contains(World.S1Name)&&Down(s1),"from the freight yard S1 opens, and its leaf swings out over the road");
+        Check(g.ToastTitle=="SHORTCUT OPENED"&&g.Interaction().Icon!="ladder","and its prompt goes once it is open");
+        // The bay's mouth, then the door: with the key the unlock is the chapter's end, its toast shown once and its prompt gone.
+        await Walk((560.5f,-109),(559.2f,-112),(559.2f,-120),(559.2f,-129));await Frames(5);
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.X<560.5f&&g.Interaction()==("",Localization.T("PARCELS DOOR")),
+            $"the bay's fence turns her in to the parcels door, within its reach {g.Player.GlobalPosition}");
+        g.Interact();await Frames(3);
+        Check(g.ToastTitle=="TO BE CONTINUED"&&g.Opened.Contains(World.ParcelsDoorRow.Name)&&g.Player.Inventory.Count("parcels_key")==1&&g.Mode==GameMode.Playing,
+            "with the key the parcels door opens once, ending the chapter with its own toast and keeping the key");
+        Check(g.Interaction()==("","")&&g.Objective=="Reach the parcels door"&&g.ObjectivePosition==World.DoorPoint(World.ParcelsDoorRow),
+            "the unlocked door has no prompt left, though the objective still marks it");
+        int doorProgress=g.Opened.Count;g.Interact();await Frames(3);
+        Check(g.Opened.Count==doorProgress&&g.ToastTitle=="TO BE CONTINUED"&&g.Mode==GameMode.Playing,"and E there again awards nothing more");
+        // Out through the open gate onto the service road, then the arcade's pouch: the station's own, a fifth remedy slot.
+        await Walk((560.5f,-109),(562,-109),(562,-105.5f));await Frames(5);
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Z>-107.6f,$"the open S1 lets her walk from the yard out onto the service road {g.Player.GlobalPosition}");
+        var arcade=g.World.GetNode<Node3D>("Arcade pouch");var arcadeStand=arcade.GlobalPosition+Vector3.Back*1.3f;
+        Place(g.Player,new(arcadeStand.X,Hoshikawa.World.Height(arcadeStand.X,arcadeStand.Z)+.1f,arcadeStand.Z));await Frames(10);
+        Check(g.Player.IsOnFloor()&&g.Interaction()==("remedy",Localization.T("Remedy pouch").ToUpperInvariant()),"the arcade's pouch waits on its barrel in the covered way");
+        g.Interact();await Frames(3);
+        Check(!arcade.Visible&&bag.Count("pouch")==2&&bag.Capacity("remedy")==5&&bag.Count("remedy")==5,
+            $"the arcade's pouch is the walk's second, raising the remedies Mio carries to five and filling them (pouches {bag.Count("pouch")}, capacity {bag.Capacity("remedy")}, remedies {bag.Count("remedy")})");
+        // A defeat on the station before its own Starwell: she wakes at the Court she last rested at, key, gate and door's unlock kept.
+        g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);await Frames(2);
+        bool stationFelled=g.Mode==GameMode.Defeated;g.Retry();await Frames(5);
+        Check(stationFelled&&g.RestedAt==2&&g.Player.GlobalPosition.DistanceTo(On(courtWell+new Vector2(0,2)))<.5f&&g.ToastTitle!="TO BE CONTINUED",
+            $"a defeat on the station brings Mio back to the Court, the checkpoint before the Forecourt {g.Player.GlobalPosition}");
+        Check(g.Player.Inventory.Count("parcels_key")==1&&g.Opened.Contains(World.S1Name)&&g.Opened.Contains(World.ParcelsDoorRow.Name)&&Down(s1),
+            "the parcels key, S1 and the unlocked door all come through the defeat");
         // The station's Starwell is the Forecourt's; resting there sets it as the checkpoint and its respawn spot is clear.
         var forecourt=Hoshikawa.World.SavePoints[4].At;Check(Hoshikawa.World.SavePoints[4]==("Forecourt",forecourt)&&Hoshikawa.World.RegionAt(new Vector3(forecourt.X,0,forecourt.Y))==Hoshikawa.World.StationName,"the Forecourt's well is the station's checkpoint, the fifth Starwell");
         Place(g.Player,On(forecourt+new Vector2(2,0)));await Frames(10);
         Check(g.Player.IsOnFloor()&&g.Interaction()==(Hud.StardustIcon,Localization.T(Hoshikawa.World.SavePointName).ToUpperInvariant())&&g.GetNode<OmniLight3D>("Save point light Forecourt").GlobalPosition.DistanceTo(new(forecourt.X,g.Player.GlobalPosition.Y,forecourt.Y))<1.5f,
             "the Forecourt's well is lit and prompts like the villages' and the maze's");
         await Tap(Key.E);Check(g.Mode==GameMode.Rest&&g.RestedAt==4,"Mio rests at the Forecourt's Starwell");await Tap(Key.Escape);
+        Check(g.Player.Inventory.Count("parcels_key")==1&&g.Opened.Contains(World.S1Name)&&Down(s1)&&g.Opened.Contains(World.ParcelsDoorRow.Name),
+            "resting at the Forecourt keeps the parcels key, S1 open and the parcels door unlocked");
         g.Player.Respawn();await Frames(10);
         Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-forecourt.X,g.Player.GlobalPosition.Z-(forecourt.Y+2)).Length()<.5f,"the Forecourt's respawn spot 2 m from the well is clear");
         // Resting sent every robot home and put its collider back; the Signal yard's patrols are not fought here, so they stay out of the walk.
+        foreach(var e in mazeRobots)e.CollisionLayer=0;
+        // A defeat now returns her to the Forecourt, the station's own Starwell, the same state kept.
+        g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);await Frames(2);
+        bool forecourtFelled=g.Mode==GameMode.Defeated;g.Retry();await Frames(5);
+        Check(forecourtFelled&&g.RestedAt==4&&new Vector2(g.Player.GlobalPosition.X-forecourt.X,g.Player.GlobalPosition.Z-(forecourt.Y+2)).Length()<.5f
+            &&g.ToastTitle=="BACK AT THE STARWELL",$"a defeat after resting at the Forecourt brings her back to it {g.Player.GlobalPosition}");
+        Check(g.Player.Inventory.Count("parcels_key")==1&&g.Opened.Contains(World.S1Name)&&g.Opened.Contains(World.ParcelsDoorRow.Name)&&Down(s1),
+            "and the key, S1 and the door's unlock survive that defeat too");
         foreach(var e in mazeRobots)e.CollisionLayer=0;
         // Back through the door: the landing is more than 2.2 m from the door, so she steps up to it again to return.
         Place(g.Player,On(new Vector2(380,-149.5f)));await Frames(10);
@@ -1358,6 +1448,27 @@ public static class IntegrationCheck
         Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-mountainLanding.X,g.Player.GlobalPosition.Z-mountainLanding.Z).Length()<.5f&&g.Region==Hoshikawa.World.MazeName
             &&g.ToastTitle=="TUNNEL MOUNTAIN"&&g.ToastTitle!="TO BE CONTINUED"&&g.Interaction().Label=="",
             $"E there returns her to the Signal yard's mouth, facing Tunnel Mountain, with no early TO BE CONTINUED {g.Player.GlobalPosition}");
+        // Back in Tunnel Mountain the objective is the station road again, whichever the parcels door's state; and east again through the
+        // mountain mouth, the checkpoint, the key and the unlocks all come back with her.
+        Check(g.Objective=="Take the station road east"&&g.ObjectivePosition==g.World.MazeEnd,
+            "back in Tunnel Mountain the objective is the station road east, its marker the Signal yard's mouth, unlocked or not");
+        var checkpoint=g.RestedAt;var heldKey=g.Player.Inventory.Count("parcels_key");var opens=g.Opened.OrderBy(n=>n).ToArray();
+        Place(g.Player,On(new Vector2(134,-176)));await Frames(10);
+        Check(g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),"the mountain mouth still leads through");
+        g.Interact();
+        Check(g.ToastTitle!="TO BE CONTINUED"&&g.Mode==GameMode.Playing,"E at the mountain mouth is the tunnel's transit, not the parcels terminal: no ending before the station");
+        await Frames(5);
+        Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-stationLanding.X,g.Player.GlobalPosition.Z-stationLanding.Z).Length()<.5f&&g.ToastTitle=="HOSHIKAWA STATION",
+            $"the tunnel sets her down on the station's hillside {g.Player.GlobalPosition}");
+        Check(g.Objective=="Reach the parcels door"&&g.ObjectivePosition==Hoshikawa.World.DoorPoint(Hoshikawa.World.ParcelsDoorRow),
+            "on the station the objective still marks the parcels door, though it is unlocked");
+        Check(g.RestedAt==checkpoint&&g.Player.Inventory.Count("parcels_key")==heldKey&&g.Opened.OrderBy(n=>n).SequenceEqual(opens)&&Down(s1),
+            "the checkpoint, the key and S1's and the door's unlocks all come through the tunnel");
+        Place(g.Player,On(new Vector2(380,-149.5f)));await Frames(10);
+        Check(g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),"and the station's end still leads back for the old line");
+        g.Interact();await Frames(5);
+        Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-mountainLanding.X,g.Player.GlobalPosition.Z-mountainLanding.Z).Length()<.5f&&g.Region==Hoshikawa.World.MazeName,
+            $"she returns to the Signal yard to walk the old line {g.Player.GlobalPosition}");
         // The old line west of the yard: down onto the old track bed, over the girder bridge beside its rotten sleepers, along the ledge and
         // out onto the viaduct's last spans, to the cell near its broken end and a leap into the relay plaza.
         await Walk((93,-176),(88,-175.5f),(84.5f,-174),(80,-172.7f),(72,-172.7f),(68,-174),(61,-171.5f),(50,-170.5f),(40,-168.5f),(34,-168),(24,-168),(11.5f,-168));
@@ -1388,11 +1499,11 @@ public static class IntegrationCheck
         g.LeaveRoom();g.EndDialogue();
         // The ladder's body takes its new turn on the next physics step.
         await Frames(2);
-        Check(g.Opened.Count==0&&Turned(ladder.Closed)&&g.World.Pickups.All(p=>p.Node.Visible)&&bag.Held.Select(i=>i.Id).SequenceEqual(new[]{"remedy","terminal"})&&bag.Capacity("remedy")==3&&bag.Count("remedy")==3,
-            "restart draws the ladder up again, puts the pouch and cells back and Mio's items back to what she set out with");
+        Check(g.Opened.Count==0&&Turned(ladder.Closed)&&Shut(s1)&&g.World.Pickups.All(p=>p.Node.Visible)&&bag.Held.Select(i=>i.Id).SequenceEqual(new[]{"remedy","terminal"})&&bag.Capacity("remedy")==3&&bag.Count("remedy")==3,
+            "restart draws the ladder up again, shuts S1, puts the pouches, the key and cells back and Mio's items back to what she set out with");
         Place(g.Player,new(lever.X,Hoshikawa.World.Height(lever.X,lever.Y)+.1f,lever.Y));await Frames(10);g.Interact();await Frames(20);
         g.Restart();SkipOpening();await Frames(100);
-        Check(g.Opened.Count==0&&Turned(ladder.Closed),"a restart while the ladder is still swinging down leaves it drawn up");
+        Check(g.Opened.Count==0&&Turned(ladder.Closed)&&Shut(s1),"a restart while the ladder is still swinging down leaves it drawn up and S1 shut");
         // Exercise recovery during real arrivals without unpausing or ending the fight in the restart regression above.
         async Task StartStationReveal()
         {
@@ -1429,7 +1540,8 @@ public static class IntegrationCheck
                 ("CTRL / ALT  Dodge     TAB  Lock     Q  Skill",13,334),("E  Interact    H  Remedy    I  Items    ESC  Pause",12,334),
                 ("Items",17,278),("Settings",17,278),("Use",17,138),("Back",17,138),("Supplies",13,378),("Key items",13,378),("The train with no passengers",19,360),
                 ("Head outside",17,340),("Speak to Renji at the workshop",17,340),("Clear the old relay road",17,340),("Restart the manual relay",17,340),("Return to Renji in Hoshikawa",17,340),
-                ("Get ready to set out ({0}/4)",17,340),("Mend Renji's telephone",17,340),("Bring Renji his telephone",17,340),("Go home and rest",17,340),("Meet the others at the rockfall",17,340),("Take the station road east",17,340)};
+                ("Get ready to set out ({0}/4)",17,340),("Mend Renji's telephone",17,340),("Bring Renji his telephone",17,340),("Go home and rest",17,340),("Meet the others at the rockfall",17,340),("Take the station road east",17,340),
+                ("Find the parcels key",17,340),("Reach the parcels door",17,340)};
             var overflow=tight.Where(t=>Width(t.Text,t.Size)>t.Room).Select(t=>t.Text).ToArray();
             Check(overflow.Length==0,$"{name}: every menu, control and panel string fits its fixed box {string.Join(" | ",overflow)}");
             var stats=Stats.All.Where(s=>Width(s.Short,17,serif)>120).Select(s=>s.Short).ToArray();

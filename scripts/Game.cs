@@ -262,7 +262,10 @@ public partial class Game : Node3D
     public static readonly (string Scene,string By)[] Errands={("SotaJoins","Sota"),("Crossbow","Yui"),("KomaAsks","KOMA-7"),("PhoneFixed","Telephone")};
     public int ErrandsDone=>Errands.Count(e=>Heard.Contains(e.Scene));
     public bool MendPhone=>QuestStage==Quest.Ready&&!Heard.Contains("PhoneFixed");
-    // English is what quest logic and the route tests read; the HUD shows the translated one, and counts the patrols in crests.
+    // English is what quest logic and the route tests read; the HUD shows the translated one, and counts the patrols in crests. On the
+    // station, Beyond sends her after the parcels key and then to the parcels door; anywhere else the station road east still stands.
+    public bool AtStation=>Region==Hoshikawa.World.StationName;
+    public bool HoldsParcelsKey=>Player.Inventory.Count("parcels_key")>0;
     public string Objective=>InRoom?MendPhone?"Mend Renji's telephone":"Head outside":QuestStage switch
     {
         Quest.Renji or Quest.Morning=>"Speak to Renji at the workshop",
@@ -273,6 +276,7 @@ public partial class Game : Node3D
         Quest.Handover=>"Bring Renji his telephone",
         Quest.Home=>"Go home and rest",
         Quest.Rockfall=>"Meet the others at the rockfall",
+        Quest.Beyond=>!AtStation?"Take the station road east":HoldsParcelsKey?"Reach the parcels door":"Find the parcels key",
         _=>"Take the station road east"
     };
     public string ObjectiveText=>F(Objective,ErrandsDone);
@@ -282,7 +286,8 @@ public partial class Game : Node3D
         Quest.Relay=>World.RelayPosition,
         Quest.Ready=>Errands.Where(e=>!Heard.Contains(e.Scene)).Select(e=>e.By=="Telephone"?Doorstep:Actor(e.By).Body.GlobalPosition).MinBy(p=>p.DistanceTo(Player.GlobalPosition)),
         Quest.Home=>Doorstep,
-        Quest.Beyond=>World.MazeEnd,
+        // On the station the marker is the key's own pickup until she carries it, the parcels door after; back in the mountain, the mouth.
+        Quest.Beyond=>!AtStation?World.MazeEnd:HoldsParcelsKey?Hoshikawa.World.DoorPoint(World.ParcelsDoorRow):World.Pickups.Single(p=>p.Item=="parcels_key").Node.GlobalPosition,
         _=>Actor("Renji").Body.GlobalPosition
     };
     private static Vector3 Doorstep=>new(Hoshikawa.World.MioDoor.X,Hoshikawa.World.Height(Hoshikawa.World.MioDoor.X,Hoshikawa.World.MioDoor.Z),Hoshikawa.World.MioDoor.Z);
@@ -319,6 +324,13 @@ public partial class Game : Node3D
         // The tunnel is a blackout door: it puts her on the other side facing out, the run she was in still running.
         if(DoorHere() is {} door)
         {
+            // The parcels door is the chapter's end, not a passage: the key its row names unlocks it once, Opened keeping that, and until
+            // HPA-1253's inside work it stays shut in its wall. The key stays in her bag, and the ending is the toast, not a second scene.
+            if(door.Kind==World.DoorKind.Key)
+            {
+                if(door.Key is not {} id||Player.Inventory.Count(id)==0){Sound("guard");Toast("PARCELS DOOR LOCKED",seconds:3);return;}
+                Opened.Add(door.Name);Sound("heal");Toast("TO BE CONTINUED",seconds:5);return;
+            }
             float aim=CameraPitch;var at=Hoshikawa.World.DoorLanding(door);Place(at,door.Yaw,door.CameraYaw);
             CameraPitch=aim;ArrivalLift=door.Lift;ArrivalPitch=door.Pitch;
             Blackout=1;Locked=null;danger=0;return;
@@ -376,7 +388,8 @@ public partial class Game : Node3D
         return r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition)<3.1f?r:null;
     }
     private World.Part? ShortcutHere()=>World.Parts.FirstOrDefault(s=>s.Shortcut&&!Opened.Contains(s.Name)&&(s.From.DistanceTo(Player.GlobalPosition)<2.2f||s.Kind=="gate"&&s.To.DistanceTo(Player.GlobalPosition)<2.2f));
-    private World.Door? DoorHere()=>QuestStage<Quest.Beyond?null:World.Doors.FirstOrDefault(d=>World.DoorPoint(d).DistanceTo(Player.GlobalPosition)<2.2f);
+    // E's door, from Beyond on: a portal anywhere, and the parcels door only while it is still locked, so its prompt goes once Opened holds it.
+    private World.Door? DoorHere()=>QuestStage<Quest.Beyond?null:World.Doors.FirstOrDefault(d=>!(d.Kind==World.DoorKind.Key&&Opened.Contains(d.Name))&&World.DoorPoint(d).DistanceTo(Player.GlobalPosition)<2.2f);
     private World.Pickup? PickupHere()=>World.Pickups.FirstOrDefault(p=>p.Node.Visible&&p.Node.GlobalPosition.DistanceTo(Player.GlobalPosition)<2.2f);
     public void Play(params (string Speaker,string Text)[] beats)
     {

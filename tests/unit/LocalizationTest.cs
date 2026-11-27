@@ -94,6 +94,19 @@ public class LocalizationTest
         AssertThat(World.StationToast).IsEqual(World.StationName.ToUpperInvariant());
     }
     [TestCase]
+    public void TheParcelsDoorAndItsObjectivesHaveTheirOwnTranslations()
+    {
+        // Drawn verbatim: the door's prompt through T(door.Label), the refusal and the ending as Toast titles, the two Beyond objectives
+        // through F(Objective) and the key item's own name and text.
+        var drawn=new[]{"PARCELS DOOR","PARCELS DOOR LOCKED","TO BE CONTINUED","Find the parcels key","Reach the parcels door","Take the station road east",
+            Items.Get("parcels_key").Name,Items.Get("parcels_key").Text,Items.Get("pouch").Text};
+        foreach(var lang in new[]{"ja","zh_TW"})
+        {
+            var ui=Ui(lang);
+            AssertThat(drawn.Where(k=>!ui.ContainsKey(k))).OverrideFailureMessage($"{lang} lacks {string.Join(", ",drawn.Where(k=>!ui.ContainsKey(k)))}").IsEmpty();
+        }
+    }
+    [TestCase]
     public void LanguageComesFromTheFlagThenTheSavedChoiceThenTheSystem()
     {
         AssertThat(Localization.Choose(new[]{"--lang=ja"},"zh_TW","en_US")).IsEqual("ja");

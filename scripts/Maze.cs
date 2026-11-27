@@ -424,14 +424,21 @@ public partial class World
     private void Gate()
     {
         var points=MazeTrails.Single(t=>t.Name=="The Cut");var a=new Vector2(points.Points[0].X,points.Points[0].Z);var b=new Vector2(points.Points[1].X,points.Points[1].Z);
-        var dir=(b-a).Normalized();var across=new Vector2(-dir.Y,dir.X);float reach=points.Half+1,yaw=Mathf.Atan2(across.X,across.Y),floor=Height(CutGate.X,CutGate.Y);
-        var hinge=CutGate-across*reach;
-        var leaf=new AnimatableBody3D{Name="Cut gate",Position=new(hinge.X,floor,hinge.Y),CollisionMask=0};AddChild(leaf);
-        leaf.AddChild(new CollisionShape3D{Position=new(0,1.5f,reach),Shape=new BoxShape3D{Size=new(.24f,3,2*reach)}});
+        var dir=(b-a).Normalized();
+        Gate("Cut gate",CutGate,dir,points.Half+1,new(CutGate.X+dir.X*2.2f,CutGate.Y+dir.Y*2.2f),new(CutGate.X-dir.X*2.2f,CutGate.Y-dir.Y*2.2f),-1.66f);
+    }
+    // A hinged gate across a way at `at`, spanning 2*reach along `dir`'s across, `high` metres of leaf hinged at at-across*reach between two
+    // solid posts: worked at From, refused at To, swinging `open` radians about its hinge (positive toward its left). The Cut's and S1's.
+    private void Gate(string name,Vector2 at,Vector2 dir,float reach,Vector2 from,Vector2 to,float open,float high=3)
+    {
+        var across=new Vector2(-dir.Y,dir.X);float yaw=Mathf.Atan2(across.X,across.Y),floor=Height(at.X,at.Y);
+        var hinge=at-across*reach;
+        var leaf=new AnimatableBody3D{Name=name,Position=new(hinge.X,floor,hinge.Y),CollisionMask=0};AddChild(leaf);
+        leaf.AddChild(new CollisionShape3D{Position=new(0,high/2,reach),Shape=new BoxShape3D{Size=new(.24f,high,2*reach)}});
         // The Tripo leaf (5.12 m along its X, hinged at -X, barred on both faces) stretched along the leaf's Z from the hinge.
         Model(leaf,"Gate leaf","cut_gate",new(0,0,reach),-90,new(1.3f,1.3f,1.3f)).Scale=new(2*reach/5.12f,1.2f,1.2f);
-        foreach(float s in new[]{-reach,reach}){var post=CutGate+across*s;Box(this,"Gate post",new(post.X,floor+1.7f,post.Y),new(.4f,3.4f,.4f),Mat(new("4a3a2c")),true);}
-        var gate=new Part("Cut gate","gate",leaf,new(CutGate.X+dir.X*2.2f,floor,CutGate.Y+dir.Y*2.2f),new(CutGate.X-dir.X*2.2f,floor,CutGate.Y-dir.Y*2.2f),0,-1.66f,yaw);
+        foreach(float s in new[]{-reach,reach}){var post=at+across*s;Box(this,"Gate post",new(post.X,floor+(high+.4f)/2,post.Y),new(.4f,high+.4f,.4f),Mat(new("4a3a2c")),true);}
+        var gate=new Part(name,"gate",leaf,new(from.X,floor,from.Y),new(to.X,floor,to.Y),0,open,yaw);
         gate.Swing(0);Parts.Add(gate);
     }
 }
