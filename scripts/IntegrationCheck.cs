@@ -1192,7 +1192,7 @@ public static class IntegrationCheck
             &&new Vector2(g.Player.GlobalPosition.X-stationLanding.X,g.Player.GlobalPosition.Z-stationLanding.Z).Length()>1.6f,
             $"holding forward and run keeps the arrival reveal: eye {revealCam.GlobalPosition}, pitch {ActualPitch():F1}, player {g.Player.GlobalPosition}, share {g.RevealShare}");
         Check(revealCam.Fov==59&&revealCam.Far==260,"the reveal camera keeps the gameplay field of view and far plane");
-        // Real built-roof and v9 Nagoya-track points: the reveal frustum and bare-terrain clearance, with the oversized station footprint
+        // Real built-roof and v9 Nagoya rail tops: the reveal frustum and terrain clearance, with the oversized station footprint
         // excluded from the rays (its top sits about 6 m above the roof, so hitting it proves nothing about seeing the roof).
         var stationBody=g.World.GetNode<StaticBody3D>("Station footprint Station building");
         bool Clear(Vector3 target,out float gap)
@@ -1201,16 +1201,22 @@ public static class IntegrationCheck
             query.Exclude=new Godot.Collections.Array<Rid>{stationBody.GetRid()};
             var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(query);
             gap=hit.Count>0?g.GetViewport().GetCamera3D().GlobalPosition.DistanceTo((Vector3)hit["position"]):float.PositiveInfinity;
-            return hit.Count==0||g.GetViewport().GetCamera3D().GlobalPosition.DistanceTo(target)-gap<.6f;
+            return hit.Count==0;
         }
         var shell=World.StationObstacles.Single(o=>o.Name=="Station building");float roofY=World.Height(shell.At.X,shell.At.Y)+7+1.4f;
         var roofA=new Vector3(shell.At.X+2,roofY,shell.At.Y);var roofB=new Vector3(shell.At.X+56,roofY,shell.At.Y);
-        var railN=new Vector3(496,6.3f+.16f+.05f,-169.5f);var railS=new Vector3(496,6.3f+.16f+.05f,-184.5f);
-        Check(new[]{roofA,roofB,railN,railS}.All(p=>g.GetViewport().GetCamera3D().IsPositionInFrustum(p)),
-            "the built station roof and the v9 Nagoya track points are in the reveal's real frustum");
-        bool roofAClear=Clear(roofA,out var gapA);bool roofBClear=Clear(roofB,out var gapB);bool railNClear=Clear(railN,out var gapN);bool railSClear=Clear(railS,out var gapS);
-        Check(roofAClear&&roofBClear&&railNClear&&railSClear,
-            $"the real station roof and both Nagoya rails clear the terrain (gaps {gapA:F1}, {gapB:F1}, {gapN:F1}, {gapS:F1})");
+        Vector3 NagoyaRailTop(int track)
+        {
+            // Merge bakes these source boxes at their existing transforms.
+            var rail=g.World.GetNode<MeshInstance3D>($"Nagoya track {track} north rail");
+            return rail.ToGlobal(Vector3.Up*(((BoxMesh)rail.Mesh).Size.Y/2));
+        }
+        var rail1=NagoyaRailTop(1);var rail2=NagoyaRailTop(2);
+        Check(new[]{roofA,roofB,rail1,rail2}.All(p=>g.GetViewport().GetCamera3D().IsPositionInFrustum(p)),
+            $"the built station roof and the Nagoya rail tops {rail1}, {rail2} are in the reveal's real frustum");
+        bool roofAClear=Clear(roofA,out var gapA);bool roofBClear=Clear(roofB,out var gapB);bool rail1Clear=Clear(rail1,out var gap1);bool rail2Clear=Clear(rail2,out var gap2);
+        Check(roofAClear&&roofBClear&&rail1Clear&&rail2Clear,
+            $"the real station roof and both Nagoya rails clear the terrain (first hit distances {gapA:F1}, {gapB:F1}, {gap1:F1}, {gap2:F1})");
         var westRoof=new Vector3(shell.At.X-shell.Size.X/2,roofY,shell.At.Y);
         var nearRoofClear=Clear(westRoof,out var nearGap);
         Check(!nearRoofClear&&g.GetViewport().GetCamera3D().GlobalPosition.DistanceTo(westRoof)-nearGap>3f,
@@ -1366,12 +1372,10 @@ public static class IntegrationCheck
         await TalkTo(renji,Vector3.Left*1.6f);Check(g.Script.SequenceEqual(Prologue.RenjiSeesOff),"Renji, staying at the plaza, sees them off");g.EndDialogue();
         if(DisplayServer.GetName()!="headless"){g.SaveScreenshot("res://artifacts/mission-complete.png");await Frames(5);}
         var chaser=g.Enemies.First(e=>e.Kind==Enemy.Scout&&!e.Dead);chaser.SetPhysicsProcess(true);Place(g.Player,chaser.GlobalPosition+Vector3.Back*6);await Frames(30);
-        Check(chaser.State=="PURSUE"&&g.Music.Current=="battle","a scout after Mio brings in the battle music");g.SetPaused(true);
-        g.ArrivalLift=10.65f;g.ArrivalPitch=0;g.Blackout=1;g.CameraPitch=-.45f;
-        g.Die();g.Retry();await Frames(5);
-        Check(g.ArrivalLift==0&&g.RevealShare==0&&Math.Abs(g.CameraPitch+.45f)<.001f,"an ordinary Retry while the reveal is active clears it and keeps the player's aim");
-        g.ArrivalLift=10.65f;g.ArrivalPitch=0;g.Blackout=1;g.CameraPitch=-.45f;
-        g.Restart();Check(g.ArrivalLift==0&&Math.Abs(g.CameraPitch+.45f)<.001f,"Restart while the reveal is active clears it and keeps the player's aim");
+        Check(chaser.State=="PURSUE"&&g.Music.Current=="battle","a scout after Mio brings in the battle music");g.SetPaused(true);await Frames(2);
+        Check(g.Mode==GameMode.Paused&&!chaser.Dead&&chaser.State=="PURSUE"&&g.Music.Current=="battle",
+            $"Mio is still paused mid-fight immediately before Restart ({g.Mode}, scout {chaser.State}, music {g.Music.Current})");
+        g.Restart();
         Check(g.QuestStage==0&&g.Enemies.All(e=>!e.Dead)&&g.Player.Health==100&&yui.Body.GlobalPosition.DistanceTo(new(Hoshikawa.World.YuiGate.X,yui.Body.GlobalPosition.Y,Hoshikawa.World.YuiGate.Z))<.01f
             &&sota.GlobalPosition.DistanceTo(sotaHome)<.01f&&renji.GlobalPosition.DistanceTo(new(-5.2f,renji.GlobalPosition.Y,11))<.01f&&g.Actor("Renji").Visual.Clip=="work"&&g.World.Rockfall.All(n=>n.Visible&&(n is not StaticBody3D b||b.CollisionLayer==1))&&g.World.RockfallSign.All(l=>l.Text==World.ClosedSign),
             "restart restores a fresh playable mission, Yui back at Mio's gate, Renji at his bench, Sota at home and the station road closed");chaser.SetPhysicsProcess(false);
@@ -1389,6 +1393,22 @@ public static class IntegrationCheck
         Place(g.Player,new(lever.X,Hoshikawa.World.Height(lever.X,lever.Y)+.1f,lever.Y));await Frames(10);g.Interact();await Frames(20);
         g.Restart();SkipOpening();await Frames(100);
         Check(g.Opened.Count==0&&Turned(ladder.Closed),"a restart while the ladder is still swinging down leaves it drawn up");
+        // Exercise recovery during real arrivals without unpausing or ending the fight in the restart regression above.
+        async Task StartStationReveal()
+        {
+            g.QuestStage=Quest.Beyond;g.CameraPitch=-.45f;
+            Place(g.Player,World.DoorPoint(mountainSideDoor)+Vector3.Up*.1f);await Frames(2);
+            g.Interact();await Frames(2);
+            Check(g.Mode==GameMode.Playing&&g.Region==World.StationName&&g.RevealShare>.9f,
+                $"the recovery probe enters the station through the tunnel with the reveal active ({g.Player.GlobalPosition}, share {g.RevealShare:F2})");
+        }
+        await StartStationReveal();g.Die();
+        Check(g.Mode==GameMode.Defeated&&g.RevealShare>.9f,"the defeat leaves an active reveal for Retry to clear");
+        g.Retry();await Frames(5);
+        Check(g.ArrivalLift==0&&g.RevealShare==0&&Math.Abs(g.CameraPitch+.45f)<.001f,"an ordinary Retry while the reveal is active clears it and keeps the player's aim");
+        await StartStationReveal();g.Restart();
+        Check(g.ArrivalLift==0&&g.RevealShare==0&&Math.Abs(g.CameraPitch+.45f)<.001f,"Restart while the reveal is active clears it and keeps the player's aim");
+        SkipOpening();
         // The whole flow above also runs under --lang=ja and --lang=zh_TW. Here each language is also checked on its own: glyphs, fixed-width boxes,
         // line breaking, and the real language buttons.
         string startLanguage=Localization.Current;var sans=ThemeDB.FallbackFont;

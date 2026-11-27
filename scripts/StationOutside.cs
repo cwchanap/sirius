@@ -216,8 +216,12 @@ public partial class World
         Pad("Track bed ballast",new Rect2(426,-168,136,8),new("6d685e"));
         Box(this,"Platform 1 slab",new(494,7.25f,-159),new(136,.3f,6),stone);
         Box(this,"Platform 2 slab",new(496,7.25f,-177),new(112,.3f,10),stone);
+        int track=0;
         foreach(var (z,level) in new[]{(-169.5f,6.3f),(-184.5f,6.3f)})
-            foreach(float side in new[]{-.72f,.72f})Box(this,"Running rail",new(496,level+.16f,z+side),new(136,.1f,.07f),Mat(new("6f6a62")));
+        {
+            track++;
+            foreach(float side in new[]{-.72f,.72f})Box(this,$"Nagoya track {track} {(side<0?"north":"south")} rail",new(496,level+.16f,z+side),new(136,.1f,.07f),Mat(new("6f6a62")));
+        }
         // The old local train, fenced in on track 1 beyond S5: a backdrop, not walked.
         Box(this,"Old local train",new(481,8.05f,-164.2f),new(98,3.3f,3.4f),Mat(new("8e9aa0")));
         foreach(float x in new[]{436,449,462,475,488,501,514,527})Box(this,"Train window",new(x,8.6f,-162.45f),new(8,.9f,.12f),Mat(new("354046")));
