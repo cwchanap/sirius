@@ -45,12 +45,14 @@ public partial class World
     public enum DoorKind{Portal,Key}
     // A stable name, the world interaction point, and for a portal the landing on the other side with the heading Mio arrives in.
     // Heights are resolved at use and build time, never in this table.
-    // Lift raises the follow camera's rig for this arrival alone (0 is the normal camera); Pitch is the arrival's own vertical aim,
-    // independent of the lift. Both are set by Game.Place on the transition and cleared when she walks off the landing.
+    // Lift raises the follow camera's rig for this arrival alone (0 is the normal camera); Pitch is the reveal's own vertical aim,
+    // separate from the player's CameraPitch. Game holds them through the dark part of the existing blackout fade and blends them out
+    // into the normal follow camera; the player's aim is preserved and never overwritten.
     public record Door(string Name,DoorKind Kind,Vector2 At,Vector2? Landing,float Yaw,float CameraYaw,string Label,string Icon,string? Key=null,float Lift=0f,float Pitch=-.29f);
     public static readonly Door[] Doors={
         // From Tunnel Mountain's Signal yard the tunnel brings her out on the hillside above the station, facing east down the path.
-        // The east arrival alone lifts the camera 7.65 m for the station reveal at a level pitch; the return row keeps the normal camera.
+        // The east arrival alone lifts the camera 10.65 m for the station reveal at a level pitch, held through the blackout's dark part
+        // and eased back into the player's own aim; the return row keeps the normal camera.
         new("Station tunnel (Tunnel Mountain)",DoorKind.Portal,new(134,-176),new(381.5f,-149.5f),Mathf.Pi/2,-Mathf.Pi/2,"STATION TUNNEL","",Lift:10.65f,Pitch:0f),
         // And from the station's shelf it brings her back to the yard's mouth, facing west into Tunnel Mountain.
         new("Station tunnel (Station)",DoorKind.Portal,new(379,-149.5f),new(131,-176),-Mathf.Pi/2,Mathf.Pi/2,"STATION TUNNEL",""),

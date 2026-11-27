@@ -1127,8 +1127,9 @@ public static class IntegrationCheck
         var pits=g.World.Parts.Single(p=>p.Yard=="Charcoal pits");
         await Walk((206,-238),(212,-233.5f),(217,-229.5f));await Frames(30);
         Check(Lowered(pits)&&!await Head(new(206,-238),true,120),"stepping into the charcoal pits drops their gate behind her");
-        g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);felled=g.Mode==GameMode.Defeated;g.Retry();await Frames(5);
+        g.CameraPitch=-.45f;g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);felled=g.Mode==GameMode.Defeated;g.Retry();await Frames(5);
         Check(felled&&Raised(pits)&&!g.Cleared.Contains("Charcoal pits")&&g.RestedAt==3&&g.Opened.Contains(haltStair.Name),"a defeat in the pits lifts their gate, and the Halt stair stays down");
+        Check(Math.Abs(g.CameraPitch+.45f)<.001f&&g.ArrivalLift==0,"an ordinary Retry keeps the player's aim and clears no reveal");
         foreach(var e in mazeRobots)e.CollisionLayer=0;g.Player.Invulnerable=1e9f;
         // Down the Wood road and along the Long ledge, high over the Crossing, to the Signal yard on the cliff over the Court, where she lets
         // the Great stair down; the Station tunnel's mouth at the yard's east end is the door to the station.
@@ -1157,26 +1158,82 @@ public static class IntegrationCheck
         g.QuestStage=stageBefore;await Frames(2);
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-16.5f)<.6f&&g.Region==Hoshikawa.World.MazeName&&g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),
             $"once Beyond, the Station tunnel's mouth leads through {g.Player.GlobalPosition}");
-        g.Interact();await Frames(10);
+        // The player's aim before the door must survive the arrival reveal; the reveal itself is a separate lift/pitch that the
+        // existing blackout fade hands back to the normal follow camera.
+        g.CameraPitch=-.45f;
+        g.Interact();await Frames(2);
         Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-stationLanding.X,g.Player.GlobalPosition.Z-stationLanding.Z).Length()<.5f,
             $"E at the tunnel mouth sets her down on the station's hillside {g.Player.GlobalPosition}");
         Check(g.Region==Hoshikawa.World.StationName&&g.QuestStage==Quest.Beyond&&g.Mode==GameMode.Playing,$"the station's hillside is its own region {g.Region}");
         Check(g.ToastTitle=="HOSHIKAWA STATION",$"the station's name is toasted as she arrives ({g.ToastTitle})");
         Check(Music.Track(g.Region,false)=="relay"&&Music.Track(g.Region,true)=="battle","the station falls back to the relay track, a fight still to the battle track");
         Check(g.Interaction().Label=="","the landing is far enough from the door that E does not immediately take her back");
-        // The east arrival alone lifts the follow camera and sets its own level pitch for the station reveal. Check the actual camera, the
-        // station and old line in its frustum, and a ray to the station's upper west wall reaching the station rather than the ridge.
-        await Frames(60);
+        Check(g.ArrivalLift>0&&g.RevealShare>.9f&&Math.Abs(g.CameraPitch+.45f)<.001f,
+            $"the arrival begins its reveal with the player's aim preserved (lift {g.ArrivalLift}, share {g.RevealShare})");
+        // Return through the door while the reveal is still active: it must clear, and keep her aim, before the normal camera.
+        Place(g.Player,On(new(380,-149.5f)));await Frames(2);
+        Check(g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),"at the station's end of the tunnel E leads back");
+        g.Interact();await Frames(5);
+        Check(g.ArrivalLift==0&&Math.Abs(g.CameraPitch+.45f)<.001f&&g.GetViewport().GetCamera3D().GlobalPosition.Y<25f,
+            $"returning while the reveal is active clears it and keeps the player's aim {g.GetViewport().GetCamera3D().GlobalPosition}");
+        Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-mountainLanding.X,g.Player.GlobalPosition.Z-mountainLanding.Z).Length()<.5f&&g.Region==Hoshikawa.World.MazeName,
+            $"the reveal's return lands at the Signal yard {g.Player.GlobalPosition}");
+        // Re-enter and hold forward+run through the fade; the reveal must survive the movement and hand back to the player's aim.
+        Place(g.Player,On(new(133,-176)));await Frames(2);
+        Check(g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),"the tunnel's mouth still leads through after the reveal's return");
+        g.Interact();await Frames(2);
+        Check(g.ArrivalLift>0&&new Vector2(g.Player.GlobalPosition.X-stationLanding.X,g.Player.GlobalPosition.Z-stationLanding.Z).Length()<1.5f,
+            $"the re-entry begins the reveal at the station landing {g.Player.GlobalPosition}");
+        Hold("forward");Hold("run");await Frames(25);
         var revealCam=g.GetViewport().GetCamera3D();
-        var revealRay=g.GetWorld3D().DirectSpaceState.IntersectRay(PhysicsRayQueryParameters3D.Create(revealCam.GlobalPosition,new Vector3(494,10,-120),1));
-        Check(g.CameraLift>0&&revealCam.GlobalPosition.Y>31.5f&&revealCam.GlobalPosition.Y<32.5f&&revealCam.Fov==59&&revealCam.Far==260
-            &&revealRay.Count>0&&((Node)revealRay["collider"]).Name=="Station footprint Station building"
-            &&revealCam.IsPositionInFrustum(new Vector3(430,7,-156))&&revealCam.IsPositionInFrustum(new Vector3(558,7,-84))
-            &&revealCam.IsPositionInFrustum(new Vector3(494,10,-120))&&revealCam.IsPositionInFrustum(new Vector3(438,6.3f,-164.5f)),
-            $"the tunnel's east arrival lifts the camera to the station reveal, its eye {revealCam.GlobalPosition}, the station and the old line in frame and the station roof behind the ridge");
-        await WalkTo(new(384,-146));await Frames(30);
+        float ActualPitch()=>Mathf.RadToDeg(Mathf.Asin(-Mathf.Clamp(g.GetViewport().GetCamera3D().GlobalBasis.Z.Y,-1,1)));
+        Check(g.ArrivalLift>0&&g.RevealShare>.9f&&Mathf.Abs(ActualPitch())<2f
+            &&revealCam.GlobalPosition.Y-g.Player.GlobalPosition.Y>11.5f
+            &&new Vector2(g.Player.GlobalPosition.X-stationLanding.X,g.Player.GlobalPosition.Z-stationLanding.Z).Length()>1.6f,
+            $"holding forward and run keeps the arrival reveal: eye {revealCam.GlobalPosition}, pitch {ActualPitch():F1}, player {g.Player.GlobalPosition}, share {g.RevealShare}");
+        Check(revealCam.Fov==59&&revealCam.Far==260,"the reveal camera keeps the gameplay field of view and far plane");
+        // Real built-roof and v9 Nagoya-track points: the reveal frustum and bare-terrain clearance, with the oversized station footprint
+        // excluded from the rays (its top sits about 6 m above the roof, so hitting it proves nothing about seeing the roof).
+        var stationBody=g.World.GetNode<StaticBody3D>("Station footprint Station building");
+        bool Clear(Vector3 target,out float gap)
+        {
+            var query=PhysicsRayQueryParameters3D.Create(g.GetViewport().GetCamera3D().GlobalPosition,target,1);
+            query.Exclude=new Godot.Collections.Array<Rid>{stationBody.GetRid()};
+            var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(query);
+            gap=hit.Count>0?g.GetViewport().GetCamera3D().GlobalPosition.DistanceTo((Vector3)hit["position"]):float.PositiveInfinity;
+            return hit.Count==0||g.GetViewport().GetCamera3D().GlobalPosition.DistanceTo(target)-gap<.6f;
+        }
+        var shell=World.StationObstacles.Single(o=>o.Name=="Station building");float roofY=World.Height(shell.At.X,shell.At.Y)+7+1.4f;
+        var roofA=new Vector3(shell.At.X+2,roofY,shell.At.Y);var roofB=new Vector3(shell.At.X+56,roofY,shell.At.Y);
+        var railN=new Vector3(496,6.3f+.16f+.05f,-169.5f);var railS=new Vector3(496,6.3f+.16f+.05f,-184.5f);
+        Check(new[]{roofA,roofB,railN,railS}.All(p=>g.GetViewport().GetCamera3D().IsPositionInFrustum(p)),
+            "the built station roof and the v9 Nagoya track points are in the reveal's real frustum");
+        bool roofAClear=Clear(roofA,out var gapA);bool roofBClear=Clear(roofB,out var gapB);bool railNClear=Clear(railN,out var gapN);bool railSClear=Clear(railS,out var gapS);
+        Check(roofAClear&&roofBClear&&railNClear&&railSClear,
+            $"the real station roof and both Nagoya rails clear the terrain (gaps {gapA:F1}, {gapB:F1}, {gapN:F1}, {gapS:F1})");
+        var westRoof=new Vector3(shell.At.X-shell.Size.X/2,roofY,shell.At.Y);
+        var nearRoofClear=Clear(westRoof,out var nearGap);
+        Check(!nearRoofClear&&g.GetViewport().GetCamera3D().GlobalPosition.DistanceTo(westRoof)-nearGap>3f,
+            $"the west roof edge stays behind the hillside, {g.GetViewport().GetCamera3D().GlobalPosition.DistanceTo(westRoof)-nearGap:F1} m of the ray blocked");
+        // Inject a body into the reveal sightline: the same clearance test must see it, then clear once it is removed.
+        var blocker=new StaticBody3D{Name="TEST sightline obstruction",CollisionLayer=1,CollisionMask=0,Position=new(400,29,-140)};
+        blocker.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(6,10,6)}});g.World.AddChild(blocker);await Frames(2);
+        Check(!Clear(roofA,out _),"an injected body in the reveal sightline blocks the roof ray");
+        blocker.QueueFree();await Frames(2);
+        Check(Clear(roofA,out _),"with the injected body removed the real roof ray clears again");
+        // A horizontal-only mouse move must not snap the level reveal pitch or the player's own aim. The handler is called directly:
+        // in headless mode Input.ParseInputEvent does not reach _UnhandledInput, so injected events there prove nothing.
+        Input.MouseMode=Input.MouseModeEnum.Captured;
+        g._UnhandledInput(new InputEventMouseMotion{Relative=new Vector2(5,0)});await Frames(2);
+        Check(Math.Abs(g.CameraPitch+.45f)<.001f&&Mathf.Abs(ActualPitch())<2f,
+            $"a horizontal-only mouse move keeps the player's aim ({g.CameraPitch}) and the level reveal pitch ({ActualPitch():F1})");
+        Input.MouseMode=Input.MouseModeEnum.Visible;
+        // The existing fade hands the reveal to the normal follow at the player's aim while the input is still held.
+        await Frames(60);Release("forward");Release("run");await Frames(5);
+        Check(g.RevealShare==0&&g.GetViewport().GetCamera3D().GlobalPosition.Y<25f&&Math.Abs(g.CameraPitch+.45f)<.001f&&Mathf.Abs(ActualPitch()-Mathf.RadToDeg(g.CameraPitch))<3f,
+            $"the fade hands the reveal back to the normal follow camera at the player's aim ({ActualPitch():F1} vs {Mathf.RadToDeg(g.CameraPitch):F1})");
+        await WalkTo(new(384,-146));await Frames(5);
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-19.2f)<.5f,$"the lineman's path leaves the portal shelf downhill {g.Player.GlobalPosition}");
-        Check(g.CameraLift==0&&g.GetViewport().GetCamera3D().GlobalPosition.Y<25f,$"walking off the landing clears the arrival lift and returns the follow camera to its normal height {g.GetViewport().GetCamera3D().GlobalPosition}");
         // The parcels approach: the real door stands proud of the station's east wall, the paving follows the ground over the whole
         // walking strip, the divider is a legible curb and open railing (not a wall-height slot), and the false service panel is gone.
         var parcelDoor=g.World.GetNode<MeshInstance3D>("Parcels door");var stationEast=g.World.GetNode<MeshInstance3D>("Station east wall");
@@ -1289,7 +1346,9 @@ public static class IntegrationCheck
         Place(g.Player,On(new Vector2(380,-149.5f)));await Frames(10);
         Check(g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),"at the station's end of the tunnel E leads back");
         g.Interact();await Frames(10);
-        Check(g.CameraLift==0&&Math.Abs(g.GetViewport().GetCamera3D().GlobalPosition.Y-18.5f)<2f,"the return travel carries no arrival camera lift");
+        Check(g.ArrivalLift==0&&Math.Abs(g.CameraPitch+.45f)<.001f&&g.GetViewport().GetCamera3D().GlobalPosition.Y<25f
+            &&Mathf.Abs(Mathf.RadToDeg(Mathf.Asin(-Mathf.Clamp(g.GetViewport().GetCamera3D().GlobalBasis.Z.Y,-1,1)))-Mathf.RadToDeg(g.CameraPitch))<3f,
+            $"the return travel carries no arrival reveal and keeps the player's aim ({Mathf.RadToDeg(g.CameraPitch):F1})");
         Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-mountainLanding.X,g.Player.GlobalPosition.Z-mountainLanding.Z).Length()<.5f&&g.Region==Hoshikawa.World.MazeName
             &&g.ToastTitle=="TUNNEL MOUNTAIN"&&g.ToastTitle!="TO BE CONTINUED"&&g.Interaction().Label=="",
             $"E there returns her to the Signal yard's mouth, facing Tunnel Mountain, with no early TO BE CONTINUED {g.Player.GlobalPosition}");
@@ -1308,7 +1367,12 @@ public static class IntegrationCheck
         if(DisplayServer.GetName()!="headless"){g.SaveScreenshot("res://artifacts/mission-complete.png");await Frames(5);}
         var chaser=g.Enemies.First(e=>e.Kind==Enemy.Scout&&!e.Dead);chaser.SetPhysicsProcess(true);Place(g.Player,chaser.GlobalPosition+Vector3.Back*6);await Frames(30);
         Check(chaser.State=="PURSUE"&&g.Music.Current=="battle","a scout after Mio brings in the battle music");g.SetPaused(true);
-        g.Restart();Check(g.QuestStage==0&&g.Enemies.All(e=>!e.Dead)&&g.Player.Health==100&&yui.Body.GlobalPosition.DistanceTo(new(Hoshikawa.World.YuiGate.X,yui.Body.GlobalPosition.Y,Hoshikawa.World.YuiGate.Z))<.01f
+        g.ArrivalLift=10.65f;g.ArrivalPitch=0;g.Blackout=1;g.CameraPitch=-.45f;
+        g.Die();g.Retry();await Frames(5);
+        Check(g.ArrivalLift==0&&g.RevealShare==0&&Math.Abs(g.CameraPitch+.45f)<.001f,"an ordinary Retry while the reveal is active clears it and keeps the player's aim");
+        g.ArrivalLift=10.65f;g.ArrivalPitch=0;g.Blackout=1;g.CameraPitch=-.45f;
+        g.Restart();Check(g.ArrivalLift==0&&Math.Abs(g.CameraPitch+.45f)<.001f,"Restart while the reveal is active clears it and keeps the player's aim");
+        Check(g.QuestStage==0&&g.Enemies.All(e=>!e.Dead)&&g.Player.Health==100&&yui.Body.GlobalPosition.DistanceTo(new(Hoshikawa.World.YuiGate.X,yui.Body.GlobalPosition.Y,Hoshikawa.World.YuiGate.Z))<.01f
             &&sota.GlobalPosition.DistanceTo(sotaHome)<.01f&&renji.GlobalPosition.DistanceTo(new(-5.2f,renji.GlobalPosition.Y,11))<.01f&&g.Actor("Renji").Visual.Clip=="work"&&g.World.Rockfall.All(n=>n.Visible&&(n is not StaticBody3D b||b.CollisionLayer==1))&&g.World.RockfallSign.All(l=>l.Text==World.ClosedSign),
             "restart restores a fresh playable mission, Yui back at Mio's gate, Renji at his bench, Sota at home and the station road closed");chaser.SetPhysicsProcess(false);
         Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Opening)&&g.Log.Count==1,"restarting the prologue replays its opening, with a fresh history");

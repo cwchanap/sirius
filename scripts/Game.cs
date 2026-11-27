@@ -23,9 +23,12 @@ public partial class Game : Node3D
     public GameMode Mode=GameMode.Title;
     public int QuestStage;
     public float CameraYaw,CameraPitch=-.29f,CameraShake,CameraPunch;
-    // A door's arrival-only camera lift and the landing it belongs to; cleared when she walks off the landing or any placement/reset.
-    public float CameraLift;
-    private Vector2 liftFrom;
+    // A door's arrival-only reveal: the camera rig's lift and vertical aim, blended out into the normal follow camera by the existing
+    // blackout fade (held while the fade is dark, then eased to zero and dropped once the fade ends, so a later scene blackout cannot
+    // bring it back). The player's own CameraPitch is never overwritten.
+    public const float RevealFade=.5f;
+    public float ArrivalLift,ArrivalPitch;
+    public float RevealShare=>ArrivalLift>0&&Blackout>0?Mathf.Clamp(Blackout/RevealFade,0,1):0;
     public Camera3D Camera=null!;
     public Hud Hud=null!;
     public string Speaker="",SpeakerRole="",Dialogue="",ToastTitle="",ToastBody="",ToastIcon="",FeedbackText="",FlashIcon="";
@@ -189,9 +192,10 @@ public partial class Game : Node3D
         // screen or a scene freezes the fight and keeps its music; a defeat ends it, and so does Retry() (recovering or restarting).
         if(Mode==GameMode.Playing)danger=Enemies.Any(e=>!e.Dead&&e.ProcessMode!=ProcessModeEnum.Disabled&&e.State is not ("PATROL" or "ASLEEP"))?Music.Calm:Math.Max(0,danger-dt);else if(Mode==GameMode.Defeated)danger=0;
         Music.Want(Music.Track(Region,danger>0));
-        if(CameraLift>0&&new Vector2(Player.GlobalPosition.X-liftFrom.X,Player.GlobalPosition.Z-liftFrom.Y).Length()>1.6f)CameraLift=0;
-        cameraRig.Position=cameraRig.Position.Lerp(Player.GlobalPosition+Vector3.Up*(1.35f+CameraLift),1-Mathf.Exp(-dt*10));
-        cameraRig.Rotation=new(CameraPitch,CameraYaw,0);
+        if(ArrivalLift>0&&Blackout<=0){ArrivalLift=0;ArrivalPitch=0;}
+        float reveal=RevealShare;
+        cameraRig.Position=cameraRig.Position.Lerp(Player.GlobalPosition+Vector3.Up*(1.35f+ArrivalLift*reveal),1-Mathf.Exp(-dt*10));
+        cameraRig.Rotation=new(Mathf.Lerp(CameraPitch,ArrivalPitch,reveal),CameraYaw,0);
         CameraShake=Math.Max(0,CameraShake-dt);
         Camera.HOffset=CameraShake>0?Mathf.Sin((float)elapsed*100)*CameraShake*.2f:0;
         Camera.VOffset=CameraShake>0?Mathf.Cos((float)elapsed*86)*CameraShake*.15f:0;
@@ -227,7 +231,7 @@ public partial class Game : Node3D
     public void Retry()
     {
         ExitRoom();Player.Visible=true;Player.Respawn();Locked=null;danger=0;Regroup();Arm();
-        CameraYaw=0;CameraLift=0;CameraPitch=-.29f;FreezeAnimations(false);Start();var at=Hoshikawa.World.SavePoints[RestedAt].At;Toast(Hoshikawa.World.InMaze(at.X,at.Y)?"BACK AT THE STARWELL":"BACK AT THE VILLAGE");
+        CameraYaw=0;ArrivalLift=0;ArrivalPitch=0;FreezeAnimations(false);Start();var at=Hoshikawa.World.SavePoints[RestedAt].At;Toast(Hoshikawa.World.InMaze(at.X,at.Y)?"BACK AT THE STARWELL":"BACK AT THE VILLAGE");
     }
     public void Restart()
     {
@@ -315,8 +319,8 @@ public partial class Game : Node3D
         // The tunnel is a blackout door: it puts her on the other side facing out, the run she was in still running.
         if(DoorHere() is {} door)
         {
-            var at=Hoshikawa.World.DoorLanding(door);Place(at,door.Yaw,door.CameraYaw);
-            CameraPitch=door.Pitch;CameraLift=door.Lift;liftFrom=door.Landing??door.At;
+            float aim=CameraPitch;var at=Hoshikawa.World.DoorLanding(door);Place(at,door.Yaw,door.CameraYaw);
+            CameraPitch=aim;ArrivalLift=door.Lift;ArrivalPitch=door.Pitch;
             Blackout=1;Locked=null;danger=0;return;
         }
         if(ShortcutHere() is {} shortcut)

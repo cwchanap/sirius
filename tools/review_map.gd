@@ -43,7 +43,7 @@ func review():
 		["aerial-north",Vector3(10,230,-20),Vector3(0,0,-200)],
 		["aerial-station",Vector3(504,176,-110),Vector3(504,6,-110)],
 		["aerial-station-world",Vector3(330,364,-155),Vector3(330,6,-155)],
-		["station-portal",Vector3(374,32,-149.5),Vector3(434,32,-149.5),59],
+		["station-portal",Vector3(374,32,-149.5),Vector3(434,32,-149.5),59,260],
 		["station-city-bearing",Vector3(381.5,22.5,-149.5),Vector3(270,55,-332)],
 		["station-forecourt",Vector3(508,8.5,-52),Vector3(496,9,-84)],
 		["station-yard",Vector3(618,8.5,-132),Vector3(592,10,-139)],
@@ -53,7 +53,8 @@ func review():
 		["parcels-turn",Vector3(559.6,7.6,-114),Vector3(558.5,7.1,-129)],
 		["parcels-west",Vector3(562.8,11.5,-120),Vector3(559.2,6.5,-128)],
 		["parcels-east",Vector3(558.8,8.5,-122),Vector3(561.5,7.5,-118)],
-		["parcels-door",Vector3(559.9,7.6,-127.2),Vector3(558.6,7.4,-130.2)],
+		["parcels-door",Vector3(559.85,7.6,-130),Vector3(558.65,7.6,-130),110],
+		["parcels-door-oblique",Vector3(559.9,7.6,-127.2),Vector3(558.6,7.4,-130.2)],
 		["parcels-floor",Vector3(559.8,7.6,-110.2),Vector3(559.4,6.4,-131.5)],
 		["city-from-valley-overlook",Vector3(29,7.0,-226),Vector3(270,55,-332)],
 		["city-from-pass-shelter",Vector3(-12,7.0,-191),Vector3(270,55,-332)],
@@ -67,6 +68,7 @@ func review():
 		environment.fog_enabled=not view[0].begins_with("aerial")
 		camera.position=view[1]
 		camera.fov = view[3] if view.size()>3 else 60
+		camera.far = view[4] if view.size()>4 else 900
 		camera.look_at(view[2],Vector3(0,0,-1) if view[0] in north_up else Vector3.UP)
 		for i in range(5): await process_frame
 		RenderingServer.force_draw()
@@ -76,6 +78,6 @@ func review():
 			var size=image.get_size()
 			var vertical=2*tan(deg_to_rad(camera.fov/2))*(view[1].y-6)
 			print("MAP_AERIAL ",view[0]," eye=",view[1]," ground_y=6 extent_m=",snapped(vertical*float(size.x)/size.y,.1),"x",snapped(vertical,.1),"px_per_m=",snapped(float(size.y)/vertical,.02),"north_up size=",size)
-		print("MAP_CAPTURE ",view[0])
+		print("MAP_CAPTURE ",view[0]," eye=",camera.global_position," target=",view[2]," fov=",camera.fov," far=",camera.far)
 	print("MAP_REVIEW_OK")
 	quit()

@@ -104,8 +104,8 @@ public class StationOutsideTest
     [TestCase]
     public void TheStationArrivalLiftsTheCameraAndTheDockSeparatorsStand()
     {
-        // The east-arrival row lifts the follow camera and sets its own level pitch for the station reveal; the return row keeps the
-        // normal camera. The lift is cleared by Game once she walks off the landing, and Place()/Retry()/Restart() clear it too.
+        // The east-arrival row lifts the follow camera and sets the reveal's own level pitch; the return row keeps the normal camera.
+        // Game holds the reveal through the blackout's dark part, eases it back to the player's aim, and Place()/Retry()/Restart() clear it.
         var arrival=World.Doors.Single(d=>d.At.X<200);var back=World.Doors.Single(d=>d.At.X>200);
         AssertThat(arrival.Lift).IsEqual(10.65f);
         AssertThat(arrival.Pitch).IsEqual(0f);
