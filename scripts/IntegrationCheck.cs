@@ -1455,11 +1455,17 @@ public static class IntegrationCheck
         Check(g.Player.Inventory.Count("parcels_key")==1&&g.Opened.Contains(World.S1Name)&&g.Opened.Contains(World.ParcelsDoorRow.Name)&&Down(s1),
             "and the key, S1 and the door's unlock survive that defeat too");
         foreach(var e in mazeRobots)e.CollisionLayer=0;
-        // Every crossing below is taken on the mapped E. The checkpoint, the key and the openings are snapshotted before the first one, so a
-        // trip that reset any of them fails on the comparison rather than passing on state read after the trip.
-        var checkpoint=g.RestedAt;var heldKey=g.Player.Inventory.Count("parcels_key");var opens=g.Opened.OrderBy(n=>n).ToArray();
-        Check(heldKey==1&&opens.Contains(World.S1Name)&&opens.Contains(World.ParcelsDoorRow.Name)&&Down(s1),
-            "before leaving the station: the key held, S1 open and the parcels door unlocked");
+        // Every crossing below is taken on the mapped E. The checkpoint, every held item's count — a spent slot included, since she keeps
+        // the slot when the last one goes — the key and the openings are snapshotted before the first one, so a trip that reset any of them
+        // fails on the comparison rather than passing on state read after it. The remedies are spent empty and a cell is kept, so the
+        // snapshot carries both a spent slot and a non-key item a reset would drop.
+        string HeldItems()=>string.Join(" ",bag.Held.Select(i=>$"{i.Id}={bag.Count(i.Id)}"));
+        while(bag.Take("remedy")){ }
+        while(bag.Count("cell")<1)bag.Add("cell");
+        var checkpoint=g.RestedAt;var heldKey=g.Player.Inventory.Count("parcels_key");var opens=g.Opened.OrderBy(n=>n).ToArray();string snapshot=HeldItems();
+        Check(heldKey==1&&opens.Contains(World.S1Name)&&opens.Contains(World.ParcelsDoorRow.Name)&&Down(s1)
+            &&bag.Count("remedy")==0&&bag.Count("cell")>0&&bag.Held.Count(i=>i.Kind==ItemKind.Consumable)>=2,
+            $"before leaving the station: the key held, S1 open, the parcels door unlocked, and every held item with a spent slot ({snapshot})");
         // Station to Tunnel Mountain: the landing is more than 2.2 m from the door, so she steps up to it again to return.
         Place(g.Player,On(new Vector2(380,-149.5f)));await Frames(10);
         Check(g.Mode==GameMode.Playing&&g.Player.Free&&g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),"at the station's end of the tunnel E leads back");
@@ -1472,6 +1478,7 @@ public static class IntegrationCheck
             $"E there returns her to the Signal yard's mouth, facing Tunnel Mountain, with no early TO BE CONTINUED {g.Player.GlobalPosition}");
         Check(g.RestedAt==checkpoint&&g.Player.Inventory.Count("parcels_key")==heldKey&&g.Opened.OrderBy(n=>n).SequenceEqual(opens)&&Down(s1),
             "the checkpoint she left with, the key and S1's and the door's openings all survive the crossing to Tunnel Mountain");
+        Check(HeldItems()==snapshot,$"and every held item comes with her, the spent slot and the cell too ({snapshot} vs {HeldItems()})");
         Check(g.Objective=="Take the station road east"&&g.ObjectivePosition==g.World.MazeEnd,
             "back in Tunnel Mountain the objective is the station road east, its marker the Signal yard's mouth, unlocked or not");
         // Tunnel Mountain to the station, on the mapped E pressed and flushed by hand: the result is read before the same frame's region
@@ -1488,6 +1495,7 @@ public static class IntegrationCheck
             $"the tunnel sets her down on the station's hillside {g.Player.GlobalPosition}");
         Check(g.RestedAt==checkpoint&&g.Player.Inventory.Count("parcels_key")==heldKey&&g.Opened.OrderBy(n=>n).SequenceEqual(opens)&&Down(s1),
             "and the checkpoint, the key and both openings come back with her through the tunnel to the station");
+        Check(HeldItems()==snapshot,$"and every held item comes back with her, the spent slot and the cell too ({snapshot} vs {HeldItems()})");
         Check(g.Objective=="Reach the parcels door"&&g.ObjectivePosition==Hoshikawa.World.DoorPoint(Hoshikawa.World.ParcelsDoorRow),
             "on the station the objective still marks the parcels door, though it is unlocked");
         Place(g.Player,On(new Vector2(380,-149.5f)));await Frames(10);
