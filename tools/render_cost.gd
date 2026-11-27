@@ -1,5 +1,6 @@
 extends SceneTree
-# Render cost at three village viewpoints and four in Tunnel Mountain (the Court, the Row, the Signal yard and the Mast). Draw calls and primitives repeat exactly,
+# Render cost at three village viewpoints, four in Tunnel Mountain (the Court, the Row, the Signal yard and the Mast) and three on
+# Hoshikawa Station's outside (the tunnel portal, the forecourt and the freight yard). Draw calls and primitives repeat exactly,
 # so compare those between commits;
 # fps and CPU render time drift with machine load. GPU time reads 0 under Metal Forward Mobile, so it is not sampled.
 func _initialize():
@@ -13,7 +14,7 @@ func run():
 	var vp=root.get_viewport_rid()
 	RenderingServer.viewport_set_measure_render_time(vp,true)
 	var mio=game.get_node("Mio")
-	for spot in [Vector3(0,.1,31),Vector3(0,.1,16),Vector3(-3,2.5,58),Vector3(92,10.1,-154),Vector3(232,20.1,-128),Vector3(112,16.6,-178),Vector3(324,34.1,-164)]:
+	for spot in [Vector3(0,.1,31),Vector3(0,.1,16),Vector3(-3,2.5,58),Vector3(92,10.1,-154),Vector3(232,20.1,-128),Vector3(112,16.6,-178),Vector3(324,34.1,-164),Vector3(381.5,20.1,-149.5),Vector3(508,6.1,-52),Vector3(618,6.1,-132)]:
 		mio.position=spot
 		mio.velocity=Vector3.ZERO
 		# The Row's spot stands a few metres from a patrol: keep Mio unhurt so every sample is of live play.

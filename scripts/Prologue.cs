@@ -9,7 +9,7 @@ namespace Hoshikawa;
 // short of words; she, Sota and Renji fight as well as Mio, and keeping the robots out of their villages is their work beside their trades.
 public static class Prologue
 {
-    // Over the valley before Mio wakes: Game.Begin() flies the camera from the city on the eastern ridge to her house.
+    // Over the valley before Mio wakes: Game.Begin() flies the camera from the city on the north-west ridge to her house.
     public static readonly (string Speaker,string Text)[] Opening=
     {
         ("","In 2147, the great cities still shine at night. Their streets belong to SIRIUS and its machines."),

@@ -285,6 +285,11 @@ public partial class World : Node3D
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, NoDepthTest = false };
         parent.AddChild(label); return label;
     }
+    // The occupied city, a distant story landmark on the north-west ridge beyond Tunnel Mountain and the station, half lost in the haze.
+    // Nine 2 x 3 m columns three metres apart, each based 3 m under the far ground under it; move them here, never one box.
+    public static readonly Vector2 City=new(270,-332);
+    public static Vector3 CityBox(int i){float x=City.X-12+i*3;return new(x,Height(x,City.Y)+6+i%3*3,City.Y);}
+    public static Vector3 CitySize(int i)=>new(2,18+i%3*6,3);
     private void Environment()
     {
         // The Mobile renderer has no SSAO, SDFGI or volumetric fog; depth fog, sky ambient, glow and adjustments all run there.
@@ -305,8 +310,7 @@ public partial class World : Node3D
         }});
         AddChild(new DirectionalLight3D { RotationDegrees = new(-34, -52, 0), LightColor = new("ffdfb0"),
             LightEnergy = 1.2f, ShadowEnabled = true, DirectionalShadowMaxDistance = 100, ShadowBias = .06f });
-        // The occupied city, a distant story landmark on the far eastern ridge, half lost in the haze from Cedar Pass.
-        for (int i=0;i<9;i++){float x=392+i*3;Box(this,"Machine city silhouette",new(x,Height(x,-120)+6+i%3*3,-120),new(2,18+i%3*6,3),Mat(new("728e8c")));}
+        for (int i=0;i<9;i++)Box(this,"Machine city silhouette",CityBox(i),CitySize(i),Mat(new("728e8c")));
     }
     private void Terrain()
     {

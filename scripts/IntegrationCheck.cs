@@ -595,6 +595,15 @@ public static class IntegrationCheck
         g.Begin();
         Check(g.Mode==GameMode.Dialogue&&g.Speaker==""&&g.Script.SequenceEqual(Prologue.Opening)&&!g.Player.Visible&&g.Blackout>0&&g.GetViewport().GetCamera3D()!=g.Camera,
             "the journey opens from black on narration, the scene camera over the valley");
+        // The city moved to the north-west ridge beyond the station: its nine columns stand there, and the scene camera's one 500 m far
+        // reaches them, where the old 320 m cut the city's silhouette on the shot's forward depth.
+        Check(g.GetViewport().GetCamera3D().Far==Game.SceneFar&&Game.SceneFar==500,$"the scene camera reaches the city at 500 m, once for every shot ({g.GetViewport().GetCamera3D().Far})");
+        var silhouettes=g.World.FindChildren("*","MeshInstance3D",true,false).Cast<MeshInstance3D>()
+            .Where(m=>m.Mesh is BoxMesh b&&b.Size.Z==3&&Math.Abs(m.Position.Z-Hoshikawa.World.City.Y)<.01f
+                &&m.Position.X>=Hoshikawa.World.City.X-12&&m.Position.X<=Hoshikawa.World.City.X+12).ToArray();
+        bool Column(int i)=>silhouettes.Any(m=>m.Position.DistanceTo(Hoshikawa.World.CityBox(i))<.01f&&m.Mesh is BoxMesh b&&b.Size.DistanceTo(Hoshikawa.World.CitySize(i))<.01f);
+        Check(silhouettes.Length==9&&Enumerable.Range(0,9).All(Column),
+            $"the city's nine columns stand on the north-west ridge at x {Hoshikawa.World.City.X-12}..{Hoshikawa.World.City.X+12}, z {Hoshikawa.World.City.Y} ({silhouettes.Length} found)");
         Check(g.Hud.Portrait("Mio")!=null&&g.World.Residents.All(r=>g.Hud.Portrait(r.Name)!=null)&&g.Hud.Portrait("Zero")==null,"Mio and every resident have a dialogue portrait; unseen Zero has none");
         Check(Hud.Icons.All(n=>Hud.Icon(n) is {} t&&t.GetWidth()==256&&t.GetHeight()==256)&&ResourceLoader.Exists("res://assets/art/ui/logo.png"),$"all {Hud.Icons.Length} HUD icons and the title logo load, the icons 256 px square");
         Check(g.World.Residents.All(r=>r.Body.GetChildren().OfType<Label3D>().Single() is {VisibilityRangeEnd:>0 and <20} label&&label.Layers==Hoshikawa.World.NameLayer)&&(g.GetViewport().GetCamera3D().CullMask&Hoshikawa.World.NameLayer)==0,
@@ -610,6 +619,7 @@ public static class IntegrationCheck
         while(g.Script.SequenceEqual(Prologue.Opening)&&presses<20){await Tap(Key.E);presses++;}
         Check(presses==2*Prologue.Opening.Length&&g.InRoom&&!g.World.Visible&&g.Player.Visible&&g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Intro)&&g.Speaker=="Zero",
             $"the narration ends in Mio's room, a map of its own, where Zero wakes her ({presses} presses)");
+        Check(g.GetViewport().GetCamera3D().Far==Game.SceneFar,"the scene camera's one 500 m far holds through every shot, with no per-shot change");
         bool Sheathed()=>ActorVisual.Descendants(g.Player.Model).OfType<MeshInstance3D>().Where(m=>m.Name.ToString().StartsWith("Sword")).All(m=>!m.Visible);
         Check(g.Player.Visual.Clip=="sleep"&&g.Player.GlobalPosition.DistanceTo(g.Room!.GlobalPosition+Hoshikawa.World.Bed)<.01f&&Sheathed()&&g.Voice.Playing&&g.Voice.Stream?.ResourcePath=="res://assets/audio/voice/ja/Zero/Intro.0.mp3",
             "she sleeps on her futon, her sword left on its rack, and Zero's voice wakes her in Japanese");

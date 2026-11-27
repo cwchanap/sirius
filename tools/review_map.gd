@@ -1,7 +1,8 @@
 extends SceneTree
 
 # The map's edges and waters: the sea and its capes, the river mouths, both rivers' falls, gorges and headwaters, the Cedar River's outlet
-# and the mountain walls.
+# and the mountain walls; then Hoshikawa Station from above (north up, with its extent printed) and at ground level from its portal,
+# forecourt, yard, warehouse stair and parcels bay.
 # Writes artifacts/map/NAME.png; -- --out=<subdir> --only=sea-from-shrine,aerial-south
 func _initialize():
 	call_deferred("review")
@@ -39,17 +40,32 @@ func review():
 		["north-wall",Vector3(4,10,-264),Vector3(0,8,-320)],
 		["east-wall",Vector3(26,6,44),Vector3(96,6,30)],
 		["aerial-south",Vector3(10,150,150),Vector3(0,0,-30)],
-		["aerial-north",Vector3(10,230,-20),Vector3(0,0,-200)]]
+		["aerial-north",Vector3(10,230,-20),Vector3(0,0,-200)],
+		["aerial-station",Vector3(504,176,-110),Vector3(504,6,-110)],
+		["aerial-station-world",Vector3(330,364,-155),Vector3(330,6,-155)],
+		["station-portal",Vector3(381.5,22.5,-149.5),Vector3(500,12,-122)],
+		["station-city-bearing",Vector3(381.5,22.5,-149.5),Vector3(270,55,-332)],
+		["station-forecourt",Vector3(508,8.5,-52),Vector3(496,9,-84)],
+		["station-yard",Vector3(618,8.5,-132),Vector3(592,10,-139)],
+		["station-warehouse-stair",Vector3(611,8.5,-131),Vector3(611,8,-122)],
+		["station-parcels-bay",Vector3(559,8.5,-112),Vector3(558,8,-130)]]
 	# The aerials look down through 150 m of air, which the valley's depth fog would wash out.
 	var environment=game.find_children("*","WorldEnvironment",true,false)[0].environment
+	# Straight-down aerials use a north-oriented up vector: the default +y up is degenerate with a vertical view.
+	var north_up=["aerial-station","aerial-station-world"]
 	for view in views:
 		if only.size()>0 and not view[0] in only: continue
 		environment.fog_enabled=not view[0].begins_with("aerial")
 		camera.position=view[1]
-		camera.look_at(view[2])
+		camera.look_at(view[2],Vector3(0,0,-1) if view[0] in north_up else Vector3.UP)
 		for i in range(5): await process_frame
 		RenderingServer.force_draw()
-		assert(root.get_texture().get_image().save_png("res://artifacts/"+out+"/"+view[0]+".png")==OK)
+		var image=root.get_texture().get_image()
+		assert(image.save_png("res://artifacts/"+out+"/"+view[0]+".png")==OK)
+		if view[0] in north_up:
+			var size=image.get_size()
+			var vertical=2*tan(deg_to_rad(camera.fov/2))*(view[1].y-6)
+			print("MAP_AERIAL ",view[0]," eye=",view[1]," ground_y=6 extent_m=",snapped(vertical*float(size.x)/size.y,.1),"x",snapped(vertical,.1),"px_per_m=",snapped(float(size.y)/vertical,.02),"north_up size=",size)
 		print("MAP_CAPTURE ",view[0])
 	print("MAP_REVIEW_OK")
 	quit()
