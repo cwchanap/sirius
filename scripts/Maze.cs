@@ -400,14 +400,28 @@ public partial class World
             Parts.Add(new(plank.Name,"plank",plank,frame.ToGlobal(new(0,Sag(rot),rot)),Size:.8f));
         }
     }
-    private void Load(string name,string kind,Vector2 a,Vector2 b)
+    // The station's rolling wagon: the parked cars' 11 m class, standing on four axles whose wheels ride the rail tops .17 m over the yard,
+    // so nothing of it starts or rolls inside the hump's 12 cm bed.
+    public const float WagonLong=11,WagonSpan=1.45f,WagonWheelBottom=.17f;
+    private void Load(string name,string kind,Vector2 a,Vector2 b,Vector2? bend=null)
     {
-        var dir=(b-a).Normalized();float yaw=Mathf.Atan2(dir.X,dir.Y);
-        float radius=kind switch{"rocks"=>.75f,"logs"=>.35f,"drum"=>.6f,"wagon"=>1.6f,_=>.32f},span=kind switch{"rocks"=>.75f,"logs"=>1.3f,"drum"=>.55f,"wagon"=>1.6f,_=>.42f};
-        var body=new StaticBody3D{Name=name,Position=new(a.X,Height(a.X,a.Y),a.Y),Rotation=new(0,yaw,0),CollisionMask=0};AddChild(body);
-        body.AddChild(new CollisionShape3D{Position=new(0,radius,0),Shape=new BoxShape3D{Size=new(2*span,2*radius,2*radius)}});
-        // It turns about Spin, at its middle, as it rolls along its Z.
-        var spin=new Node3D{Name="Spin",Position=new(0,radius,0)};body.AddChild(spin);
+        var dir=(b-a).Normalized();float runYaw=Mathf.Atan2(dir.X,dir.Y),yaw=runYaw;
+        float radius=kind switch{"rocks"=>.75f,"logs"=>.35f,"drum"=>.6f,"wagon"=>WagonLong/2,_=>.32f},span=kind switch{"rocks"=>.75f,"logs"=>1.3f,"drum"=>.55f,"wagon"=>WagonSpan,_=>.42f};
+        var head=new Vector3(a.X,Height(a.X,a.Y),a.Y);var foot=new Vector3(b.X,Height(b.X,b.Y),b.Y);
+        // A wagon's resting pose is its run's own start: trailing end on the head, body standing down the siding. Centred on the head instead,
+        // an 11 m body would reach 5.5 m back through the yard's east fence, which stands 4 m behind the head.
+        var park=head;
+        if(kind=="wagon")
+        {
+            var rear=World.RunPoint(head,foot,bend,0).At;var front=World.RunPoint(head,foot,bend,WagonLong).At;
+            var mid=(rear+front)*.5f;park=new Vector3(mid.X,Height(mid.X,mid.Y),mid.Y);yaw=Mathf.Atan2(front.X-rear.X,front.Y-rear.Y);
+        }
+        var body=new StaticBody3D{Name=name,Position=park,Rotation=new(0,yaw,0),CollisionMask=0};AddChild(body);
+        // The wagon's own box is its body, long down the track; every other load's is the roll it turns on.
+        body.AddChild(new CollisionShape3D{Position=kind=="wagon"?new Vector3(0,1.75f,0):new Vector3(0,radius,0),
+            Shape=new BoxShape3D{Size=kind=="wagon"?new Vector3(2.9f,3.2f,WagonLong):new Vector3(2*span,2*radius,2*radius)}});
+        // It turns about Spin, at its middle, as it rolls along its Z; a wagon turns only its four axles, each about its own.
+        var spin=new Node3D{Name="Spin",Position=kind=="wagon"?Vector3.Zero:new Vector3(0,radius,0)};body.AddChild(spin);
         if(kind=="rocks")Model(spin,"Rock","boulder",new(0,-radius*.8f,0),0,new(1.05f,1.05f,1.05f)).Scale=Vector3.One*2*radius/1.58f;
         else if(kind=="logs")Cylinder(spin,"Log",Vector3.Zero,radius,2*span,wood).Rotation=new(0,0,Mathf.Pi/2);
         // A cable drum: its barrel wound with rusted cable between two wooden flanges, the flanges its rims.
@@ -416,18 +430,25 @@ public partial class World
             Cylinder(spin,"Drum cable",Vector3.Zero,radius*.72f,2*span-.12f,Mat(new("5d5246"))).Rotation=new(0,0,Mathf.Pi/2);
             foreach(float x in new[]{span-.04f,.04f-span})Cylinder(spin,"Drum flange",new(x,0,0),radius,.08f,wood).Rotation=new(0,0,Mathf.Pi/2);
         }
-        // shortcut: a 3.2 m wagon-sized body rolls here, not the 11 m drawn car, whose length the strike check and the run's clearance
-        // would not hold; upgrade if the trap needs the drawn length or a shape that rolls on its own wheels rather than tumbling.
+        // An 11 m covered goods wagon of the parked cars' class: chassis, body, roof, ribs and a brake end, standing on four axles whose
+        // wheels ride the rail tops at WagonWheelBottom, clear of the hump's bed beneath them.
         else if(kind=="wagon")
         {
-            Box(spin,"Wagon chassis",new(0,-radius+.3f,0),new(2*span-.2f,.3f,2.5f),wood);
-            Box(spin,"Wagon body",new(0,-.1f,0),new(2*span-.5f,1.5f,2.3f),Mat(new("5b4434")));
-            Box(spin,"Wagon roof",new(0,.72f,0),new(2*span-.35f,.16f,2.45f),Mat(new("4a4038")));
-            foreach(float x in new[]{-1.2f,1.2f})foreach(float z in new[]{-.8f,.8f})
-                Cylinder(spin,"Wagon wheel",new(x,-radius+.42f,z),.42f,.12f,Mat(new("4d5155"))).Rotation=new(0,0,Mathf.Pi/2);
+            var iron=Mat(new("4d5155"));var goods=Mat(new("5b4434"));
+            Box(spin,"Wagon chassis",new(0,1.2f,0),new(3,.26f,10.6f),wood);
+            Box(spin,"Wagon body",new(0,2.18f,0),new(2.9f,1.7f,10.4f),goods);
+            Box(spin,"Wagon roof",new(0,3.1f,0),new(3.05f,.14f,10.8f),Mat(new("4a4038")));
+            for(int i=0;i<8;i++)Box(spin,"Wagon rib",new(0,2.18f,-4.55f+i*1.3f),new(2.94f,1.72f,.08f),wood);
+            Box(spin,"Wagon brake end",new(0,2.33f,4.5f),new(2.6f,2f,1.6f),goods);
+            foreach(float z in new[]{-3.7f,-2.3f,2.3f,3.7f})
+            {
+                var axle=new Node3D{Name="Wheel set",Position=new(0,WagonWheelBottom+.45f,z)};spin.AddChild(axle);
+                foreach(float x in new[]{-1.22f,1.22f})Cylinder(axle,"Wagon wheel",new(x,0,0),.45f,.14f,iron).Rotation=new(0,0,Mathf.Pi/2);
+                Box(spin,"Wagon axle box",new(0,WagonWheelBottom+.45f,z),new(2.8f,.18f,.2f),iron);
+            }
         }
         else{var barrel=Model(spin,"Barrel","village_barrel",new(span,0,0),0,new(1.3f,1.3f,1.3f));barrel.Rotation=new(0,0,Mathf.Pi/2);}
-        Parts.Add(new(name,kind,body,body.Position,new(b.X,Height(b.X,b.Y),b.Y),Yaw:yaw,Size:radius,Span:span));
+        Parts.Add(new(name,kind,body,head,foot,Yaw:runYaw,Size:radius,Span:span,Bend:bend,Long:kind=="wagon"?WagonLong:0));
     }
     // The Cut gate, across the Cut at the Crossing, barred on the Halt's side: a leaf hinged in the north wall, reaching a metre into the
     // rock either side so she cannot slip round its ends, that swings back west along the wall once Mio lifts the bar.

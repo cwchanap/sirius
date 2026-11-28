@@ -442,18 +442,43 @@ public class StationOutsideTest
     [TestCase]
     public void TheStationTrapsKeepTheirApprovedRuns()
     {
-        // v9's two rolling loads: the oil drums down the lineman's path and the wagon off the hump. The wagon's drawn run is bent at
-        // (182,15) local; the existing straight mechanic keeps its approved head and foot, 44.14 m against the drawn 44.50 m.
+        // v9's two rolling loads: the oil drums down the lineman's path and the wagon off the hump. The wagon keeps the approved head and
+        // foot and follows Siding 2's own drawn line, bent at (612,−135): 44.50 m, as drawn, not the straight chord's 44.14 m.
         var loads=World.StationLoads;
         AssertThat(loads.Length).IsEqual(2);
         AssertThat(loads.Select(l=>l.Kind)).ContainsExactly("barrels","wagon");
         var drums=loads[0];var wagon=loads[1];
-        float drumsRun=drums.From.DistanceTo(drums.To),wagonRun=wagon.From.DistanceTo(wagon.To);
         AssertThat((drums.Name,drums.From,drums.To)).IsEqual(("Station oil drums",new Vector2(386,-138),new Vector2(377,-132.5f)));
+        AssertThat(drums.Bend).IsNull();
         AssertThat((wagon.Name,wagon.From,wagon.To)).IsEqual(("Hump wagon",new Vector2(624,-138.5f),new Vector2(580,-135)));
+        AssertThat(wagon.Bend).IsEqual((Vector2?)new Vector2(612,-135));
+        // The bend is Siding 2's drawn point, and both loads' feet are on the station's reachable floor.
+        AssertThat(World.StationSidings.Single(s=>s.Name=="Siding 2").Points.Select(p=>new Vector2(p.X,p.Z)))
+            .ContainsExactly(new Vector2(570,-135),new Vector2(612,-135),new Vector2(624,-138.5f));
+        AssertThat(wagon.Bend).IsEqual((Vector2?)World.StationSidings.Single(s=>s.Name=="Siding 2").Points.Select(p=>new Vector2(p.X,p.Z)).ElementAt(1));
+        var wagonFrom=new Vector3(wagon.From.X,0,wagon.From.Y);var wagonTo=new Vector3(wagon.To.X,0,wagon.To.Y);
+        float drumsRun=World.RunLength(new Vector3(drums.From.X,0,drums.From.Y),new Vector3(drums.To.X,0,drums.To.Y),null);
+        float wagonRun=World.RunLength(wagonFrom,wagonTo,wagon.Bend);
         AssertThat(drumsRun).OverrideFailureMessage($"the drums' run is {drumsRun:F2} m").IsEqualApprox(10.55f,.01f);
-        AssertThat(wagonRun).OverrideFailureMessage($"the wagon's run is {wagonRun:F2} m").IsEqualApprox(44.14f,.01f);
-        // Both roll through the existing Parts table, the mechanism Traps.cs runs, and both feet are on the station's reachable floor.
+        AssertThat(wagonRun).OverrideFailureMessage($"the wagon's run is {wagonRun:F2} m").IsEqualApprox(44.5f,.01f);
+        // Head, bend and foot at their measured distances, with the drawn direction either side of the bend.
+        AssertThat(World.RunPoint(wagonFrom,wagonTo,wagon.Bend,0).At).IsEqual(wagon.From);
+        AssertThat(World.RunPoint(wagonFrom,wagonTo,wagon.Bend,12.5f).At.DistanceTo(wagon.Bend!.Value)).IsLess(.001f);
+        AssertThat(World.RunPoint(wagonFrom,wagonTo,wagon.Bend,wagonRun).At.DistanceTo(wagon.To)).IsLess(.001f);
+        var first=World.RunPoint(wagonFrom,wagonTo,wagon.Bend,1).Along;
+        var second=World.RunPoint(wagonFrom,wagonTo,wagon.Bend,30).Along;
+        float turn=Mathf.RadToDeg(Mathf.Acos(Mathf.Clamp(first.Dot(second),-1,1)));
+        AssertThat(turn).OverrideFailureMessage($"the bend turns {turn:F2} degrees").IsEqualApprox(16.26f,.05f);
+        // The 11 m class body: trailing end on the head, leading end on the siding, rear clear of the east fence 4 m behind the head.
+        AssertThat(World.WagonLong).IsEqual(11);
+        float rearX=wagon.From.X+World.WagonSpan*Mathf.Abs(first.Y);
+        AssertThat(rearX).OverrideFailureMessage($"the parked rear reaches x {rearX:F2}; the east fence's face stands at 627.60").IsLess(627.6f);
+        AssertThat(World.RunPoint(wagonFrom,wagonTo,wagon.Bend,World.WagonLong).At.DistanceTo(wagon.Bend!.Value)).IsLess(1.6f);
+        // The hump is a bed under the wheels, not a block around them: 12 cm of ballast, below the wheels' 17 cm and the chassis.
+        var hump=World.StationObstacles.Single(o=>o.Name=="Hump");
+        AssertThat(hump.High).IsEqual(.12f);
+        AssertThat(World.WagonWheelBottom).OverrideFailureMessage($"the wagon's wheels stand {World.WagonWheelBottom:F2} m up").IsGreater(hump.High);
+        // Both roll through the existing Parts table, the mechanism Traps.cs runs.
         AssertThat(World.Rolls(drums.Kind)&&World.Rolls(wagon.Kind)&&World.Rolls("wagon")).IsTrue();
         AssertThat(World.MazeEdge(drums.From.X,drums.From.Y)).IsLess(-.4f);
         AssertThat(World.MazeEdge(drums.To.X,drums.To.Y)).IsLess(-.4f);

@@ -116,10 +116,11 @@ public partial class Hud : Control
     }
     // The cap's width from its key, which the remedy row's own layout and the self-test both measure.
     public float KeyWidth(string key,int size)=>Math.Max(size*1.9f,font.GetStringSize(key,fontSize:size).X+size*1.1f);
-    // A key drawn as a small cap with its name on it; p is the cap's top-left corner.
+    // A key drawn as a small cap with its name on it; p is the cap's top-left corner. The remedy row's H cap is recorded as drawn.
     private void Keycap(string key,Vector2 p,int size=12)
     {
         var rect=new Rect2(p,KeyWidth(key,size),size*1.9f);
+        if(key=="H"&&size==12)RemedyHcap=rect;
         DrawStyleBox(new StyleBoxFlat {BgColor=new Color(ink,.92f),BorderColor=new Color(cream,.75f),BorderWidthLeft=1,BorderWidthTop=1,BorderWidthRight=1,BorderWidthBottom=2,
             CornerRadiusTopLeft=3,CornerRadiusTopRight=3,CornerRadiusBottomLeft=3,CornerRadiusBottomRight=3},rect);
         Text(key,new(rect.GetCenter().X-font.GetStringSize(key,fontSize:size).X/2,rect.GetCenter().Y+size*.36f),size,cream);
@@ -213,7 +214,10 @@ public partial class Hud : Control
         DrawLine(new(85,h*.25f+204),new(445,h*.25f+204),new Color(gold,.65f));
         Text(T("The train with no passengers"),new(85,h*.25f+240),19,cream);
     }
-    // Mio's face from her dialogue portrait, vitality and posture as bars, and a pouch for each remedy she can carry.
+    // Mio's face from her dialogue portrait, vitality and posture as bars, and a pouch for each remedy she can carry. RemedyDraws and
+    // RemedyHcap record what this draw actually emitted, which the self-test reads: no other screen's layout is recorded.
+    public readonly List<(Vector2 At,float Size,bool Filled)> RemedyDraws=new();
+    public Rect2 RemedyHcap;
     private void Vitals()
     {
         Panel(new(36,h-132,306,94),.88f);
@@ -224,7 +228,13 @@ public partial class Hud : Control
         float x=136;
         var bag=Game.Player.Inventory;int slots=Math.Max(1,bag.Capacity("remedy"));
         var (pitch,icon)=RemedyRow(slots,KeyWidth("H",12));
-        for(int i=0;i<slots;i++){DrawIcon("remedy",new(x+pitch/2,h-64),icon,i<bag.Count("remedy")?cream:new Color(cream,.22f));x+=pitch;}
+        RemedyDraws.Clear();
+        for(int i=0;i<slots;i++)
+        {
+            bool filled=i<bag.Count("remedy");var at=new Vector2(x+pitch/2,h-64);
+            RemedyDraws.Add((at,icon,filled));
+            DrawIcon("remedy",at,icon,filled?cream:new Color(cream,.22f));x+=pitch;
+        }
         Keycap("H",new(x+6,h-75.4f));
         Skill(new(398,h-86));
     }

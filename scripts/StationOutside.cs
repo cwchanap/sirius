@@ -103,7 +103,9 @@ public partial class World
         // Its own 4 m span and fence line are S1Gate's, so the flood's footprint and the live leaf cannot drift apart.
         new(S1Name,S1Gate.At,new(S1Gate.Span,.8f),1.7f,true),
         new(S5Name,new(421,-164.5f),new(.8f,5.2f),2.6f),
-        new("Signal cabin",new(433,-177),new(10,10),5),new("Hump",new(624,-138.75f),new(6,3.5f),1.2f),
+        // The hump is a track bed, not a block: the drawn footprint's 12 cm of ballast carries Siding 2's rails, and the wagon's wheels
+        // ride them instead of starting inside a one-metre stone mound.
+        new("Signal cabin",new(433,-177),new(10,10),5),new("Hump",new(624,-138.75f),new(6,3.5f),.12f),
         // The six stationary wagons on the drawn sidings, each 11 m by 3.2 m; the later hump trap is not built here.
         new("Wagon 1",new(577.5f,-128),new(11,3.2f),3.2f),new("Wagon 2",new(601.5f,-128),new(11,3.2f),3.2f),
         new("Wagon 3",new(579.5f,-142),new(11,3.2f),3.2f),new("Wagon 4",new(603.5f,-142),new(11,3.2f),3.2f),
@@ -168,11 +170,13 @@ public partial class World
         ("Hump line",new Vector3[]{new(624,6,-138.5f),new(634,6,-147)}),
     };
     // The station's own rolling loads, the same World.Parts rows and Traps.cs rules the maze's use: each parked at From, the head of its
-    // run, until Mio comes within 2.4 m of To, its foot. v9 draws the wagon's run bent at local (182,15); the existing straight mechanic
-    // keeps its approved head and foot, 44.14 m against the drawn 44.50, deviating up to 2.54 m from the drawn siding, so its foot is a
-    // deliberate detour off the itinerary rather than a trap on the walk.
-    public static readonly (string Name,string Kind,Vector2 From,Vector2 To)[] StationLoads={
-        ("Station oil drums","barrels",new(386,-138),new(377,-132.5f)),("Hump wagon","wagon",new(624,-138.5f),new(580,-135))};
+    // run, until Mio comes within 2.4 m of To, its foot. The wagon follows Siding 2's own drawn line, bent at (612,-135): 44.50 m, the
+    // drawn length, rather than a straight chord's 44.14 that cuts 2.54 m across the yard. Its foot is 17.4 m off the itinerary, so the
+    // walk reaches it as a deliberate detour. The 11 m body is parked with its trailing end on the head, because the yard's east fence
+    // stands 4 m behind it: centred on the head, an 11 m car's rear would cross the fence by 1.7 m. Its leading end therefore rides the
+    // 11 m of siding ahead of the head, both ends staying on the rails as it rolls.
+    public static readonly (string Name,string Kind,Vector2 From,Vector2 To,Vector2? Bend)[] StationLoads={
+        ("Station oil drums","barrels",new(386,-138),new(377,-132.5f),null),("Hump wagon","wagon",new(624,-138.5f),new(580,-135),new(612,-135))};
     // Hoshikawa Station's robots, in the same shape as the maze's and spawned by the same loop: three patrols, eight scouts (four dormant
     // until Mio comes near), six drones, at v9's posts. They carry Enemy.Maze too, so the day-one relay mission never counts them, but they
     // guard no lock-in yard: the station's rows have none, and Yard stays null. v9 gives the sleepers' posts and their sleeping state, not
@@ -301,7 +305,7 @@ public partial class World
         // The freight yard's four sidings, drawn from x 570 to the hump at (624,-138.5) and on to (634,-147), converging as v9 draws them.
         foreach(var siding in StationSidings)Track(siding.Name,siding.Points);
         // The station's two rolling loads, through the maze's own Load() and Traps.cs rules.
-        foreach(var (n,k,from,to) in StationLoads)Load(n,k,from,to);
+        foreach(var (n,k,from,to,bend) in StationLoads)Load(n,k,from,to,bend);
         // The gantry over the sidings: two legs, the bridge deck with its crane cell, and the ramp up from the yard's floor. The legs are
         // StationObstacles rows, so their colliders and the test's blocked cells are the same footprint; the deck and ramp are bodies of
         // their own, so the 2D flood only knows the ramp's foot.

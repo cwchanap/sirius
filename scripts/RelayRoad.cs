@@ -117,16 +117,39 @@ public partial class World
     // rocks, logs or barrels) is sprung by a step, at its plank or within reach of To, the foot of a load's run from From, and a rest re-arms
     // it: Size is a plank's reach, or a load's radius, and Span half a load's length across its run. A lock-in gate hangs Open metres over
     // From, its place on the floor, and drops while Mio is in its Yard and the robots there are not all shut down.
-    public record Part(string Name,string Kind,Node3D Body,Vector3 From,Vector3 To=default,float Closed=0,float Open=0,float Yaw=0,float Size=0,float Span=0,string? Yard=null)
+    public record Part(string Name,string Kind,Node3D Body,Vector3 From,Vector3 To=default,float Closed=0,float Open=0,float Yaw=0,float Size=0,float Span=0,string? Yard=null,Vector2? Bend=null,float Long=0)
     {
         public bool Shortcut=>Kind is "ladder" or "stair" or "gate";
-        // A rolling load turns about its spin axis; the wagon is the station's own load (World.StationLoads), tumbling as the run takes it.
+        // A rolling load turns about its spin axis; the station's wagon runs on its own axles along a bend, so Traps.cs treats it apart.
         public bool Rolls=>World.Rolls(Kind);
         public Transform3D Rest {get;}=Body.Transform;
         public void Swing(float angle)=>Body.Quaternion=new Quaternion(Vector3.Up,Yaw)*new Quaternion(Kind=="gate"?Vector3.Up:Vector3.Right,angle);
+        // The run's length, and where a point s metres along it stands, with its direction there: the wagon's bend is Siding 2's own.
+        public float PathLength=>World.RunLength(From,To,Bend);
+        public (Vector2 At,Vector2 Along) PathPoint(float s)=>World.RunPoint(From,To,Bend,s);
     }
     // The kinds that roll down a run, the maze's and the station's wagon.
     public static bool Rolls(string kind)=>kind is "rocks" or "logs" or "barrels" or "drum" or "wagon";
+    // A load's run as flat points, its head, its bend if it has one, and its foot; how long it is; and where a point s metres along it is,
+    // with the run's direction there. Past either end the run carries straight on along its end reach, so a long body's leading end may
+    // stand beyond the rails' end. Pure arithmetic, so the tests read the same path the game rolls.
+    public static Vector2[] RunPoints(Vector3 from,Vector3 to,Vector2? bend)
+        =>bend is {} b?new[]{new Vector2(from.X,from.Z),b,new Vector2(to.X,to.Z)}:new[]{new Vector2(from.X,from.Z),new Vector2(to.X,to.Z)};
+    public static float RunLength(Vector3 from,Vector3 to,Vector2? bend)
+    {
+        var p=RunPoints(from,to,bend);float total=0;for(int i=1;i<p.Length;i++)total+=p[i-1].DistanceTo(p[i]);return total;
+    }
+    public static (Vector2 At,Vector2 Along) RunPoint(Vector3 from,Vector3 to,Vector2? bend,float s)
+    {
+        var p=RunPoints(from,to,bend);
+        for(int i=1;i<p.Length;i++)
+        {
+            var d=p[i]-p[i-1];float length=d.Length();var along=d/length;
+            if(s<=length||i==p.Length-1)return (p[i-1]+along*s,along);
+            s-=length;
+        }
+        return (p[^1],Vector2.Right);
+    }
     public readonly List<Part> Parts=new();
     // Items lying off the road, each an Items id; Game hides each one Mio takes until the prologue restarts.
     public record Pickup(string Item,Node3D Node);
