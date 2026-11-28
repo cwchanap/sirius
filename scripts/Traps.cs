@@ -33,10 +33,35 @@ public partial class Game
             if(!t.Rolls)continue;
             if(!Sprung.Contains(t.Name)&&Flat(t.To-mio)<2.4f){Sprung.Add(t.Name);rolling[t.Name]=0;((StaticBody3D)t.Body).CollisionLayer=0;Sound("slam");CameraShake=.12f;}
             if(!rolling.TryGetValue(t.Name,out float run))continue;
-            float length=Flat(t.To-t.From);run=Math.Min(length,run+Roll*dt);rolling[t.Name]=run;
-            var p=t.From.Lerp(t.To,run/length);p.Y=Hoshikawa.World.Height(p.X,p.Z);t.Body.GlobalPosition=p;t.Body.GetNode<Node3D>("Spin").RotateX(Roll*dt/t.Size);
-            var along=(t.To-t.From).Normalized();along.Y=0;var across=new Vector3(-along.Z,0,along.X);var d=mio-p;
-            if(!struckBy.Contains(t.Name)&&Math.Abs(d.Dot(along))<t.Size+.4f&&Math.Abs(d.Dot(across))<t.Span+.3f&&d.Y>-1&&d.Y<2*t.Size+.6f){struckBy.Add(t.Name);Player.Crush(along);}
+            float length=t.PathLength;run=Math.Min(length,run+Roll*dt);rolling[t.Name]=run;
+            Vector2 at,along;
+            // A long body rides the run with both ends on it: its trailing end starts at the head and travels the whole run, its leading end
+            // Long ahead, so the body spans a bend instead of cutting it. Every other load is a point at its own centre.
+            if(t.Long>0){var rear=t.PathPoint(run);var front=t.PathPoint(run+t.Long);at=(rear.At+front.At)*.5f;along=(front.At-rear.At).Normalized();}
+            else{var here=t.PathPoint(run);at=here.At;along=here.Along;}
+            var p=new Vector3(at.X,Hoshikawa.World.Height(at.X,at.Y),at.Y);t.Body.GlobalPosition=p;t.Body.Rotation=new(0,Mathf.Atan2(along.X,along.Y),0);
+            var spin=t.Body.GetNode<Node3D>("Spin");
+            if(t.Long>0)foreach(var node in spin.GetChildren())
+            {
+                // A wagon's axles ride the rails themselves, each placed on the run at its own station and turned to the local rail, while its
+                // body spans the chord; only the wheels turn about their own axis, so the chassis, roof and ribs stay rigid.
+                if(node is not Node3D axle||!axle.Name.ToString().StartsWith("Wheel set"))continue;
+                var rail=t.PathPoint(run+axle.GetMeta("arc").AsSingle());
+                axle.GlobalPosition=new Vector3(rail.At.X,Hoshikawa.World.Height(rail.At.X,rail.At.Y)+Hoshikawa.World.WagonWheelBottom+Hoshikawa.World.WagonWheelRadius,rail.At.Y);
+                axle.GlobalRotation=new(0,Mathf.Atan2(rail.Along.X,rail.Along.Y),0);
+                // The cylinder's local +Y points along the axle's -X; negative spin carries the top toward the wagon's +Z.
+                foreach(var child in axle.GetChildren())if(child is Node3D wheel&&wheel.Name.ToString().StartsWith("Wagon wheel"))wheel.RotateObjectLocal(Vector3.Up,-Roll*dt/Hoshikawa.World.WagonWheelRadius);
+            }
+            else spin.RotateX(Roll*dt/t.Size);
+            // A wagon's hit axis is its bent track's own unit tangent. Every other load keeps the projection its run always used: the *3D*
+            // slope direction with Y dropped, so a downhill run's footprint stays as wide and its shove as hard as before (|along| = cos).
+            Vector3 along3;
+            if(t.Long>0)along3=new Vector3(along.X,0,along.Y);
+            else{along3=(t.To-t.From).Normalized();along3.Y=0;}
+            var across=new Vector3(-along3.Z,0,along3.X);var d=mio-p;
+            // A wagon's hit volume is its body, not its length: the long body never reaches up to the gantry ramp above its path.
+            float tall=t.Long>0?Hoshikawa.World.WagonHitTop:2*t.Size+.6f;
+            if(!struckBy.Contains(t.Name)&&Math.Abs(d.Dot(along3))<t.Size+.4f&&Math.Abs(d.Dot(across))<t.Span+.3f&&d.Y>-1&&d.Y<tall){struckBy.Add(t.Name);Player.Crush(along3);}
             if(run>=length){rolling.Remove(t.Name);t.Body.Visible=false;Dust(p,1.6f,14);Sound("break");}
         }
         foreach(var (yard,_) in Hoshikawa.World.Locks)
@@ -63,7 +88,15 @@ public partial class Game
         foreach(var t in World.Parts.Where(p=>p.Kind=="plank"||p.Rolls))
         {
             t.Body.Transform=t.Rest;t.Body.Visible=true;((StaticBody3D)t.Body).CollisionLayer=1;
-            if(t.Rolls)t.Body.GetNode<Node3D>("Spin").Rotation=Vector3.Zero;
+            if(!t.Rolls)continue;
+            var spin=t.Body.GetNode<Node3D>("Spin");spin.Rotation=Vector3.Zero;
+            // A wagon's axles and wheels are placed on the run at play, not turned by Spin: put each back where it was built.
+            foreach(var node in spin.GetChildren())
+                if(node is Node3D axle&&axle.Name.ToString().StartsWith("Wheel set"))
+                {
+                    axle.Transform=axle.GetMeta("parked").AsTransform3D();
+                    foreach(var child in axle.GetChildren())if(child is Node3D wheel&&wheel.Name.ToString().StartsWith("Wagon wheel"))wheel.Transform=wheel.GetMeta("parked").AsTransform3D();
+                }
         }
         lowered.Clear();foreach(var t in World.Parts.Where(p=>p.Kind=="lock"))Drop(t,0);
     }

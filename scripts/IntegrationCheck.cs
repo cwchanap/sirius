@@ -179,15 +179,21 @@ public static class IntegrationCheck
         }
         Check(step<.1f,$"hamlet terrain is continuous (largest 5 cm step {step:F3} at {stepAt})");
         Check(g.World.Residents.Count==10&&g.World.Residents.Select(r=>r.Name).Distinct().Count()==10,"ten named residents across two villages");
-        var relayRobots=g.Enemies.Where(e=>!e.Maze).ToArray();var mazeRobots=g.Enemies.Where(e=>e.Maze).ToArray();
+        var relayRobots=g.Enemies.Where(e=>!e.Maze).ToArray();
+        // The station's own rows carry Enemy.Maze too, so the old flag alone no longer partitions the two maps: by each robot's home region.
+        var mazeRobots=g.Enemies.Where(e=>e.Maze&&Hoshikawa.World.RegionAt(e.Home)==Hoshikawa.World.MazeName).ToArray();
+        var stationRobots=g.Enemies.Where(e=>e.Maze&&Hoshikawa.World.RegionAt(e.Home)==Hoshikawa.World.StationName).ToArray();
         Check(g.Patrols.Count()==3&&relayRobots.Count(e=>e.Kind==Enemy.Scout)==4&&relayRobots.Count(e=>e.Kind==Enemy.Drone)==5&&relayRobots.All(e=>Hoshikawa.World.RegionAt(e.Home)=="Old Relay Road"),
             "three patrol robots, four scouts and five drones on the relay road");
         Check(mazeRobots.Length==81&&mazeRobots.Count(e=>e.Kind==Enemy.Patrol)==11&&mazeRobots.Count(e=>e.Kind==Enemy.Drone)==30&&mazeRobots.Count(e=>e.Asleep&&e.State=="ASLEEP")==16
             &&mazeRobots.All(e=>Hoshikawa.World.RegionAt(e.Home)==Hoshikawa.World.MazeName),"Tunnel Mountain holds 81 robots of its own, eleven patrols, forty scouts (sixteen of them dormant) and thirty drones");
+        Check(stationRobots.Length==17&&stationRobots.Count(e=>e.Kind==Enemy.Patrol)==3&&stationRobots.Count(e=>e.Kind==Enemy.Scout)==8&&stationRobots.Count(e=>e.Kind==Enemy.Drone)==6
+            &&stationRobots.Count(e=>e.Asleep&&e.State=="ASLEEP")==4&&stationRobots.All(e=>e.Yard==null&&!g.Patrols.Contains(e)),
+            "Hoshikawa Station holds 17 robots of its own, three patrols, eight scouts (four dormant) and six drones, none of them the day-one mission's and none shutting a lock-in gate");
         // Far from Mio and culled, a dormant scout must already lie at its death clip's end, its hips well down, not stand in the clip's first frame.
         float Hips(Enemy e,bool rest){var skeleton=ActorVisual.Descendants(e.Model).OfType<Skeleton3D>().Single();int hip=skeleton.FindBone("Hips");
             return skeleton.ToGlobal((rest?skeleton.GetBoneGlobalRest(hip):skeleton.GetBoneGlobalPose(hip)).Origin).Y-e.GlobalPosition.Y;}
-        var sleepers=mazeRobots.Where(e=>e.Asleep).ToArray();
+        var sleepers=mazeRobots.Concat(stationRobots).Where(e=>e.Asleep).ToArray();
         Check(sleepers.All(e=>!e.Visible&&Hips(e,false)<.8f*Hips(e,true)),"the dormant scouts lie down even while too far off to be simulated: "+string.Join(", ",sleepers.Select(e=>$"{Hips(e,false)/Hips(e,true):F2}")));
         var merged=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().StartsWith("Merged statics")).ToArray();
         var baked=g.World.FindChildren("*","MeshInstance3D",true,false).Cast<MeshInstance3D>().Where(n=>!n.Visible&&(n.Mesh is PrimitiveMesh||n.Mesh.ResourceName.StartsWith("prop "))).ToArray();
@@ -273,6 +279,18 @@ public static class IntegrationCheck
         }
         g.Player.Visual.Play("idle",1,true);
         await Frames(30);Check(g.Player.IsOnFloor(),"player starts on physical terrain");
+        // A defeat away from home returns her to Hoshikawa's street, the run's first checkpoint: Retry follows her from its first
+        // visible frame, with the toast intact, the player's aim kept and no arrival reveal. The mountain's and station's own checkpoint
+        // contexts are read later, where she rests.
+        Place(g.Player,new(0,Hoshikawa.World.Height(0,60)+.1f,60));await Frames(10);
+        float villagePitch=g.CameraPitch;
+        g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);await Frames(2);
+        bool villageFelled=g.Mode==GameMode.Defeated;g.Retry();await Frames(1);
+        Check(villageFelled&&g.RestedAt==0&&g.Player.GlobalPosition.DistanceTo(new Vector3(0,Hoshikawa.World.Height(0,31)+.1f,31))<.5f
+            &&g.ToastTitle=="BACK AT THE VILLAGE",$"a defeat away from home brings Mio back to Hoshikawa's own checkpoint with its toast ({g.ToastTitle})");
+        Check(g.GetViewport().GetCamera3D().GlobalPosition.DistanceTo(g.Player.GlobalPosition+Vector3.Up*1.35f)<12f
+            &&Math.Abs(g.CameraPitch-villagePitch)<.001f&&g.CameraYaw==0&&g.ArrivalLift==0&&g.RevealShare==0,
+            $"Retry puts the camera at the respawn's follow position on its first frame, keeping the player's aim and no reveal ({g.GetViewport().GetCamera3D().GlobalPosition})");
         Check(g.Music.Current=="valley"&&g.Music.Players.All(p=>p.Value.Playing==(p.Key=="valley")),"the valley's music plays in Hoshikawa, and no other track");
         Check(g.Music.Players.Where(p=>p.Key!="valley").All(p=>p.Value.Stream is AudioStreamOggVorbis {Loop:true,LoopOffset:0}),"the relay road and battle tracks are each one loop that repeats whole");
         foreach(var enemy in g.Enemies)enemy.SetPhysicsProcess(false);
@@ -595,6 +613,24 @@ public static class IntegrationCheck
         g.Begin();
         Check(g.Mode==GameMode.Dialogue&&g.Speaker==""&&g.Script.SequenceEqual(Prologue.Opening)&&!g.Player.Visible&&g.Blackout>0&&g.GetViewport().GetCamera3D()!=g.Camera,
             "the journey opens from black on narration, the scene camera over the valley");
+        // The city moved to the north-west ridge beyond the station. The opening plays the city shot itself: assert the actual scene
+        // camera's pose, then the built and merged skyline's bounds against that camera's real frustum. Finding the hidden originals or
+        // checking the far plane alone would pass even if Opening.0 cued another shot.
+        var cityCamera=g.GetViewport().GetCamera3D();
+        var (cityEye,cityAt,_,_)=Game.Shots["city"];
+        var paintedEye=new Vector3(cityEye.X,Math.Max(cityEye.Y,Hoshikawa.World.Height(cityEye.X,cityEye.Z)+3),cityEye.Z);
+        Check(cityCamera.GlobalPosition.DistanceTo(paintedEye)<.01f&&(-cityCamera.GlobalBasis.Z).Dot((new Vector3(cityAt.X,cityAt.Y,cityAt.Z)-paintedEye).Normalized())>.999f
+            &&cityCamera.Fov==50&&cityCamera.Far==Game.SceneFar,
+            $"the opening plays the city shot: the scene camera at its eye and heading, {cityCamera.Fov} degrees, far {cityCamera.Far}");
+        await Frames(2);cityCamera=g.GetViewport().GetCamera3D();
+        var cityColor=new Color("728e8c");
+        var skyline=g.World.FindChildren("*","MeshInstance3D",true,false).Cast<MeshInstance3D>()
+            .Where(m=>m.Visible&&m.Mesh is ArrayMesh&&m.MaterialOverride is StandardMaterial3D mat
+                &&Math.Abs(mat.AlbedoColor.R-cityColor.R)<.001f&&Math.Abs(mat.AlbedoColor.G-cityColor.G)<.001f&&Math.Abs(mat.AlbedoColor.B-cityColor.B)<.001f).ToArray();
+        var bounds=skyline.Length==1?skyline[0].GlobalTransform*skyline[0].Mesh.GetAabb():new Aabb();
+        var corners=Enumerable.Range(0,8).Select(i=>bounds.Position+new Vector3((i&1)==0?0:bounds.Size.X,(i&2)==0?0:bounds.Size.Y,(i&4)==0?0:bounds.Size.Z)).ToArray();
+        Check(skyline.Length==1&&bounds.Size.X>20&&Math.Abs(bounds.Size.Z-3)<.01f&&corners.All(c=>cityCamera.IsPositionInFrustum(c)),
+            $"the built city skyline is one merged mesh {bounds.Size.X:F1} x {bounds.Size.Y:F1} x {bounds.Size.Z:F1} m at {bounds.GetCenter()}, every corner in the opening camera's frustum");
         Check(g.Hud.Portrait("Mio")!=null&&g.World.Residents.All(r=>g.Hud.Portrait(r.Name)!=null)&&g.Hud.Portrait("Zero")==null,"Mio and every resident have a dialogue portrait; unseen Zero has none");
         Check(Hud.Icons.All(n=>Hud.Icon(n) is {} t&&t.GetWidth()==256&&t.GetHeight()==256)&&ResourceLoader.Exists("res://assets/art/ui/logo.png"),$"all {Hud.Icons.Length} HUD icons and the title logo load, the icons 256 px square");
         Check(g.World.Residents.All(r=>r.Body.GetChildren().OfType<Label3D>().Single() is {VisibilityRangeEnd:>0 and <20} label&&label.Layers==Hoshikawa.World.NameLayer)&&(g.GetViewport().GetCamera3D().CullMask&Hoshikawa.World.NameLayer)==0,
@@ -610,6 +646,7 @@ public static class IntegrationCheck
         while(g.Script.SequenceEqual(Prologue.Opening)&&presses<20){await Tap(Key.E);presses++;}
         Check(presses==2*Prologue.Opening.Length&&g.InRoom&&!g.World.Visible&&g.Player.Visible&&g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Intro)&&g.Speaker=="Zero",
             $"the narration ends in Mio's room, a map of its own, where Zero wakes her ({presses} presses)");
+        Check(g.GetViewport().GetCamera3D().Far==Game.SceneFar,"the scene camera's one 500 m far holds through every shot, with no per-shot change");
         bool Sheathed()=>ActorVisual.Descendants(g.Player.Model).OfType<MeshInstance3D>().Where(m=>m.Name.ToString().StartsWith("Sword")).All(m=>!m.Visible);
         Check(g.Player.Visual.Clip=="sleep"&&g.Player.GlobalPosition.DistanceTo(g.Room!.GlobalPosition+Hoshikawa.World.Bed)<.01f&&Sheathed()&&g.Voice.Playing&&g.Voice.Stream?.ResourcePath=="res://assets/audio/voice/ja/Zero/Intro.0.mp3",
             "she sleeps on her futon, her sword left on its rack, and Zero's voice wakes her in Japanese");
@@ -635,7 +672,7 @@ public static class IntegrationCheck
         await To(Prologue.Intro.Length);
         Check(g.Mode==GameMode.Playing&&presses==2*Prologue.Intro.Length&&g.InRoom&&g.Objective=="Head outside"&&g.Staged,
             $"the waking scene plays every line, two presses each ({presses}), and leaves Mio to head outside while the camera swings back");
-        await Frames((int)(Game.CameraBack*60)+10);var ahead=-g.Camera.GlobalBasis.Z;var door=g.Room!.GlobalPosition+Hoshikawa.World.Door-g.Player.GlobalPosition;
+        await Frames((int)(Game.CameraBack*60)+10);var ahead=-g.Camera.GlobalBasis.Z;var door=g.Room!.GlobalPosition+Hoshikawa.World.RoomDoor-g.Player.GlobalPosition;
         Check(g.GetViewport().GetCamera3D()==g.Camera&&new Vector2(ahead.X,ahead.Z).Normalized().Dot(new Vector2(door.X,door.Z).Normalized())>.95f,
             "the follow camera takes over behind her, looking at the door out");
         Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Y>Hoshikawa.World.RoomAt.Y-.1f,"she stands on the tatami");
@@ -650,7 +687,7 @@ public static class IntegrationCheck
         Indoors(Hoshikawa.World.Photo);await Frames(5);
         Check(g.Interaction()==("",Localization.T("PHOTO")),"the photograph on the wall can be looked at");
         g.Interact();Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Photo)&&g.Speaker=="Mio","Mio greets her mother's photograph, and Zero hurries her on");g.EndDialogue();
-        Indoors(Hoshikawa.World.Door);await Frames(5);
+        Indoors(Hoshikawa.World.RoomDoor);await Frames(5);
         Check(g.Interaction()==("",Localization.T("DOOR"))&&g.Objective=="Head outside","the door out is her objective");
         g.Interact();var yui=g.Actor("Yui");
         Check(!g.InRoom&&g.World.Visible&&!Sheathed()&&g.Player.GlobalPosition.DistanceTo(new(Hoshikawa.World.MioDoor.X,Hoshikawa.World.Height(Hoshikawa.World.MioDoor.X,Hoshikawa.World.MioDoor.Z)+.1f,Hoshikawa.World.MioDoor.Z))<.01f,
@@ -872,7 +909,10 @@ public static class IntegrationCheck
         // counts; its screen raises a stat a point for each level's cost and trades stardust for resonance cells.
         var downed=g.Enemies.First(e=>e.Kind==Enemy.Scout);purse=growth.Stardust;downed.Execute();
         Check(downed.Dead&&growth.Stardust==purse+Stats.ScoutReward,$"a shut-down scout leaves Mio {Stats.ScoutReward} stardust");
+        // The valley's map still draws its river band, so the station's empty one is a rule and not a dead counter.
         var savePoint=Hoshikawa.World.SavePoints[0].At;Place(g.Player,new(savePoint.X+2,Hoshikawa.World.Height(savePoint.X+2,savePoint.Y)+.1f,savePoint.Y));await Frames(10);
+        g.Hud.MapRivers=0;g.Hud.QueueRedraw();await Frames(2);
+        Check(g.Region=="Hoshikawa"&&g.Hud.MapRivers>0,$"the valley's minimap draws its river band ({g.Region}, {g.Hud.MapRivers} bands)");
         Check(g.Player.IsOnFloor()&&g.Interaction()==(Hud.StardustIcon,Localization.T(Hoshikawa.World.SavePointName).ToUpperInvariant())&&g.GetNode<OmniLight3D>("Save point light Hoshikawa").GlobalPosition.DistanceTo(new(savePoint.X,g.Player.GlobalPosition.Y,savePoint.Y))<1.5f,
             "Hoshikawa's well is the save point, lit, its name on the prompt");
         g.Player.Health=20;g.Player.SkillCharges=0;g.Player.Stamina=0;await Tap(Key.E);
@@ -898,7 +938,7 @@ public static class IntegrationCheck
         await Tap(Key.Escape);Check(g.Mode==GameMode.Playing,"escape leaves the save point's screen back to play");
         // Komorebi's well is the second Starwell, the same screen.
         var northern=Hoshikawa.World.SavePoints[1].At;Place(g.Player,new(northern.X+2,Hoshikawa.World.Height(northern.X+2,northern.Y)+.1f,northern.Y));await Frames(10);
-        Check(Hoshikawa.World.SavePoints.Length==4&&Hoshikawa.World.RegionAt(g.Player.GlobalPosition)=="Komorebi"&&g.Player.IsOnFloor()&&g.Interaction()==(Hud.StardustIcon,Localization.T(Hoshikawa.World.SavePointName).ToUpperInvariant())
+        Check(Hoshikawa.World.SavePoints.Length==5&&Hoshikawa.World.RegionAt(g.Player.GlobalPosition)=="Komorebi"&&g.Player.IsOnFloor()&&g.Interaction()==(Hud.StardustIcon,Localization.T(Hoshikawa.World.SavePointName).ToUpperInvariant())
             &&g.GetNode<OmniLight3D>("Save point light Komorebi").GlobalPosition.DistanceTo(new(northern.X,g.Player.GlobalPosition.Y,northern.Y))<1.5f,"Komorebi's well is the other Starwell, lit, its name on the prompt");
         g.Player.Health=20;await Tap(Key.E);Check(g.Mode==GameMode.Rest&&g.Player.Health==g.Player.MaxHealth,"and E there rests Mio and opens the same screen");
         await Tap(Key.Escape);
@@ -955,7 +995,7 @@ public static class IntegrationCheck
         Check(g.ObjectivePosition.DistanceTo(new(Hoshikawa.World.MioDoor.X,g.ObjectivePosition.Y,Hoshikawa.World.MioDoor.Z))<.01f,"the last errand left is at home");
         var doorstep=new Vector3(Hoshikawa.World.MioDoor.X,Hoshikawa.World.Height(Hoshikawa.World.MioDoor.X,Hoshikawa.World.MioDoor.Z)+.1f,Hoshikawa.World.MioDoor.Z);Place(g.Player,doorstep);await Frames(10);
         Check(g.AtHome&&g.Interaction()==("",Localization.T("DOOR")),"from the second day her own door takes her home");
-        g.Interact();Check(g.InRoom&&g.Mode==GameMode.Playing&&g.Objective=="Mend Renji's telephone"&&g.Player.Facing.X<-.9f&&g.Player.GlobalPosition.DistanceTo(g.Room!.GlobalPosition+Hoshikawa.World.Door)<1,"in at her door, facing into her room, she is to mend the telephone");
+        g.Interact();Check(g.InRoom&&g.Mode==GameMode.Playing&&g.Objective=="Mend Renji's telephone"&&g.Player.Facing.X<-.9f&&g.Player.GlobalPosition.DistanceTo(g.Room!.GlobalPosition+Hoshikawa.World.RoomDoor)<1,"in at her door, facing into her room, she is to mend the telephone");
         Indoors(Hoshikawa.World.Telephone+Vector3.Left*.6f);await Frames(5);
         Check(g.Interaction()==("repair",Localization.T("TELEPHONE"))&&g.ObjectivePosition==g.Room!.GlobalPosition+Hoshikawa.World.Telephone,"Renji's telephone on the floor is the objective, to repair");
         g.Interact();Check(g.Script.SequenceEqual(Prologue.PhoneFixed)&&g.QuestStage==Quest.Handover&&g.ToastTitle=="READY TO SET OUT","mending it is the fourth errand: Mio is ready to set out");
@@ -996,6 +1036,7 @@ public static class IntegrationCheck
         await Tap(Key.E);Check(g.Mode==GameMode.Rest&&g.RestedAt==2,"Mio rests at it");await Tap(Key.Escape);
         // The Bell ledge over the shrine terrace is out of reach from it until its stair is let down from the ledge.
         var bellStair=g.World.Parts.Single(p=>p.Name=="Bell stair");bool Down(World.Part part)=>part.Body.Quaternion.AngleTo(new Quaternion(Vector3.Up,part.Yaw)*new Quaternion(part.Kind=="gate"?Vector3.Up:Vector3.Right,part.Open))<.01f;
+        bool Shut(World.Part part)=>part.Body.Quaternion.AngleTo(new Quaternion(Vector3.Up,part.Yaw)*new Quaternion(part.Kind=="gate"?Vector3.Up:Vector3.Right,part.Closed))<.01f;
         var bellFoot=new Vector2(bellStair.To.X,bellStair.To.Z);var bellBrow=new Vector2(bellStair.Body.Position.X,bellStair.Body.Position.Z);var bellLedge=bellBrow+(bellBrow-bellFoot).Normalized()*1.5f;
         await Walk((96,-152),(98,-144.5f),(96,-138),(96,-131),(bellFoot.X-.6f,bellFoot.Y+.6f));
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-14)<.4f&&!await Head(bellLedge,true,200)&&g.Player.GlobalPosition.Y<16&&g.Interaction().Icon!="ladder",$"up the stone steps to the shrine terrace, where the drawn-up Bell stair leaves the ledge out of reach {g.Player.GlobalPosition}");
@@ -1027,7 +1068,7 @@ public static class IntegrationCheck
         Check(!dormant.Dead&&!dormant.Asleep&&dormant.State=="STAGGER"&&Hips(dormant,false)<Hips(dormant,true),"in front of it, it wakes and gets up");
         await Frames(30);Check(dormant.State=="RECOVER"&&Hips(dormant,false)>.8f*Hips(dormant,true),$"standing in half a second, its guard up before it comes on ({Hips(dormant,false)/Hips(dormant,true):F2})");dormant.Reset();dormant.SetPhysicsProcess(false);
         // The Cut gate is barred on the Halt's side: from the Crossing it will not open, and it closes the Cut.
-        var cutGate=g.World.Parts.Single(p=>p.Kind=="gate");var gateWest=new Vector2(cutGate.To.X,cutGate.To.Z);var gateEast=new Vector2(cutGate.From.X,cutGate.From.Z);
+        var cutGate=g.World.Parts.Single(p=>p.Name=="Cut gate");var gateWest=new Vector2(cutGate.To.X,cutGate.To.Z);var gateEast=new Vector2(cutGate.From.X,cutGate.From.Z);
         Place(g.Player,On(gateWest-(gateEast-gateWest).Normalized()*3));await Frames(10);
         Check(!await Head(gateEast,true,200)&&g.Player.GlobalPosition.X<Hoshikawa.World.CutGate.X,$"the closed Cut gate stops her at the Crossing's end of the Cut {g.Player.GlobalPosition}");
         Place(g.Player,On(gateWest));await Frames(10);g.Interact();
@@ -1039,7 +1080,14 @@ public static class IntegrationCheck
         var hangingPlank=g.World.Parts.Single(p=>p.Name=="Hanging bridge rotten plank");var rotten=g.World.Parts.Single(p=>p.Name=="Trestle rotten plank");
         var layers=mazeRobots.ToDictionary(e=>e,e=>e.CollisionLayer);foreach(var e in mazeRobots)e.CollisionLayer=0;g.Player.Invulnerable=1e9f;
         Place(g.Player,On(new(145,-101)));await Frames(10);
-        await Walk((157,-100),(169,-98),(181,-99),(186,-97),(188,-93),(190,-87),(198,-75),(210,-65),(216,-60),(228,-59),(240,-47),(249,-39),(253,-37),(265,-31),(277,-30),(289,-34),(294,-36),
+        await Walk((157,-100),(169,-98),(181,-99),(186,-97),(188,-93),(190,-87),(198,-75),(210,-65),(216,-60),(228,-59),(240,-47),(249,-39),(253,-37),(265,-31));
+        // The kilns' pouch, on its barrel by the kiln path: the prologue's second, one of the four that raise her remedies to seven.
+        var kilnPouch=g.World.GetNode<Node3D>("Kiln pouch");
+        await WalkTo(new(268,-28.4f));await Frames(5);
+        Check(g.Player.IsOnFloor()&&g.Interaction()==("remedy",Localization.T("Remedy pouch").ToUpperInvariant()),$"the kilns' pouch waits on its barrel by the kiln path {g.Player.GlobalPosition}");
+        await Tap(Key.E);await Frames(2);
+        Check(!kilnPouch.Visible&&bag.Count("pouch")==2,$"taking it is the prologue's second pouch (pouches {bag.Count("pouch")})");
+        await Walk((277,-30),(289,-34),(294,-36),
             (304,-46),(309,-53),(308,-64),(304,-67),(292,-73),(286,-77),(285,-78),(274,-89),(269,-94),(266,-98),(260,-104),(248,-101),(236,-99),(230,-99),(230,-104),(235,-109),(235,-112),(242,-117),(242,-125),(248,-130),(258,-131.5f),(264,-133));
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-20)<.6f&&g.Sprung.Contains("Ravine logs")&&g.Sprung.Contains("Back stair barrels"),$"leg 2 climbs by the Mill ravine, the fields and the gorge up the back stair to the Row's bridgehead, past the ravine's logs and the stair's barrels {g.Player.GlobalPosition}");
         await Walk((266,-133),(270.5f,-132.2f),(275.5f,-132.2f),(282,-133),(286,-133));
@@ -1089,6 +1137,38 @@ public static class IntegrationCheck
         var drum=g.World.Parts.Single(p=>p.Name=="Shelf drum");
         await Walk((298.5f,-135),(297,-150),(298.5f,-157.5f),(304.5f,-158),(306,-150),(307.5f,-135),(307.5f,-118),(308,-112),(317,-113.5f),(325,-117),(331.5f,-121.5f),(333,-125));
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-27.5f)<.6f&&!g.Sprung.Contains(drum.Name),$"from the top bench the overlook road runs along the east face to the Station overlook {g.Player.GlobalPosition}");
+        // The Shelf's lower way is the one way down to the East yard and its pouch: a deliberate detour off the leg. The overlook deck is
+        // entered at its open west side, and its south edge drops onto the shelf over a 0.6 m lip she walks off, so the way back is a hop.
+        var eastPouch=g.World.GetNode<Node3D>("East yard pouch");
+        await Walk((332.6f,-122.6f),(334.6f,-121.8f),(336,-119.6f),(336.2f,-117.8f),(337.5f,-113),(341,-110.5f),(343.5f,-115.5f),(343,-125),(342.5f,-137),(343,-150),(344.5f,-160),(346,-165),(347,-171));
+        await WalkTo(new(eastPouch.GlobalPosition.X-1.3f,eastPouch.GlobalPosition.Z+1.3f));await Frames(5);
+        Check(g.Player.IsOnFloor()&&g.Region==Hoshikawa.World.MazeName&&g.Interaction()==("remedy",Localization.T("Remedy pouch").ToUpperInvariant()),
+            $"down the Shelf's lower way, the East yard's pouch waits on its barrel {g.Player.GlobalPosition}");
+        await Tap(Key.E);await Frames(2);
+        Check(!eastPouch.Visible&&bag.Count("pouch")==3,$"taking it is the prologue's third pouch (pouches {bag.Count("pouch")})");
+        await WalkTo(new(347,-171));await Walk((346,-165),(344.5f,-160),(343,-150),(342.5f,-137),(343,-125),(343.5f,-115.5f),(341,-110.5f),(337.5f,-113),(336.2f,-118.5f));
+        // The return is the deck's south lip, half a metre over the Shelf: the rim rock closes the walk-only way round (measured: she
+        // stalls at (334.2, 27.16, -118.3) trying it), so she presses up to the lip, takes a pace back and jumps — every step on her own
+        // feet. A body thrown across that lift first proves the jump is what carries her: with it there she stays below the deck.
+        async Task JumpTheLip()
+        {
+            Hold("forward");await Frames(30);Release("forward");await Frames(4);   // up against the lip
+            Hold("back");await Frames(6);Release("back");await Frames(4);          // a pace back from it
+            g.CameraYaw=0;Hold("forward");await Press("jump",2);await Frames(40);Release("forward");await Frames(4);
+        }
+        var lifted=new StaticBody3D{Name="TEST lip obstruction",CollisionLayer=1,CollisionMask=0,Position=new(336.2f,27.55f,-118.35f)};
+        lifted.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(2,2.1f,.3f)}});g.World.AddChild(lifted);await Frames(2);
+        await JumpTheLip();
+        Check(!(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Y>27.2f),$"a body across the lip stops the way back onto the deck ({g.Player.GlobalPosition})");
+        lifted.QueueFree();await Frames(3);
+        bool regained=false;
+        for(int attempt=0;attempt<3&&!regained;attempt++)
+        {
+            await JumpTheLip();
+            regained=g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-27.5f)<.5f;
+        }
+        Check(regained,$"up to the lip and a genuine jump regains the Station overlook deck {g.Player.GlobalPosition}");
+        await WalkTo(new(334.6f,-121.8f));await WalkTo(new(332.6f,-122.6f));
         await Walk((333.5f,-129.5f),(331.5f,-134.5f),(329.5f,-142.5f),(327,-151.5f),(324.5f,-159),(320,-163));
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-34)<.6f&&g.Sprung.Contains(drum.Name),$"up the Shelf, its cable drum rolling down at her, to the Mast at the top of the map {g.Player.GlobalPosition}");
         var haltStair=g.World.Parts.Single(p=>p.Name=="Halt stair");var haltFoot=new Vector2(haltStair.To.X,haltStair.To.Z);var haltBrow=new Vector2(haltStair.Body.Position.X,haltStair.Body.Position.Z);
@@ -1108,11 +1188,14 @@ public static class IntegrationCheck
         var pits=g.World.Parts.Single(p=>p.Yard=="Charcoal pits");
         await Walk((206,-238),(212,-233.5f),(217,-229.5f));await Frames(30);
         Check(Lowered(pits)&&!await Head(new(206,-238),true,120),"stepping into the charcoal pits drops their gate behind her");
-        g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);felled=g.Mode==GameMode.Defeated;g.Retry();await Frames(5);
+        g.CameraPitch=-.45f;g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);felled=g.Mode==GameMode.Defeated;g.Retry();await Frames(1);
         Check(felled&&Raised(pits)&&!g.Cleared.Contains("Charcoal pits")&&g.RestedAt==3&&g.Opened.Contains(haltStair.Name),"a defeat in the pits lifts their gate, and the Halt stair stays down");
-        foreach(var e in mazeRobots)e.CollisionLayer=0;g.Player.Invulnerable=1e9f;
+        Check(g.ToastTitle=="BACK AT THE STARWELL"&&g.GetViewport().GetCamera3D().GlobalPosition.DistanceTo(g.Player.GlobalPosition+Vector3.Up*1.35f)<12f
+            &&Math.Abs(g.CameraPitch+.45f)<.001f&&g.CameraYaw==0&&g.ArrivalLift==0&&g.RevealShare==0,
+            $"Retry at the Halt's checkpoint follows her from its first frame and keeps both the player's aim and BACK AT THE STARWELL ({g.ToastTitle})");
+        await Frames(4);foreach(var e in mazeRobots)e.CollisionLayer=0;g.Player.Invulnerable=1e9f;
         // Down the Wood road and along the Long ledge, high over the Crossing, to the Signal yard on the cliff over the Court, where she lets
-        // the Great stair down; the Station tunnel's mouth at the yard's east end is where the maze ends for now.
+        // the Great stair down; the Station tunnel's mouth at the yard's east end is the door to the station.
         Place(g.Player,On(new(196,-242)));await Frames(10);
         await Walk((192,-228),(188,-214),(184,-202),(180,-194),(164,-193.5f),(146,-194),(128,-193.5f),(122,-193.5f),(115,-192),(110,-188),(107.5f,-184.5f),(104,-178));
         var great=g.World.Parts.Single(p=>p.Name=="Great stair");var greatFoot=new Vector2(great.To.X,great.To.Z);var greatBrow=new Vector2(great.Body.Position.X,great.Body.Position.Z);
@@ -1122,8 +1205,743 @@ public static class IntegrationCheck
         Check(g.Opened.Contains(great.Name)&&Down(great),"letting the Great stair down opens the last shortcut");
         await WalkTo(greatBrow,false);await WalkTo(greatFoot+(greatFoot-greatBrow).Normalized()*1.5f,false);
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-10)<.5f&&new Vector2(g.Player.GlobalPosition.X,g.Player.GlobalPosition.Z).DistanceTo(courtWell)<9,$"the Great stair walks down into the Court, beside the first Starwell {g.Player.GlobalPosition}");
+        // The Court is the station's nearest Starwell, and the checkpoint until Mio rests at the Forecourt's: rest here again so the station's
+        // defeat can be read against it. (The rest regroups the maze's robots, so they are set aside again for the walks that follow.)
+        Place(g.Player,On(courtWell+new Vector2(2,0)));await Frames(10);
+        Check(g.Interaction().Icon==Hud.StardustIcon,"the Court's Starwell prompts under the Great stair");
+        await Tap(Key.E);Check(g.Mode==GameMode.Rest&&g.RestedAt==2,"Mio rests at the Court's Starwell once more: the station's checkpoint");
+        await Tap(Key.Escape);foreach(var e in mazeRobots)e.CollisionLayer=0;g.Player.Invulnerable=1e9f;
+        // Back up it in steps along the plate's own line: the Great stair is a 1.5 m walk plate hung over the Court's flat floor, its foot
+        // flush with it and no riser to catch a walker, so a straight line aimed at the ledge from off its centre crosses the floor under the
+        // plate and dead-ends at the ledge (measured: every direct climb from the foot's centre band succeeds, starts 1.4 m off walk under it).
+        await WalkTo(greatFoot+(greatFoot-greatBrow).Normalized()*1.5f);
+        await WalkTo(greatFoot.Lerp(greatBrow,.2f));await WalkTo(greatFoot.Lerp(greatBrow,.55f));await WalkTo(greatFoot.Lerp(greatBrow,.85f));
         await WalkTo(greatBrow+(greatBrow-greatFoot).Normalized()*2.5f);await Walk((104,-176),(120,-176),(133,-176));
-        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-16.5f)<.6f&&g.ToastTitle=="TO BE CONTINUED"&&g.Region==Hoshikawa.World.MazeName,$"back up it and across the yard to the Station tunnel's mouth, where the maze ends for now {g.Player.GlobalPosition}");
+        // The station's two portals: through the blackout door to the hillside above Hoshikawa Station and back, with no premature end.
+        var mountainSideDoor=Hoshikawa.World.Doors.Single(d=>d.Kind==Hoshikawa.World.DoorKind.Portal&&d.At.X<200);var stationSideDoor=Hoshikawa.World.Doors.Single(d=>d.Kind==Hoshikawa.World.DoorKind.Portal&&d.At.X>200);
+        var parcelsKey=g.World.Pickups.Single(p=>p.Item=="parcels_key").Node;
+        // Each row's landing is the other side's: through the mountain row she arrives on the station's hillside, and back through the
+        // station row she arrives at the Signal yard's mouth.
+        var stationLanding=Hoshikawa.World.DoorLanding(mountainSideDoor);var mountainLanding=Hoshikawa.World.DoorLanding(stationSideDoor);
+        // The rockfall is not the only guard: before Beyond the mouth neither prompts nor opens.
+        var stageBefore=g.QuestStage;g.QuestStage=Quest.Rockfall;await Frames(2);
+        Check(g.Player.GlobalPosition.DistanceTo(Hoshikawa.World.DoorPoint(mountainSideDoor))<2.2f&&g.Interaction().Label=="",
+            "before the rockfall is cleared the Station tunnel's mouth offers nothing");
+        var beforeMouth=g.Player.GlobalPosition;await Tap(Key.E);await Frames(3);
+        Check(g.Player.GlobalPosition.DistanceTo(beforeMouth)<.5f&&g.Region==Hoshikawa.World.MazeName&&g.Mode==GameMode.Playing,
+            $"and the mapped E there does not take her through before Beyond {g.Player.GlobalPosition}");
+        g.QuestStage=stageBefore;await Frames(2);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-16.5f)<.6f&&g.Region==Hoshikawa.World.MazeName&&g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),
+            $"once Beyond, the Station tunnel's mouth leads through {g.Player.GlobalPosition}");
+        // The player's aim before the door must survive the arrival reveal; the reveal itself is a separate lift/pitch that the
+        // existing blackout fade hands back to the normal follow camera.
+        g.CameraPitch=-.45f;
+        Check(g.Mode==GameMode.Playing&&g.Player.Free,"the tunnel is entered in play, with Mio free to act");
+        await Tap(Key.E);
+        Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-stationLanding.X,g.Player.GlobalPosition.Z-stationLanding.Z).Length()<.5f,
+            $"E at the tunnel mouth sets her down on the station's hillside {g.Player.GlobalPosition}");
+        Check(g.Region==Hoshikawa.World.StationName&&g.QuestStage==Quest.Beyond&&g.Mode==GameMode.Playing,$"the station's hillside is its own region {g.Region}");
+        // Both landings face the way out, player and camera alike: real vectors from the arrival, not a wrapped angle between the rows.
+        Vector3 CameraView(){var v=-g.GetViewport().GetCamera3D().GlobalBasis.Z;return new Vector3(v.X,0,v.Z).Normalized();}
+        Check(g.Player.Facing.Dot(Vector3.Right)>.99f&&CameraView().Dot(Vector3.Right)>.99f,
+            $"at the station landing Mio and the camera face east down the lineman's path ({g.Player.Facing}, {CameraView()})");
+        Check(g.ToastTitle=="HOSHIKAWA STATION",$"the station's name is toasted as she arrives ({g.ToastTitle})");
+        // The minimap's river bands are only ever in range within 50 m of a river's Z, so the landing cannot test them; the garage, where the
+        // valley's Z −8 band would otherwise be 28 m away, does that below.
+        Check(Music.Track(g.Region,false)=="relay"&&Music.Track(g.Region,true)=="battle","the station falls back to the relay track, a fight still to the battle track");
+        Check(g.Interaction().Label=="","the landing is far enough from the door that E does not immediately take her back");
+        Check(g.ArrivalLift>0&&g.RevealShare>.9f&&Math.Abs(g.CameraPitch+.45f)<.001f,
+            $"the arrival begins its reveal with the player's aim preserved (lift {g.ArrivalLift}, share {g.RevealShare})");
+        // Return through the door while the reveal is still active: it must clear, and keep her aim, before the normal camera.
+        Place(g.Player,On(new(380,-149.5f)));await Frames(2);
+        Check(g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),"at the station's end of the tunnel E leads back");
+        await Tap(Key.E);await Frames(3);
+        Check(g.ArrivalLift==0&&Math.Abs(g.CameraPitch+.45f)<.001f&&g.GetViewport().GetCamera3D().GlobalPosition.Y<25f,
+            $"returning while the reveal is active clears it and keeps the player's aim {g.GetViewport().GetCamera3D().GlobalPosition}");
+        Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-mountainLanding.X,g.Player.GlobalPosition.Z-mountainLanding.Z).Length()<.5f&&g.Region==Hoshikawa.World.MazeName,
+            $"the reveal's return lands at the Signal yard {g.Player.GlobalPosition}");
+        Check(g.Player.Facing.Dot(Vector3.Left)>.99f&&CameraView().Dot(Vector3.Left)>.99f,
+            $"and back there Mio and the camera face west into Tunnel Mountain ({g.Player.Facing}, {CameraView()})");
+        Check(g.Objective=="Take the station road east"&&g.ObjectivePosition==g.World.MazeEnd&&!g.Opened.Contains(World.ParcelsDoorRow.Name),
+            "back in Tunnel Mountain with the parcels door still locked, the objective is the station road east and its marker the Signal yard's mouth");
+        // Re-enter and hold forward+run through the fade; the reveal must survive the movement and hand back to the player's aim.
+        Place(g.Player,On(new(133,-176)));await Frames(2);
+        Check(g.Mode==GameMode.Playing&&g.Player.Free&&g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),"the tunnel's mouth still leads through after the reveal's return");
+        await Tap(Key.E);
+        Check(g.ArrivalLift>0&&new Vector2(g.Player.GlobalPosition.X-stationLanding.X,g.Player.GlobalPosition.Z-stationLanding.Z).Length()<1.5f,
+            $"the re-entry begins the reveal at the station landing {g.Player.GlobalPosition}");
+        Check(g.Objective=="Find the parcels key"&&g.ObjectivePosition==parcelsKey.GlobalPosition,
+            "on the station without the key the objective marks the old signal room's key, whose marker is the pickup itself");
+        Hold("forward");Hold("run");await Frames(25);
+        var revealCam=g.GetViewport().GetCamera3D();
+        float ActualPitch()=>Mathf.RadToDeg(Mathf.Asin(-Mathf.Clamp(g.GetViewport().GetCamera3D().GlobalBasis.Z.Y,-1,1)));
+        Check(g.ArrivalLift>0&&g.RevealShare>.9f&&Mathf.Abs(ActualPitch())<2f
+            &&revealCam.GlobalPosition.Y-g.Player.GlobalPosition.Y>11.5f
+            &&new Vector2(g.Player.GlobalPosition.X-stationLanding.X,g.Player.GlobalPosition.Z-stationLanding.Z).Length()>1.6f,
+            $"holding forward and run keeps the arrival reveal: eye {revealCam.GlobalPosition}, pitch {ActualPitch():F1}, player {g.Player.GlobalPosition}, share {g.RevealShare}");
+        Check(revealCam.Fov==59&&revealCam.Far==260,"the reveal camera keeps the gameplay field of view and far plane");
+        // Real built-roof and v9 Nagoya rail tops: the reveal frustum and terrain clearance, with the oversized station footprint
+        // excluded from the rays (its top sits about 6 m above the roof, so hitting it proves nothing about seeing the roof).
+        var stationBody=g.World.GetNode<StaticBody3D>("Station footprint Station building");
+        bool Clear(Vector3 target,out float gap)
+        {
+            var query=PhysicsRayQueryParameters3D.Create(g.GetViewport().GetCamera3D().GlobalPosition,target,1);
+            query.Exclude=new Godot.Collections.Array<Rid>{stationBody.GetRid()};
+            var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(query);
+            gap=hit.Count>0?g.GetViewport().GetCamera3D().GlobalPosition.DistanceTo((Vector3)hit["position"]):float.PositiveInfinity;
+            return hit.Count==0;
+        }
+        var shell=World.StationObstacles.Single(o=>o.Name=="Station building");float roofY=World.Height(shell.At.X,shell.At.Y)+7+1.4f;
+        var roofA=new Vector3(shell.At.X+2,roofY,shell.At.Y);var roofB=new Vector3(shell.At.X+56,roofY,shell.At.Y);
+        Vector3 NagoyaRailTop(int track)
+        {
+            // Merge bakes these source boxes at their existing transforms.
+            var rail=g.World.GetNode<MeshInstance3D>($"Nagoya track {track} north rail");
+            return rail.ToGlobal(Vector3.Up*(((BoxMesh)rail.Mesh).Size.Y/2));
+        }
+        var rail1=NagoyaRailTop(1);var rail2=NagoyaRailTop(2);
+        Check(new[]{roofA,roofB,rail1,rail2}.All(p=>g.GetViewport().GetCamera3D().IsPositionInFrustum(p)),
+            $"the built station roof and the Nagoya rail tops {rail1}, {rail2} are in the reveal's real frustum");
+        bool roofAClear=Clear(roofA,out var gapA);bool roofBClear=Clear(roofB,out var gapB);bool rail1Clear=Clear(rail1,out var gap1);bool rail2Clear=Clear(rail2,out var gap2);
+        Check(roofAClear&&roofBClear&&rail1Clear&&rail2Clear,
+            $"the real station roof and both Nagoya rails clear the terrain (first hit distances {gapA:F1}, {gapB:F1}, {gap1:F1}, {gap2:F1})");
+        var westRoof=new Vector3(shell.At.X-shell.Size.X/2,roofY,shell.At.Y);
+        var nearRoofClear=Clear(westRoof,out var nearGap);
+        Check(!nearRoofClear&&g.GetViewport().GetCamera3D().GlobalPosition.DistanceTo(westRoof)-nearGap>3f,
+            $"the west roof edge stays behind the hillside, {g.GetViewport().GetCamera3D().GlobalPosition.DistanceTo(westRoof)-nearGap:F1} m of the ray blocked");
+        // Inject a body into the reveal sightline: the same clearance test must see it, then clear once it is removed.
+        var blocker=new StaticBody3D{Name="TEST sightline obstruction",CollisionLayer=1,CollisionMask=0,Position=new(400,29,-140)};
+        blocker.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(6,10,6)}});g.World.AddChild(blocker);await Frames(2);
+        Check(!Clear(roofA,out _),"an injected body in the reveal sightline blocks the roof ray");
+        blocker.QueueFree();await Frames(2);
+        Check(Clear(roofA,out _),"with the injected body removed the real roof ray clears again");
+        // A horizontal-only mouse move must not snap the level reveal pitch or the player's own aim. The handler is called directly:
+        // in headless mode Input.ParseInputEvent does not reach _UnhandledInput, so injected events there prove nothing.
+        Input.MouseMode=Input.MouseModeEnum.Captured;
+        g._UnhandledInput(new InputEventMouseMotion{Relative=new Vector2(5,0)});await Frames(2);
+        Check(Math.Abs(g.CameraPitch+.45f)<.001f&&Mathf.Abs(ActualPitch())<2f,
+            $"a horizontal-only mouse move keeps the player's aim ({g.CameraPitch}) and the level reveal pitch ({ActualPitch():F1})");
+        Input.MouseMode=Input.MouseModeEnum.Visible;
+        // The existing fade hands the reveal to the normal follow at the player's aim while the input is still held.
+        await Frames(60);Release("forward");Release("run");await Frames(5);
+        Check(g.RevealShare==0&&g.GetViewport().GetCamera3D().GlobalPosition.Y<25f&&Math.Abs(g.CameraPitch+.45f)<.001f&&Mathf.Abs(ActualPitch()-Mathf.RadToDeg(g.CameraPitch))<3f,
+            $"the fade hands the reveal back to the normal follow camera at the player's aim ({ActualPitch():F1} vs {Mathf.RadToDeg(g.CameraPitch):F1})");
+        await WalkTo(new(384,-146));await Frames(5);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-19.2f)<.5f,$"the lineman's path leaves the portal shelf downhill {g.Player.GlobalPosition}");
+        // The station's robots stand aside while she walks its layout: the walk is of its ground, its parts and its traps. Their own probes
+        // below bring one back for its behaviour.
+        foreach(var e in stationRobots){e.SetPhysicsProcess(false);e.CollisionLayer=0;}
+        // The oil drums wait at the head of the lineman's path's own run, on v9's first walk: walking down toward its foot puts her within
+        // reach of the trigger, and they roll down onto her, striking like a patrol.
+        var stationDrums=g.World.Parts.Single(p=>p.Name=="Station oil drums");
+        g.Player.Health=g.Player.MaxHealth;g.Player.Invulnerable=0;hp=g.Player.Health;
+        await WalkTo(new(385.5f,-140));await WalkTo(new(377,-133));
+        for(int i=0;i<240&&stationDrums.Body.Visible;i++)await Frames(1);
+        Check(g.Sprung.Contains(stationDrums.Name)&&!stationDrums.Body.Visible&&Math.Abs(hp-g.Player.Health-Enemy.StrikeDamage/growth.Scale("def"))<.01f,
+            $"the drums on the lineman's path roll down onto her and break, striking like a patrol ({hp-g.Player.Health:F0})");
+        // The v9 first walk's own way down the lineman's path and across the Forecourt to the garage, on mapped input and physics with no
+        // Place()/reset inside the segment. The isolated probes below may reposition her only after this continuous leg.
+        await Walk((376,-132),(390,-125),(382,-116),(392,-104),(386,-92),(400,-80),(418,-72),(438,-68),(458,-76),(490,-79),(510,-72),(510,-70));
+        Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-Hoshikawa.World.Forecourt.X,g.Player.GlobalPosition.Z-Hoshikawa.World.Forecourt.Y).Length()<2.5f&&g.Interaction().Icon==Hud.StardustIcon,
+            $"the lineman's path walks down from the drums to the Forecourt Starwell {g.Player.GlobalPosition}");
+        await Walk((508,-58),(522,-50),(532,-46),(539,-42),(544,-38));
+        Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-544,g.Player.GlobalPosition.Z+38).Length()<1.5f,
+            $"and on across the forecourt to the garage approach {g.Player.GlobalPosition}");
+        // v9's forecourt ellipse: the deck's roundabout is rx 19 / ry 9 m with a 4 m SVG stroke, so 42 x 22 m outside and 34 x 14 m inside,
+        // the stroke measured square to the path. It lies on the level ground, carries no collider, and leaves the clock and routes alone.
+        // The mesh is the existing 64-segment band: vertices 2i and 2i+1 are the outer and inner samples at angle TAU*i/64, so the pairs
+        // are read at those exact indices; a nearest-anywhere match would accept a nearby wrong sample.
+        var ellipse=g.World.GetNodeOrNull<MeshInstance3D>("Forecourt ellipse band");
+        var ellipseVerts=ellipse?.Mesh is ArrayMesh ellipseMesh?ellipseMesh.SurfaceGetArrays(0)[(int)Godot.Mesh.ArrayType.Vertex].AsVector3Array():Array.Empty<Vector3>();
+        float nearX(float dir)=>ellipseVerts.Where(v=>Math.Abs(v.Z+63)<.6f&&Math.Sign(v.X-478)==Math.Sign(dir)).Select(v=>v.X).OrderBy(x=>Math.Abs(x-478)).First();
+        float nearZ(float dir)=>ellipseVerts.Where(v=>Math.Abs(v.X-478)<.6f&&Math.Sign(v.Z+63)==Math.Sign(dir)).Select(v=>v.Z).OrderBy(z=>Math.Abs(z+63)).First();
+        Check(ellipse!=null&&ellipse.Visible&&ellipseVerts.Length==128&&ellipseVerts.All(v=>Math.Abs(v.Y-(Hoshikawa.World.MeshHeight(v.X,v.Z)+.10f))<.02f)
+            &&ellipseVerts.Min(v=>v.X)<457.2f&&ellipseVerts.Max(v=>v.X)>498.8f&&ellipseVerts.Min(v=>v.Z)<-73.8f&&ellipseVerts.Max(v=>v.Z)>-52.2f
+            &&Math.Abs(nearX(-1)-461)<.2f&&Math.Abs(nearX(1)-495)<.2f&&Math.Abs(nearZ(-1)+70)<.2f&&Math.Abs(nearZ(1)+56)<.2f
+            &&!ellipse!.GetChildren().OfType<CollisionObject3D>().Any(),
+            $"the forecourt keeps v9's 4 m stroke on the 19 x 9 m centreline: 42 x 22 m outside, 34 x 14 m inside, on the ground with no collider "
+            +$"({ellipseVerts.Length} vertices, x {ellipseVerts.Min(v=>v.X):F1}..{ellipseVerts.Max(v=>v.X):F1}, z {ellipseVerts.Min(v=>v.Z):F1}..{ellipseVerts.Max(v=>v.Z):F1})");
+        var pairErrors=new List<string>();
+        foreach(int i in new[]{1,5,8,13,21,29,37,45,53,61})
+        {
+            float t=Mathf.Tau*i/64,c=Mathf.Cos(t),s=Mathf.Sin(t);
+            var path=new Vector2(19*c,9*s);var normal=new Vector2(9*c,19*s).Normalized()*2;var centre=new Vector2(478,-63);
+            var outer=centre+path+normal;var inner=centre+path-normal;var o=ellipseVerts[i*2];var n=ellipseVerts[i*2+1];
+            if(new Vector2(o.X,o.Z).DistanceTo(outer)>.002f||new Vector2(n.X,n.Z).DistanceTo(inner)>.002f)
+                pairErrors.Add($"i={i} ({i*360.0/64:F3} deg): out ({o.X:F3},{o.Z:F3}) vs ({outer.X:F3},{outer.Y:F3}), in ({n.X:F3},{n.Z:F3}) vs ({inner.X:F3},{inner.Y:F3})");
+        }
+        Check(pairErrors.Count==0,
+            $"the built band's exact outer/inner vertex pairs lie on the 19 x 9 m path offset 2 m normal at ten off-axis sample angles of the 64-segment mesh, within 2 mm {string.Join("; ",pairErrors.Take(3))}");
+        using(var ellipseRay=PhysicsRayQueryParameters3D.Create(new(478,9.5f,-54),new(478,5.9f,-54),1))
+        {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(ellipseRay);Check(hit.Count>0&&hit["collider"].As<Node>().Name!="Forecourt ellipse band","the forecourt ellipse is paving, not an obstacle");}
+        // The parcels approach: the real door stands proud of the station's east wall, the paving follows the ground over the whole
+        // walking strip, the divider is a legible curb and open railing (not a wall-height slot), and the false service panel is gone.
+        var parcelDoor=g.World.GetNode<MeshInstance3D>("Parcels door");var stationEast=g.World.GetNode<MeshInstance3D>("Station east wall");
+        float doorFace=parcelDoor.Position.X+((BoxMesh)parcelDoor.Mesh).Size.X/2,wallFace=stationEast.Position.X+((BoxMesh)stationEast.Mesh).Size.X/2;
+        Check(doorFace>wallFace+.05f,$"the parcels door stands proud of the station's east wall face ({doorFace:F2} > {wallFace:F2})");
+        Check(g.World.GetNodeOrNull("Parcels return service door")==null,"the parcels bay has no false service-panel endpoint");
+        var paving=g.World.GetNodeOrNull<MeshInstance3D>("Parcels bay paving");
+        var pavingVerts=paving is {Mesh:ArrayMesh}?paving.Mesh.SurfaceGetArrays(0)[(int)Godot.Mesh.ArrayType.Vertex].AsVector3Array():Array.Empty<Vector3>();
+        Check(paving!=null&&pavingVerts.Length>50&&pavingVerts.All(v=>Math.Abs(v.Y-(Hoshikawa.World.MeshHeight(v.X,v.Z)+.10f))<.02f)
+            &&pavingVerts.Min(v=>v.X)<=558.4f&&pavingVerts.Max(v=>v.X)>=560.2f&&pavingVerts.Min(v=>v.Z)<=-132.5f&&pavingVerts.Max(v=>v.Z)>=-108.5f,
+            $"the parcels bay paving follows the ground over the walking strip and its edges ({pavingVerts.Length} vertices)");
+        Check(g.World.FindChildren("Parcels bay railing post *","MeshInstance3D",true,false).Count>=8
+            &&g.World.FindChildren("Parcels bay railing rail *","MeshInstance3D",true,false).Count==2&&g.World.GetNodeOrNull("Parcels bay curb")!=null,
+            "the parcels divider is a legible curb and open railing, not a wall-height slot");
+        Check(Hoshikawa.World.StationObstacles.Single(o=>o.Name=="Parcels bay fence").High==1.8f,"the parcels railing's shared collision stays non-jumpable");
+        // The gantry's bridge, ramp and the old line's rails, by their built world coordinates; then a real walk up the ramp, no flags.
+        var bridge=g.World.GetNode<Node3D>("Gantry bridge");
+        var parapets=bridge.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().Contains("Gantry parapet")).ToArray();
+        Check(parapets.Length==2&&parapets.All(p=>Math.Abs(p.Position.Z)<3&&p.GlobalPosition.DistanceTo(bridge.GlobalPosition)<4),
+            "the gantry's two parapets sit on its bridge deck");
+        Check(parapets.All(p=>p.GetChildren().OfType<StaticBody3D>().Any(b=>b.GetChildren().OfType<CollisionShape3D>().Any(s=>s.Shape is BoxShape3D shape&&shape.Size.Y>=1.5f)))
+            &&bridge.GetChildren().OfType<MeshInstance3D>().Count(n=>n.Name.ToString().StartsWith("Gantry end rail"))==2
+            &&bridge.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().StartsWith("Gantry end rail")).All(p=>p.GetChildren().OfType<StaticBody3D>().Any()),
+            "the parapets and both end rails are physical, over her jump");
+        Check(Hoshikawa.World.StationObstacles.Count(o=>o.Name.StartsWith("Gantry leg"))==2&&g.World.GetNodeOrNull<StaticBody3D>("Station footprint Gantry leg west") is { } westLeg&&westLeg.GetChildren().OfType<CollisionShape3D>().Count()==1,
+            "the gantry's two solid legs are their shared footprint rows");
+        var ramp=g.World.GetNode<StaticBody3D>("Gantry ramp");
+        float rampLength=Mathf.Sqrt(Hoshikawa.World.CraneRampRun*Hoshikawa.World.CraneRampRun+Hoshikawa.World.CraneRampRise*Hoshikawa.World.CraneRampRise);
+        float gantryDeck=Hoshikawa.World.Height(593.5f,-138.75f)+Hoshikawa.World.CraneRise;
+        var rampTop=ramp.ToGlobal(new Vector3(0,0,-rampLength/2));
+        Check(rampTop.DistanceTo(new Vector3(Hoshikawa.World.CraneRampTop.X,gantryDeck,Hoshikawa.World.CraneRampTop.Y))<.6f,$"the gantry ramp's top meets the bridge deck ({rampTop})");
+        // The crane's cell stands on the bridge, six metres over the yard: from the ground under it E takes nothing, and the only way up
+        // is the ramp. Then the north edge is the one way down.
+        var craneCell=g.World.Pickups.Single(p=>p.Item=="cell"&&new Vector2(p.Node.Position.X,p.Node.Position.Z).DistanceTo(Hoshikawa.World.CraneCell)<.1f);
+        while(bag.Count("cell")>=bag.Capacity("cell"))bag.Take("cell");
+        int cellsBefore=bag.Count("cell");
+        Place(g.Player,On(new(Hoshikawa.World.CraneCell.X+1.2f,Hoshikawa.World.CraneCell.Y)));await Frames(10);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-6)<.5f&&g.Interaction().Icon!="resonance"&&craneCell.Node.Visible,
+            $"under the gantry the crane's cell, {Hoshikawa.World.CraneDeck-Hoshikawa.World.Height(Hoshikawa.World.CraneCell.X,Hoshikawa.World.CraneCell.Y):F1} m up, is out of reach from the yard floor");
+        await Tap(Key.E);await Frames(2);
+        Check(craneCell.Node.Visible&&bag.Count("cell")==cellsBefore,"E on the yard floor under it takes nothing");
+        Place(g.Player,On(Hoshikawa.World.CraneRampFoot));await Frames(10);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-6)<.6f,"the gantry ramp's foot stands on the yard floor");
+        await WalkTo(new(594,-138.5f));await Frames(5);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-gantryDeck)<.6f,$"under her own input she walks the gantry ramp up onto its bridge {g.Player.GlobalPosition}");
+        await WalkTo(Hoshikawa.World.CraneCell);await Frames(5);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-Hoshikawa.World.CraneDeck)<.3f&&g.Interaction().Icon=="resonance",
+            $"on the deck the crane's cell stands at its own height, {g.Player.GlobalPosition.Y:F2} m over the yard's {Hoshikawa.World.Height(Hoshikawa.World.CraneCell.X,Hoshikawa.World.CraneCell.Y):F2}");
+        await Tap(Key.E);await Frames(2);
+        Check(!craneCell.Node.Visible&&bag.Count("cell")==cellsBefore+1,$"taking it on the deck puts a resonance cell in her supplies ({cellsBefore}->{bag.Count("cell")})");
+        // The south parapet and the end rail hold her on the deck even at a run and a jump; the north edge is open.
+        Place(g.Player,new(591.5f,Hoshikawa.World.CraneDeck+.1f,-139.4f));await Frames(10);
+        g.CameraYaw=Mathf.Pi;Hold("run");Hold("forward");await Press("jump",2);await Frames(50);Release("forward");Release("run");await Frames(10);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-Hoshikawa.World.CraneDeck)<.4f&&g.Player.GlobalPosition.Z<-137.1f,
+            $"the gantry's south parapet holds her on the deck at a run and a jump {g.Player.GlobalPosition}");
+        Place(g.Player,new(596.4f,Hoshikawa.World.CraneDeck+.1f,-138.2f));await Frames(10);
+        g.CameraYaw=-Mathf.Pi/2;Hold("run");Hold("forward");await Press("jump",2);await Frames(50);Release("forward");Release("run");await Frames(10);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-Hoshikawa.World.CraneDeck)<.4f&&g.Player.GlobalPosition.X<596.6f,
+            $"the gantry's end rail holds her on the deck too {g.Player.GlobalPosition}");
+        Place(g.Player,new(593.5f,Hoshikawa.World.CraneDeck+.1f,-139.6f));await Frames(10);
+        g.CameraYaw=0;Hold("forward");await Frames(70);Release("forward");await Frames(40);
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Y<6.4f&&g.Player.GlobalPosition.Z<-141f,
+            $"the open north edge is the way down: she drops off the bridge into the yard {g.Player.GlobalPosition}");
+        g.CameraYaw=Mathf.Pi;Hold("run");Hold("forward");await Press("jump",2);await Frames(50);Release("forward");Release("run");await Frames(10);
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Y<6.8f,
+            $"and nothing climbs her back up the six metres to the deck {g.Player.GlobalPosition}");
+        var oldRails=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().Contains("Old line rail")).ToArray();
+        bool OnOld(Vector2 p)=>oldRails.Any(r=>{float half=r.Mesh is BoxMesh b?b.Size.Z/2:0;return new[]{-half,half}.Any(s=>{var e=r.ToGlobal(new Vector3(0,0,s));return new Vector2(e.X-p.X,e.Z-p.Y).Length()<1.5f;});});
+        Check(oldRails.Length>0&&new[]{new Vector2(386,-151.5f),new Vector2(394,-154),new Vector2(406,-159),new Vector2(416,-162.5f),new Vector2(421,-164.5f)}.All(OnOld),
+            "the old line's rails run from the portal down to S5");
+        // The two rails share their 3D side points through every bend and across the track-bed join: each segment's end meets the next's start.
+        bool RailsContinuous()
+        {
+            var rails=oldRails.Select(r=>{float half=r.Mesh is BoxMesh b?b.Size.Z/2:0;return (Mesh:r,Ends:new[]{r.ToGlobal(new Vector3(0,0,-half)),r.ToGlobal(new Vector3(0,0,half))});}).ToArray();
+            for(int i=0;i<6;i++)
+            {
+                var thisSide=oldRails.Where(r=>r.Name.ToString().StartsWith($"Old line rail {i} ")).ToArray();
+                var nextSide=oldRails.Where(r=>r.Name.ToString().StartsWith($"Old line rail {i+1} ")).ToArray();
+                if(thisSide.Length!=2||nextSide.Length!=2)return false;
+                foreach(var a in thisSide)
+                {
+                    float halfA=a.Mesh is BoxMesh ba?ba.Size.Z/2:0;var endA=a.ToGlobal(new Vector3(0,0,halfA));
+                    if(!nextSide.Any(b=>{float hb=b.Mesh is BoxMesh bb?bb.Size.Z/2:0;return b.ToGlobal(new Vector3(0,0,-hb)).DistanceTo(endA)<.001f;}))return false;
+                }
+            }
+            return true;
+        }
+        Check(RailsContinuous(),"both old-line rails share their 3D endpoints through every bend and the track-bed join");
+        // The gate and fence joins, the bank at a jump and dodge, and the dock's return step: the real colliders and physics.
+        var s1=g.World.Parts.Single(p=>p.Name==Hoshikawa.World.S1Name);
+        Check(s1.Kind=="gate"&&s1.Body is AnimatableBody3D&&s1.Body.GetChildren().OfType<CollisionShape3D>().Count()==1,"S1 is a hinged gate Part, its one leaf the only collider");
+        using(var s1Ray=PhysicsRayQueryParameters3D.Create(new(562,6.6f,-107),new(562,6.6f,-109),1))
+        {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(s1Ray);Check(hit.Count>0&&hit["collider"].As<Node>().Name==Hoshikawa.World.S1Name,"the shut S1 leaf closes the service road to the yard side");}
+        // The east and north fences meet in a 0.4 m overlap. Each is probed half a metre from the corner on its own side, and each
+        // body's collider is switched off in turn: the seam depends on both, so removing either one fails rather than borrowing the other.
+        var northFence=g.World.GetNode<StaticBody3D>("Station footprint Yard north fence");
+        var eastFence=g.World.GetNode<StaticBody3D>("Station footprint Yard east fence");
+        using var northSeamRay=PhysicsRayQueryParameters3D.Create(new(627.3f,northFence.GlobalPosition.Y,-159.2f),new(627.3f,northFence.GlobalPosition.Y,-161f),1);
+        using var eastSeamRay=PhysicsRayQueryParameters3D.Create(new(626.5f,eastFence.GlobalPosition.Y,-159.9f),new(628.8f,eastFence.GlobalPosition.Y,-159.9f),1);
+        string SeamHit(PhysicsRayQueryParameters3D ray){var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(ray);return hit.Count>0?hit["collider"].As<Node>().Name.ToString():"";}
+        Check(SeamHit(northSeamRay)=="Station footprint Yard north fence"&&SeamHit(eastSeamRay)=="Station footprint Yard east fence",
+            $"the east and north fences each close their side of the seam ({SeamHit(northSeamRay)}, {SeamHit(eastSeamRay)})");
+        northFence.CollisionLayer=0;await Frames(1);
+        Check(SeamHit(northSeamRay)==""&&SeamHit(eastSeamRay)=="Station footprint Yard east fence","with the north fence's collider removed the seam's north ray is open and its east ray still closed");
+        eastFence.CollisionLayer=0;await Frames(1);
+        Check(SeamHit(northSeamRay)==""&&SeamHit(eastSeamRay)=="","with both colliders removed both seam rays are open");
+        northFence.CollisionLayer=1;eastFence.CollisionLayer=1;await Frames(1);
+        Check(SeamHit(northSeamRay)=="Station footprint Yard north fence"&&SeamHit(eastSeamRay)=="Station footprint Yard east fence","both fences back, both seam rays close again");
+        using(var stripRay=PhysicsRayQueryParameters3D.Create(new(561,7f,-152),new(561,7f,-162),1))
+        {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(stripRay);Check(hit.Count>0&&hit["collider"].As<Node>().Name.ToString().Contains("strip")||hit.Count>0&&hit["collider"].As<Node>().Name.ToString().Contains("fence"),"the north-west strip closes the yard's west side");}
+        Place(g.Player,On(new(600,-125)));await Frames(10);g.CameraYaw=Mathf.Pi;Hold("run");Hold("forward");await Press("jump",2);await Frames(40);Release("forward");Release("run");await Frames(10);
+        Check(g.Player.GlobalPosition.Z<-124.3f&&g.Player.GlobalPosition.Y<7.3f,$"a jump does not clear the warehouse bank's 1.35 m face and wall {g.Player.GlobalPosition}");
+        Place(g.Player,On(new(600,-125)));await Frames(10);g.CameraYaw=Mathf.Pi;Hold("forward");await Press("dodge",4);await Frames(30);Release("forward");
+        Check(g.Player.GlobalPosition.Z<-124.3f&&g.Player.GlobalPosition.Y<7.3f,$"a dodge does not clear the bank either {g.Player.GlobalPosition}");
+        Place(g.Player,On(new(630,-140)));await Frames(10);g.CameraYaw=Mathf.Pi/2;Hold("run");Hold("forward");await Press("jump",2);await Frames(40);Release("forward");Release("run");await Frames(10);
+        Check(g.Player.GlobalPosition.X>628.3f,$"a jump from outside the east fence does not clear it {g.Player.GlobalPosition}");
+        Place(g.Player,On(new(562,-109)));await Frames(10);await WalkTo(new(562,-124));await Frames(5);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-6.25f)<.4f,$"the S1 strip steps back up onto the loading dock {g.Player.GlobalPosition}");
+        // The parcels bay's fence, its return and the approach it forces: in from the gate's side, up the bay to the door.
+        using(var bayRay=PhysicsRayQueryParameters3D.Create(new(561,7.2f,-120),new(559.4f,7.2f,-120),1))
+        {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(bayRay);Check(hit.Count>0&&hit["collider"].As<Node>().Name.ToString().Contains("Parcels bay"),"the parcels bay's fence stands between the dock and the door");}
+        Place(g.Player,On(new(562,-120)));await Frames(10);g.CameraYaw=Mathf.Pi/2;Hold("run");Hold("forward");await Press("jump",2);await Frames(40);Release("forward");Release("run");await Frames(10);
+        Check(g.Player.GlobalPosition.X>560.4f,$"a jump from the dock does not clear the parcels bay's fence {g.Player.GlobalPosition}");
+        Place(g.Player,On(new(562,-109)));await Frames(10);await WalkTo(new(559.2f,-109));await WalkTo(new(559.2f,-129));await Frames(5);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-6.2f)<.45f&&g.Player.GlobalPosition.X<560.5f,
+            $"the parcels bay's fence turns the door's approach behind S1, in from the gate's side {g.Player.GlobalPosition}");
+        // The future parcels key door's 2.2 m proximity: in-bay reach from inside, and no stance north of the return within reach.
+        Place(g.Player,On(new(558.8f,-131.7f)));await Frames(10);
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Z>-132.8f&&new Vector2(g.Player.GlobalPosition.X-558,g.Player.GlobalPosition.Z+130).Length()<2.2f,
+            $"the parcels approach is used from inside the bay, within the door's reach {g.Player.GlobalPosition}");
+        Place(g.Player,On(new(558.8f,-133.5f)));await Frames(10);
+        Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-558,g.Player.GlobalPosition.Z+130).Length()>2.2f,
+            $"north of the bay's return the parcels door is out of reach {g.Player.GlobalPosition}");
+        using(var returnRay=PhysicsRayQueryParameters3D.Create(new(559,7.2f,-134),new(559,7.2f,-132),1))
+        {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(returnRay);Check(hit.Count>0&&hit["collider"].As<Node>().Name.ToString().Contains("Parcels bay return"),"the bay's return fence stands between the north dock and the door");}
+        g.CameraYaw=Mathf.Pi;Hold("run");Hold("forward");await Press("jump",2);await Frames(40);Release("forward");Release("run");await Frames(10);
+        Check(g.Player.GlobalPosition.Z<-132.8f&&new Vector2(g.Player.GlobalPosition.X-558,g.Player.GlobalPosition.Z+130).Length()>2.2f,
+            $"a jump from the north dock does not clear the bay's return into the door's reach {g.Player.GlobalPosition}");
+        // The warehouse's yard-facing stair is the bank's one way up: from the yard through the north wall's opening to Warehouse 2's door.
+        Place(g.Player,On(new(611,-126)));await Frames(10);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-6)<.4f,"the warehouse stair's foot stands on the yard floor");
+        await WalkTo(new(611,-120),false);await Frames(5);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-7.35f)<.4f,$"under her own input she climbs the warehouse stair into its north door {g.Player.GlobalPosition}");
+        await WalkTo(new(618,-117),false);await Frames(5);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-7.35f)<.4f&&new Vector2(g.Player.GlobalPosition.X-619,g.Player.GlobalPosition.Z+116).Length()<2,
+            $"the warehouse floor reaches the sleeping scout's post {g.Player.GlobalPosition}");
+        // Warehouse 2's west wall carries a 2 m service door onto the bank's western apron, where the approved (595,-117) drone waits.
+        // The doorway is solid either side and closed above it, and it is the apron's only way in, so the bank stays no route round the
+        // yard. From the sleeper's post Mio walks through it on mapped input, engages the drone and comes back, with no reposition.
+        using(var doorRay=PhysicsRayQueryParameters3D.Create(new(605,8.5f,-116),new(590,8.5f,-116),1))
+        {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(doorRay);Check(hit.Count==0,"the service door opens Warehouse 2's west wall onto its west apron at walking height");}
+        using(var lintelRay=PhysicsRayQueryParameters3D.Create(new(605,9.9f,-116),new(590,9.9f,-116),1))
+        {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(lintelRay);var body=hit.Count>0?hit["collider"].As<Node>():null;Check(body!=null&&body.GetParent()?.Name=="Warehouse 2 west wall lintel","the service door's lintel closes the wall above its 2.4 m opening");}
+        foreach(float z in new[]{-118f,-114f})
+            using(var jambRay=PhysicsRayQueryParameters3D.Create(new(605,8.5f,z),new(590,8.5f,z),1))
+                Check(g.GetWorld3D().DirectSpaceState.IntersectRay(jambRay).Count>0,$"the west wall stays solid at z {z} beside the service door");
+        var apronDrone=stationRobots.Single(e=>e.Kind==Enemy.Drone&&e.Home.DistanceTo(new Vector3(595,Hoshikawa.World.Height(595,-117)+.1f,-117))<.5f);
+        g.Player.Invulnerable=1e9f;apronDrone.SetPhysicsProcess(true);apronDrone.CollisionLayer=4;
+        await WalkTo(new(610,-116));await WalkTo(new(598,-116));await Frames(8);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-7.35f)<.4f&&new Vector2(g.Player.GlobalPosition.X-595,g.Player.GlobalPosition.Z+117).Length()<4f
+            &&!apronDrone.Asleep&&apronDrone.State is "PURSUE" or "WINDUP" or "STRIKE",
+            $"through the service door Mio stands on the apron by the approved drone, which comes for her ({apronDrone.State}, {g.Player.GlobalPosition})");
+        await Press("attack",2);await Frames(20);
+        Check(apronDrone.Health<apronDrone.MaxHealth||apronDrone.Staggered||apronDrone.Stunned,
+            $"and her sword reaches it from the warehouse's own way out ({apronDrone.Health:F0}/{apronDrone.MaxHealth})");
+        apronDrone.SetPhysicsProcess(false);apronDrone.CollisionLayer=0;
+        await WalkTo(new(612,-116));await Frames(5);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-7.35f)<.4f&&g.Player.GlobalPosition.X>610,
+            $"and she walks back through the door onto the warehouse floor ({g.Player.GlobalPosition})");
+        g.Player.Invulnerable=0;
+        // S1 is barred from the service road and the parcels door from anyone without its key: both refuse with real E input, and neither
+        // opens, so the walk that follows is the only way in.
+        Place(g.Player,On(new(562,-106.2f)));await Frames(10);
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Z>-108.2f,"the service road ends at S1's shut leaf");
+        Check(g.Mode==GameMode.Playing&&g.Player.Free&&g.Interaction()==("ladder",Localization.T("GATE")),
+            "the shut S1 shows its ordinary gate prompt from the road side, with Mio free to act");
+        await Tap(Key.E);await Frames(2);
+        Check(!g.Opened.Contains(World.S1Name)&&g.ToastTitle=="IT WILL NOT OPEN FROM THIS SIDE"&&g.Mode==GameMode.Playing,"from the service road S1 will not open on the mapped E");
+        Check(!await Head(new(562,-116),true,90)&&g.Player.GlobalPosition.Z>-108.2f,$"and its shut leaf holds her out of the yard {g.Player.GlobalPosition}");
+        Place(g.Player,On(new(559.2f,-129)));await Frames(10);
+        Check(g.Mode==GameMode.Playing&&g.Player.Free&&g.Interaction()==("",Localization.T("PARCELS DOOR")),"the parcels door prompts with no icon before it has its key");
+        await Tap(Key.E);await Frames(2);
+        Check(g.ToastTitle=="PARCELS DOOR LOCKED"&&!g.Opened.Contains(World.ParcelsDoorRow.Name)&&parcelsKey.Visible&&g.Mode==GameMode.Playing,
+            "without the key the parcels door reports its lock on the mapped E and leaves the key to be found");
+        // The drawn first walk's own last half, on her own feet: the depot road through the bus garage to the open ground, the yard's
+        // southeast gap, the old signal room's key, S1 from the yard's side, and the parcels door. Every leg is walked on the built ground.
+        // Back at the garage approach after the isolated parcels and gantry probes: the drums, the Forecourt and this approach were walked
+        // continuously above. From here the garage and the yard are walked again.
+        Place(g.Player,On(new(544,-38)));await Frames(10);
+        Check(g.Region==World.StationName&&g.Objective=="Find the parcels key"&&g.ObjectivePosition==parcelsKey.GlobalPosition,
+            "on the station without the key the objective marks the old signal room's key");
+        await Walk((548,-37),(553,-36),(558,-36),(562,-36),(566,-36));await Frames(2);
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.X>544&&g.Player.GlobalPosition.X<568&&g.Player.GlobalPosition.Z>-42&&g.Player.GlobalPosition.Z<-34,
+            $"under her own input she walks into the bus garage's through way {g.Player.GlobalPosition}");
+        // At the garage the legacy river band at Z −8 is 28 m away, inside the minimap's 50 m reach: this is where the station's exclusion is
+        // what keeps the band off the map, and where the HUD really draws its map.
+        int mapDraws=g.Hud.Redraws;g.Hud.MapRivers=0;g.Hud.QueueRedraw();await Frames(2);
+        Check(g.Region==World.StationName&&g.Hud.Redraws>mapDraws&&g.Hud.MapRivers==0,
+            $"at the garage, within the valley river band's reach, the station's minimap draws no river ({g.Region}, {g.Hud.MapRivers} bands, {g.Hud.Redraws-mapDraws} draws)");
+        // The garage's own supply, off the through line: a resonance cell on its floor, taken with E.
+        var garageCell=g.World.Pickups.Single(p=>p.Item=="cell"&&new Vector2(p.Node.Position.X,p.Node.Position.Z).DistanceTo(World.GarageCell)<.1f);
+        await WalkTo(new(565,-31.2f));await Frames(5);
+        while(bag.Count("cell")>=bag.Capacity("cell"))bag.Take("cell");
+        int garageCells=bag.Count("cell");
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.X<568&&g.Interaction()==("resonance",Localization.T("Resonance cell").ToUpperInvariant()),
+            $"off the garage's through line its resonance cell is within reach {g.Player.GlobalPosition}");
+        await Tap(Key.E);await Frames(2);
+        Check(!garageCell.Node.Visible&&bag.Count("cell")==garageCells+1&&g.ToastTitle==Items.Get("cell").Name,
+            $"taking it puts the garage's resonance cell in Mio's supplies ({garageCells}->{bag.Count("cell")})");
+        await Walk((570,-38),(573,-41));await Frames(2);
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.X>568,$"and out of its eastern opening onto the depot road {g.Player.GlobalPosition}");
+        await Walk((577,-43),(582,-46),(590,-55),(598,-64),(605,-73),(612,-82),(616,-89),(620,-96),(623,-102),(623.5f,-107));
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Z>-108f&&!World.StationBlocked(623.5f,-107)&&g.Region==World.StationName,
+            $"the depot road runs on to the yard's fence and its southeast gap {g.Player.GlobalPosition}");
+        // The parked 11 m wagon lies across the yard's middle, on Siding 2: the way to the yard's deep row goes round its western end.
+        await Walk((624,-113),(624.5f,-118),(622,-126),(619,-131),(612,-132),(610,-138),(613,-141.5f),(616,-141),(617.5f,-149));
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Z<-108.4f,$"she passes the southeast gap into the freight yard {g.Player.GlobalPosition}");
+        // The hump's wagon waits with its trailing end at the head of Siding 2, its 11 m body standing down the drawn line; its foot is
+        // 17.4 m off the itinerary, so reaching it is a deliberate detour. The hump is a 12 cm bed under the wheels, not a block round them.
+        var humpWagon=g.World.Parts.Single(p=>p.Name=="Hump wagon");
+        var hump=Hoshikawa.World.StationObstacles.Single(o=>o.Name=="Hump");
+        float humpTop=Hoshikawa.World.StationFootprint(hump).Low+hump.High;
+        var parked=humpWagon.Body.GlobalPosition;
+        Check(hump.High<Hoshikawa.World.WagonWheelBottom&&Hoshikawa.World.WagonWheelBottom<.5f&&parked.Y+Hoshikawa.World.WagonWheelBottom>humpTop+.02f&&parked.Y+1.07f>humpTop+.5f,
+            $"the hump's {hump.High:F2} m bed sits under the wagon's wheels ({Hoshikawa.World.WagonWheelBottom:F2} m over the yard) and its chassis, not through them ({humpTop:F2} m)");
+        using(var wagonRay=PhysicsRayQueryParameters3D.Create(parked+Vector3.Up*4.5f,parked+Vector3.Up*.3f,1))
+        {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(wagonRay);Check(hit.Count>0&&hit["collider"].As<Node>().Name=="Hump wagon","the wagon parked at the head is a solid body, its own long box");}
+        var siding2=Hoshikawa.World.StationSidings.Single(s=>s.Name=="Siding 2").Points.Select(p=>new Vector2(p.X,p.Z)).ToArray();
+        float OffSiding(Vector2 q)
+        {
+            float best=float.MaxValue;
+            for(int i=1;i<siding2.Length;i++)
+            {
+                var a=siding2[i-1];var d=siding2[i]-a;float t=Mathf.Clamp((q-a).Dot(d)/d.LengthSquared(),0,1);
+                best=Math.Min(best,q.DistanceTo(a+d*t));
+            }
+            return best;
+        }
+        var sidingRails=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().StartsWith("Siding 2 rail")&&n.Mesh is BoxMesh)
+            .Select(n=>(Side:n.Name.ToString().EndsWith(" -1")?-1:1,Local:n.GlobalTransform.AffineInverse(),Half:((BoxMesh)n.Mesh).Size/2)).ToArray();
+        // Clip the cylinder's lowest tread line to each finite rail head in box-local X and Z. The rail and wheel names identify
+        // their built sides (the rails are laid eastbound, opposite the wagon); a displaced wheel cannot borrow the other side.
+        (float Overlap,float Lift,float Across,float Tilt) Tread(Node3D set,MeshInstance3D wheel)
+        {
+            var across=set.GlobalTransform.Basis.X.Normalized();var axis=wheel.GlobalTransform.Basis.Y.Normalized();
+            var mesh=(CylinderMesh)wheel.Mesh;
+            var down=wheel.GlobalTransform.Basis.Transposed()*Vector3.Down;down.Y=0;down=down.Normalized();
+            var bottom=wheel.ToGlobal(down*mesh.BottomRadius-Vector3.Up*mesh.Height/2);
+            var top=wheel.ToGlobal(down*mesh.TopRadius+Vector3.Up*mesh.Height/2);
+            int side=wheel.Name.ToString().StartsWith("Wagon wheel west")?-1:1;
+            float overlap=0,lift=float.PositiveInfinity;
+            foreach(var r in sidingRails)
+            {
+                if(r.Side!=side)continue;
+                var a=r.Local*bottom;var d=r.Local*top-a;
+                float lo=0,hi=1;
+                if(!Clip(a.X,d.X,r.Half.X,ref lo,ref hi)||!Clip(a.Z,d.Z,r.Half.Z,ref lo,ref hi))continue;
+                float width=(hi-lo)*new Vector2(top.X-bottom.X,top.Z-bottom.Z).Length();
+                if(width<=overlap)continue;
+                overlap=width;lift=Math.Max(Math.Abs(a.Y+lo*d.Y-r.Half.Y),Math.Abs(a.Y+hi*d.Y-r.Half.Y));
+            }
+            return (overlap,lift,Mathf.Abs(axis.Dot(across)),Mathf.Abs(axis.Y));
+        }
+        static bool Clip(float at,float delta,float half,ref float lo,ref float hi)
+        {
+            if(Math.Abs(delta)<1e-6f)return Math.Abs(at)<=half;
+            float a=(-half-at)/delta,b=(half-at)/delta;
+            lo=Math.Max(lo,Math.Min(a,b));hi=Math.Min(hi,Math.Max(a,b));return hi>lo;
+        }
+        var axles=humpWagon.Body.GetNode<Node3D>("Spin").GetChildren().OfType<Node3D>().Where(n=>n.Name.ToString().StartsWith("Wheel set")).ToArray();
+        var rigid=humpWagon.Body.GetNode<Node3D>("Spin").GetChildren().OfType<Node3D>().Where(n=>!n.Name.ToString().StartsWith("Wheel set")).ToArray();
+        var wheels=axles.SelectMany(a=>a.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().StartsWith("Wagon wheel"))).ToArray();
+        (float Overlap,float Lift,float Across,float Tilt) WorstContact()
+        {
+            var worst=(Overlap:float.MaxValue,Lift:0f,Across:1f,Tilt:0f);
+            foreach(var wheel in wheels)
+            {
+                var c=Tread((Node3D)wheel.GetParent(),wheel);
+                worst.Overlap=Math.Min(worst.Overlap,c.Overlap);worst.Lift=Math.Max(worst.Lift,c.Lift);
+                worst.Across=Math.Min(worst.Across,c.Across);worst.Tilt=Math.Max(worst.Tilt,c.Tilt);
+            }
+            return worst;
+        }
+        g.Arm();
+        var restContact=WorstContact();
+        Check(sidingRails.Length==4&&axles.Length==4&&wheels.Length==8&&restContact.Overlap>.03f&&restContact.Across>.98f&&restContact.Tilt<.05f&&restContact.Lift<.06f,
+            $"parked at the head, every tread covers the head of its own rail with the wheel's axis across the axle ({restContact.Overlap:F3} m overlap, {restContact.Across:F3} across, {restContact.Tilt:F3} tilt, {restContact.Lift:F3} m off the head)");
+        // An ordinary load still turns about its Spin, and a re-arm stops it where it was built: observed on the drums themselves.
+        Place(g.Player,On(new(377,-133)));await Frames(10);
+        var drumSpin=stationDrums.Body.GetNode<Node3D>("Spin");
+        var drumBuilt=drumSpin.GetChildren().OfType<Node3D>().Select(n=>n.Rotation).ToArray();
+        for(int i=0;i<90&&!g.Sprung.Contains(stationDrums.Name);i++)await Frames(1);
+        float drumTurn=0;
+        for(int i=0;i<40;i++){await Frames(1);drumTurn=Math.Max(drumTurn,Math.Abs(drumSpin.Rotation.X));}
+        Check(g.Sprung.Contains(stationDrums.Name)&&drumTurn>.05f,$"an ordinary load still turns about its spin axis ({drumTurn:F2} rad)");
+        g.Arm();
+        Check(drumSpin.Rotation.Length()<.001f&&drumSpin.GetChildren().OfType<Node3D>().Select((n,i)=>n.Rotation.DistanceTo(drumBuilt[i])<.001f).All(b=>b),
+            "a re-arm stops an ordinary load where it was built, its barrel still");
+        // A sloped load keeps the projection its run always used: the 3D slope direction with Y dropped, so its hit footprint is
+        // (Size+.4)/cos of the slope and its shove |along|·7, not a flat 7. The stand is beyond the flat footprint, inside the sloped one.
+        var barrels=g.World.Parts.Single(p=>p.Name=="Back stair barrels");
+        var slopeDir=(barrels.To-barrels.From).Normalized();slopeDir.Y=0;float slopeCos=slopeDir.Length();
+        float slopedReach=(barrels.Size+.4f)/slopeCos;
+        var flatDir=new Vector2(slopeDir.X,slopeDir.Z).Normalized();
+        var stand=barrels.To+new Vector3(flatDir.X,0,flatDir.Y)*.78f;stand.Y=Hoshikawa.World.Height(stand.X,stand.Z)+.2f;
+        g.Player.Health=g.Player.MaxHealth;g.Player.Invulnerable=0;hp=g.Player.Health;
+        Place(g.Player,stand);float shove=0;
+        for(int i=0;i<300&&Math.Abs(hp-g.Player.Health)<.01f;i++){await Frames(1);shove=Math.Max(shove,new Vector2(g.Player.Velocity.X,g.Player.Velocity.Z).Length());}
+        Check(slopeCos<.95f&&slopedReach>.78f&&Math.Abs(hp-g.Player.Health-Enemy.StrikeDamage/growth.Scale("def"))<.01f&&shove>0&&shove<slopeCos*7f+.3f,
+            $"a downhill load keeps its old projection: the back-stair barrels reach {slopedReach:F2} m down a {Mathf.RadToDeg(Mathf.Acos(slopeCos)):F0} degree slope and strike her at .78 m, her shove {shove:F2} m/s under the flat 7");
+        // Traps ticks in _Process. Observe its first step after the foot trigger, then put Mio on the real ramp for the whole roll.
+        g.Arm();g.Player.Health=g.Player.MaxHealth;g.Player.Invulnerable=0;float rampHp=g.Player.Health;
+        var tracked=wheels[0];var trackedAxle=(Node3D)tracked.GetParent();
+        var wheelRadius=((CylinderMesh)tracked.Mesh).BottomRadius;
+        Vector3 RimOffset()=>tracked.GlobalTransform.Basis*new Vector3(wheelRadius,0,0);
+        Vector3 lastRim=RimOffset(),lastAxle=trackedAxle.GlobalPosition;
+        Place(g.Player,On(new(581,-135.3f)));
+        for(int i=0;i<90&&!g.Sprung.Contains(humpWagon.Name);i++)await g.ToSignal(g.GetTree(),SceneTree.SignalName.ProcessFrame);
+        float rollStep=Game.Roll*(float)g.GetProcessDeltaTime();
+        float launch=humpWagon.Body.Position.DistanceTo(humpWagon.Rest.Origin);
+        Check(g.Sprung.Contains(humpWagon.Name)&&launch>0&&launch<=rollStep+.001f,
+            $"the first observed wagon motion is one roll step from its rest ({launch:F3} m, at most {rollStep:F3} m)");
+        Place(g.Player,new(594,Hoshikawa.World.Height(594,-134.5f)+5.2f,-134.5f));
+        float worstEnd=0,worstCentre=0,overhang=0,worstOverlap=1,worstLift=0,worstAcross=1,worstTilt=0,rimLo=float.MaxValue,rimHi=float.MinValue,rigidTurn=0,slip=0;
+        int rollSamples=0,treadSamples=0,rimTop=0,rimForward=0,rimBottom=0;
+        bool rampCrossing=false;
+        for(int i=0;i<520;i++)
+        {
+            if(i>0)await g.ToSignal(g.GetTree(),SceneTree.SignalName.ProcessFrame);
+            if(!humpWagon.Body.Visible)break;
+            var b=humpWagon.Body;var fwd=b.GlobalTransform.Basis.Z;var flat=new Vector2(fwd.X,fwd.Z).Normalized();
+            var centre=new Vector2(b.GlobalPosition.X,b.GlobalPosition.Z);
+            var rampGap=g.Player.GlobalPosition-b.GlobalPosition;
+            rampCrossing|=g.Player.IsOnFloor()&&Math.Abs(rampGap.X)<rollStep&&Math.Abs(rampGap.Z)<1&&rampGap.Y>Hoshikawa.World.WagonHitTop;
+            var rear=centre-flat*Hoshikawa.World.WagonLong/2;var front=centre+flat*Hoshikawa.World.WagonLong/2;
+            worstCentre=Math.Max(worstCentre,OffSiding(centre));rollSamples++;
+            // Both ends are measured while they are over the drawn rails, whose west end is x 570; past it the leading end runs on over the
+            // yard, as a body the length of the run's tail must, and that overhang is reported rather than counted as leaving the rails.
+            if(front.X>=570f)worstEnd=Math.Max(worstEnd,Math.Max(OffSiding(rear),OffSiding(front)));
+            else overhang=Math.Max(overhang,570f-front.X);
+            var c=WorstContact();
+            worstOverlap=Math.Min(worstOverlap,c.Overlap);worstLift=Math.Max(worstLift,c.Lift);
+            worstAcross=Math.Min(worstAcross,c.Across);worstTilt=Math.Max(worstTilt,c.Tilt);treadSamples+=wheels.Length;
+            rigidTurn=Math.Max(rigidTurn,rigid.Max(r=>r.Rotation.Length()));
+            // Subtract the wheel's translation: on the straight the top advances relative to the axle, and a mark near the bottom
+            // travels back by approximately the axle's step (not exactly: the mark sweeps an arc over the finite frame).
+            var rim=RimOffset();var axleAt=trackedAxle.GlobalPosition;var travel=axleAt-lastAxle;
+            rimLo=Math.Min(rimLo,rim.Y);rimHi=Math.Max(rimHi,rim.Y);
+            if(lastAxle.X<611.5f&&travel.X<-.001f&&Math.Abs(travel.Z)<.001f)
+            {
+                float advance=(rim-lastRim).Dot(travel.Normalized());
+                if(rim.Y>.35f&&lastRim.Y>.35f){rimTop++;if(advance>0)rimForward++;}
+                if(rim.Y<-.4f&&lastRim.Y<-.4f){rimBottom++;slip=Math.Max(slip,Math.Abs(travel.Length()+advance));}
+            }
+            lastRim=rim;lastAxle=axleAt;
+        }
+        float rampDamage=rampHp-g.Player.Health;var rampEnd=g.Player.GlobalPosition;bool rampFinished=!humpWagon.Body.Visible;
+        Check(rimHi-rimLo>.8f&&rimTop>20&&rimForward==rimTop&&rimBottom>20&&slip<.025f,
+            $"a rim swings {rimHi-rimLo:F2} m: on the straight its top advances relative to the axle in {rimForward}/{rimTop} samples and its bottom slips at most {slip:F3} m per frame ({rimBottom} samples)");
+        Check(rollSamples>250&&treadSamples>1500&&worstOverlap>.03f&&worstAcross>.98f&&worstTilt<.05f&&worstLift<.06f,
+            $"every tread rides the head of its own rail through the whole roll, both legs and the bend ({worstOverlap:F3} m overlap, {worstAcross:F3} across the axle, {worstTilt:F3} tilt, {worstLift:F3} m off the head, {treadSamples} samples)");
+        Check(rigidTurn<.01f,$"the wagon's body parts never turn while it rolls ({rigidTurn:F3} rad)");
+        Check(worstEnd<.12f&&worstCentre<.85f&&overhang<1.2f,
+            $"the wagon's ends ride Siding 2's drawn line through its bend, {worstEnd:F2} m off the rails at most and {worstCentre:F2} m of chord at the corner; past the rails' end its leading end overhangs {overhang:F2} m ({rollSamples} samples)");
+        g.Arm();
+        Check(humpWagon.Body.Transform.IsEqualApprox(humpWagon.Rest)&&axles.All(a=>a.Transform.IsEqualApprox(a.GetMeta("parked").AsTransform3D()))&&rigid.All(r=>r.Rotation.Length()<.001f)
+            &&wheels.All(w=>w.Transform.IsEqualApprox(w.GetMeta("parked").AsTransform3D())),
+            "a re-arm puts every axle and wheel back to its full built transform, the body still");
+        // The genuine walking route to the trigger, for the strike itself.
+        Place(g.Player,On(new(617.5f,-149)));await Frames(5);
+        g.Player.Health=g.Player.MaxHealth;g.Player.Invulnerable=0;hp=g.Player.Health;
+        await Walk((616,-146),(610,-145),(600,-145),(592,-143),(586,-138),(581,-135.3f));
+        for(int i=0;i<520&&humpWagon.Body.Visible;i++)await Frames(1);
+        Check(g.Sprung.Contains(humpWagon.Name)&&!humpWagon.Body.Visible&&Math.Abs(hp-g.Player.Health-Enemy.StrikeDamage/growth.Scale("def"))<.01f,
+            $"the wagon comes down Siding 2 onto her at the foot of its run and breaks, striking like a patrol ({hp-g.Player.Health:F0})");
+        Check(rampFinished&&rampCrossing&&rampEnd.Y>9.5f&&Math.Abs(rampDamage)<.01f,
+            $"the wagon passes and breaks without striking Mio on the ramp ({rampEnd}, crossing on floor: {rampCrossing}, {rampDamage:F0} taken)");
+        await Walk((586,-138),(592,-143),(600,-145),(610,-145),(616,-146),(617.5f,-149));
+        // The signal room's duty roster is the plan's non-interactive placeholder: a board inside the room on its north wall, merged and
+        // with no collider or prompt. Walk to it first, then back to the key.
+        await WalkTo(new(618,-157.6f));await Frames(5);
+        var roster=g.World.FindChildren("Signal room duty roster*","MeshInstance3D",true,false).Cast<MeshInstance3D>().ToArray();
+        Check(roster.Length==8&&roster.All(n=>!n.Visible)&&roster.All(n=>!n.GetChildren().OfType<CollisionObject3D>().Any())
+            &&g.Player.IsOnFloor()&&g.Interaction()==("",""),
+            $"the signal room's duty roster is a merged, non-colliding, non-interactive placeholder on its north wall ({roster.Length} pieces)");
+        using(var rosterRay=PhysicsRayQueryParameters3D.Create(new(618,7.85f,-157.5f),new(618,7.85f,-160),1))
+        {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(rosterRay);Check(hit.Count>0&&hit["collider"].As<Node>().Name=="Station footprint Signal room north wall","the roster has no collider; the room's north wall stands behind it");}
+        await WalkTo(new(618,-153.5f));await Frames(5);
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Z<-151.4f&&g.Interaction()==("repair",Localization.T("Parcels key").ToUpperInvariant()),
+            $"inside the old signal room the parcels key is within reach {g.Player.GlobalPosition}");
+        await Tap(Key.E);await Frames(2);
+        Check(!parcelsKey.Visible&&g.Player.Inventory.Count("parcels_key")==1&&g.ToastTitle=="Parcels key"&&g.Objective=="Reach the parcels door",
+            "taking the key on the mapped E puts it in her key items, and the objective turns to the parcels door");
+        // Back along the drawn return: out of the room, west along the yard's deep row, north up the dock corridor to S1's yard side, whose
+        // gate is still shut. The parcels door is unlocked from the bay first, so S1 is proved a way through and not a second key gate.
+        await WalkTo(new(618,-150.2f));await Walk((610,-150.2f),(608,-152.4f),(580,-152.4f),(570,-152.4f),(564,-150),(561,-146),(561,-138),(561,-132),(562,-109.3f));
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Z>-110.2f&&g.Interaction()==("ladder",Localization.T("GATE")),
+            $"the dock corridor climbs back to S1's yard side, where its shut gate waits {g.Player.GlobalPosition}");
+        Check(!g.Opened.Contains(World.S1Name)&&Shut(s1),"S1 is still shut while she carries the key");
+        // The bay's mouth, then the door, with S1 shut throughout: the key alone ends the chapter.
+        await Walk((560.5f,-109),(559.2f,-112),(559.2f,-120),(559.2f,-129));await Frames(5);
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.X<560.5f&&g.Mode==GameMode.Playing&&g.Player.Free&&g.Interaction()==("",Localization.T("PARCELS DOOR")),
+            $"the bay's fence turns her in to the parcels door, within its reach, with Mio free to act {g.Player.GlobalPosition}");
+        await Tap(Key.E);await Frames(2);
+        Check(g.ToastTitle=="TO BE CONTINUED"&&g.Opened.Contains(World.ParcelsDoorRow.Name)&&g.Player.Inventory.Count("parcels_key")==1&&g.Mode==GameMode.Playing&&Shut(s1),
+            "on the mapped E the key opens the parcels door with S1 shut, ending the chapter with its own toast and keeping the key");
+        Check(g.Interaction()==("","")&&g.Objective=="Reach the parcels door"&&g.ObjectivePosition==World.DoorPoint(World.ParcelsDoorRow),
+            "the unlocked door has no prompt left, though the objective still marks it");
+        // Let the ending's toast run down, then press E again: the same title must not be a fresh toast, and nothing more is awarded.
+        await Frames(60);
+        float toastLeft=g.ToastTime;int doorProgress=g.Opened.Count;
+        Check(toastLeft<4.9f,$"the ending's toast is running down before the second press ({toastLeft:F2} s left)");
+        await Tap(Key.E);await Frames(2);
+        Check(g.Opened.Count==doorProgress&&g.ToastTitle=="TO BE CONTINUED"&&g.ToastTime<=toastLeft&&g.Mode==GameMode.Playing,
+            $"a second E there awards nothing and does not restart the ending's toast ({toastLeft:F2} s -> {g.ToastTime:F2} s)");
+        // Back up the corridor to S1's yard side and open it there, one-way and with real input, then walk out on the drawn way.
+        await Walk((559.2f,-112),(560.5f,-109),(562,-109.3f));await Frames(5);
+        Check(g.Player.IsOnFloor()&&g.Interaction()==("ladder",Localization.T("GATE"))&&Shut(s1),"back at S1's yard side its shut gate still waits");
+        await Tap(Key.E);await Frames(130);
+        Check(g.Opened.Contains(World.S1Name)&&Down(s1),"from the freight yard S1 opens on the mapped E, and its leaf swings out over the road");
+        Check(g.ToastTitle=="SHORTCUT OPENED"&&g.Interaction().Icon!="ladder","and its prompt goes once it is open");
+        // Out through the open gate onto the service road, then the arcade's pouch: the station's own, and the prologue's fourth.
+        await Walk((562,-105.5f));await Frames(5);
+        Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Z>-107.6f,$"the open S1 lets her walk from the yard out onto the service road {g.Player.GlobalPosition}");
+        // The approved arcade approach, on her own feet: back up the service road, across the forecourt to the shop row's eastern gap,
+        // through it into the covered way, then along it past the two dormant scouts to the pouch.
+        await Walk((562,-96),(562,-80),(556,-74),(544,-70),(530,-64),(516,-56),(504,-50),(492,-46),(486,-45),(480,-44),(480,-41),(480,-38),(480,-33));
+        Check(g.Player.IsOnFloor()&&g.Region==World.StationName&&g.Player.GlobalPosition.Z is >-38 and <-29&&g.Player.GlobalPosition.X<490,
+            $"through the shop row's eastern gap Mio walks the covered arcade {g.Player.GlobalPosition}");
+        // The arcade's two scouts lie dormant in the station's register: one woken from its front comes for her, and one struck from behind
+        // shuts down before it rises. A station robot pays the same stardust as the maze's.
+        var arcadeSleeper=stationRobots.First(e=>e.Sleeps!=null&&Math.Abs(e.Home.X-462)<.5f);
+        arcadeSleeper.SetPhysicsProcess(true);arcadeSleeper.CollisionLayer=4;
+        g.Player.Health=g.Player.MaxHealth;g.Player.Invulnerable=0;
+        await WalkTo(new(462,-31));await Frames(8);
+        Check(!arcadeSleeper.Asleep,$"walking up in front of the arcade's first scout wakes it ({arcadeSleeper.State})");
+        for(int i=0;i<180&&arcadeSleeper.State is "ASLEEP" or "STAGGER" or "RECOVER" or "PATROL";i++)await Frames(1);
+        Check(arcadeSleeper.State is "PURSUE" or "WINDUP" or "STRIKE",$"and comes for her in the covered way ({arcadeSleeper.State})");
+        int stationPurse=g.Player.Growth.Stardust;arcadeSleeper.Execute();
+        Check(arcadeSleeper.Dead&&g.Player.Growth.Stardust==stationPurse+Stats.ScoutReward,$"a station scout shuts down for {Stats.ScoutReward} stardust");
+        var arcadeBackstab=stationRobots.First(e=>e.Sleeps!=null&&Math.Abs(e.Home.X-512)<.5f);
+        arcadeBackstab.SetPhysicsProcess(true);arcadeBackstab.CollisionLayer=4;
+        // Behind it is its north side: she comes round the way's far edge so the approach stays within its back's arc the whole way in.
+        await WalkTo(new(500,-37.4f));await WalkTo(new(512,-37.4f));await WalkTo(new(512,-36.2f));
+        g.Player.Model.Rotation=new(0,Mathf.Atan2(arcadeBackstab.Forward.X,arcadeBackstab.Forward.Z),0);await Frames(15);
+        Check(arcadeBackstab.Asleep&&g.Player.CanShutDown(arcadeBackstab),"the arcade's second scout, come at from behind, stays down");
+        await Press("attack",2);await Frames(20);
+        Check(arcadeBackstab.Dead,"and her attack shuts it down before it wakes");
+        for(int i=0;i<90&&!g.Player.Free;i++)await Frames(1);
+        foreach(var e in new[]{arcadeSleeper,arcadeBackstab}){e.SetPhysicsProcess(false);e.CollisionLayer=0;}
+        // Along the covered way to the pouch, still on her own feet, and its E.
+        var arcade=g.World.GetNode<Node3D>("Arcade pouch");var arcadeStand=arcade.GlobalPosition+Vector3.Back*1.3f;
+        await WalkTo(new(arcadeStand.X,arcadeStand.Z));await Frames(8);
+        Check(g.Player.IsOnFloor()&&g.Interaction()==("remedy",Localization.T("Remedy pouch").ToUpperInvariant()),$"the arcade's pouch waits on its barrel at the covered way's end {g.Player.GlobalPosition}");
+        await Tap(Key.E);await Frames(2);
+        Check(!arcade.Visible&&bag.Count("pouch")==4&&bag.Capacity("remedy")==7&&bag.Count("remedy")==7,
+            $"the arcade's pouch is the prologue's fourth, raising the remedies Mio carries to seven and filling them (pouches {bag.Count("pouch")}, capacity {bag.Capacity("remedy")}, remedies {bag.Count("remedy")})");
+        // What the real Vitals() draw emitted, at the draw calls themselves: seven filled remedy icons and the H cap's own rect, each
+        // inside the vitals panel (36..342 by the panel's own edges) and clear of one another, with the last icon's outer edge left of the cap.
+        await Frames(3);
+        var iconAt=g.Hud.RemedyDrawAt;var iconSize=g.Hud.RemedyDrawSize;var iconTint=g.Hud.RemedyDrawTint;var cap=g.Hud.RemedyHcap;
+        int icons=Math.Min(iconAt.Count,Math.Min(iconSize.Count,iconTint.Count));
+        bool InPanel(Rect2 r)=>r.Position.X>=36&&r.End.X<=342&&r.Position.Y>=g.Hud.CanvasHeight-132&&r.End.Y<=g.Hud.CanvasHeight-38;
+        var rects=Enumerable.Range(0,icons).Select(i=>new Rect2(iconAt[i]-Vector2.One*iconSize[i]/2,Vector2.One*iconSize[i])).ToArray();
+        float lastEdge=icons>0?rects.Max(r=>r.End.X):0;
+        bool apart=icons>0&&rects.Zip(rects.Skip(1)).All(p=>p.Second.Position.X>=p.First.End.X-.001f);
+        bool sized=icons>0&&rects.All(r=>r.Size.X>0&&r.Size.Y>0)&&cap.Size.X>0&&cap.Size.Y>0;
+        Check(bag.Capacity("remedy")==7&&icons==7&&iconTint.All(c=>c.A>.9f)&&apart&&sized
+            &&rects.All(InPanel)&&InPanel(cap)&&cap.Size.X>0&&cap.Position.X>lastEdge&&cap.End.X<398f-54f,
+            $"the Vitals draw emitted seven filled remedies and the H cap at the draw calls: {icons} icons, last edge {lastEdge:F1}, cap {cap}, all inside the panel and apart");
+        // A defeat on the station before its own Starwell: she wakes at the Court she last rested at, key, gate and door's unlock kept.
+        g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);await Frames(2);
+        bool stationFelled=g.Mode==GameMode.Defeated;float stationPitch=g.CameraPitch;g.Retry();await Frames(1);
+        Check(stationFelled&&g.RestedAt==2&&g.Player.GlobalPosition.DistanceTo(On(courtWell+new Vector2(0,2)))<.5f&&g.ToastTitle=="BACK AT THE STARWELL",
+            $"a defeat on the station brings Mio back to the Court, its own checkpoint's toast intact {g.ToastTitle} ({g.Player.GlobalPosition})");
+        Check(g.GetViewport().GetCamera3D().GlobalPosition.DistanceTo(g.Player.GlobalPosition+Vector3.Up*1.35f)<12f
+            &&Math.Abs(g.CameraPitch-stationPitch)<.001f&&g.CameraYaw==0&&g.ArrivalLift==0,
+            $"Retry on the station puts the camera at the Court's follow position on its first visible frame, not crossing the map ({g.GetViewport().GetCamera3D().GlobalPosition})");
+        await Frames(4);
+        Check(g.Player.Inventory.Count("parcels_key")==1&&g.Opened.Contains(World.S1Name)&&g.Opened.Contains(World.ParcelsDoorRow.Name)&&Down(s1),
+            "the parcels key, S1 and the unlocked door all come through the defeat");
+        // Both station loads sprung again with no rest since that Retry: the Forecourt's rest has to be what re-arms them, so they are
+        // triggered afresh here and checked still sprung immediately before the mapped E at the well.
+        Place(g.Player,On(new(377,-133)));await Frames(10);
+        for(int i=0;i<90&&!g.Sprung.Contains(stationDrums.Name);i++)await Frames(1);
+        Place(g.Player,On(new(581,-135.3f)));await Frames(10);
+        for(int i=0;i<90&&!g.Sprung.Contains(humpWagon.Name);i++)await Frames(1);
+        Check(g.Sprung.Contains(stationDrums.Name)&&g.Sprung.Contains(humpWagon.Name),
+            $"both station loads are sprung again before the Forecourt rest ({string.Join(", ",g.Sprung)})");
+        // The station's Starwell is the Forecourt's; resting there sets it as the checkpoint and its respawn spot is clear.
+        var forecourt=Hoshikawa.World.SavePoints[4].At;Check(Hoshikawa.World.SavePoints[4]==("Forecourt",forecourt)&&Hoshikawa.World.RegionAt(new Vector3(forecourt.X,0,forecourt.Y))==Hoshikawa.World.StationName,"the Forecourt's well is the station's checkpoint, the fifth Starwell");
+        Place(g.Player,On(forecourt+new Vector2(2,0)));await Frames(10);
+        Check(g.Player.IsOnFloor()&&g.Interaction()==(Hud.StardustIcon,Localization.T(Hoshikawa.World.SavePointName).ToUpperInvariant())&&g.GetNode<OmniLight3D>("Save point light Forecourt").GlobalPosition.DistanceTo(new(forecourt.X,g.Player.GlobalPosition.Y,forecourt.Y))<1.5f,
+            "the Forecourt's well is lit and prompts like the villages' and the maze's");
+        await Tap(Key.E);Check(g.Mode==GameMode.Rest&&g.RestedAt==4,"Mio rests at the Forecourt's Starwell");await Tap(Key.Escape);
+        Check(g.Player.Inventory.Count("parcels_key")==1&&g.Opened.Contains(World.S1Name)&&Down(s1)&&g.Opened.Contains(World.ParcelsDoorRow.Name),
+            "resting at the Forecourt keeps the parcels key, S1 open and the parcels door unlocked");
+        Check(!g.Sprung.Contains(stationDrums.Name)&&!g.Sprung.Contains(humpWagon.Name)&&stationDrums.Body.Visible&&humpWagon.Body.Visible
+            &&stationDrums.Body.Position.DistanceTo(stationDrums.Rest.Origin)<.01f&&humpWagon.Body.Position.DistanceTo(humpWagon.Rest.Origin)<.01f
+            &&((StaticBody3D)humpWagon.Body).CollisionLayer==1&&((StaticBody3D)stationDrums.Body).CollisionLayer==1,
+            "resting at the Forecourt re-arms the station's oil drums and wagon at the heads of their runs, solid again");
+        g.Player.Respawn();await Frames(10);
+        Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-forecourt.X,g.Player.GlobalPosition.Z-(forecourt.Y+2)).Length()<.5f,"the Forecourt's respawn spot 2 m from the well is clear");
+        // Resting sent every robot home and put its collider back; the Signal yard's patrols are not fought here, so they stay out of the walk.
+        foreach(var e in mazeRobots)e.CollisionLayer=0;
+        // A defeat away from the Forecourt, within the station, with the camera settled on her there: Retry's first frame is then read
+        // against the checkpoint's own follow position, not the one she fell at, and its toast, aim and cleared reveal are read with it.
+        Place(g.Player,On(new(544,-38)));await Frames(60);
+        float forecourtPitch=g.CameraPitch;
+        g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);await Frames(2);
+        bool forecourtFelled=g.Mode==GameMode.Defeated;g.Retry();await Frames(1);
+        Check(forecourtFelled&&g.RestedAt==4&&new Vector2(g.Player.GlobalPosition.X-forecourt.X,g.Player.GlobalPosition.Z-(forecourt.Y+2)).Length()<.5f
+            &&g.ToastTitle=="BACK AT THE STARWELL",$"a defeat after resting at the Forecourt brings her back to it {g.Player.GlobalPosition}");
+        Check(g.GetViewport().GetCamera3D().GlobalPosition.DistanceTo(g.Player.GlobalPosition+Vector3.Up*1.35f)<12f
+            &&Math.Abs(g.CameraPitch-forecourtPitch)<.001f&&g.CameraYaw==0&&g.ArrivalLift==0&&g.RevealShare==0,
+            $"Retry at the Forecourt's own Starwell follows her from its first frame, keeping her aim and no reveal ({g.GetViewport().GetCamera3D().GlobalPosition})");
+        await Frames(4);
+        Check(g.Player.Inventory.Count("parcels_key")==1&&g.Opened.Contains(World.S1Name)&&g.Opened.Contains(World.ParcelsDoorRow.Name)&&Down(s1),
+            "and the key, S1 and the door's unlock survive that defeat too");
+        foreach(var e in mazeRobots)e.CollisionLayer=0;
+        // Every crossing below is taken on the mapped E. The checkpoint, every held item's count — a spent slot included, since she keeps
+        // the slot when the last one goes — the key and the openings are snapshotted before the first one, so a trip that reset any of them
+        // fails on the comparison rather than passing on state read after it. The remedies are spent empty and a cell is kept, so the
+        // snapshot carries both a spent slot and a non-key item a reset would drop.
+        string HeldItems()=>string.Join(" ",bag.Held.Select(i=>$"{i.Id}={bag.Count(i.Id)}"));
+        while(bag.Take("remedy")){ }
+        while(bag.Count("cell")<1)bag.Add("cell");
+        var checkpoint=g.RestedAt;var heldKey=g.Player.Inventory.Count("parcels_key");var opens=g.Opened.OrderBy(n=>n).ToArray();string snapshot=HeldItems();
+        Check(heldKey==1&&opens.Contains(World.S1Name)&&opens.Contains(World.ParcelsDoorRow.Name)&&Down(s1)
+            &&bag.Count("remedy")==0&&bag.Count("cell")>0&&bag.Held.Count(i=>i.Kind==ItemKind.Consumable)>=2,
+            $"before leaving the station: the key held, S1 open, the parcels door unlocked, and every held item with a spent slot ({snapshot})");
+        // Station to Tunnel Mountain: the landing is more than 2.2 m from the door, so she steps up to it again to return.
+        Place(g.Player,On(new Vector2(380,-149.5f)));await Frames(10);
+        Check(g.Mode==GameMode.Playing&&g.Player.Free&&g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),"at the station's end of the tunnel E leads back");
+        await Tap(Key.E);await Frames(8);
+        Check(g.ArrivalLift==0&&Math.Abs(g.CameraPitch+.45f)<.001f&&g.GetViewport().GetCamera3D().GlobalPosition.Y<25f
+            &&Mathf.Abs(Mathf.RadToDeg(Mathf.Asin(-Mathf.Clamp(g.GetViewport().GetCamera3D().GlobalBasis.Z.Y,-1,1)))-Mathf.RadToDeg(g.CameraPitch))<3f,
+            $"the return travel carries no arrival reveal and keeps the player's aim ({Mathf.RadToDeg(g.CameraPitch):F1})");
+        Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-mountainLanding.X,g.Player.GlobalPosition.Z-mountainLanding.Z).Length()<.5f&&g.Region==Hoshikawa.World.MazeName
+            &&g.ToastTitle=="TUNNEL MOUNTAIN"&&g.ToastTitle!="TO BE CONTINUED"&&g.Interaction().Label=="",
+            $"E there returns her to the Signal yard's mouth, facing Tunnel Mountain, with no early TO BE CONTINUED {g.Player.GlobalPosition}");
+        Check(g.RestedAt==checkpoint&&g.Player.Inventory.Count("parcels_key")==heldKey&&g.Opened.OrderBy(n=>n).SequenceEqual(opens)&&Down(s1),
+            "the checkpoint she left with, the key and S1's and the door's openings all survive the crossing to Tunnel Mountain");
+        Check(HeldItems()==snapshot,$"and every held item comes with her, the spent slot and the cell too ({snapshot} vs {HeldItems()})");
+        Check(g.Objective=="Take the station road east"&&g.ObjectivePosition==g.World.MazeEnd,
+            "back in Tunnel Mountain the objective is the station road east, its marker the Signal yard's mouth, unlocked or not");
+        // Tunnel Mountain to the station, on the mapped E pressed and flushed by hand: the result is read before the same frame's region
+        // toast could hide a premature ending.
+        Place(g.Player,On(new Vector2(134,-176)));await Frames(10);
+        Check(g.Mode==GameMode.Playing&&g.Player.Free&&g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),"the mountain mouth still leads through");
+        Input.ParseInputEvent(new InputEventKey{Keycode=Key.E,PhysicalKeycode=Key.E,Pressed=true});Input.FlushBufferedEvents();
+        Check(g.ToastTitle!="TO BE CONTINUED"&&g.Mode==GameMode.Playing
+            &&new Vector2(g.Player.GlobalPosition.X-stationLanding.X,g.Player.GlobalPosition.Z-stationLanding.Z).Length()<.5f,
+            $"the mapped E at the mountain mouth is the tunnel's transit at once, and no ending toast stands there ({g.ToastTitle})");
+        Input.ParseInputEvent(new InputEventKey{Keycode=Key.E,PhysicalKeycode=Key.E,Pressed=false});Input.FlushBufferedEvents();
+        await Frames(5);
+        Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-stationLanding.X,g.Player.GlobalPosition.Z-stationLanding.Z).Length()<.5f&&g.ToastTitle=="HOSHIKAWA STATION",
+            $"the tunnel sets her down on the station's hillside {g.Player.GlobalPosition}");
+        Check(g.RestedAt==checkpoint&&g.Player.Inventory.Count("parcels_key")==heldKey&&g.Opened.OrderBy(n=>n).SequenceEqual(opens)&&Down(s1),
+            "and the checkpoint, the key and both openings come back with her through the tunnel to the station");
+        Check(HeldItems()==snapshot,$"and every held item comes back with her, the spent slot and the cell too ({snapshot} vs {HeldItems()})");
+        Check(g.Objective=="Reach the parcels door"&&g.ObjectivePosition==Hoshikawa.World.DoorPoint(Hoshikawa.World.ParcelsDoorRow),
+            "on the station the objective still marks the parcels door, though it is unlocked");
+        Place(g.Player,On(new Vector2(380,-149.5f)));await Frames(10);
+        Check(g.Interaction()==("",Localization.T("STATION TUNNEL").ToUpperInvariant()),"and the station's end still leads back for the old line");
+        await Tap(Key.E);await Frames(5);
+        Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-mountainLanding.X,g.Player.GlobalPosition.Z-mountainLanding.Z).Length()<.5f&&g.Region==Hoshikawa.World.MazeName,
+            $"she returns to the Signal yard to walk the old line {g.Player.GlobalPosition}");
         // The old line west of the yard: down onto the old track bed, over the girder bridge beside its rotten sleepers, along the ledge and
         // out onto the viaduct's last spans, to the cell near its broken end and a leap into the relay plaza.
         await Walk((93,-176),(88,-175.5f),(84.5f,-174),(80,-172.7f),(72,-172.7f),(68,-174),(61,-171.5f),(50,-170.5f),(40,-168.5f),(34,-168),(24,-168),(11.5f,-168));
@@ -1138,8 +1956,11 @@ public static class IntegrationCheck
         await TalkTo(renji,Vector3.Left*1.6f);Check(g.Script.SequenceEqual(Prologue.RenjiSeesOff),"Renji, staying at the plaza, sees them off");g.EndDialogue();
         if(DisplayServer.GetName()!="headless"){g.SaveScreenshot("res://artifacts/mission-complete.png");await Frames(5);}
         var chaser=g.Enemies.First(e=>e.Kind==Enemy.Scout&&!e.Dead);chaser.SetPhysicsProcess(true);Place(g.Player,chaser.GlobalPosition+Vector3.Back*6);await Frames(30);
-        Check(chaser.State=="PURSUE"&&g.Music.Current=="battle","a scout after Mio brings in the battle music");g.SetPaused(true);
-        g.Restart();Check(g.QuestStage==0&&g.Enemies.All(e=>!e.Dead)&&g.Player.Health==100&&yui.Body.GlobalPosition.DistanceTo(new(Hoshikawa.World.YuiGate.X,yui.Body.GlobalPosition.Y,Hoshikawa.World.YuiGate.Z))<.01f
+        Check(chaser.State=="PURSUE"&&g.Music.Current=="battle","a scout after Mio brings in the battle music");g.SetPaused(true);await Frames(2);
+        Check(g.Mode==GameMode.Paused&&!chaser.Dead&&chaser.State=="PURSUE"&&g.Music.Current=="battle",
+            $"Mio is still paused mid-fight immediately before Restart ({g.Mode}, scout {chaser.State}, music {g.Music.Current})");
+        g.Restart();
+        Check(g.QuestStage==0&&g.Enemies.All(e=>!e.Dead)&&g.Player.Health==100&&yui.Body.GlobalPosition.DistanceTo(new(Hoshikawa.World.YuiGate.X,yui.Body.GlobalPosition.Y,Hoshikawa.World.YuiGate.Z))<.01f
             &&sota.GlobalPosition.DistanceTo(sotaHome)<.01f&&renji.GlobalPosition.DistanceTo(new(-5.2f,renji.GlobalPosition.Y,11))<.01f&&g.Actor("Renji").Visual.Clip=="work"&&g.World.Rockfall.All(n=>n.Visible&&(n is not StaticBody3D b||b.CollisionLayer==1))&&g.World.RockfallSign.All(l=>l.Text==World.ClosedSign),
             "restart restores a fresh playable mission, Yui back at Mio's gate, Renji at his bench, Sota at home and the station road closed");chaser.SetPhysicsProcess(false);
         Check(g.Mode==GameMode.Dialogue&&g.Script.SequenceEqual(Prologue.Opening)&&g.Log.Count==1,"restarting the prologue replays its opening, with a fresh history");
@@ -1151,11 +1972,29 @@ public static class IntegrationCheck
         g.LeaveRoom();g.EndDialogue();
         // The ladder's body takes its new turn on the next physics step.
         await Frames(2);
-        Check(g.Opened.Count==0&&Turned(ladder.Closed)&&g.World.Pickups.All(p=>p.Node.Visible)&&bag.Held.Select(i=>i.Id).SequenceEqual(new[]{"remedy","terminal"})&&bag.Capacity("remedy")==3&&bag.Count("remedy")==3,
-            "restart draws the ladder up again, puts the pouch and cells back and Mio's items back to what she set out with");
+        Check(g.Opened.Count==0&&Turned(ladder.Closed)&&Shut(s1)&&g.World.Pickups.All(p=>p.Node.Visible)&&bag.Held.Select(i=>i.Id).SequenceEqual(new[]{"remedy","terminal"})&&bag.Capacity("remedy")==3&&bag.Count("remedy")==3,
+            "restart draws the ladder up again, shuts S1, puts the pouches, the key and cells back and Mio's items back to what she set out with");
+        Check(!g.Sprung.Contains(humpWagon.Name)&&humpWagon.Body.Visible&&humpWagon.Body.Position.DistanceTo(humpWagon.Rest.Origin)<.01f,
+            "restart puts the station's wagon back at the head of its run too");
         Place(g.Player,new(lever.X,Hoshikawa.World.Height(lever.X,lever.Y)+.1f,lever.Y));await Frames(10);g.Interact();await Frames(20);
         g.Restart();SkipOpening();await Frames(100);
-        Check(g.Opened.Count==0&&Turned(ladder.Closed),"a restart while the ladder is still swinging down leaves it drawn up");
+        Check(g.Opened.Count==0&&Turned(ladder.Closed)&&Shut(s1),"a restart while the ladder is still swinging down leaves it drawn up and S1 shut");
+        // Exercise recovery during real arrivals without unpausing or ending the fight in the restart regression above.
+        async Task StartStationReveal()
+        {
+            g.QuestStage=Quest.Beyond;g.CameraPitch=-.45f;
+            Place(g.Player,World.DoorPoint(mountainSideDoor)+Vector3.Up*.1f);await Frames(2);
+            await Tap(Key.E);
+            Check(g.Mode==GameMode.Playing&&g.Region==World.StationName&&g.RevealShare>.9f,
+                $"the recovery probe enters the station through the tunnel with the reveal active ({g.Player.GlobalPosition}, share {g.RevealShare:F2})");
+        }
+        await StartStationReveal();g.Die();
+        Check(g.Mode==GameMode.Defeated&&g.RevealShare>.9f,"the defeat leaves an active reveal for Retry to clear");
+        g.Retry();await Frames(5);
+        Check(g.ArrivalLift==0&&g.RevealShare==0&&Math.Abs(g.CameraPitch+.45f)<.001f,"an ordinary Retry while the reveal is active clears it and keeps the player's aim");
+        await StartStationReveal();g.Restart();
+        Check(g.ArrivalLift==0&&g.RevealShare==0&&Math.Abs(g.CameraPitch+.45f)<.001f,"Restart while the reveal is active clears it and keeps the player's aim");
+        SkipOpening();
         // The whole flow above also runs under --lang=ja and --lang=zh_TW. Here each language is also checked on its own: glyphs, fixed-width boxes,
         // line breaking, and the real language buttons.
         string startLanguage=Localization.Current;var sans=ThemeDB.FallbackFont;
@@ -1176,7 +2015,8 @@ public static class IntegrationCheck
                 ("CTRL / ALT  Dodge     TAB  Lock     Q  Skill",13,334),("E  Interact    H  Remedy    I  Items    ESC  Pause",12,334),
                 ("Items",17,278),("Settings",17,278),("Use",17,138),("Back",17,138),("Supplies",13,378),("Key items",13,378),("The train with no passengers",19,360),
                 ("Head outside",17,340),("Speak to Renji at the workshop",17,340),("Clear the old relay road",17,340),("Restart the manual relay",17,340),("Return to Renji in Hoshikawa",17,340),
-                ("Get ready to set out ({0}/4)",17,340),("Mend Renji's telephone",17,340),("Bring Renji his telephone",17,340),("Go home and rest",17,340),("Meet the others at the rockfall",17,340),("Take the station road east",17,340)};
+                ("Get ready to set out ({0}/4)",17,340),("Mend Renji's telephone",17,340),("Bring Renji his telephone",17,340),("Go home and rest",17,340),("Meet the others at the rockfall",17,340),("Take the station road east",17,340),
+                ("Find the parcels key",17,340),("Reach the parcels door",17,340)};
             var overflow=tight.Where(t=>Width(t.Text,t.Size)>t.Room).Select(t=>t.Text).ToArray();
             Check(overflow.Length==0,$"{name}: every menu, control and panel string fits its fixed box {string.Join(" | ",overflow)}");
             var stats=Stats.All.Where(s=>Width(s.Short,17,serif)>120).Select(s=>s.Short).ToArray();
@@ -1206,6 +2046,23 @@ public static class IntegrationCheck
             {g.Mode=mode;g.Hud.RefreshMenu();await Frames(2);Check((g.Hud.GetViewport().GuiGetFocusOwner() as Button)?.Text==action,$"{name}: on the {mode} screen the main button, not a language button, holds focus, so Enter does what it says");}
             foreach(var mode in new[]{GameMode.Title,GameMode.Paused,GameMode.Defeated,GameMode.Inventory,GameMode.Settings,GameMode.Rest,GameMode.History,GameMode.Playing})
             {int drawn=g.Hud.Redraws;g.Mode=mode;g.Hud.RefreshMenu();await Frames(3);Check(g.Hud.Redraws>drawn,$"{name}: the HUD draws its {mode} screen");}
+        }
+        // The station's own words, through the real tunnel each way in every language: its prompt and its arrival toast, not only a glyph pass
+        // over the tables. The toast key is the station's, translated in the language on screen, and the HUD draws it with nothing missing.
+        foreach(var (code,name) in Localization.Languages)
+        {
+            Localization.Set(code);g.Hud.ApplyLanguage();await Frames(2);
+            g.QuestStage=Quest.Beyond;Place(g.Player,World.DoorPoint(mountainSideDoor)+Vector3.Up*.1f);await Frames(3);
+            string prompt=Localization.T("STATION TUNNEL");
+            Check(g.Mode==GameMode.Playing&&g.Interaction()==("",prompt.ToUpperInvariant())&&(code=="en"||prompt!="STATION TUNNEL"),
+                $"{name}: the tunnel's mouth prompts in its own words ({prompt})");
+            await Tap(Key.E);await Frames(4);
+            string arrived=Localization.T(Hoshikawa.World.StationToast);
+            Check(g.Region==Hoshikawa.World.StationName&&g.ToastTitle==Hoshikawa.World.StationToast&&g.ToastTime>0&&(code=="en"||arrived!="HOSHIKAWA STATION"),
+                $"{name}: her arrival on the station draws its name ({arrived})");
+            Place(g.Player,World.DoorPoint(stationSideDoor)+Vector3.Up*.1f);await Frames(3);
+            await Tap(Key.E);await Frames(4);
+            Check(g.Region==Hoshikawa.World.MazeName,$"{name}: and the tunnel leads back to Tunnel Mountain ({g.Region})");
         }
         g.SetLanguage(startLanguage);g.Mode=GameMode.Playing;g.Hud.RefreshMenu();
         Check(Localization.Missing.Count==0,"every string the HUD drew had a translation: "+string.Join(" | ",Localization.Missing));

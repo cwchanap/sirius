@@ -10,9 +10,12 @@ public partial class Game
     public const float CameraMove=2;
     // The seconds a scene's end takes to bring the camera round behind Mio, where the follow camera takes over.
     public const float CameraBack=1.6f;
+    // The scene camera's far plane, set once: the opening's city lies about 420 m forward of its shot, beyond the old 320.
+    public const float SceneFar=500;
     public static readonly Dictionary<string,(Vector3 Eye,Vector3 At,float Glide,bool Room)> Shots=new()
     {
-        ["sky"]=(new(40,44,24),new(160,100,-120),0,false),["city"]=(new(40,36,24),new(160,22,-120),7,false),
+        // The sky and the city look on one bearing, the north-west ridge's city: the sky above it, the city itself, glided in over 7 s.
+        ["sky"]=(new(40,44,24),new(141.72f,100,-133.45f),0,false),["city"]=(new(40,36,24),new(141.72f,22,-133.45f),7,false),
         ["valley"]=(new(36,22,-4),new(0,2,26),7,false),["home"]=(new(23,7,25),new(31,3,7.5f),6,false),
         ["bed"]=(new(.5f,1.15f,-.55f),new(-.6f,.2f,-.65f),0,true),["futon"]=(new(.9f,1.2f,.8f),new(-.6f,.55f,-.35f),2,true),
         ["floor"]=(new(-.1f,1.3f,1),new(.45f,0,0),2,true),["room"]=(new(1.5f,1.6f,1.45f),new(-.6f,1.3f,-.3f),2,true),
@@ -58,7 +61,7 @@ public partial class Game
     private readonly List<Move> moves=new();
     private void Stage()
     {
-        shot=new Camera3D {Name="Scene camera",Fov=50,Near=.05f,Far=320};shot.CullMask&=~Hoshikawa.World.NameLayer;AddChild(shot);
+        shot=new Camera3D {Name="Scene camera",Fov=50,Near=.05f,Far=SceneFar};shot.CullMask&=~Hoshikawa.World.NameLayer;AddChild(shot);
         foreach(var (name,_,body) in World.Residents)homes[name]=(body.GlobalPosition,body.Rotation.Y);
         Actor("Renji").Visual.Play(RestClip("Renji"));
     }
@@ -152,7 +155,7 @@ public partial class Game
         else if(ended is "Intro" or "DayTwo" or "DayThree"&&Room!=null)
         {
             tuck?.Kill();tuck=null;if(Room.GetNodeOrNull<MeshInstance3D>("Blanket") is {} cover){cover.Set("blend_shapes/sit",0f);cover.Set("blend_shapes/folded",1f);}
-            var to=Room.GlobalPosition+Hoshikawa.World.Door-Player.GlobalPosition;CameraYaw=Mathf.Atan2(-to.X,-to.Z);
+            var to=Room.GlobalPosition+Hoshikawa.World.RoomDoor-Player.GlobalPosition;CameraYaw=Mathf.Atan2(-to.X,-to.Z);
         }
         // Sent to find two companions, she settles on them with Zero before she asks either.
         else if(ended=="HalfDone")Play(Prologue.PickTwo);
@@ -173,7 +176,7 @@ public partial class Game
     {
         ExitRoom();Room=World.Room();AddChild(Room);World.Visible=false;Player.Visible=true;Sword(false);
         if(Heard.Contains("PhoneFixed"))Room.GetNode<Node3D>("Telephone").Visible=false;
-        if(asleep)Place(Room.GlobalPosition+Hoshikawa.World.Bed,0,Mathf.Pi*.8f);else Place(Room.GlobalPosition+Hoshikawa.World.Door+Vector3.Left*.6f,-Mathf.Pi/2,Mathf.Pi/2);
+        if(asleep)Place(Room.GlobalPosition+Hoshikawa.World.Bed,0,Mathf.Pi*.8f);else Place(Room.GlobalPosition+Hoshikawa.World.RoomDoor+Vector3.Left*.6f,-Mathf.Pi/2,Mathf.Pi/2);
         spring.SpringLength=2.2f;Blackout=1;
     }
     // Out of the door: the valley comes back with Mio on her doorstep, and Yui at the gate the first time.
@@ -186,12 +189,12 @@ public partial class Game
     private void Place(Vector3 at,float yaw,float cameraYaw)
     {
         Player.GlobalPosition=at;Player.Velocity=Vector3.Zero;Player.Model.Rotation=new(0,yaw,0);
-        CameraYaw=cameraYaw;CameraPitch=-.29f;cameraRig.Position=at+Vector3.Up*1.35f;
+        CameraYaw=cameraYaw;CameraPitch=-.29f;ArrivalLift=0;ArrivalPitch=0;cameraRig.Position=at+Vector3.Up*1.35f;
     }
     // The sword stays on its rack at home.
     private void Sword(bool shown){foreach(var m in ActorVisual.Descendants(Player.Model).OfType<MeshInstance3D>().Where(m=>m.Name.ToString().StartsWith("Sword")))m.Visible=shown;}
     private bool Near(Vector3 local,float reach){var p=Player.GlobalPosition-Room!.GlobalPosition;return new Vector2(p.X-local.X,p.Z-local.Z).Length()<reach;}
-    public bool AtDoor=>InRoom&&Near(Hoshikawa.World.Door,1.3f);
+    public bool AtDoor=>InRoom&&Near(Hoshikawa.World.RoomDoor,1.3f);
     public bool AtPhoto=>InRoom&&Near(Hoshikawa.World.Photo,1.1f);
     public bool AtPhone=>MendPhone&&InRoom&&Near(Hoshikawa.World.Telephone,1.1f);
     private void Walk(string name,Vector3[] path,string clip,float speed,float yaw)

@@ -34,8 +34,31 @@ public class ItemsTest
     public void EachPouchRaisesTheRemediesSheCarries()
     {
         var bag=new Inventory();
+        AssertThat(bag.Count("remedy")).IsEqual(3);AssertThat(bag.Add("remedy")).IsFalse();
         AssertThat(bag.Add("pouch")).IsTrue();AssertThat(bag.Capacity("remedy")).IsEqual(4);AssertThat(bag.Add("remedy")).IsTrue();AssertThat(bag.Count("remedy")).IsEqual(4);
-        AssertThat(bag.Add("pouch")).IsTrue();AssertThat(bag.Add("pouch")).IsTrue();AssertThat(bag.Add("pouch")).IsFalse();AssertThat(bag.Capacity("remedy")).IsEqual(6);
+        // The pouch row's own limit is seven (four are placed in the prologue): seven raise three remedies to ten, and an eighth is refused.
+        for(int i=0;i<6;i++)AssertThat(bag.Add("pouch")).IsTrue();
+        AssertThat(bag.Capacity("remedy")).IsEqual(10);
+        AssertThat(bag.Add("pouch")).IsFalse();AssertThat(bag.Capacity("remedy")).IsEqual(10);
+        while(bag.Add("remedy"));AssertThat(bag.Count("remedy")).IsEqual(10);
+    }
+    [TestCase]
+    public void TheRemedyRowFitsSevenAndTenSlotsAndKeepsTheOrdinaryRow()
+    {
+        // The panel's right edge is 342 and the row starts at 136: 8 px of padding, a 6 px gap and the H cap's own width (22.8 px at 12).
+        foreach(var slots in new[]{3,4,5,6,7,10})
+        {
+            var (pitch,icon)=Hud.RemedyRow(slots,22.8f);
+            AssertThat(icon).OverrideFailureMessage($"{slots} slots").IsEqual(pitch);
+            AssertThat(pitch).IsLessEqual(26f);
+            AssertThat(136+slots*pitch+6+22.8f).OverrideFailureMessage($"{slots} slots end at {136+slots*pitch+6+22.8f:F1}").IsLessEqual(342f-8f+.01f);
+        }
+        AssertThat(Hud.RemedyRow(1,22.8f).Pitch).IsEqual(26f);
+        AssertThat(Hud.RemedyRow(3,22.8f)).IsEqual((26f,26f));
+        AssertThat(Hud.RemedyRow(7,22.8f).Icon).IsGreater(24f);
+        AssertThat(Hud.RemedyRow(10,22.8f).Icon).IsGreater(16f);
+        // The H cap keeps its six-pixel gap and Skill stands clear of the longest row.
+        AssertThat(136+10*Hud.RemedyRow(10,22.8f).Pitch+6).IsLess(398f-22.8f);
     }
     [TestCase]
     public void ASpentItemKeepsItsSlotUntilAReset()

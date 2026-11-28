@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using GdUnit4;
+using Godot;
 using static GdUnit4.Assertions;
 namespace Hoshikawa.Tests;
 
@@ -78,6 +79,35 @@ public class LocalizationTest
     {
         var literals=Literals();
         AssertThat(Ui(lang).Keys.Where(k=>!literals.Contains(k))).IsEmpty();
+    }
+    [TestCase]
+    public void TheStationRegionAndItsDoorsHaveTheirOwnTranslations()
+    {
+        // The HUD draws a region's toast uppercased (`Game._Process`), so only the station's drawn form needs a row. The mixed-case
+        // natural name is the English `World.StationName` identity, never drawn, and would be a dead row under the rule below.
+        var drawn=new[]{World.StationName.ToUpperInvariant(),"STATION TUNNEL"};
+        foreach(var lang in new[]{"ja","zh_TW"})
+        {
+            var ui=Ui(lang);
+            AssertThat(drawn.Where(k=>!ui.ContainsKey(k))).OverrideFailureMessage($"{lang} lacks {string.Join(", ",drawn.Where(k=>!ui.ContainsKey(k)))}").IsEmpty();
+            AssertThat(ui.Keys.Any(k=>k==World.StationName)).OverrideFailureMessage($"{lang} still carries the undrawn mixed-case station key").IsFalse();
+            AssertThat(World.Doors.Where(d=>!ui.ContainsKey(d.Label)).Select(d=>d.Label)).IsEmpty();
+            AssertThat(World.RegionAt(new Vector3(500,0,-100)).ToUpperInvariant()).IsEqual(World.StationToast);
+        }
+        AssertThat(World.StationToast).IsEqual(World.StationName.ToUpperInvariant());
+    }
+    [TestCase]
+    public void TheParcelsDoorAndItsObjectivesHaveTheirOwnTranslations()
+    {
+        // Drawn verbatim: the door's prompt through T(door.Label), the refusal and the ending as Toast titles, the two Beyond objectives
+        // through F(Objective) and the key item's own name and text.
+        var drawn=new[]{"PARCELS DOOR","PARCELS DOOR LOCKED","TO BE CONTINUED","Find the parcels key","Reach the parcels door","Take the station road east",
+            Items.Get("parcels_key").Name,Items.Get("parcels_key").Text,Items.Get("pouch").Text};
+        foreach(var lang in new[]{"ja","zh_TW"})
+        {
+            var ui=Ui(lang);
+            AssertThat(drawn.Where(k=>!ui.ContainsKey(k))).OverrideFailureMessage($"{lang} lacks {string.Join(", ",drawn.Where(k=>!ui.ContainsKey(k)))}").IsEmpty();
+        }
     }
     [TestCase]
     public void LanguageComesFromTheFlagThenTheSavedChoiceThenTheSystem()

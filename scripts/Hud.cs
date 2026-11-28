@@ -25,6 +25,8 @@ public partial class Hud : Control
     public string Selected{get;private set;}="";
     private float scale=1,w=1440,h=900;
     public int Redraws;
+    // River bands the minimap has drawn since it was last reset, which the self-test reads for the station's map.
+    public int MapRivers;
     private Color ink=new("12282f"),cream=new("f1ead5"),muted=new("aec0b4"),gold=World.Gold,jade=World.Jade,red=new("f18470"),crest=new("e58b66");
     public override void _Ready()
     {
@@ -60,7 +62,14 @@ public partial class Hud : Control
         DrawStyleBox(new StyleBoxFlat {BgColor=new Color(ink,alpha),CornerRadiusTopLeft=3,CornerRadiusBottomRight=3,
             BorderColor=new Color(gold,.35f),BorderWidthLeft=1,BorderWidthBottom=1,BorderWidthRight=1,BorderWidthTop=1},rect);
     }
-    private void DrawIcon(string name,Vector2 center,float size,Color c)=>DrawTextureRect(Icon(name),new Rect2(center-Vector2.One*size/2,Vector2.One*size),false,c);
+    // Every icon is drawn here. While Vitals() draws its remedy row this records what it actually emitted, so the self-test reads the
+    // real draw calls rather than a recomputed layout; a suppressed draw leaves no record.
+    private bool remedyRow;
+    private void DrawIcon(string name,Vector2 center,float size,Color c)
+    {
+        DrawTextureRect(Icon(name),new Rect2(center-Vector2.One*size/2,Vector2.One*size),false,c);
+        if(remedyRow&&name=="remedy"){RemedyDrawAt.Add(center);RemedyDrawSize.Add(size);RemedyDrawTint.Add(c);}
+    }
     // Where each portrait's face is, as fractions of its image (centre, and radius as a share of the width), for the circle crops.
     private static readonly Dictionary<string,(float X,float Y,float R)> Faces=new(){["Mio"]=(.485f,.167f,.213f),["Chiaki"]=(.47f,.14f,.21f),["Chiyo"]=(.52f,.12f,.21f),["Emiko"]=(.52f,.12f,.21f),
         ["Haruka"]=(.53f,.13f,.21f),["KOMA-7"]=(.57f,.12f,.22f),["Naomi"]=(.47f,.17f,.21f),["Renji"]=(.44f,.14f,.21f),["Sota"]=(.46f,.15f,.21f),["Toma"]=(.52f,.14f,.21f),["Yui"]=(.53f,.16f,.21f)};
@@ -112,11 +121,13 @@ public partial class Hud : Control
         if(glow){DrawCircle(star,size*.9f,new Color(gold,.1f));DrawCircle(star,size*.55f,new Color(gold,.2f));}
         Text(text,new(x-width,y),size,c,true);Star(star,size*.42f,gold);
     }
-    private float KeyWidth(string key,int size)=>Math.Max(size*1.9f,font.GetStringSize(key,fontSize:size).X+size*1.1f);
-    // A key drawn as a small cap with its name on it; p is the cap's top-left corner.
+    // The cap's width from its key, which the remedy row's own layout and the self-test both measure.
+    public float KeyWidth(string key,int size)=>Math.Max(size*1.9f,font.GetStringSize(key,fontSize:size).X+size*1.1f);
+    // A key drawn as a small cap with its name on it; p is the cap's top-left corner. The remedy row's H cap is recorded as drawn.
     private void Keycap(string key,Vector2 p,int size=12)
     {
         var rect=new Rect2(p,KeyWidth(key,size),size*1.9f);
+        if(remedyRow&&key=="H")RemedyHcap=rect;
         DrawStyleBox(new StyleBoxFlat {BgColor=new Color(ink,.92f),BorderColor=new Color(cream,.75f),BorderWidthLeft=1,BorderWidthTop=1,BorderWidthRight=1,BorderWidthBottom=2,
             CornerRadiusTopLeft=3,CornerRadiusTopRight=3,CornerRadiusBottomLeft=3,CornerRadiusBottomRight=3},rect);
         Text(key,new(rect.GetCenter().X-font.GetStringSize(key,fontSize:size).X/2,rect.GetCenter().Y+size*.36f),size,cream);
@@ -210,7 +221,14 @@ public partial class Hud : Control
         DrawLine(new(85,h*.25f+204),new(445,h*.25f+204),new Color(gold,.65f));
         Text(T("The train with no passengers"),new(85,h*.25f+240),19,cream);
     }
-    // Mio's face from her dialogue portrait, vitality and posture as bars, and a pouch for each remedy she can carry.
+    // Mio's face from her dialogue portrait, vitality and posture as bars, and a pouch for each remedy she can carry. RemedyDrawAt,
+    // RemedyDrawSize and RemedyDrawTint are what the icons' own draws emitted; RemedyHcap is the rect the H cap drew. Both are cleared at
+    // the start of this screen's draw, so a stale rectangle or a suppressed draw cannot pass the self-test.
+    public float CanvasHeight=>h;
+    public readonly List<Vector2> RemedyDrawAt=new();
+    public readonly List<float> RemedyDrawSize=new();
+    public readonly List<Color> RemedyDrawTint=new();
+    public Rect2 RemedyHcap;
     private void Vitals()
     {
         Panel(new(36,h-132,306,94),.88f);
@@ -219,10 +237,24 @@ public partial class Hud : Control
         Bar(new(136,h-101),new(190,5),mio.Stamina/mio.MaxStamina,mio.Winded?red:cream);
         Bar(new(136,h-92),new(190,4),mio.Posture/100,gold);
         float x=136;
-        var bag=Game.Player.Inventory;
-        for(int i=0;i<bag.Capacity("remedy");i++){DrawIcon("remedy",new(x+11,h-64),26,i<bag.Count("remedy")?cream:new Color(cream,.22f));x+=26;}
+        var bag=Game.Player.Inventory;int slots=Math.Max(1,bag.Capacity("remedy"));
+        var (pitch,icon)=RemedyRow(slots,KeyWidth("H",12));
+        RemedyDrawAt.Clear();RemedyDrawSize.Clear();RemedyDrawTint.Clear();RemedyHcap=default;remedyRow=true;
+        for(int i=0;i<slots;i++)
+        {
+            bool filled=i<bag.Count("remedy");var at=new Vector2(x+pitch/2,h-64);
+            DrawIcon("remedy",at,icon,filled?cream:new Color(cream,.22f));x+=pitch;
+        }
         Keycap("H",new(x+6,h-75.4f));
+        remedyRow=false;
         Skill(new(398,h-86));
+    }
+    // The remedy row shares the panel with the H cap (the panel's right edge is x 342, its row starting at 136): the pitch is 26 px while
+    // the slots fit, and shrinks at seven and ten, the icons with it, so the row and the cap stay inside the panel and clear of Skill at 398.
+    public static (float Pitch,float Icon) RemedyRow(int capacity,float keyWidth)
+    {
+        float pitch=Math.Min(26,(342-136-8-6-keyWidth)/Math.Max(1,capacity));
+        return (pitch,Math.Min(26,pitch));
     }
     // The stardust Mio carries, bottom right, with what she last earned rising over it.
     private void Wallet()
@@ -347,10 +379,12 @@ public partial class Hud : Control
         DrawCircle(center,r+4,new Color(ink,.93f));DrawArc(center,r,0,Mathf.Tau,64,new Color(gold,.7f),1);
         Text("N",center+new Vector2(-5,-90),11,gold);
         Vector2 Map(Vector3 p)=>new((p.X-Game.Player.GlobalPosition.X)*1.5f,(p.Z-Game.Player.GlobalPosition.Z)*1.5f);
-        foreach(float riverZ in new[]{-8f,World.CedarZ})
+        // The two full-circle river bands belong to the valley's map; the station lies far east of both rivers. MapRivers counts the bands
+        // actually drawn, so the self-test can see the station's map carries none and the valley's still does.
+        if(Game.Region!=World.StationName)foreach(float riverZ in new[]{-8f,World.CedarZ})
         {
             float y=(riverZ-Game.Player.GlobalPosition.Z)*1.5f;
-            if(Math.Abs(y)<r-3){float width=Mathf.Sqrt((r-3)*(r-3)-y*y);DrawLine(center+new Vector2(-width,y),center+new Vector2(width,y),new Color(.24f,.57f,.58f,.7f),5);}
+            if(Math.Abs(y)<r-3){float width=Mathf.Sqrt((r-3)*(r-3)-y*y);DrawLine(center+new Vector2(-width,y),center+new Vector2(width,y),new Color(.24f,.57f,.58f,.7f),5);MapRivers++;}
         }
         for(float z=-6;z<56;z+=2)
         {var a=Map(new(World.BrookX(z),0,z));var b=Map(new(World.BrookX(z+2),0,z+2));if(a.Length()<r-3&&b.Length()<r-3)DrawLine(center+a,center+b,new Color(.24f,.57f,.58f,.7f),2);}

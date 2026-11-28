@@ -13,7 +13,11 @@ public partial class World
     public const string MazeName="Tunnel Mountain";
     // The 1 m ground and its collider east of Fine, over the maze; Fine's own east edge runs through the Wash.
     public static readonly Rect2I MazeFine=new(104,-300,268,288);
-    public static bool IsFine(Vector2I p)=>Fine.HasPoint(p)||MazeFine.HasPoint(p);
+    public static bool IsFine(Vector2I p)
+    {
+        foreach(var f in FineAreas)if(f.HasPoint(p))return true;
+        return false;
+    }
     // The maze from the rockfall's gate east, the region the HUD names.
     public static bool InMaze(float x,float z)=>x>52&&z<RelaySouth&&z>MazeFine.Position.Y&&(x>HalfWidth||z>RelayNorth);
     // East of the play area the maze's carved ground cuts down into the mountain `y`, the rivers' gorges and all, wherever it lies lower:
@@ -113,7 +117,7 @@ public partial class World
         ("Old line W",2,0,new Vector3[]{new(68,14,-174),new(61,13.85f,-171.5f),new(50,13.7f,-170.5f),new(40,13.55f,-168.5f)}),
         ("Viaduct apron",3.5f,0,new Vector3[]{new(40,13.55f,-168.5f),new(36,13.55f,-168)}),
     };
-    // Where the maze ends for now: at the Station tunnel's mouth, the door to the station, where TO BE CONTINUED shows.
+    // The maze's east end, at the Station tunnel's mouth: the door to Hoshikawa Station and the objective's last mark.
     public static readonly Vector2 StationMouth=new(134,-176);
     public Vector3 MazeEnd=>new(StationMouth.X,Height(StationMouth.X,StationMouth.Y),StationMouth.Y);
     // The built crossings, each a deck from A to B pitched between the ground at its ends: the old road's bridge over the Wash, the rail
@@ -165,7 +169,7 @@ public partial class World
         ("drone",new(298,-229),null),("drone",new(309,-240),null),("drone",new(278,-288),null),("drone",new(258,-290),null),("drone",new(262,-244),null),("drone",new(198,-247),null),
         ("drone",new(170,-193.7f),null),("drone",new(134,-193.7f),null),("drone",new(55.5f,-171),null)};
     // How far a robot at `at` roams, as a share of its kind's loop: less on a narrow trail, so it keeps off the walls.
-    public static float Room(Vector2 at)=>Mathf.Clamp(MazeTrails.MinBy(t=>Near(t.Points,at.X,at.Y).Gap).Half/3.5f,.35f,1);
+    public static float Room(Vector2 at)=>Mathf.Clamp(SiteTrails.MinBy(t=>Near(t.Points,at.X,at.Y).Gap).Half/3.5f,.35f,1);
     // The forest railway's line, broken where the trestle carries it over the Gorge's head.
     public static readonly Vector2[][] Railway={new Vector2[]{new(161.5f,-167.7f),new(171,-165.2f),new(184,-165),new(200,-167),new(214,-168.5f),new(226,-169),new(258,-170),new(264,-170.4f)},
         new Vector2[]{new(280,-171),new(285.8f,-171)}};
@@ -396,14 +400,32 @@ public partial class World
             Parts.Add(new(plank.Name,"plank",plank,frame.ToGlobal(new(0,Sag(rot),rot)),Size:.8f));
         }
     }
-    private void Load(string name,string kind,Vector2 a,Vector2 b)
+    // The station's rolling wagon: the parked cars' 11 m class, standing on four axles whose wheels ride the rail tops .17 m over the yard,
+    // so nothing of it starts or rolls inside the hump's 12 cm bed. Its axles ride the rails themselves (MainGauge apart) while the body
+    // spans the chord, and its hit volume stops at the body's top: length is not height.
+    public const float WagonLong=11,WagonSpan=1.45f,WagonWheelBottom=.17f,WagonWheelRadius=.45f,WagonHitTop=3.5f;
+    // The four axles' stations along the run, in metres behind the leading end: two bogies, two axles each.
+    // The nose overhangs the rail end by 1 m at the break; the leading tread must still be over the head until then.
+    public static readonly float[] WagonAxles={1f,2.7f,8.3f,10f};
+    private void Load(string name,string kind,Vector2 a,Vector2 b,Vector2? bend=null)
     {
-        var dir=(b-a).Normalized();float yaw=Mathf.Atan2(dir.X,dir.Y);
-        float radius=kind switch{"rocks"=>.75f,"logs"=>.35f,"drum"=>.6f,_=>.32f},span=kind switch{"rocks"=>.75f,"logs"=>1.3f,"drum"=>.55f,_=>.42f};
-        var body=new StaticBody3D{Name=name,Position=new(a.X,Height(a.X,a.Y),a.Y),Rotation=new(0,yaw,0),CollisionMask=0};AddChild(body);
-        body.AddChild(new CollisionShape3D{Position=new(0,radius,0),Shape=new BoxShape3D{Size=new(2*span,2*radius,2*radius)}});
-        // It turns about Spin, at its middle, as it rolls along its Z.
-        var spin=new Node3D{Name="Spin",Position=new(0,radius,0)};body.AddChild(spin);
+        var dir=(b-a).Normalized();float runYaw=Mathf.Atan2(dir.X,dir.Y),yaw=runYaw;
+        float radius=kind switch{"rocks"=>.75f,"logs"=>.35f,"drum"=>.6f,"wagon"=>WagonLong/2,_=>.32f},span=kind switch{"rocks"=>.75f,"logs"=>1.3f,"drum"=>.55f,"wagon"=>WagonSpan,_=>.42f};
+        var head=new Vector3(a.X,Height(a.X,a.Y),a.Y);var foot=new Vector3(b.X,Height(b.X,b.Y),b.Y);
+        // A wagon's resting pose is its run's own start: trailing end on the head, body standing down the siding. Centred on the head instead,
+        // an 11 m body would reach 5.5 m back through the yard's east fence, which stands 4 m behind the head.
+        var park=head;
+        if(kind=="wagon")
+        {
+            var rear=World.RunPoint(head,foot,bend,0).At;var front=World.RunPoint(head,foot,bend,WagonLong).At;
+            var mid=(rear+front)*.5f;park=new Vector3(mid.X,Height(mid.X,mid.Y),mid.Y);yaw=Mathf.Atan2(front.X-rear.X,front.Y-rear.Y);
+        }
+        var body=new StaticBody3D{Name=name,Position=park,Rotation=new(0,yaw,0),CollisionMask=0};AddChild(body);
+        // The wagon's own box is its body, long down the track; every other load's is the roll it turns on.
+        body.AddChild(new CollisionShape3D{Position=kind=="wagon"?new Vector3(0,1.75f,0):new Vector3(0,radius,0),
+            Shape=new BoxShape3D{Size=kind=="wagon"?new Vector3(2.9f,3.2f,WagonLong):new Vector3(2*span,2*radius,2*radius)}});
+        // It turns about Spin, at its middle, as it rolls along its Z; a wagon turns only its four axles, each about its own.
+        var spin=new Node3D{Name="Spin",Position=kind=="wagon"?Vector3.Zero:new Vector3(0,radius,0)};body.AddChild(spin);
         if(kind=="rocks")Model(spin,"Rock","boulder",new(0,-radius*.8f,0),0,new(1.05f,1.05f,1.05f)).Scale=Vector3.One*2*radius/1.58f;
         else if(kind=="logs")Cylinder(spin,"Log",Vector3.Zero,radius,2*span,wood).Rotation=new(0,0,Mathf.Pi/2);
         // A cable drum: its barrel wound with rusted cable between two wooden flanges, the flanges its rims.
@@ -412,22 +434,54 @@ public partial class World
             Cylinder(spin,"Drum cable",Vector3.Zero,radius*.72f,2*span-.12f,Mat(new("5d5246"))).Rotation=new(0,0,Mathf.Pi/2);
             foreach(float x in new[]{span-.04f,.04f-span})Cylinder(spin,"Drum flange",new(x,0,0),radius,.08f,wood).Rotation=new(0,0,Mathf.Pi/2);
         }
+        // An 11 m covered goods wagon of the parked cars' class: chassis, body, roof, ribs and a brake end, standing on four axles whose
+        // wheels ride the rail tops at WagonWheelBottom, clear of the hump's bed beneath them.
+        else if(kind=="wagon")
+        {
+            var iron=Mat(new("4d5155"));var goods=Mat(new("5b4434"));
+            Box(spin,"Wagon chassis",new(0,1.2f,0),new(3,.26f,10.6f),wood);
+            Box(spin,"Wagon body",new(0,2.18f,0),new(2.9f,1.7f,10.4f),goods);
+            Box(spin,"Wagon roof",new(0,3.1f,0),new(3.05f,.14f,10.8f),Mat(new("4a4038")));
+            for(int i=0;i<8;i++)Box(spin,"Wagon rib",new(0,2.18f,-4.55f+i*1.3f),new(2.94f,1.72f,.08f),wood);
+            Box(spin,"Wagon brake end",new(0,2.33f,4.5f),new(2.6f,2f,1.6f),goods);
+            // Each axle is a node the game places on the run's own line as the wagon rolls (Traps), so its wheels keep the rail gauge through
+            // the bend; parked, it stands on the body where it was built. Its wheels turn about their own axis, the tyre on the rail head.
+            for(int i=0;i<WagonAxles.Length;i++)
+            {
+                float z=WagonAxles[i]-WagonLong/2;
+                var axle=new Node3D{Name="Wheel set "+(i+1),Position=new(0,WagonWheelBottom+WagonWheelRadius,z)};spin.AddChild(axle);
+                axle.SetMeta("arc",WagonAxles[i]);axle.SetMeta("parked",axle.Transform);
+                foreach(float x in new[]{-MainGauge,MainGauge})
+                {
+                    var wheel=Cylinder(axle,x<0?"Wagon wheel west "+(i+1):"Wagon wheel east "+(i+1),new(x,0,0),WagonWheelRadius,.14f,iron);
+                    wheel.Rotation=new(0,0,Mathf.Pi/2);wheel.SetMeta("parked",wheel.Transform);
+                }
+                Box(axle,"Wagon axle box "+(i+1),Vector3.Zero,new(2*MainGauge+.3f,.18f,.2f),iron);
+            }
+        }
         else{var barrel=Model(spin,"Barrel","village_barrel",new(span,0,0),0,new(1.3f,1.3f,1.3f));barrel.Rotation=new(0,0,Mathf.Pi/2);}
-        Parts.Add(new(name,kind,body,body.Position,new(b.X,Height(b.X,b.Y),b.Y),Yaw:yaw,Size:radius,Span:span));
+        Parts.Add(new(name,kind,body,head,foot,Yaw:runYaw,Size:radius,Span:span,Bend:bend,Long:kind=="wagon"?WagonLong:0));
     }
     // The Cut gate, across the Cut at the Crossing, barred on the Halt's side: a leaf hinged in the north wall, reaching a metre into the
     // rock either side so she cannot slip round its ends, that swings back west along the wall once Mio lifts the bar.
     private void Gate()
     {
         var points=MazeTrails.Single(t=>t.Name=="The Cut");var a=new Vector2(points.Points[0].X,points.Points[0].Z);var b=new Vector2(points.Points[1].X,points.Points[1].Z);
-        var dir=(b-a).Normalized();var across=new Vector2(-dir.Y,dir.X);float reach=points.Half+1,yaw=Mathf.Atan2(across.X,across.Y),floor=Height(CutGate.X,CutGate.Y);
-        var hinge=CutGate-across*reach;
-        var leaf=new AnimatableBody3D{Name="Cut gate",Position=new(hinge.X,floor,hinge.Y),CollisionMask=0};AddChild(leaf);
-        leaf.AddChild(new CollisionShape3D{Position=new(0,1.5f,reach),Shape=new BoxShape3D{Size=new(.24f,3,2*reach)}});
+        var dir=(b-a).Normalized();
+        Gate("Cut gate",CutGate,dir,points.Half+1,new(CutGate.X+dir.X*2.2f,CutGate.Y+dir.Y*2.2f),new(CutGate.X-dir.X*2.2f,CutGate.Y-dir.Y*2.2f),-1.66f);
+    }
+    // A hinged gate across a way at `at`, spanning 2*reach along `dir`'s across, `high` metres of leaf hinged at at-across*reach between two
+    // solid posts: worked at From, refused at To, swinging `open` radians about its hinge (positive toward its left). The Cut's and S1's.
+    private void Gate(string name,Vector2 at,Vector2 dir,float reach,Vector2 from,Vector2 to,float open,float high=3)
+    {
+        var across=new Vector2(-dir.Y,dir.X);float yaw=Mathf.Atan2(across.X,across.Y),floor=Height(at.X,at.Y);
+        var hinge=at-across*reach;
+        var leaf=new AnimatableBody3D{Name=name,Position=new(hinge.X,floor,hinge.Y),CollisionMask=0};AddChild(leaf);
+        leaf.AddChild(new CollisionShape3D{Position=new(0,high/2,reach),Shape=new BoxShape3D{Size=new(.24f,high,2*reach)}});
         // The Tripo leaf (5.12 m along its X, hinged at -X, barred on both faces) stretched along the leaf's Z from the hinge.
         Model(leaf,"Gate leaf","cut_gate",new(0,0,reach),-90,new(1.3f,1.3f,1.3f)).Scale=new(2*reach/5.12f,1.2f,1.2f);
-        foreach(float s in new[]{-reach,reach}){var post=CutGate+across*s;Box(this,"Gate post",new(post.X,floor+1.7f,post.Y),new(.4f,3.4f,.4f),Mat(new("4a3a2c")),true);}
-        var gate=new Part("Cut gate","gate",leaf,new(CutGate.X+dir.X*2.2f,floor,CutGate.Y+dir.Y*2.2f),new(CutGate.X-dir.X*2.2f,floor,CutGate.Y-dir.Y*2.2f),0,-1.66f,yaw);
+        foreach(float s in new[]{-reach,reach}){var post=at+across*s;Box(this,"Gate post",new(post.X,floor+(high+.4f)/2,post.Y),new(.4f,high+.4f,.4f),Mat(new("4a3a2c")),true);}
+        var gate=new Part(name,"gate",leaf,new(from.X,floor,from.Y),new(to.X,floor,to.Y),0,open,yaw);
         gate.Swing(0);Parts.Add(gate);
     }
 }

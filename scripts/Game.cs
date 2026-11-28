@@ -23,6 +23,12 @@ public partial class Game : Node3D
     public GameMode Mode=GameMode.Title;
     public int QuestStage;
     public float CameraYaw,CameraPitch=-.29f,CameraShake,CameraPunch;
+    // A door's arrival-only reveal: the camera rig's lift and vertical aim, blended out into the normal follow camera by the existing
+    // blackout fade (held while the fade is dark, then eased to zero and dropped once the fade ends, so a later scene blackout cannot
+    // bring it back). The player's own CameraPitch is never overwritten.
+    public const float RevealFade=.5f;
+    public float ArrivalLift,ArrivalPitch;
+    public float RevealShare=>ArrivalLift>0&&Blackout>0?Mathf.Clamp(Blackout/RevealFade,0,1):0;
     public Camera3D Camera=null!;
     public Hud Hud=null!;
     public string Speaker="",SpeakerRole="",Dialogue="",ToastTitle="",ToastBody="",ToastIcon="",FeedbackText="",FlashIcon="";
@@ -45,7 +51,6 @@ public partial class Game : Node3D
     // The stardust last earned, shown rising over the HUD's count.
     public int Gained;
     private readonly List<Node3D> savePointGlows=new();
-    private bool arrived;
     public bool SelfTest;
     private Node3D cameraRig=null!;
     private SpringArm3D spring=null!;
@@ -76,6 +81,14 @@ public partial class Game : Node3D
         {
             var p=new Vector3(at.X,Hoshikawa.World.Height(at.X,at.Y)+.1f,at.Y);
             var enemy=new Enemy {Game=this,Home=p,Position=p,Index=Enemies.Count+1,Kind=kind switch {"patrol"=>Enemy.Patrol,"scout"=>Enemy.Scout,_=>Enemy.Drone},Maze=true,Sleeps=sleeps,Reach=Hoshikawa.World.Room(at),Yard=Hoshikawa.World.Locks.Select(l=>l.Yard).FirstOrDefault(y=>Hoshikawa.World.InYard(y,p))};
+            Enemies.Add(enemy);AddChild(enemy);
+        }
+        // The station's own, through the same rows and loop: Maze keeps them out of the day-one mission, and Yard is null, since no
+        // lock-in gate stands on the station.
+        foreach(var (kind,at,sleeps) in Hoshikawa.World.StationRobots)
+        {
+            var p=new Vector3(at.X,Hoshikawa.World.Height(at.X,at.Y)+.1f,at.Y);
+            var enemy=new Enemy {Game=this,Home=p,Position=p,Index=Enemies.Count+1,Kind=kind switch {"patrol"=>Enemy.Patrol,"scout"=>Enemy.Scout,_=>Enemy.Drone},Maze=true,Sleeps=sleeps,Reach=Hoshikawa.World.Room(at)};
             Enemies.Add(enemy);AddChild(enemy);
         }
         // Outside World, whose static meshes are baked: each save point's light over its well.
@@ -179,8 +192,6 @@ public partial class Game : Node3D
                 previousRegion=Region;Toast(Region.ToUpperInvariant(),seconds:3.5f);
             }
             if(Locked!=null&&(Locked.Dead||Locked.GlobalPosition.DistanceTo(Player.GlobalPosition)>22))Locked=null;
-            // Tunnel Mountain ends for now at the Station tunnel's mouth, the door to the station.
-            if(QuestStage==Quest.Beyond&&!arrived&&Player.GlobalPosition.DistanceTo(World.MazeEnd)<4){arrived=true;Toast("TO BE CONTINUED",seconds:6);}
             Traps(dt);Cull();
             if(Locked!=null)
             {var to=Locked.GlobalPosition-Player.GlobalPosition;CameraYaw=Mathf.LerpAngle(CameraYaw,Mathf.Atan2(-to.X,-to.Z),dt*3.8f);}
@@ -189,8 +200,10 @@ public partial class Game : Node3D
         // screen or a scene freezes the fight and keeps its music; a defeat ends it, and so does Retry() (recovering or restarting).
         if(Mode==GameMode.Playing)danger=Enemies.Any(e=>!e.Dead&&e.ProcessMode!=ProcessModeEnum.Disabled&&e.State is not ("PATROL" or "ASLEEP"))?Music.Calm:Math.Max(0,danger-dt);else if(Mode==GameMode.Defeated)danger=0;
         Music.Want(Music.Track(Region,danger>0));
-        cameraRig.Position=cameraRig.Position.Lerp(Player.GlobalPosition+Vector3.Up*1.35f,1-Mathf.Exp(-dt*10));
-        cameraRig.Rotation=new(CameraPitch,CameraYaw,0);
+        if(ArrivalLift>0&&Blackout<=0){ArrivalLift=0;ArrivalPitch=0;}
+        float reveal=RevealShare;
+        cameraRig.Position=cameraRig.Position.Lerp(Player.GlobalPosition+Vector3.Up*(1.35f+ArrivalLift*reveal),1-Mathf.Exp(-dt*10));
+        cameraRig.Rotation=new(Mathf.Lerp(CameraPitch,ArrivalPitch,reveal),CameraYaw,0);
         CameraShake=Math.Max(0,CameraShake-dt);
         Camera.HOffset=CameraShake>0?Mathf.Sin((float)elapsed*100)*CameraShake*.2f:0;
         Camera.VOffset=CameraShake>0?Mathf.Cos((float)elapsed*86)*CameraShake*.15f:0;
@@ -226,11 +239,15 @@ public partial class Game : Node3D
     public void Retry()
     {
         ExitRoom();Player.Visible=true;Player.Respawn();Locked=null;danger=0;Regroup();Arm();
-        CameraYaw=0;FreezeAnimations(false);Start();var at=Hoshikawa.World.SavePoints[RestedAt].At;Toast(Hoshikawa.World.InMaze(at.X,at.Y)?"BACK AT THE STARWELL":"BACK AT THE VILLAGE");
+        CameraYaw=0;ArrivalLift=0;ArrivalPitch=0;FreezeAnimations(false);Start();
+        // The checkpoint's first visible frame follows her at once, and the region it stands in is already the one the frame reads, so the
+        // checkpoint's toast is not replaced by a region change from wherever she fell.
+        cameraRig.Position=Player.GlobalPosition+Vector3.Up*1.35f;previousRegion=Region;
+        var at=Hoshikawa.World.SavePoints[RestedAt].At;Toast(Hoshikawa.World.InMaze(at.X,at.Y)?"BACK AT THE STARWELL":"BACK AT THE VILLAGE");
     }
     public void Restart()
     {
-        QuestStage=Quest.Renji;Heard.Clear();Log.Clear();arrived=false;foreach(var e in Enemies)e.Reset();
+        QuestStage=Quest.Renji;Heard.Clear();Log.Clear();foreach(var e in Enemies)e.Reset();
         opening?.Kill();Opened.Clear();Cleared.Clear();RestedAt=0;foreach(var s in World.Parts.Where(p=>p.Shortcut))s.Swing(s.Closed);World.ClearRockfall(false);
         foreach(var pickup in World.Pickups)pickup.Node.Visible=true;Player.Inventory.Reset();
         Player.Growth.Reset();
@@ -257,7 +274,10 @@ public partial class Game : Node3D
     public static readonly (string Scene,string By)[] Errands={("SotaJoins","Sota"),("Crossbow","Yui"),("KomaAsks","KOMA-7"),("PhoneFixed","Telephone")};
     public int ErrandsDone=>Errands.Count(e=>Heard.Contains(e.Scene));
     public bool MendPhone=>QuestStage==Quest.Ready&&!Heard.Contains("PhoneFixed");
-    // English is what quest logic and the route tests read; the HUD shows the translated one, and counts the patrols in crests.
+    // English is what quest logic and the route tests read; the HUD shows the translated one, and counts the patrols in crests. On the
+    // station, Beyond sends her after the parcels key and then to the parcels door; anywhere else the station road east still stands.
+    public bool AtStation=>Region==Hoshikawa.World.StationName;
+    public bool HoldsParcelsKey=>Player.Inventory.Count("parcels_key")>0;
     public string Objective=>InRoom?MendPhone?"Mend Renji's telephone":"Head outside":QuestStage switch
     {
         Quest.Renji or Quest.Morning=>"Speak to Renji at the workshop",
@@ -268,16 +288,18 @@ public partial class Game : Node3D
         Quest.Handover=>"Bring Renji his telephone",
         Quest.Home=>"Go home and rest",
         Quest.Rockfall=>"Meet the others at the rockfall",
+        Quest.Beyond=>!AtStation?"Take the station road east":HoldsParcelsKey?"Reach the parcels door":"Find the parcels key",
         _=>"Take the station road east"
     };
     public string ObjectiveText=>F(Objective,ErrandsDone);
-    public Vector3 ObjectivePosition=>InRoom?Room!.GlobalPosition+(MendPhone?Hoshikawa.World.Telephone:Hoshikawa.World.Door):QuestStage switch
+    public Vector3 ObjectivePosition=>InRoom?Room!.GlobalPosition+(MendPhone?Hoshikawa.World.Telephone:Hoshikawa.World.RoomDoor):QuestStage switch
     {
         Quest.Road=>Patrols.FirstOrDefault(e=>!e.Dead)?.GlobalPosition??World.RelayPosition,
         Quest.Relay=>World.RelayPosition,
         Quest.Ready=>Errands.Where(e=>!Heard.Contains(e.Scene)).Select(e=>e.By=="Telephone"?Doorstep:Actor(e.By).Body.GlobalPosition).MinBy(p=>p.DistanceTo(Player.GlobalPosition)),
         Quest.Home=>Doorstep,
-        Quest.Beyond=>World.MazeEnd,
+        // On the station the marker is the key's own pickup until she carries it, the parcels door after; back in the mountain, the mouth.
+        Quest.Beyond=>!AtStation?World.MazeEnd:HoldsParcelsKey?Hoshikawa.World.DoorPoint(World.ParcelsDoorRow):World.Pickups.Single(p=>p.Item=="parcels_key").Node.GlobalPosition,
         _=>Actor("Renji").Body.GlobalPosition
     };
     private static Vector3 Doorstep=>new(Hoshikawa.World.MioDoor.X,Hoshikawa.World.Height(Hoshikawa.World.MioDoor.X,Hoshikawa.World.MioDoor.Z),Hoshikawa.World.MioDoor.Z);
@@ -291,6 +313,7 @@ public partial class Game : Node3D
         if(World.RelayPosition.DistanceTo(Player.GlobalPosition)<3.3f)return ("repair",T("MANUAL RELAY"));
         if(AtSavePoint)return (Hud.StardustIcon,T(Hoshikawa.World.SavePointName).ToUpperInvariant());
         if(AtHome)return ("",T("DOOR"));
+        if(DoorHere() is {} door)return (door.Icon,T(door.Label).ToUpperInvariant());
         if(ShortcutHere() is {} part)return ("ladder",T(part.Kind.ToUpperInvariant()));
         if(PickupHere() is {} pickup){var item=Items.Get(pickup.Item);return (item.Icon,T(item.Name).ToUpperInvariant());}
         return ("","");
@@ -310,6 +333,20 @@ public partial class Game : Node3D
         if(AtSavePoint){Rest();return;}
         // Home on the second night, she talks with Zero and sleeps, and wakes on the third morning.
         if(AtHome){EnterRoom(false);if(QuestStage==Quest.Home){QuestStage=Quest.Rockfall;Play(Prologue.NightTwo);}return;}
+        // The tunnel is a blackout door: it puts her on the other side facing out, the run she was in still running.
+        if(DoorHere() is {} door)
+        {
+            // The parcels door is the chapter's end, not a passage: the key its row names unlocks it once, Opened keeping that, and until
+            // HPA-1253's inside work it stays shut in its wall. The key stays in her bag, and the ending is the toast, not a second scene.
+            if(door.Kind==World.DoorKind.Key)
+            {
+                if(door.Key is not {} id||Player.Inventory.Count(id)==0){Sound("guard");Toast("PARCELS DOOR LOCKED",seconds:3);return;}
+                Opened.Add(door.Name);Sound("heal");Toast("TO BE CONTINUED",seconds:5);return;
+            }
+            float aim=CameraPitch;var at=Hoshikawa.World.DoorLanding(door);Place(at,door.Yaw,door.CameraYaw);
+            CameraPitch=aim;ArrivalLift=door.Lift;ArrivalPitch=door.Pitch;
+            Blackout=1;Locked=null;danger=0;return;
+        }
         if(ShortcutHere() is {} shortcut)
         {
             // A gate is unbarred from one side only.
@@ -363,6 +400,8 @@ public partial class Game : Node3D
         return r.Body.GlobalPosition.DistanceTo(Player.GlobalPosition)<3.1f?r:null;
     }
     private World.Part? ShortcutHere()=>World.Parts.FirstOrDefault(s=>s.Shortcut&&!Opened.Contains(s.Name)&&(s.From.DistanceTo(Player.GlobalPosition)<2.2f||s.Kind=="gate"&&s.To.DistanceTo(Player.GlobalPosition)<2.2f));
+    // E's door, from Beyond on: a portal anywhere, and the parcels door only while it is still locked, so its prompt goes once Opened holds it.
+    private World.Door? DoorHere()=>QuestStage<Quest.Beyond?null:World.Doors.FirstOrDefault(d=>!(d.Kind==World.DoorKind.Key&&Opened.Contains(d.Name))&&World.DoorPoint(d).DistanceTo(Player.GlobalPosition)<2.2f);
     private World.Pickup? PickupHere()=>World.Pickups.FirstOrDefault(p=>p.Node.Visible&&p.Node.GlobalPosition.DistanceTo(Player.GlobalPosition)<2.2f);
     public void Play(params (string Speaker,string Text)[] beats)
     {

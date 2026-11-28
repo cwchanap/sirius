@@ -10,7 +10,8 @@ public static class Items
     public static readonly Item[] All={
         new("remedy","Remedy","Restores 45 vitality. Resting refills them.","remedy",ItemKind.Consumable,3,p=>p.Heal()),
         new("cell","Resonance cell","Restores one charge of Resonance Cut. Resting does not refill these; they are traded where Mio rests.","resonance",ItemKind.Consumable,3,p=>p.Recharge(),Price:80),
-        new("pouch","Remedy pouch","Found along the old roads. Each one lets Mio carry one more remedy.","remedy",ItemKind.Key,3,Raises:"remedy"),
+        new("pouch","Remedy pouch","Found along the old roads and in the station's arcade. Each one lets Mio carry one more remedy.","remedy",ItemKind.Key,7,Raises:"remedy"),
+        new("parcels_key","Parcels key","The key to the station's parcels door, left in the old signal room.","repair",ItemKind.Key,1),
         new("terminal","Wrist terminal","Gold casing and a little jade lamp. Zero's voice reaches Mio through it.","zero",ItemKind.Key,1),
     };
     public static Item Get(string id)=>All.Single(i=>i.Id==id);

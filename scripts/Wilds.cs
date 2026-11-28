@@ -7,7 +7,7 @@ public partial class World
 {
     // The 1 m terrain and its collider reach this far past the play area, over the cliffs, gorges and beach; 4 m mountains carry on to Far.
     public const int Margin = 40;
-    public static readonly Rect2I Fine = new(-HalfWidth-Margin,NorthEdge-Margin,2*(HalfWidth+Margin),SouthEdge-NorthEdge+2*Margin), Far = new(-180,NorthEdge-100,620,SouthEdge-NorthEdge+200);
+    public static readonly Rect2I Fine = new(-HalfWidth-Margin,NorthEdge-Margin,2*(HalfWidth+Margin),SouthEdge-NorthEdge+2*Margin), Far = new(-180,NorthEdge-100,884,SouthEdge-NorthEdge+200);
     public static bool InPlay(float x,float z)=>Math.Abs(x)<=HalfWidth&&z>=NorthEdge&&z<=SouthEdge;
     // The rivers beyond the play area, upstream first: (x, water level, z) points whose levels never rise downstream, a fall being two
     // points a metre apart with straight reaches either side. Each course meets a play-area river at its edge with that river's level,
@@ -74,7 +74,8 @@ public partial class World
             float bank=Mathf.Lerp(floor,level+.5f,Mathf.SmoothStep(half,half+2,gap))-(1-Mathf.SmoothStep(level+.5f,level+1.5f,y))*Math.Max(0,gap-half-4);
             y=sea>0?Math.Min(y,gorge):Math.Max(gorge,bank);
         }
-        return x>HalfWidth&&z<RelaySouth+40&&z>MazeFine.Position.Y-60?MazeCut(x,z,y):y;
+        y=x>HalfWidth&&z<RelaySouth+40&&z>MazeFine.Position.Y-60?MazeCut(x,z,y):y;
+        float loadingBank=StationBank(x,z);return loadingBank>0?Math.Max(y,loadingBank):y;
     }
     // The play area's edge height at (x, z), remembered for the last few points asked: a terrain row runs along one edge point but for
     // its normals' samples either side, and on the relay road's edge each costs a Carve().

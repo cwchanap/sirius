@@ -37,9 +37,9 @@ public partial class World : Node3D
         ("Komorebi Meeting Hall",new(0,-277),new(10.82f,3.6f,7.4f),0,"hall")};
     public static readonly Vector2 ShrineCenter=new(-1,63);
     // Hoshikawa's well is the valley's one save point, where Mio rests, levels up and trades. Its name is drawn through the ui tables.
-    // The Starwells, where Mio rests, levels up and trades: Hoshikawa's well in the square and Komorebi's.
-    // The Starwells: the wells of both villages, then Tunnel Mountain's two, at the Court where it begins and at the Halt in its middle.
-    public static readonly (string Place,Vector2 At)[] SavePoints={("Hoshikawa",new(-3.2f,24)),("Komorebi",new(-4.8f,-249.6f)),("Court",new Vector2(92,-156)),("Halt",new Vector2(247,-173))};
+    // The Starwells, where Mio rests, levels up and trades: the wells of both villages, then Tunnel Mountain's two, at the Court where it
+    // begins and at the Halt in its middle, and the Forecourt's in front of the station. New rows go on the end: RestedAt is an index.
+    public static readonly (string Place,Vector2 At)[] SavePoints={("Hoshikawa",new(-3.2f,24)),("Komorebi",new(-4.8f,-249.6f)),("Court",new Vector2(92,-156)),("Halt",new Vector2(247,-173)),("Forecourt",new Vector2(508,-70))};
     public const string SavePointName="Starwell";
     public static readonly (Vector2 From,Vector2 To)[] Footpaths={(new(0,15),new(17.2f,15)),(new(21.4f,15),new(34,15)),(new(34,15),new(34,20))};
     public static bool OnFootpath(Vector2 p,float margin)=>Footpaths.Any(f=>Geometry2D.GetClosestPointToSegment(p,f.From,f.To).DistanceTo(p)<1.2f+margin);
@@ -85,7 +85,7 @@ public partial class World : Node3D
         return fx+fz<=1?Height(x0,z0)+fx*(Height(x0+1,z0)-Height(x0,z0))+fz*(Height(x0,z0+1)-Height(x0,z0))
             :Height(x0+1,z0+1)+(1-fx)*(Height(x0,z0+1)-Height(x0+1,z0+1))+(1-fz)*(Height(x0+1,z0)-Height(x0+1,z0+1));
     }
-    public static string RegionAt(Vector3 p) => InMaze(p.X, p.Z) ? MazeName : p.Z < -232 ? "Komorebi" : p.Z < RelayNorth ? "Cedar Pass" : p.Z < RelaySouth ? "Old Relay Road" : "Hoshikawa";
+    public static string RegionAt(Vector3 p) => InStation(p.X, p.Z) ? StationName : InMaze(p.X, p.Z) ? MazeName : p.Z < -232 ? "Komorebi" : p.Z < RelayNorth ? "Cedar Pass" : p.Z < RelaySouth ? "Old Relay Road" : "Hoshikawa";
     public static readonly Color Jade = new("72e5cc"), Gold = new("eacb89"), Ink = new("152c33");
     private readonly RandomNumberGenerator rng = new() { Seed = 2189 };
     private Material stone = null!, roof = null!, wood = null!;
@@ -93,7 +93,7 @@ public partial class World : Node3D
     {
         stone = Atlas(new(0, 1), new(2, 2)); roof = Atlas(new(1, 1), new(5, 3));
         wood = Mat(new("594735"));
-        Environment(); Terrain(); Village(); Countryside(); RelayRoad(); Maze(); NorthernValley(); Komorebi(); Merge();
+        Environment(); Terrain(); Village(); Countryside(); RelayRoad(); Maze(); NorthernValley(); Komorebi(); StationOutside(); Merge();
     }
     // The static cache would otherwise hold its materials past the engine's leak check at quit.
     public override void _ExitTree() => looks.Clear();
@@ -285,6 +285,11 @@ public partial class World : Node3D
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, NoDepthTest = false };
         parent.AddChild(label); return label;
     }
+    // The occupied city, a distant story landmark on the north-west ridge beyond Tunnel Mountain and the station, half lost in the haze.
+    // Nine 2 x 3 m columns three metres apart, each based 3 m under the far ground under it; move them here, never one box.
+    public static readonly Vector2 City=new(270,-332);
+    public static Vector3 CityBox(int i){float x=City.X-12+i*3;return new(x,Height(x,City.Y)+6+i%3*3,City.Y);}
+    public static Vector3 CitySize(int i)=>new(2,18+i%3*6,3);
     private void Environment()
     {
         // The Mobile renderer has no SSAO, SDFGI or volumetric fog; depth fog, sky ambient, glow and adjustments all run there.
@@ -305,8 +310,7 @@ public partial class World : Node3D
         }});
         AddChild(new DirectionalLight3D { RotationDegrees = new(-34, -52, 0), LightColor = new("ffdfb0"),
             LightEnergy = 1.2f, ShadowEnabled = true, DirectionalShadowMaxDistance = 100, ShadowBias = .06f });
-        // The occupied city, a distant story landmark on the far eastern ridge, half lost in the haze from Cedar Pass.
-        for (int i=0;i<9;i++){float x=392+i*3;Box(this,"Machine city silhouette",new(x,Height(x,-120)+6+i%3*3,-120),new(2,18+i%3*6,3),Mat(new("728e8c")));}
+        for (int i=0;i<9;i++)Box(this,"Machine city silhouette",CityBox(i),CitySize(i),Mat(new("728e8c")));
     }
     private void Terrain()
     {
@@ -317,7 +321,7 @@ public partial class World : Node3D
         // Height() is a pure function, so the chunks' vertices are worked out on every core and only their meshes made here.
         static IEnumerable<Rect2I> Chunks(Rect2I area){for(int z=area.Position.Y;z<area.End.Y;z+=64)for(int x=area.Position.X;x<area.End.X;x+=64)yield return new(x,z,Math.Min(64,area.End.X-x),Math.Min(64,area.End.Y-z));}
         var ground = new StaticBody3D { Name = "Terrain collision" }; AddChild(ground);
-        var fine=Chunks(Fine).Concat(Chunks(MazeFine)).ToArray();
+        var fine=FineAreas.SelectMany(Chunks).ToArray();
         foreach(var (area,data) in fine.Zip(fine.AsParallel().AsOrdered().Select(a=>Ground(a,1))))
         {
             var mesh=GroundMesh(data!.Value);
@@ -354,7 +358,7 @@ public partial class World : Node3D
     private static (Vector3[] V,Vector3[] N,Vector2[] UV,Vector2[] Shore,int[] Index)? Ground(Rect2I area,int step,bool skipFine=false)
     {
         var at=new Dictionary<Vector2I,int>();var v=new List<Vector3>();var n=new List<Vector3>();var uv=new List<Vector2>();var shore=new List<Vector2>();var index=new List<int>();
-        bool Rim(Vector2I p)=>new[]{Fine,MazeFine}.Any(f=>p.X>=f.Position.X&&p.X<=f.End.X&&p.Y>=f.Position.Y&&p.Y<=f.End.Y);
+        bool Rim(Vector2I p)=>FineAreas.Any(f=>p.X>=f.Position.X&&p.X<=f.End.X&&p.Y>=f.Position.Y&&p.Y<=f.End.Y);
         int V(Vector2I p)
         {
             if(at.TryGetValue(p,out int k))return k;
