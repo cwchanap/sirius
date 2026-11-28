@@ -49,7 +49,8 @@ public partial class Game
                 var rail=t.PathPoint(run+axle.GetMeta("arc").AsSingle());
                 axle.GlobalPosition=new Vector3(rail.At.X,Hoshikawa.World.Height(rail.At.X,rail.At.Y)+Hoshikawa.World.WagonWheelBottom+Hoshikawa.World.WagonWheelRadius,rail.At.Y);
                 axle.GlobalRotation=new(0,Mathf.Atan2(rail.Along.X,rail.Along.Y),0);
-                foreach(var child in axle.GetChildren())if(child is Node3D wheel&&wheel.Name.ToString().StartsWith("Wagon wheel"))wheel.RotateObjectLocal(Vector3.Up,Roll*dt/Hoshikawa.World.WagonWheelRadius);
+                // The cylinder's local +Y points along the axle's -X; negative spin carries the top toward the wagon's +Z.
+                foreach(var child in axle.GetChildren())if(child is Node3D wheel&&wheel.Name.ToString().StartsWith("Wagon wheel"))wheel.RotateObjectLocal(Vector3.Up,-Roll*dt/Hoshikawa.World.WagonWheelRadius);
             }
             else spin.RotateX(Roll*dt/t.Size);
             // A wagon's hit axis is its bent track's own unit tangent. Every other load keeps the projection its run always used: the *3D*

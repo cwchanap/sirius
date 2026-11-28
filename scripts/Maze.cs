@@ -405,7 +405,8 @@ public partial class World
     // spans the chord, and its hit volume stops at the body's top: length is not height.
     public const float WagonLong=11,WagonSpan=1.45f,WagonWheelBottom=.17f,WagonWheelRadius=.45f,WagonHitTop=3.5f;
     // The four axles' stations along the run, in metres behind the leading end: two bogies, two axles each.
-    public static readonly float[] WagonAxles={.9f,2.7f,8.3f,10.1f};
+    // The nose overhangs the rail end by 1 m at the break; the leading tread must still be over the head until then.
+    public static readonly float[] WagonAxles={1f,2.7f,8.3f,10f};
     private void Load(string name,string kind,Vector2 a,Vector2 b,Vector2? bend=null)
     {
         var dir=(b-a).Normalized();float runYaw=Mathf.Atan2(dir.X,dir.Y),yaw=runYaw;

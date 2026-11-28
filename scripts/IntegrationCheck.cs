@@ -1524,41 +1524,46 @@ public static class IntegrationCheck
             }
             return best;
         }
-        // The rails Siding 2 was actually built with, as the boxes Track() laid: each rail's centre line and the height of its head.
-        var railBoxes=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().StartsWith("Siding 2 rail")).ToArray();
-        (Vector2 A,Vector2 B,float Top)[] Rails()=>railBoxes.Where(r=>r.Mesh is BoxMesh).Select(r=>
-        {
-            var box=(BoxMesh)r.Mesh;var a=r.ToGlobal(new Vector3(0,0,-box.Size.Z/2));var c=r.ToGlobal(new Vector3(0,0,box.Size.Z/2));
-            return (new Vector2(a.X,a.Z),new Vector2(c.X,c.Z),(a.Y+c.Y)/2+box.Size.Y/2);
-        }).ToArray();
-        // A tread's real contact: the wheel's own axis (its mesh's local Y in world, which must stay across the axle), the tread's width as it
-        // projects across that axis, and the tyre's low point against the head of the rail on the wheel's own side. Both wheels of every axle.
-        (float Overlap,float Lift,float Across,float Tilt) Tread(Node3D set,Node3D wheel)
+        var sidingRails=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().StartsWith("Siding 2 rail")&&n.Mesh is BoxMesh)
+            .Select(n=>(Side:n.Name.ToString().EndsWith(" -1")?-1:1,Local:n.GlobalTransform.AffineInverse(),Half:((BoxMesh)n.Mesh).Size/2)).ToArray();
+        // Clip the cylinder's lowest tread line to each finite rail head in box-local X and Z. The rail and wheel names identify
+        // their built sides (the rails are laid eastbound, opposite the wagon); a displaced wheel cannot borrow the other side.
+        (float Overlap,float Lift,float Across,float Tilt) Tread(Node3D set,MeshInstance3D wheel)
         {
             var across=set.GlobalTransform.Basis.X.Normalized();var axis=wheel.GlobalTransform.Basis.Y.Normalized();
-            var centre=wheel.GlobalPosition;var flat=new Vector2(centre.X,centre.Z);
-            float side=Math.Sign((centre-set.GlobalPosition).Dot(across));
-            float best=float.MaxValue,lat=0,top=0;
-            foreach(var r in Rails())
+            var mesh=(CylinderMesh)wheel.Mesh;
+            var down=wheel.GlobalTransform.Basis.Transposed()*Vector3.Down;down.Y=0;down=down.Normalized();
+            var bottom=wheel.ToGlobal(down*mesh.BottomRadius-Vector3.Up*mesh.Height/2);
+            var top=wheel.ToGlobal(down*mesh.TopRadius+Vector3.Up*mesh.Height/2);
+            int side=wheel.Name.ToString().StartsWith("Wagon wheel west")?-1:1;
+            float overlap=0,lift=float.PositiveInfinity;
+            foreach(var r in sidingRails)
             {
-                var d=r.B-r.A;float t=Mathf.Clamp((flat-r.A).Dot(d)/d.LengthSquared(),0,1);var q=r.A+d*t;
-                float s=Math.Sign((q-new Vector2(set.GlobalPosition.X,set.GlobalPosition.Z)).Dot(new Vector2(across.X,across.Z)));
-                if(s!=side)continue;
-                float dist=flat.DistanceTo(q);
-                if(dist<best){best=dist;lat=(flat-q).Dot(new Vector2(across.X,across.Z));top=r.Top;}
+                if(r.Side!=side)continue;
+                var a=r.Local*bottom;var d=r.Local*top-a;
+                float lo=0,hi=1;
+                if(!Clip(a.X,d.X,r.Half.X,ref lo,ref hi)||!Clip(a.Z,d.Z,r.Half.Z,ref lo,ref hi))continue;
+                float width=(hi-lo)*new Vector2(top.X-bottom.X,top.Z-bottom.Z).Length();
+                if(width<=overlap)continue;
+                overlap=width;lift=Math.Max(Math.Abs(a.Y+lo*d.Y-r.Half.Y),Math.Abs(a.Y+hi*d.Y-r.Half.Y));
             }
-            float half=.07f*Mathf.Abs(axis.Dot(across));
-            return (Math.Min(lat+half,.035f)-Math.Max(lat-half,-.035f),Mathf.Abs(top-(centre.Y-Hoshikawa.World.WagonWheelRadius)),Mathf.Abs(axis.Dot(across)),Mathf.Abs(axis.Y));
+            return (overlap,lift,Mathf.Abs(axis.Dot(across)),Mathf.Abs(axis.Y));
+        }
+        static bool Clip(float at,float delta,float half,ref float lo,ref float hi)
+        {
+            if(Math.Abs(delta)<1e-6f)return Math.Abs(at)<=half;
+            float a=(-half-at)/delta,b=(half-at)/delta;
+            lo=Math.Max(lo,Math.Min(a,b));hi=Math.Min(hi,Math.Max(a,b));return hi>lo;
         }
         var axles=humpWagon.Body.GetNode<Node3D>("Spin").GetChildren().OfType<Node3D>().Where(n=>n.Name.ToString().StartsWith("Wheel set")).ToArray();
         var rigid=humpWagon.Body.GetNode<Node3D>("Spin").GetChildren().OfType<Node3D>().Where(n=>!n.Name.ToString().StartsWith("Wheel set")).ToArray();
-        var wheels=axles.SelectMany(a=>a.GetChildren().OfType<Node3D>().Where(n=>n.Name.ToString().StartsWith("Wagon wheel"))).ToArray();
+        var wheels=axles.SelectMany(a=>a.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().StartsWith("Wagon wheel"))).ToArray();
         (float Overlap,float Lift,float Across,float Tilt) WorstContact()
         {
             var worst=(Overlap:float.MaxValue,Lift:0f,Across:1f,Tilt:0f);
-            foreach(var set in axles)foreach(var wheel in set.GetChildren().OfType<Node3D>().Where(n=>n.Name.ToString().StartsWith("Wagon wheel")))
+            foreach(var wheel in wheels)
             {
-                var c=Tread(set,wheel);
+                var c=Tread((Node3D)wheel.GetParent(),wheel);
                 worst.Overlap=Math.Min(worst.Overlap,c.Overlap);worst.Lift=Math.Max(worst.Lift,c.Lift);
                 worst.Across=Math.Min(worst.Across,c.Across);worst.Tilt=Math.Max(worst.Tilt,c.Tilt);
             }
@@ -1566,7 +1571,7 @@ public static class IntegrationCheck
         }
         g.Arm();
         var restContact=WorstContact();
-        Check(restContact.Overlap>.03f&&restContact.Across>.98f&&restContact.Tilt<.05f&&restContact.Lift<.06f,
+        Check(sidingRails.Length==4&&axles.Length==4&&wheels.Length==8&&restContact.Overlap>.03f&&restContact.Across>.98f&&restContact.Tilt<.05f&&restContact.Lift<.06f,
             $"parked at the head, every tread covers the head of its own rail with the wheel's axis across the axle ({restContact.Overlap:F3} m overlap, {restContact.Across:F3} across, {restContact.Tilt:F3} tilt, {restContact.Lift:F3} m off the head)");
         // An ordinary load still turns about its Spin, and a re-arm stops it where it was built: observed on the drums themselves.
         Place(g.Player,On(new(377,-133)));await Frames(10);
@@ -1591,19 +1596,30 @@ public static class IntegrationCheck
         for(int i=0;i<300&&Math.Abs(hp-g.Player.Health)<.01f;i++){await Frames(1);shove=Math.Max(shove,new Vector2(g.Player.Velocity.X,g.Player.Velocity.Z).Length());}
         Check(slopeCos<.95f&&slopedReach>.78f&&Math.Abs(hp-g.Player.Health-Enemy.StrikeDamage/growth.Scale("def"))<.01f&&shove>0&&shove<slopeCos*7f+.3f,
             $"a downhill load keeps its old projection: the back-stair barrels reach {slopedReach:F2} m down a {Mathf.RadToDeg(Mathf.Acos(slopeCos)):F0} degree slope and strike her at .78 m, her shove {shove:F2} m/s under the flat 7");
-        // The wagon's geometry on an isolated trigger, kept apart from the walking route that proves the strike: parked contact, then every
-        // frame of the roll from its first, both legs, the bend and the gantry.
-        g.Arm();Place(g.Player,On(new(581,-135.3f)));await Frames(4);
-        Place(g.Player,On(new(600,-128)));await Frames(2);
-        float worstEnd=0,worstCentre=0,overhang=0,worstOverlap=1,worstLift=0,worstAcross=1,worstTilt=0,rimLo=float.MaxValue,rimHi=float.MinValue,rigidTurn=0;
-        int rollSamples=0,treadSamples=0,rimTop=0,rimForward=0;
-        var tracked=wheels[0];Vector3? lastRim=null,lastBody=null;
-        for(int i=0;i<520&&humpWagon.Body.Visible;i++)
+        // Traps ticks in _Process. Observe its first step after the foot trigger, then put Mio on the real ramp for the whole roll.
+        g.Arm();g.Player.Health=g.Player.MaxHealth;g.Player.Invulnerable=0;float rampHp=g.Player.Health;
+        var tracked=wheels[0];var trackedAxle=(Node3D)tracked.GetParent();
+        var wheelRadius=((CylinderMesh)tracked.Mesh).BottomRadius;
+        Vector3 RimOffset()=>tracked.GlobalTransform.Basis*new Vector3(wheelRadius,0,0);
+        Vector3 lastRim=RimOffset(),lastAxle=trackedAxle.GlobalPosition;
+        Place(g.Player,On(new(581,-135.3f)));
+        for(int i=0;i<90&&!g.Sprung.Contains(humpWagon.Name);i++)await g.ToSignal(g.GetTree(),SceneTree.SignalName.ProcessFrame);
+        float rollStep=Game.Roll*(float)g.GetProcessDeltaTime();
+        float launch=humpWagon.Body.Position.DistanceTo(humpWagon.Rest.Origin);
+        Check(g.Sprung.Contains(humpWagon.Name)&&launch>0&&launch<=rollStep+.001f,
+            $"the first observed wagon motion is one roll step from its rest ({launch:F3} m, at most {rollStep:F3} m)");
+        Place(g.Player,new(594,Hoshikawa.World.Height(594,-134.5f)+5.2f,-134.5f));
+        float worstEnd=0,worstCentre=0,overhang=0,worstOverlap=1,worstLift=0,worstAcross=1,worstTilt=0,rimLo=float.MaxValue,rimHi=float.MinValue,rigidTurn=0,slip=0;
+        int rollSamples=0,treadSamples=0,rimTop=0,rimForward=0,rimBottom=0;
+        bool rampCrossing=false;
+        for(int i=0;i<520;i++)
         {
-            await Frames(1);
+            if(i>0)await g.ToSignal(g.GetTree(),SceneTree.SignalName.ProcessFrame);
             if(!humpWagon.Body.Visible)break;
             var b=humpWagon.Body;var fwd=b.GlobalTransform.Basis.Z;var flat=new Vector2(fwd.X,fwd.Z).Normalized();
             var centre=new Vector2(b.GlobalPosition.X,b.GlobalPosition.Z);
+            var rampGap=g.Player.GlobalPosition-b.GlobalPosition;
+            rampCrossing|=g.Player.IsOnFloor()&&Math.Abs(rampGap.X)<rollStep&&Math.Abs(rampGap.Z)<1&&rampGap.Y>Hoshikawa.World.WagonHitTop;
             var rear=centre-flat*Hoshikawa.World.WagonLong/2;var front=centre+flat*Hoshikawa.World.WagonLong/2;
             worstCentre=Math.Max(worstCentre,OffSiding(centre));rollSamples++;
             // Both ends are measured while they are over the drawn rails, whose west end is x 570; past it the leading end runs on over the
@@ -1614,26 +1630,28 @@ public static class IntegrationCheck
             worstOverlap=Math.Min(worstOverlap,c.Overlap);worstLift=Math.Max(worstLift,c.Lift);
             worstAcross=Math.Min(worstAcross,c.Across);worstTilt=Math.Max(worstTilt,c.Tilt);treadSamples+=wheels.Length;
             rigidTurn=Math.Max(rigidTurn,rigid.Max(r=>r.Rotation.Length()));
-            // A point on the tracked wheel's rim: its height must swing through a diameter, and at the top it must move the wagon's way.
-            var rim=tracked.GlobalTransform*new Vector3(Hoshikawa.World.WagonWheelRadius,0,0);
+            // Subtract the wheel's translation: on the straight the top advances relative to the axle, and a mark near the bottom
+            // travels back by approximately the axle's step (not exactly: the mark sweeps an arc over the finite frame).
+            var rim=RimOffset();var axleAt=trackedAxle.GlobalPosition;var travel=axleAt-lastAxle;
             rimLo=Math.Min(rimLo,rim.Y);rimHi=Math.Max(rimHi,rim.Y);
-            if(lastRim is {} lr&&lastBody is {} lb)
+            if(lastAxle.X<611.5f&&travel.X<-.001f&&Math.Abs(travel.Z)<.001f)
             {
-                var travel=new Vector2(b.GlobalPosition.X-lb.X,b.GlobalPosition.Z-lb.Z);
-                if(travel.LengthSquared()>1e-8f&&rim.Y-tracked.GlobalPosition.Y>.35f)
-                {rimTop++;if(new Vector2(rim.X-lr.X,rim.Z-lr.Z).Dot(travel.Normalized())>0)rimForward++;}
+                float advance=(rim-lastRim).Dot(travel.Normalized());
+                if(rim.Y>.35f&&lastRim.Y>.35f){rimTop++;if(advance>0)rimForward++;}
+                if(rim.Y<-.4f&&lastRim.Y<-.4f){rimBottom++;slip=Math.Max(slip,Math.Abs(travel.Length()+advance));}
             }
-            lastRim=rim;lastBody=b.GlobalPosition;
+            lastRim=rim;lastAxle=axleAt;
         }
+        float rampDamage=rampHp-g.Player.Health;var rampEnd=g.Player.GlobalPosition;bool rampFinished=!humpWagon.Body.Visible;
+        Check(rimHi-rimLo>.8f&&rimTop>20&&rimForward==rimTop&&rimBottom>20&&slip<.025f,
+            $"a rim swings {rimHi-rimLo:F2} m: on the straight its top advances relative to the axle in {rimForward}/{rimTop} samples and its bottom slips at most {slip:F3} m per frame ({rimBottom} samples)");
         Check(rollSamples>250&&treadSamples>1500&&worstOverlap>.03f&&worstAcross>.98f&&worstTilt<.05f&&worstLift<.06f,
             $"every tread rides the head of its own rail through the whole roll, both legs and the bend ({worstOverlap:F3} m overlap, {worstAcross:F3} across the axle, {worstTilt:F3} tilt, {worstLift:F3} m off the head, {treadSamples} samples)");
-        Check(rimHi-rimLo>.8f&&rimTop>20&&rimForward==rimTop,
-            $"the wheels roll about their axles in the wagon's direction: a rim swings {rimHi-rimLo:F2} m through the top and moves forward in {rimForward}/{rimTop} samples");
         Check(rigidTurn<.01f,$"the wagon's body parts never turn while it rolls ({rigidTurn:F3} rad)");
         Check(worstEnd<.12f&&worstCentre<.85f&&overhang<1.2f,
             $"the wagon's ends ride Siding 2's drawn line through its bend, {worstEnd:F2} m off the rails at most and {worstCentre:F2} m of chord at the corner; past the rails' end its leading end overhangs {overhang:F2} m ({rollSamples} samples)");
         g.Arm();
-        Check(axles.All(a=>a.Transform.IsEqualApprox(a.GetMeta("parked").AsTransform3D()))&&rigid.All(r=>r.Rotation.Length()<.001f)
+        Check(humpWagon.Body.Transform.IsEqualApprox(humpWagon.Rest)&&axles.All(a=>a.Transform.IsEqualApprox(a.GetMeta("parked").AsTransform3D()))&&rigid.All(r=>r.Rotation.Length()<.001f)
             &&wheels.All(w=>w.Transform.IsEqualApprox(w.GetMeta("parked").AsTransform3D())),
             "a re-arm puts every axle and wheel back to its full built transform, the body still");
         // The genuine walking route to the trigger, for the strike itself.
@@ -1643,6 +1661,8 @@ public static class IntegrationCheck
         for(int i=0;i<520&&humpWagon.Body.Visible;i++)await Frames(1);
         Check(g.Sprung.Contains(humpWagon.Name)&&!humpWagon.Body.Visible&&Math.Abs(hp-g.Player.Health-Enemy.StrikeDamage/growth.Scale("def"))<.01f,
             $"the wagon comes down Siding 2 onto her at the foot of its run and breaks, striking like a patrol ({hp-g.Player.Health:F0})");
+        Check(rampFinished&&rampCrossing&&rampEnd.Y>9.5f&&Math.Abs(rampDamage)<.01f,
+            $"the wagon passes and breaks without striking Mio on the ramp ({rampEnd}, crossing on floor: {rampCrossing}, {rampDamage:F0} taken)");
         await Walk((586,-138),(592,-143),(600,-145),(610,-145),(616,-146),(617.5f,-149));
         await WalkTo(new(618,-153.5f));await Frames(5);
         Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Z<-151.4f&&g.Interaction()==("repair",Localization.T("Parcels key").ToUpperInvariant()),
