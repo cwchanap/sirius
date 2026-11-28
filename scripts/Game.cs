@@ -239,7 +239,11 @@ public partial class Game : Node3D
     public void Retry()
     {
         ExitRoom();Player.Visible=true;Player.Respawn();Locked=null;danger=0;Regroup();Arm();
-        CameraYaw=0;ArrivalLift=0;ArrivalPitch=0;FreezeAnimations(false);Start();var at=Hoshikawa.World.SavePoints[RestedAt].At;Toast(Hoshikawa.World.InMaze(at.X,at.Y)?"BACK AT THE STARWELL":"BACK AT THE VILLAGE");
+        CameraYaw=0;ArrivalLift=0;ArrivalPitch=0;FreezeAnimations(false);Start();
+        // The checkpoint's first visible frame follows her at once, and the region it stands in is already the one the frame reads, so the
+        // checkpoint's toast is not replaced by a region change from wherever she fell.
+        cameraRig.Position=Player.GlobalPosition+Vector3.Up*1.35f;previousRegion=Region;
+        var at=Hoshikawa.World.SavePoints[RestedAt].At;Toast(Hoshikawa.World.InMaze(at.X,at.Y)?"BACK AT THE STARWELL":"BACK AT THE VILLAGE");
     }
     public void Restart()
     {

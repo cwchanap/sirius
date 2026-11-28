@@ -279,6 +279,18 @@ public static class IntegrationCheck
         }
         g.Player.Visual.Play("idle",1,true);
         await Frames(30);Check(g.Player.IsOnFloor(),"player starts on physical terrain");
+        // A defeat away from home returns her to Hoshikawa's street, the run's first checkpoint: Retry follows her from its first
+        // visible frame, with the toast intact, the player's aim kept and no arrival reveal. The mountain's and station's own checkpoint
+        // contexts are read later, where she rests.
+        Place(g.Player,new(0,Hoshikawa.World.Height(0,60)+.1f,60));await Frames(10);
+        float villagePitch=g.CameraPitch;
+        g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);await Frames(2);
+        bool villageFelled=g.Mode==GameMode.Defeated;g.Retry();await Frames(1);
+        Check(villageFelled&&g.RestedAt==0&&g.Player.GlobalPosition.DistanceTo(new Vector3(0,Hoshikawa.World.Height(0,31)+.1f,31))<.5f
+            &&g.ToastTitle=="BACK AT THE VILLAGE",$"a defeat away from home brings Mio back to Hoshikawa's own checkpoint with its toast ({g.ToastTitle})");
+        Check(g.GetViewport().GetCamera3D().GlobalPosition.DistanceTo(g.Player.GlobalPosition+Vector3.Up*1.35f)<12f
+            &&Math.Abs(g.CameraPitch-villagePitch)<.001f&&g.CameraYaw==0&&g.ArrivalLift==0&&g.RevealShare==0,
+            $"Retry puts the camera at the respawn's follow position on its first frame, keeping the player's aim and no reveal ({g.GetViewport().GetCamera3D().GlobalPosition})");
         Check(g.Music.Current=="valley"&&g.Music.Players.All(p=>p.Value.Playing==(p.Key=="valley")),"the valley's music plays in Hoshikawa, and no other track");
         Check(g.Music.Players.Where(p=>p.Key!="valley").All(p=>p.Value.Stream is AudioStreamOggVorbis {Loop:true,LoopOffset:0}),"the relay road and battle tracks are each one loop that repeats whole");
         foreach(var enemy in g.Enemies)enemy.SetPhysicsProcess(false);
@@ -1176,10 +1188,12 @@ public static class IntegrationCheck
         var pits=g.World.Parts.Single(p=>p.Yard=="Charcoal pits");
         await Walk((206,-238),(212,-233.5f),(217,-229.5f));await Frames(30);
         Check(Lowered(pits)&&!await Head(new(206,-238),true,120),"stepping into the charcoal pits drops their gate behind her");
-        g.CameraPitch=-.45f;g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);felled=g.Mode==GameMode.Defeated;g.Retry();await Frames(5);
+        g.CameraPitch=-.45f;g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);felled=g.Mode==GameMode.Defeated;g.Retry();await Frames(1);
         Check(felled&&Raised(pits)&&!g.Cleared.Contains("Charcoal pits")&&g.RestedAt==3&&g.Opened.Contains(haltStair.Name),"a defeat in the pits lifts their gate, and the Halt stair stays down");
-        Check(Math.Abs(g.CameraPitch+.45f)<.001f&&g.ArrivalLift==0,"an ordinary Retry keeps the player's aim and clears no reveal");
-        foreach(var e in mazeRobots)e.CollisionLayer=0;g.Player.Invulnerable=1e9f;
+        Check(g.ToastTitle=="BACK AT THE STARWELL"&&g.GetViewport().GetCamera3D().GlobalPosition.DistanceTo(g.Player.GlobalPosition+Vector3.Up*1.35f)<12f
+            &&Math.Abs(g.CameraPitch+.45f)<.001f&&g.CameraYaw==0&&g.ArrivalLift==0&&g.RevealShare==0,
+            $"Retry at the Halt's checkpoint follows her from its first frame and keeps both the player's aim and BACK AT THE STARWELL ({g.ToastTitle})");
+        await Frames(4);foreach(var e in mazeRobots)e.CollisionLayer=0;g.Player.Invulnerable=1e9f;
         // Down the Wood road and along the Long ledge, high over the Crossing, to the Signal yard on the cliff over the Court, where she lets
         // the Great stair down; the Station tunnel's mouth at the yard's east end is the door to the station.
         Place(g.Player,On(new(196,-242)));await Frames(10);
@@ -1333,6 +1347,17 @@ public static class IntegrationCheck
         await Walk((508,-58),(522,-50),(532,-46),(539,-42),(544,-38));
         Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-544,g.Player.GlobalPosition.Z+38).Length()<1.5f,
             $"and on across the forecourt to the garage approach {g.Player.GlobalPosition}");
+        // v9's forecourt ellipse: a 19 x 9 m paving band round the clock tower's centre, laid on the level ground and carrying no collider.
+        var ellipse=g.World.GetNodeOrNull<MeshInstance3D>("Forecourt ellipse band");
+        var ellipseVerts=ellipse?.Mesh is ArrayMesh ellipseMesh?ellipseMesh.SurfaceGetArrays(0)[(int)Godot.Mesh.ArrayType.Vertex].AsVector3Array():Array.Empty<Vector3>();
+        var ellipseCenter=new Vector2(Hoshikawa.World.ForecourtEllipse.Centre.X,Hoshikawa.World.ForecourtEllipse.Centre.Y);
+        Check(ellipse!=null&&ellipse.Visible&&ellipseVerts.Length>100&&ellipseVerts.All(v=>Math.Abs(v.Y-(Hoshikawa.World.MeshHeight(v.X,v.Z)+.10f))<.02f)
+            &&ellipseVerts.Min(v=>v.X)<=ellipseCenter.X-9.4f&&ellipseVerts.Max(v=>v.X)>=ellipseCenter.X+9.4f
+            &&ellipseVerts.Min(v=>v.Z)<=ellipseCenter.Y-4.4f&&ellipseVerts.Max(v=>v.Z)>=ellipseCenter.Y+4.4f
+            &&!ellipse!.GetChildren().OfType<CollisionObject3D>().Any(),
+            $"the forecourt keeps v9's 19 x 9 m ellipse round the clock tower as ground-following paving with no collider ({ellipseVerts.Length} vertices)");
+        using(var ellipseRay=PhysicsRayQueryParameters3D.Create(new(478,9.5f,-58.5f),new(478,5.9f,-58.5f),1))
+        {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(ellipseRay);Check(hit.Count>0&&hit["collider"].As<Node>().Name!="Forecourt ellipse band","the forecourt ellipse is paving, not an obstacle");}
         // The parcels approach: the real door stands proud of the station's east wall, the paving follows the ground over the whole
         // walking strip, the divider is a legible curb and open railing (not a wall-height slot), and the false service panel is gone.
         var parcelDoor=g.World.GetNode<MeshInstance3D>("Parcels door");var stationEast=g.World.GetNode<MeshInstance3D>("Station east wall");
@@ -1426,8 +1451,21 @@ public static class IntegrationCheck
         Check(s1.Kind=="gate"&&s1.Body is AnimatableBody3D&&s1.Body.GetChildren().OfType<CollisionShape3D>().Count()==1,"S1 is a hinged gate Part, its one leaf the only collider");
         using(var s1Ray=PhysicsRayQueryParameters3D.Create(new(562,6.6f,-107),new(562,6.6f,-109),1))
         {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(s1Ray);Check(hit.Count>0&&hit["collider"].As<Node>().Name==Hoshikawa.World.S1Name,"the shut S1 leaf closes the service road to the yard side");}
-        using(var eastRay=PhysicsRayQueryParameters3D.Create(new(626,8.2f,-160),new(630,8.2f,-160),1))
-        {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(eastRay);Check(hit.Count>0&&hit["collider"].As<Node>().Name.ToString().Contains("fence"),"the east fence and north boundary meet across the six-tenths join");}
+        // The east and north fences meet in a 0.4 m overlap. Each is probed half a metre from the corner on its own side, and each
+        // body's collider is switched off in turn: the seam depends on both, so removing either one fails rather than borrowing the other.
+        var northFence=g.World.GetNode<StaticBody3D>("Station footprint Yard north fence");
+        var eastFence=g.World.GetNode<StaticBody3D>("Station footprint Yard east fence");
+        using var northSeamRay=PhysicsRayQueryParameters3D.Create(new(627.3f,northFence.GlobalPosition.Y,-159.2f),new(627.3f,northFence.GlobalPosition.Y,-161f),1);
+        using var eastSeamRay=PhysicsRayQueryParameters3D.Create(new(626.5f,eastFence.GlobalPosition.Y,-159.9f),new(628.8f,eastFence.GlobalPosition.Y,-159.9f),1);
+        string SeamHit(PhysicsRayQueryParameters3D ray){var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(ray);return hit.Count>0?hit["collider"].As<Node>().Name.ToString():"";}
+        Check(SeamHit(northSeamRay)=="Station footprint Yard north fence"&&SeamHit(eastSeamRay)=="Station footprint Yard east fence",
+            $"the east and north fences each close their side of the seam ({SeamHit(northSeamRay)}, {SeamHit(eastSeamRay)})");
+        northFence.CollisionLayer=0;await Frames(1);
+        Check(SeamHit(northSeamRay)==""&&SeamHit(eastSeamRay)=="Station footprint Yard east fence","with the north fence's collider removed the seam's north ray is open and its east ray still closed");
+        eastFence.CollisionLayer=0;await Frames(1);
+        Check(SeamHit(northSeamRay)==""&&SeamHit(eastSeamRay)=="","with both colliders removed both seam rays are open");
+        northFence.CollisionLayer=1;eastFence.CollisionLayer=1;await Frames(1);
+        Check(SeamHit(northSeamRay)=="Station footprint Yard north fence"&&SeamHit(eastSeamRay)=="Station footprint Yard east fence","both fences back, both seam rays close again");
         using(var stripRay=PhysicsRayQueryParameters3D.Create(new(561,7f,-152),new(561,7f,-162),1))
         {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(stripRay);Check(hit.Count>0&&hit["collider"].As<Node>().Name.ToString().Contains("strip")||hit.Count>0&&hit["collider"].As<Node>().Name.ToString().Contains("fence"),"the north-west strip closes the yard's west side");}
         Place(g.Player,On(new(600,-125)));await Frames(10);g.CameraYaw=Mathf.Pi;Hold("run");Hold("forward");await Press("jump",2);await Frames(40);Release("forward");Release("run");await Frames(10);
@@ -1466,6 +1504,30 @@ public static class IntegrationCheck
         await WalkTo(new(618,-117),false);await Frames(5);
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-7.35f)<.4f&&new Vector2(g.Player.GlobalPosition.X-619,g.Player.GlobalPosition.Z+116).Length()<2,
             $"the warehouse floor reaches the sleeping scout's post {g.Player.GlobalPosition}");
+        // Warehouse 2's west wall carries a 2 m service door onto the bank's western apron, where the approved (595,-117) drone waits.
+        // The doorway is solid either side and closed above it, and it is the apron's only way in, so the bank stays no route round the
+        // yard. From the sleeper's post Mio walks through it on mapped input, engages the drone and comes back, with no reposition.
+        using(var doorRay=PhysicsRayQueryParameters3D.Create(new(605,8.5f,-116),new(590,8.5f,-116),1))
+        {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(doorRay);Check(hit.Count==0,"the service door opens Warehouse 2's west wall onto its west apron at walking height");}
+        using(var lintelRay=PhysicsRayQueryParameters3D.Create(new(605,9.9f,-116),new(590,9.9f,-116),1))
+        {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(lintelRay);var body=hit.Count>0?hit["collider"].As<Node>():null;Check(body!=null&&body.GetParent()?.Name=="Warehouse 2 west wall lintel","the service door's lintel closes the wall above its 2.4 m opening");}
+        foreach(float z in new[]{-118f,-114f})
+            using(var jambRay=PhysicsRayQueryParameters3D.Create(new(605,8.5f,z),new(590,8.5f,z),1))
+                Check(g.GetWorld3D().DirectSpaceState.IntersectRay(jambRay).Count>0,$"the west wall stays solid at z {z} beside the service door");
+        var apronDrone=stationRobots.Single(e=>e.Kind==Enemy.Drone&&e.Home.DistanceTo(new Vector3(595,Hoshikawa.World.Height(595,-117)+.1f,-117))<.5f);
+        g.Player.Invulnerable=1e9f;apronDrone.SetPhysicsProcess(true);apronDrone.CollisionLayer=4;
+        await WalkTo(new(610,-116));await WalkTo(new(598,-116));await Frames(8);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-7.35f)<.4f&&new Vector2(g.Player.GlobalPosition.X-595,g.Player.GlobalPosition.Z+117).Length()<4f
+            &&!apronDrone.Asleep&&apronDrone.State is "PURSUE" or "WINDUP" or "STRIKE",
+            $"through the service door Mio stands on the apron by the approved drone, which comes for her ({apronDrone.State}, {g.Player.GlobalPosition})");
+        await Press("attack",2);await Frames(20);
+        Check(apronDrone.Health<apronDrone.MaxHealth||apronDrone.Staggered||apronDrone.Stunned,
+            $"and her sword reaches it from the warehouse's own way out ({apronDrone.Health:F0}/{apronDrone.MaxHealth})");
+        apronDrone.SetPhysicsProcess(false);apronDrone.CollisionLayer=0;
+        await WalkTo(new(612,-116));await Frames(5);
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-7.35f)<.4f&&g.Player.GlobalPosition.X>610,
+            $"and she walks back through the door onto the warehouse floor ({g.Player.GlobalPosition})");
+        g.Player.Invulnerable=0;
         // S1 is barred from the service road and the parcels door from anyone without its key: both refuse with real E input, and neither
         // opens, so the walk that follows is the only way in.
         Place(g.Player,On(new(562,-106.2f)));await Frames(10);
@@ -1674,6 +1736,15 @@ public static class IntegrationCheck
         Check(rampFinished&&rampCrossing&&rampEnd.Y>9.5f&&Math.Abs(rampDamage)<.01f,
             $"the wagon passes and breaks without striking Mio on the ramp ({rampEnd}, crossing on floor: {rampCrossing}, {rampDamage:F0} taken)");
         await Walk((586,-138),(592,-143),(600,-145),(610,-145),(616,-146),(617.5f,-149));
+        // The signal room's duty roster is the plan's non-interactive placeholder: a board inside the room on its north wall, merged and
+        // with no collider or prompt. Walk to it first, then back to the key.
+        await WalkTo(new(618,-157.6f));await Frames(5);
+        var roster=g.World.FindChildren("Signal room duty roster*","MeshInstance3D",true,false).Cast<MeshInstance3D>().ToArray();
+        Check(roster.Length==8&&roster.All(n=>!n.Visible)&&roster.All(n=>!n.GetChildren().OfType<CollisionObject3D>().Any())
+            &&g.Player.IsOnFloor()&&g.Interaction()==("",""),
+            $"the signal room's duty roster is a merged, non-colliding, non-interactive placeholder on its north wall ({roster.Length} pieces)");
+        using(var rosterRay=PhysicsRayQueryParameters3D.Create(new(618,7.85f,-157.5f),new(618,7.85f,-160),1))
+        {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(rosterRay);Check(hit.Count>0&&hit["collider"].As<Node>().Name=="Station footprint Signal room north wall","the roster has no collider; the room's north wall stands behind it");}
         await WalkTo(new(618,-153.5f));await Frames(5);
         Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Z<-151.4f&&g.Interaction()==("repair",Localization.T("Parcels key").ToUpperInvariant()),
             $"inside the old signal room the parcels key is within reach {g.Player.GlobalPosition}");
@@ -1759,9 +1830,13 @@ public static class IntegrationCheck
             $"the Vitals draw emitted seven filled remedies and the H cap at the draw calls: {icons} icons, last edge {lastEdge:F1}, cap {cap}, all inside the panel and apart");
         // A defeat on the station before its own Starwell: she wakes at the Court she last rested at, key, gate and door's unlock kept.
         g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);await Frames(2);
-        bool stationFelled=g.Mode==GameMode.Defeated;g.Retry();await Frames(5);
-        Check(stationFelled&&g.RestedAt==2&&g.Player.GlobalPosition.DistanceTo(On(courtWell+new Vector2(0,2)))<.5f&&g.ToastTitle!="TO BE CONTINUED",
-            $"a defeat on the station brings Mio back to the Court, the checkpoint before the Forecourt {g.Player.GlobalPosition}");
+        bool stationFelled=g.Mode==GameMode.Defeated;float stationPitch=g.CameraPitch;g.Retry();await Frames(1);
+        Check(stationFelled&&g.RestedAt==2&&g.Player.GlobalPosition.DistanceTo(On(courtWell+new Vector2(0,2)))<.5f&&g.ToastTitle=="BACK AT THE STARWELL",
+            $"a defeat on the station brings Mio back to the Court, its own checkpoint's toast intact {g.ToastTitle} ({g.Player.GlobalPosition})");
+        Check(g.GetViewport().GetCamera3D().GlobalPosition.DistanceTo(g.Player.GlobalPosition+Vector3.Up*1.35f)<12f
+            &&Math.Abs(g.CameraPitch-stationPitch)<.001f&&g.CameraYaw==0&&g.ArrivalLift==0,
+            $"Retry on the station puts the camera at the Court's follow position on its first visible frame, not crossing the map ({g.GetViewport().GetCamera3D().GlobalPosition})");
+        await Frames(4);
         Check(g.Player.Inventory.Count("parcels_key")==1&&g.Opened.Contains(World.S1Name)&&g.Opened.Contains(World.ParcelsDoorRow.Name)&&Down(s1),
             "the parcels key, S1 and the unlocked door all come through the defeat");
         // Both station loads sprung again with no rest since that Retry: the Forecourt's rest has to be what re-arms them, so they are
@@ -1788,11 +1863,15 @@ public static class IntegrationCheck
         Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-forecourt.X,g.Player.GlobalPosition.Z-(forecourt.Y+2)).Length()<.5f,"the Forecourt's respawn spot 2 m from the well is clear");
         // Resting sent every robot home and put its collider back; the Signal yard's patrols are not fought here, so they stay out of the walk.
         foreach(var e in mazeRobots)e.CollisionLayer=0;
-        // A defeat now returns her to the Forecourt, the station's own Starwell, the same state kept.
+        // A defeat now returns her to the Forecourt, the station's own Starwell, the same state kept; its region is unchanged, so the
+        // first-frame camera check is the one this context adds, beside the toast.
         g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);await Frames(2);
-        bool forecourtFelled=g.Mode==GameMode.Defeated;g.Retry();await Frames(5);
+        bool forecourtFelled=g.Mode==GameMode.Defeated;g.Retry();await Frames(1);
         Check(forecourtFelled&&g.RestedAt==4&&new Vector2(g.Player.GlobalPosition.X-forecourt.X,g.Player.GlobalPosition.Z-(forecourt.Y+2)).Length()<.5f
             &&g.ToastTitle=="BACK AT THE STARWELL",$"a defeat after resting at the Forecourt brings her back to it {g.Player.GlobalPosition}");
+        Check(g.GetViewport().GetCamera3D().GlobalPosition.DistanceTo(g.Player.GlobalPosition+Vector3.Up*1.35f)<12f,
+            $"Retry at the Forecourt's own Starwell follows her from its first frame ({g.GetViewport().GetCamera3D().GlobalPosition})");
+        await Frames(4);
         Check(g.Player.Inventory.Count("parcels_key")==1&&g.Opened.Contains(World.S1Name)&&g.Opened.Contains(World.ParcelsDoorRow.Name)&&Down(s1),
             "and the key, S1 and the door's unlock survive that defeat too");
         foreach(var e in mazeRobots)e.CollisionLayer=0;

@@ -33,6 +33,11 @@ public partial class World
     // (local 188, 33.5) and the arcade pouch on its side loop's shop row (local 98, -88.6).
     public static readonly Vector2 StationPortal=new(377,-149.5f),Forecourt=new(508,-70),ParcelsDoor=new(558,-130),
         CraneCell=new(593.5f,-138.75f),CraneRampFoot=new(594,-126),ParcelsKey=new(618,-153.5f),ArcadePouch=new(528,-31.4f),GarageCell=new(565,-30);
+    // v9's forecourt ellipse: a 19 x 9 m paving band round the clock tower's centre (478,-63), its Band metres wide; the duty roster
+    // placeholder on the signal room's north wall. Neither is a footprint, a pickup or a door: the ellipse carries no collider and the
+    // roster no interaction, and the readable roster scene is deferred.
+    public static readonly (Vector2 Centre,float Width,float Depth,float Band) ForecourtEllipse=(new(478,-63),19,9,.9f);
+    public static readonly Vector2 SignalRoster=new(618,-158.55f);
     // The gantry's cell stands this far over the yard; its ramp climbs from the foot to the bridge's south edge in 10.75 m, 29.6 degrees,
     // its top a tenth over the deck so she steps down onto it rather than into the deck's face.
     public const float CraneRise=6,CraneRampRun=10.75f,CraneRampRise=6.1f;
@@ -60,8 +65,8 @@ public partial class World
         // And from the station's shelf it brings her back to the yard's mouth, facing west into Tunnel Mountain.
         new("Station tunnel (Station)",DoorKind.Portal,new(379,-149.5f),new(131,-176),-Mathf.Pi/2,Mathf.Pi/2,"STATION TUNNEL",""),
         // The parcels door on the station's east wall: a Key door, so no landing and no teleport. Its key unlocks it once (Game.Opened
-        // keeps that); the door itself stays shut, and the room behind it is HPA-1253's inside work, whose drawing marks this same door but
-        // leaves the wall cutout open, so nothing here cuts the shell.
+        // keeps that); the door itself stays shut. The inside wall cutout is HPA-1253's and is not yet authored; this row marks the door
+        // but cuts nothing in the shell.
         new("Parcels door",DoorKind.Key,ParcelsDoor,null,0,0,"PARCELS DOOR","",Key:"parcels_key"),
     };
     // The parcels door's row, the one Key door: Game's objective marker and its unlock read it.
@@ -84,7 +89,8 @@ public partial class World
         new("Lineman's hut",new(583,-64),new(14,8),4),new("Warehouse 1",new(580,-115),new(16,10),6),
         new("Warehouse 2 north wall west",new(604.5f,-122),new(9,.8f),6),new("Warehouse 2 north wall east",new(617.5f,-122),new(9,.8f),6),
         new("Warehouse 2 south wall",new(611,-110),new(22,.8f),6),
-        new("Warehouse 2 east wall",new(622,-116),new(.8f,12),6),new("Warehouse 2 west wall",new(600,-116),new(.8f,12),6),
+        new("Warehouse 2 east wall",new(622,-116),new(.8f,12),6),new("Warehouse 2 west wall north",new(600,-119.5f),new(.8f,5),6),
+        new("Warehouse 2 west wall south",new(600,-112.5f),new(.8f,5),6),
         new("Signal room north wall",new(618,-159),new(12,.8f),4),new("Signal room west wall",new(612,-155),new(.8f,8),4),new("Signal room east wall",new(624,-155),new(.8f,8),4),
         new("Signal room south wall west",new(614,-151),new(4,.8f),4),new("Signal room south wall east",new(622,-151),new(4,.8f),4),
         new("B2 ramp",new(575,-156.5f),new(18,5),2.5f),new("Yard north-west strip",new(561,-157.3f),new(6,6.6f),2.2f),
@@ -96,7 +102,8 @@ public partial class World
         // door, so no position outside it is within the door's 2.2 m reach. The dock's corridor (x 561..564) stays clear.
         new("Parcels bay fence",new(560.2f,-122.75f),new(.6f,19.5f),1.8f),new("Parcels bay return fence",new(559.1f,-132.5f),new(2.4f,.6f),1.8f),
         // The warehouses' loading bank is walled on its yard faces; Warehouse 2's north-door stair is its one opening, and the apron west of
-        // it stays sealed, so the bank is no route round the yard.
+        // it stays sealed, so the bank is no route round the yard. Its west wall carries a 2 m service door onto that apron, where the
+        // approved (595,-117) drone waits: the doorway's two jambs are the split rows above, and its lintel closes the wall above them.
         new("Warehouse bank west wall",new(564,-116),new(.8f,16),1.5f),new("Warehouse bank north wall west",new(586.5f,-124),new(45,.8f),1.5f),new("Warehouse bank north wall east",new(617.5f,-124),new(9,.8f),1.5f),new("Warehouse bank east wall",new(622,-116),new(.8f,16),1.5f),
         new("Warehouse stair side west",new(609,-123),new(.8f,2),2.2f),new("Warehouse stair side east",new(613,-123),new(.8f,2),2.2f),
         new("Yard south fence west",new(559,-108),new(2,.8f),2.2f),new("Yard south fence",new(592.5f,-108),new(57,.8f),2.2f),new("Yard south fence east",new(627,-108),new(2,.8f),2.2f),
@@ -236,6 +243,31 @@ public partial class World
         }
         // The paving, gravel and platforms: the terrain under each is the flat trail's, so one plane carries the surface's colour.
         Pad("Forecourt paving",new Rect2(438,-82,98,36),new("b3a88d"));
+        // v9's forecourt ellipse round the clock tower: a 19 x 9 m paving band sampled on the rendered ground like the bay's paving, so it
+        // follows the forecourt's cells and leaves no grass at its edges. Visual only: no collider and no footprint row.
+        {
+            var (centre,width,depth,band)=ForecourtEllipse;int segments=64;var ring=new Vector3[segments*2];var ringNormals=new Vector3[segments*2];
+            var ringUv=new Vector2[segments*2];var ringIndex=new List<int>();
+            for(int i=0;i<segments;i++)
+            {
+                float angle=Mathf.Tau*i/segments,cos=Mathf.Cos(angle),sin=Mathf.Sin(angle);
+                for(int k=0;k<2;k++)
+                {
+                    float rx=width/2-(k>0?band:0),rz=depth/2-(k>0?band:0);float x=centre.X+cos*rx,z=centre.Y+sin*rz;int at=i*2+k;
+                    ring[at]=new(x,MeshHeight(x,z)+.10f,z);ringNormals[at]=Vector3.Up;ringUv[at]=new(x*.2f,z*.2f);
+                }
+            }
+            for(int i=0;i<segments;i++)
+            {
+                int next=(i+1)%segments,outer=i*2,nextOuter=next*2,inner=i*2+1,nextInner=next*2+1;
+                ringIndex.AddRange(new[]{outer,nextOuter,nextInner,outer,nextInner,inner});
+            }
+            var arrays=new Godot.Collections.Array();arrays.Resize((int)Godot.Mesh.ArrayType.Max);
+            arrays[(int)Godot.Mesh.ArrayType.Vertex]=ring;arrays[(int)Godot.Mesh.ArrayType.Normal]=ringNormals;
+            arrays[(int)Godot.Mesh.ArrayType.TexUV]=ringUv;arrays[(int)Godot.Mesh.ArrayType.Index]=ringIndex.ToArray();
+            var ellipseMesh=new ArrayMesh();ellipseMesh.AddSurfaceFromArrays(Godot.Mesh.PrimitiveType.Triangles,arrays);
+            Mesh(this,"Forecourt ellipse band",ellipseMesh,Vector3.Zero,Mat(new("9a8f78"),0,true));
+        }
         Pad("Arcade paving",new Rect2(438,-38,98,9),new("a2947a"));
         Pad("Depot paving",new Rect2(536,-70,38,48),new("968f7d"));
         Pad("Freight yard gravel",new Rect2(558,-160,70,52),new("8a8377"));
@@ -296,6 +328,14 @@ public partial class World
         var hut=StationObstacles.Single(o=>o.Name=="Lineman's hut");Roof("Lineman's hut roof",hut.At.X-7,hut.At.X+7,hut.At.Y-4,hut.At.Y+4,Height(hut.At.X,hut.At.Y)+4,.7f);
         Roof("Warehouse 2 roof",600,622,-122,-110,Height(611,-116)+6,.8f);
         Roof("Signal room roof",612,624,-159,-151,Height(618,-155)+4,.7f);
+        // The signal room's duty roster: the plan's non-interactive placeholder, a framed board on its north wall's inside face with six
+        // name slots and no text, pickup or collider; the readable, voiced scene is deferred. It stands clear of the key and the south door.
+        {
+            var north=StationObstacles.Single(o=>o.Name=="Signal room north wall");float face=north.At.Y+north.Size.Y/2,floor=Height(SignalRoster.X,SignalRoster.Y);
+            Box(this,"Signal room duty roster",new(SignalRoster.X,floor+1.85f,face+.05f),new(2,.95f,.06f),Mat(new("5b4434")));
+            Box(this,"Signal room duty roster sheet",new(SignalRoster.X,floor+1.85f,face+.10f),new(1.8f,.75f,.02f),Mat(new("efe7cf")));
+            for(int i=0;i<6;i++)Box(this,$"Signal room duty roster slot {i}",new(SignalRoster.X-.7f+i*.28f,floor+1.85f,face+.12f),new(.18f,.3f,.01f),Mat(new("34383a")));
+        }
         // The dead buses, each with its window band.
         foreach(var bus in StationObstacles.Where(o=>o.Name.StartsWith("Dead bus")))
         {
@@ -350,6 +390,9 @@ public partial class World
             else if(o.Name!="Station building"&&o.Name!="Clock tower"&&!o.Name.StartsWith("Parcels bay"))Box(this,"Station "+o.Name,new(o.At.X,low+tall/2,o.At.Y),new(o.Size.X,tall,o.Size.Y),
                 o.Name.StartsWith("Parcels bay")?wall:o.Name.Contains("fence")||o.Name.Contains("wall")||o.Name.Contains("strip")?Mat(new("6b625a")):o.Name.StartsWith("Dead bus")?Mat(new("7d5a44")):o.Name.StartsWith("Wagon")?Mat(new("5b4434")):o.Name.StartsWith("Gantry leg")?steel:stone);
         }
+        // Warehouse 2's west-wall service door is that wall's two jamb rows, 2 m apart at z -117..-115, under this lintel whose own solid
+        // closes the wall above the 2.4 m opening; it is the only way from the warehouse's floor onto the bank's western apron.
+        Box(this,"Warehouse 2 west wall lintel",new(600,Height(600,-116)+4.2f,-116),new(.8f,3.6f,2),Mat(new("6b625a")),true);
         // The parcels bay reads as a dock-side approach: a curb with an open railing on its long side, a paved strip that follows the
         // ground, a visible door under its awning, and a railing at the return (no wall-height slot and no false service-door panel).
         // The separating footprints are unchanged, so the graph walks, the 21 m S1-to-door leg, the north-side door reach and the

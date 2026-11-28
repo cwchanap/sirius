@@ -325,7 +325,7 @@ public class StationOutsideTest
         AssertThat(Math.Abs(World.Height(post.X,post.Y)-7.35f)).IsLess(.01f);
         AssertThat(World.MazeEdge(post.X,post.Y)).IsLess(0);
         var walls=new[]{"Warehouse bank west wall","Warehouse bank north wall west","Warehouse bank north wall east","Warehouse bank east wall","Loading dock wall",
-            "Warehouse stair side west","Warehouse stair side east","Warehouse 2 west wall"};
+            "Warehouse stair side west","Warehouse stair side east","Warehouse 2 west wall north","Warehouse 2 west wall south"};
         AssertThat(walls.Where(n=>!World.StationObstacles.Any(o=>o.Name==n))).IsEmpty();
         // The yard-facing stair climbs the bank's north face through its wall opening to Warehouse 2's north door: the warehouse interior is
         // the bank's one approach, and the apron west of it stays sealed, so the bank is not a route round the yard.
@@ -338,6 +338,61 @@ public class StationOutsideTest
         AssertThat(Has(From(Forecourt,false,true),post)).OverrideFailureMessage("the sleeping scout is reached without the southeast gap").IsFalse();
         AssertThat(Has(From(Forecourt,false),new Vector2(580,-116))).OverrideFailureMessage("the bank's apron is a route round the yard").IsFalse();
         AssertThat(Walk(Forecourt,post)).IsLess(300);
+    }
+
+    [TestCase]
+    public void EveryEncounterPostIsReachedAndReturnsWithS1Shut()
+    {
+        // Presence is not access: all 17 approved posts must be reachable on the station's own ground with S1 shut (the outer fence's
+        // southeast gap is the way in), and each must have a walk back to the Forecourt Starwell. The west apron's drone is behind
+        // Warehouse 2's west wall, whose 2 m service door opens it to the warehouse floor while the wall stays solid either side.
+        AssertThat(World.StationBlocked(562,-108)).OverrideFailureMessage("S1 is not shut").IsTrue();
+        var reach=From(Forecourt,false);
+        var unreached=World.StationRobots.Where(r=>!Has(reach,r.At)).Select(r=>$"{r.Kind} at {r.At}").ToArray();
+        AssertThat(unreached).OverrideFailureMessage($"encounter posts out of reach with S1 shut: {string.Join(", ",unreached)}").IsEmpty();
+        var home=WildsTest.Reach(new((int)Mathf.Round(Forecourt.X),(int)Mathf.Round(Forecourt.Y)),(x,z)=>World.StationBlocked(x,z),back:true).Seen;
+        var stranded=World.StationRobots.Where(r=>!home[(int)Mathf.Round(r.At.X)-Area.Position.X,(int)Mathf.Round(r.At.Y)-Area.Position.Y])
+            .Select(r=>$"{r.Kind} at {r.At}").ToArray();
+        AssertThat(stranded).OverrideFailureMessage($"posts with no walk back to the Forecourt: {string.Join(", ",stranded)}").IsEmpty();
+        var open=From(Forecourt,true);
+        AssertThat(World.StationRobots.Where(r=>!Has(open,r.At)).Select(r=>r.At)).OverrideFailureMessage("S1 opened does not reach every post").IsEmpty();
+        AssertThat(World.StationBlocked(600,-116)).OverrideFailureMessage("Warehouse 2's west wall has no service door").IsFalse();
+        AssertThat(World.StationBlocked(600,-114)&&World.StationBlocked(600,-118)).OverrideFailureMessage("the service door leaves the west wall open").IsTrue();
+        // The service door does not open the bank to the rest of the station: with the southeast gap and S1 shut, the yard, its bank
+        // and the west apron stay out of reach, so the station's one yard entrance is unchanged.
+        var sealedOff=From(Forecourt,false,true);
+        var apron=World.StationRobots.Single(r=>r.At==new Vector2(595,-117));
+        AssertThat(Has(sealedOff,apron.At)).OverrideFailureMessage("the west apron is a way round the sealed yard").IsFalse();
+        AssertThat(Has(sealedOff,new Vector2(619,-116))).OverrideFailureMessage("the warehouse sleeper is reached round the sealed yard").IsFalse();
+    }
+
+    [TestCase]
+    public void TheForecourtEllipseAndSignalRosterKeepTheirApprovedPlaces()
+    {
+        // v9's forecourt ellipse is a 19 x 9 m paving band round the clock tower's centre, on the level forecourt and clear of every
+        // blocked footprint; the signal room's duty roster is a non-interactive placeholder on its north wall, clear of the key and door.
+        var ellipse=World.ForecourtEllipse;
+        AssertThat(ellipse.Centre).IsEqual(new Vector2(478,-63));
+        AssertThat(ellipse.Width).IsEqual(19f);
+        AssertThat(ellipse.Depth).IsEqual(9f);
+        AssertThat(ellipse.Band).IsGreater(.4f).IsLess(2f);
+        foreach(var p in new[]{new Vector2(468.5f,-63),new Vector2(487.5f,-63),new Vector2(478,-58.5f),new Vector2(478,-67.5f)})
+        {
+            AssertThat(Math.Abs(World.Height(p.X,p.Y)-6)).OverrideFailureMessage($"the ellipse at {p} is off the level forecourt").IsLess(.01f);
+            AssertThat(World.MazeEdge(p.X,p.Y)).OverrideFailureMessage($"the ellipse at {p} is off the station's floor").IsLess(0);
+            AssertThat(World.StationBlocked(p.X,p.Y)).OverrideFailureMessage($"the ellipse at {p} runs into a footprint").IsFalse();
+        }
+        // The tower's 5 m square sits inside the band's inner ellipse, so the band surrounds it.
+        float innerX=ellipse.Width/2-ellipse.Band,innerZ=ellipse.Depth/2-ellipse.Band;
+        AssertThat(2.5f/innerX*2.5f/innerX+2.5f/innerZ*2.5f/innerZ).IsLess(1f);
+        // The roster hangs inside the signal room on its north wall's face, off the key's pickup and the south door.
+        var north=World.StationObstacles.Single(o=>o.Name=="Signal room north wall");
+        AssertThat(World.SignalRoster.X).IsEqual(618f);
+        AssertThat(World.SignalRoster.Y).IsGreater(north.At.Y+north.Size.Y/2);
+        AssertThat(World.SignalRoster.Y).IsLess(-158f);
+        AssertThat(World.StationBlocked(618,-157.6f)).OverrideFailureMessage("the roster's stance is blocked").IsFalse();
+        AssertThat(World.Doors.All(d=>d.At.DistanceTo(World.SignalRoster)>2.2f)).IsTrue();
+        AssertThat(World.SavePoints.All(s=>s.At.DistanceTo(World.SignalRoster)>2.4f)).IsTrue();
     }
 
     [TestCase]
