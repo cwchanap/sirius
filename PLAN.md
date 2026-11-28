@@ -321,3 +321,15 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [ ] Listen to the new takes (Mio's, Zero's, Yui's and Renji's) in the game and redo any that read wrong.
 - [ ] New dialogue portraits for Yui and Renji from their Tripo models, the photograph's image, door and photograph icons (Codex).
 - [ ] Graphical check under Metal on the Mac.
+
+## Hoshikawa Station's outside (HPA-1252)
+
+- [x] Preflight against the approved v9 archive: every anchor, the S1 transcription error settled as the 4 m opening x 560…564 at z −108, the city sightline by bearings, and the wagon's rejected straight run recorded (`docs/hpa-1252-station-outside-plan.md`, `task-1-report.md`).
+- [x] The station's 1 m ground (`StationFine`) in the cached `FineAreas` with a seamless join, an expanded far ground and the shared `Reach`/`Walk` area; the station's region precedence west at x 366, the relay music fallback and no minimap river bands there.
+- [x] v9's layout in one owner (`StationOutside.cs`): the portal shelf and lineman's path, forecourt and clock tower, arcade, depot and garage, service road and S1, fences and the yard's southeast gap, four sidings and hump, warehouses and their bank, the gantry's ramp and bridge, the old signal room, the parcels bay, S5, platforms and track bed. `StationObstacles` is both the colliders and the tests' blocked footprint; the live S1 leaf and its test footprint share `S1Gate`.
+- [x] The city moved to the north-west ridge, both opening shots on one bearing with the scene camera's far 500, and eight station capture views in `review_map.gd` plus three render-cost samples; `CityTest` holds the data and sightlines.
+- [x] Two portal doors with opposite landings, the station reveal's camera lift and the player's own aim preserved; the Forecourt Starwell as the fifth checkpoint; the parcels key door, objectives, rest/defeat/travel retention and `Restart()`.
+- [x] The parcels bay's fence and return, the garage's through way and the outer fence make the yard's southeast gap the only way in until S1 opens; every reachable floor returns to a Starwell, and the mountain and the station stay separated without the portal link (`StationOutsideTest` floods the shared ground).
+- [x] Seventeen station robots (three patrols, eight scouts, four asleep, six drones), two loads (oil drums, the 11 m freight wagon), and three supply pickups (the arcade pouch and the garage's and gantry's cells); the wagon follows Siding 2's bend, its wheels ride the rails while its body stays rigid, and its hit clears the gantry ramp.
+- [x] The Vitals remedy row fits seven and ten slots with the H cap inside the panel; the self-test reads the actual icon and cap draws at the reached seven-remedy point.
+- [x] Final verification at `d2beb64`: unit tests, the headless self-test in English, Japanese and Traditional Chinese, the existing e2e suite, and software-Vulkan captures (see `VERIFICATION.md`; Metal, physical input and independent visual comparison remain open).

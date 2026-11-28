@@ -1,5 +1,115 @@
 # MVP verification
 
+## Hoshikawa Station's outside — 2026-11-28
+
+HPA-1252 extends the prologue east of Tunnel Mountain to Hoshikawa Station's parcels door. The station's outside is built in `scripts/StationOutside.cs`: the station tunnel's east portal and hillside shelf, the lineman's path and its oil drums, the forecourt and clock tower, the arcade and depot, the garage's through way, the service road and S1, the outer fence's southeast gap, the freight yard's four sidings, hump, parked wagons, warehouses and loading bank, the gantry's ramp and bridge with its one-way drop, the old signal room's parcels key, the parcels bay and its key door, S5, the platforms and the city line. The Forecourt is the fifth Starwell; the station has 17 robots, two rolling loads and three supply pickups (the arcade pouch, the garage's cell and the gantry's); the region falls back to the relay track; both tunnel directions are blackout doors, and the mountain-to-station arrival alone has the 10.65 m camera lift. The layout, its distances and the corrections below are recorded in `docs/hpa-1252-station-outside-plan.md`.
+
+### Verification environment and source identity
+
+- Pinned Godot 4.6.2 Mono (`4.6.2.stable.mono.official.71f334935`, ARM64 binary SHA-256 `e4b347c7dd54e5cd76507d3b323f51ab596939bf3d587fb21982b15212da87e0`) and .NET SDK 8.0.428 from `.superpowers/sdd/hpa-1252-station-outside-plan/`, on Linux ARM64 (no Metal).
+- All runs used a **newly created file copy** of the committed tree, not the primary checkout and not a git worktree: `git init` + a read-only `objects/info/alternates` to the primary, `git read-tree` of the commit, then a copied `.godot` import cache and the host's generated Linux `.import` sidecars (the committed sidecars name macOS S3TC remaps). The godot-e2e 0.1.2 add-on was copied from the primary checkout; no hard links to writable files were used. No import, build, test or `just e2e` ran in the primary checkout.
+- Tree tested: `d2beb648b26acba39e4bcf6874ceff75f2d98aa5` (the station at `6e459f9`; this task's only source change is the translation-row/test reconciliation in `d2beb64`). The final documentation commit adds only `.md` files and changes no code. The copy's status was the expected 217 generated `.import` edits plus one generated untracked `.import` for `docs/station-art-contact-sheet.png` (created by the import, in the copy only); the index was empty and the tracked diff SHA-256 was `1ea050e7215db3fe69534d2616d3cf06b81375cb3358114cddb1f2850dca3bef`.
+- The primary checkout's pre-existing 219 modified/untracked paths, `addons/gdunit_e2e/` and `test_output/` were hashed before and after: 289 files, manifest SHA-256 `a69577254f5884069de941e2c1c21300569e6fe5393399ecc66cbf60b7259763`, byte-identical; nothing was staged, deleted or cleaned. The untracked `tests/unit/ProbeTest.cs` was copied into the isolated tree for one diagnostic run only (below) and is not part of the committed suite.
+
+### `just unit`
+
+`GODOT_MONO=… DOTNET_ROOT=… just unit` in the copy (commit `d2beb64`):
+
+```
+Passed!  - Failed:     0, Passed:    97, Skipped:     0, Total:    97, Duration: 1 m 2 s
+```
+
+The 97 include `StationOutsideTest` (22 cases: the seam, region precedence, both portals, the camera lift, checkpoints, S1 as the sole yard entrance until open, the yard's closed boundaries, every floor's return to the Forecourt, the tunnel/ridge separation, the itinerary and each shortest walk, the warehouse bank and sleeper, the drawn wagons and sidings, the perimeter against a jump, S2/mall/B2 shut, no trail steps, the service road, the crane's flood limit, 17 robots, both traps and the pickups), `WildsTest`, `MazeTest`, `LocalizationTest`, `ItemsTest` and the rest of the existing suite. The unit model uses `World.StationObstacles` (the same footprint table as the colliders) as its blocked predicate.
+
+A separate diagnostic run with the preserved untracked `tests/unit/ProbeTest.cs` copied in: `Passed! - Failed: 0, Passed: 98, Skipped: 0`. The 98th case is that file's probe only; it is not committed, and 97 is the committed-source count.
+
+### `just self-test` — three languages
+
+`just self-test` in the copy (build, headless editor import, then the three fixed-60 Hz runs, sequentially, under one isolated `XDG_DATA_HOME`). The whole recipe took **850.60 s** wall; the three engine runs printed `SELF_TEST_PASS` and exit 0, with 967 checks each and 2,901 `CHECK` lines in the log:
+
+| Run | Result | Checks |
+| --- | --- | --- |
+| English (`--self-test`) | `SELF_TEST_PASS`, exit 0 | 967 |
+| Japanese (`--self-test --lang=ja`) | `SELF_TEST_PASS`, exit 0 | 967 |
+| Traditional Chinese (`--self-test --lang=zh_TW`) | `SELF_TEST_PASS`, exit 0 | 967 |
+
+The station part of the single sequential `IntegrationCheck` flow runs with the real controller, mapped E presses and physics: the rockfall still bars the road before it is cleared; both tunnel directions, the landing's region/toast/facing and the arrival camera lift; the objective and marker moving from "Find the parcels key" to "Reach the parcels door" and back to "Take the station road east" on return; the lineman's drums; the garage, its cell and the minimap's no-river draw; the arcade's two sleepers, a backstab and a stardust reward; the arcade pouch's true seven-remedy reach and the Vitals draw's seven filled icons and H cap inside the panel; the old signal room key; keyless parcels-door refusal and the key's unlock with S1 still shut; the unlocked door's absent prompt and its non-restarting toast; S1's wrong-side refusal and far-side opening; the crane ramp, elevated cell, parapets, the one-way north drop and failed reverse climb; the oil drums and wagon (first motion one roll step, wheels aboard the finite rail heads through the bend, 50 damage at the foot, 0 on the ramp, full re-arm); both defeat/Retry checkpoints and the Forecourt rest's re-arm; every held item and spent slot across both tunnel crossings; objectives after return; `Restart` restoring S1, the wagon, the ladder, the pickups and initial items; the original old-line/viaduct checks; glyphs, fixed-width boxes, line breaking, the language buttons and `Localization.Missing` empty in each language.
+
+### `just e2e`
+
+`GODOT_MONO=… just e2e` in the same copy (the pinned add-on copied in, so no download):
+
+```
+Passed!  - Failed:     0, Passed:     4, Skipped:     0, Total:     4, Duration: 3 m 3 s
+```
+
+The recipe's wall time was 302.95 s including its build and import.
+
+These are the existing four godot-e2e cases (title, opening/Mio's room, pause, steering and Renji's briefing), unchanged as regression coverage; the station's own gameplay test is the sequential self-test, not a duplicate e2e case.
+
+### Direction-sensitive text
+
+No story, dialogue or voice file changed. `Prologue.Homecoming.12` is **unvoiced narration** (blank speaker, not in `Prologue.Cast`, no mp3): "The link goes quiet. Far beyond the viaduct, the city keeps shining." The city moved to bearing 55.3° NE from the viaduct's broken end (from about 97° E); the prose names no direction and the city still lies far beyond the viaduct, with 0.96 m of terrain clearance to its top. `Prologue.Opening.0` is narration with no direction word; only its shot targets and the scene camera's far 500 changed. `Prologue.Intro.12/14` are Mio's **voiced** lines — "one line out of the city … runs straight through this valley" and "city freight runs straight through on platform two" — and the city line still runs east–west through the station, so they are unaffected and their takes stand. No station line is voiced; its text is toasts and prompts.
+
+### Rendered captures (factual only; not compared or approved here)
+
+All captures are uncropped viewport reads under software Vulkan (`llvmpipe`, Forward Mobile) inside the `hoshikawa-vulkan-probe:local` container, no Metal. They are supplementary shape/placement evidence, not hardware shading, frame-rate or comfort results, and the implementer did not compare them with either mockup.
+
+`tools/review_map.gd` ran at `--resolution 800x600` (PNGs 800×500, the project's 16:10 canvas) and wrote 14 station and city views to `artifacts/task6-map/`; both aerials used its existing fog-free `aerial` rule and a north-up `(0,0,−1)` up vector, and printed their ground-plane extent at the 6 m plane. `--resolution 640x400` (PNGs 640×400) wrote the five pre-existing valley/Cedar views to `artifacts/task6-map-old/`, as Task 3 did (its log printed `MAP_REVIEW_OK` after all five). The station/city run also ended `MAP_REVIEW_OK`. The camera parameters are in the table.
+
+| PNG | Eye → target | FOV / far |
+| --- | --- | --- |
+| `aerial-station` | (504,176,−110) → (504,6,−110), north-up | 60° / 900; **314.1 × 196.3 m**, 2.54 px/m |
+| `aerial-station-world` | (330,364,−155) → (330,6,−155), north-up | 60° / 900; **661.4 × 413.4 m**, 1.20 px/m |
+| `station-portal` | (374,32,−149.5) → (434,32,−149.5) | 59° / 260 |
+| `station-city-bearing` | (381.5,22.5,−149.5) → (270,55,−332) | 60° / 900 |
+| `station-forecourt` | (508,8.5,−52) → (496,9,−84) | 60° / 900 |
+| `station-yard` (west-southwest to the gantry) | (618,8.5,−132) → (592,10,−139) | 60° / 900 |
+| `station-warehouse-stair` | (611,8.5,−131) → (611,8,−122) | 60° / 900 |
+| `station-parcels-bay` | (559,8.5,−112) → (558,8,−130) | 60° / 900 |
+| `parcels-door` | (559.85,7.6,−130) → (558.65,7.6,−130) | 110° / 900 |
+| `parcels-door-oblique` | (559.9,7.6,−127.2) → (558.6,7.4,−130.2) | 60° / 900 |
+| `parcels-floor` | (559.8,7.6,−110.2) → (559.4,6.4,−131.5) | 60° / 900 |
+| `city-from-valley-overlook` | (29,7,−226) → (270,55,−332) | 60° / 900 |
+| `city-from-pass-shelter` | (−12,7,−191) → (270,55,−332) | 60° / 900 |
+| `city-from-station-overlook` | (336.6,29,−121.6) → (270,55,−332) | 60° / 900 |
+| `task6-map-old/sea-from-shrine` | (12,11,52) → (−60,−1,96) | 60° / 900 |
+| `task6-map-old/hoshikawa-falls` | (38,5,−3) → (84,3,−9) | 60° / 900 |
+| `task6-map-old/cedar-falls` | (40,8,−204) → (82,4,−212) | 60° / 900 |
+| `task6-map-old/cedar-outlet` | (−36,9,−204) → (−76,1,−210) | 60° / 900 |
+| `task6-map-old/aerial-north` | (10,230,−20) → (0,0,−200) | 60° / 900 |
+
+The world anchors and route lengths are not inferred from these images: they are the literal `StationOutside`/`Doors` rows and the machine-checked `StationOutsideTest` reach and walk assertions (within ±10% of the v9 graph), and the aerials' printed extents only give the scale of the plates.
+
+The seven-remedy HUD and the three-language prompt/toast/objective states come from a **capture-only instrumented copy** of the same mapped-input self-test. `IntegrationCheck` was wrapped (copy only, not committed) at the real reached seven-remedy point — immediately after the arcade pouch's mapped E and the check “the Vitals draw emitted seven filled remedies and the H cap … 7 icons” — and at the existing per-language station portal prompt and arrival toast checks. The helper sets `GetViewport().Disable3D=true` for the run so software Vulkan can keep up, restores normal 3D rendering for each shot, allows two rendered process frames and `RenderingServer.frame_post_draw`, reads the viewport, and disables 3D again. It adds no input, physics, player placement, inventory or route change. The run completed the whole flow and printed `SELF_TEST_PASS` with 967 checks; it took about an hour wall on the loaded host (its wall time is not a performance measurement). Its seven images are 1280×800:
+
+| PNG | Reached state |
+| --- | --- |
+| `artifacts/task6-hud/01-seven-remedy-hud.png` | after the arcade pouch's mapped E and the Vitals draw check: seven filled remedy icons, the H cap, the `REMEDY POUCH` toast, `Reach the parcels door` (104 m) and 450 stardust |
+| `02-prompt-en.png`, `02-prompt-ja.png`, `02-prompt-zh_TW.png` | at the Signal yard's tunnel mouth, before E: the localized `STATION TUNNEL` / 駅隧道 / 車站隧道 prompt, the `Take the station road east` / 駅への道を東へ進む / 沿著往車站的路往東走 objective, and the mountain region toast |
+| `03-toast-en.png`, `03-toast-ja.png`, `03-toast-zh_TW.png` | after the mapped E into the station: the localized `HOSHIKAWA STATION` / 星川駅 / 星川站 arrival toast, the `Find the parcels key` / 荷物室の鍵を探す / 尋找行李房鑰匙 objective and a minimap with no valley river band |
+
+These are HUD/objective/toast state evidence, not a claim about real-time readability or Metal.
+
+The opening sky/city evidence remains the Task 3 captures at `artifacts/task3-opening/opening-city.png` and `opening-sky-pose.png` (1280×800, real `Game.Begin()` and declared shot pose). Their city/anchor code is unchanged since `195df10`, and they are cited, not re-produced, in Task 6; a new `review_dialogue.gd` run would have re-rendered the whole prologue and exceeded the software-render budget. `artifacts/task5-wagon-fix2/12-seven-remedy-hud.png` is not used as evidence: its script repositioned Mio beside each pouch. The new seven-remedy image is the actual self-test reached state.
+
+### Independent reviews established before this task
+
+- **Preflight/Task 1** settled the S1 transcription (4 m opening x 560…564 at z −108) and found the straight-wagon approximation (44.14 m vs the drawn 44.50 m with a 2.54 m bend deviation; its foot 17.4 m off the itinerary), with the city anchors and the unvoiced, direction-sensitive `Homecoming.12` line recorded in `task-1-report.md`.
+- **Task 2's** reviews found the closed-gate walks, the warehouse sleeper's access, the S1 leaf/box and the interaction reach; they were fixed and re-reviewed (`task-2-fix2-review.md`).
+- **Task 3's** independent code and visual reviews approved the city relocation, the arrival reveal and the parcels-door views, with the flat-horizon gap left as a deferred minor; its captures are `artifacts/task3*` (`task-3-fix3-code-review.md`, `task-3-fix3-visual-review.md`, `progress.md`).
+- **Task 4's** independent code review closed the mapped-E and unlock-state findings, and round 2 closed the last inventory-snapshot gap; the station-gate/walk code was accepted at `75d5a05`. The round-2 verdict is in `progress.md` (no standalone review file); `task-4-review.md` and `task-4-fix1-review.md` record the earlier rounds. The Great stair's underside pocket remains a deferred minor.
+- **Task 5's** independent code review approved the wagon at `6e459f9` (wheel sign and slip, finite rail contact, first moving and last visible frames, ramp no-hit and the legacy sloped shove), and the independent visual review passed the sampled wagon-to-gantry clearance (1.625 m lateral, 0.968 m vertical) (`task-5-fix4-code-review.md`, `task-5-fix5-visual-review.md`). The wagon was redesigned from the rejected straight run to the drawn bend and freight scale during that task; continuous swept clearance, physical input and Metal remain unverified.
+
+The new Task 6 captures are **pending** the coordinator's independent `arch-review`; no visual acceptance is claimed here.
+
+### Not verified
+
+- No Metal host, so no graphical self-test, `render_cost.gd` pre/post draw-primitive comparison, frame rate or CPU render time on the ticket's reference platform. Software-Vulkan draw counts were not produced in Task 6 (the existing `render_cost.gd` station viewpoints exist for that run).
+- No physical keyboard/mouse or real-time comfort session; the self-test is engine-injected input at a fixed step.
+- The seven-remedy and three-language HUD captures come from a capture-only instrumented copy of the same self-test (only `Viewport.Disable3D` and a direct viewport-texture readback added, with 3D restored and rendered frames allowed before each shot); that build is not the measured source-identity run. Real-time readability and Metal are unverified.
+- The independent comparison of the new captures with mockups 1 and 2, and the final whole-branch review, are the coordinator's.
+
 ## Hoshikawa Station audio — 2026-11-25
 
 HPA-1258 adds two music loops, two ambience loops and two one-shot effects. The owner approved the station and Conductor music previews. Both committed OGGs match those previews byte for byte.
