@@ -42,7 +42,7 @@ public class StationOutsideTest
     static readonly World.Door MountainDoor=World.Doors.Single(d=>d.Kind==World.DoorKind.Portal&&d.At.X<200),
         StationDoor=World.Doors.Single(d=>d.Kind==World.DoorKind.Portal&&d.At.X>200);
     static readonly (Vector2 A,Vector2 B) Tunnel=(MountainDoor.Landing!.Value,StationDoor.Landing!.Value);
-    static readonly Vector2 Court=World.SavePoints.Single(s=>s.Place=="Court").At,Halt=World.SavePoints.Single(s=>s.Place=="Halt").At;
+    static readonly Vector2 Court=World.SavePoints.Single(s=>s.Place=="Court").At;
 
     [TestCase]
     public void TheStationGroundJoinsTheFineAreasAtItsSeam()
@@ -205,20 +205,29 @@ public class StationOutsideTest
     [TestCase]
     public void TheTunnelConnectsTheTwoHalvesAndTheRidgeKeepsThemApart()
     {
-        var court=World.Decks.Select(d=>(d.A,d.B)).Concat(World.Stairs.Select(s=>(s.Top,s.Foot))).ToArray();
-        var maze=WildsTest.Reach(new((int)Court.X,(int)Court.Y),(x,z)=>false,court).Seen;
+        // The same ground, obstacle predicate and usable mountain deck/stair links in both directions; only the portal link differs.
+        var usable=World.Decks.Select(d=>(d.A,d.B)).Concat(World.Stairs.Select(s=>(s.Top,s.Foot))).ToArray();
+        bool Blocked(int x,int z)=>World.StationBlocked(x,z);
         bool At(bool[,] seen,Vector2 p)=>seen[(int)Mathf.Round(p.X)-Area.Position.X,(int)Mathf.Round(p.Y)-Area.Position.Y];
-        AssertThat(new[]{Forecourt,Portal,new Vector2(600,-140)}.Where(p=>At(maze,p))).OverrideFailureMessage("the maze reaches the station without the tunnel").IsEmpty();
-        var station=From(Portal,false);
-        AssertThat(new[]{Court,Halt,new Vector2(347,-172),new Vector2(360,-172.5f)}.Where(p=>Has(station,p))).OverrideFailureMessage("the station reaches the maze without the tunnel").IsEmpty();
-        // With the tunnel link, both halves meet: the Court reaches the Forecourt, and the station landing reaches the Court.
-        var through=WildsTest.Reach(new((int)Court.X,(int)Court.Y),(x,z)=>false,court.Append(Tunnel));
-        AssertThat(At(through.Seen,Forecourt)).OverrideFailureMessage("the tunnel link does not reach the Forecourt").IsTrue();
-        AssertThat(At(through.Seen,Portal)).IsTrue();
-        var stationLandingPoint=MountainDoor.Landing!.Value;
-        var back=WildsTest.Reach(new((int)Mathf.Round(stationLandingPoint.X),(int)Mathf.Round(stationLandingPoint.Y)),
-            (x,z)=>World.StationBlocked(x,z),new[]{Tunnel}.Concat(court));
-        AssertThat(At(back.Seen,Court)).OverrideFailureMessage("the tunnel link does not reach the Court from the station").IsTrue();
+        // The whole v9 first walk and the station's ground anchors, not a sparse sample.
+        var station=FirstWalk.Concat(new[]{Forecourt,World.Forecourt,World.SavePoints[4].At,World.ArcadePouch,World.GarageCell,World.ParcelsKey,World.CraneRampFoot,StationDoor.At}).ToArray();
+        var court=WildsTest.Reach(new((int)Mathf.Round(Court.X),(int)Mathf.Round(Court.Y)),Blocked,usable);
+        var portal=WildsTest.Reach(new((int)Mathf.Round(Portal.X),(int)Mathf.Round(Portal.Y)),Blocked,usable);
+        // Meaningful positive controls: each flood is on its own side and is neither empty nor wholly blocked.
+        AssertThat(Cells(court).Count()).IsGreater(500);
+        AssertThat(Cells(portal).Count()).IsGreater(500);
+        AssertThat(new[]{"Wayside road","Halt","Row","Mast","Signal yard"}.Where(p=>!At(court.Seen,MazeTest.Places[p]))).OverrideFailureMessage("the mountain flood without the tunnel is not the maze").IsEmpty();
+        AssertThat(new[]{Forecourt,World.ParcelsKey,World.CraneRampFoot}.Where(p=>!At(portal.Seen,p))).OverrideFailureMessage("the station flood without the tunnel is not the station").IsEmpty();
+        // Without the portal link neither half reaches the other: no station landmark from the Court, no MazeTest place from the portal.
+        AssertThat(station.Where(p=>At(court.Seen,p))).OverrideFailureMessage($"the maze reaches the station without the tunnel: {string.Join(", ",station.Where(p=>At(court.Seen,p)).Take(5))}").IsEmpty();
+        AssertThat(MazeTest.Places.Where(p=>At(portal.Seen,p.Value)).Select(p=>p.Key)).OverrideFailureMessage($"the station reaches the maze without the tunnel: {string.Join(", ",MazeTest.Places.Where(p=>At(portal.Seen,p.Value)).Select(p=>p.Key))}").IsEmpty();
+        // With the link, both landings connect and the station's whole landmark set is reached through it.
+        var throughCourt=WildsTest.Reach(new((int)Mathf.Round(Court.X),(int)Mathf.Round(Court.Y)),Blocked,usable.Append(Tunnel));
+        var throughStation=WildsTest.Reach(new((int)Mathf.Round(MountainDoor.Landing!.Value.X),(int)Mathf.Round(MountainDoor.Landing!.Value.Y)),Blocked,new[]{Tunnel}.Concat(usable));
+        AssertThat(At(throughCourt.Seen,Forecourt)).OverrideFailureMessage("the tunnel link does not reach the Forecourt").IsTrue();
+        AssertThat(At(throughStation.Seen,Court)).OverrideFailureMessage("the tunnel link does not reach the Court from the station").IsTrue();
+        AssertThat(station.Where(p=>!At(throughCourt.Seen,p))).OverrideFailureMessage($"the tunnel does not reach every station landmark: {string.Join(", ",station.Where(p=>!At(throughCourt.Seen,p)).Take(5))}").IsEmpty();
+        AssertThat(MazeTest.Places.Where(p=>At(court.Seen,p.Value)&&!At(throughStation.Seen,p.Value)).Select(p=>p.Key)).OverrideFailureMessage("the tunnel does not reach every mountain place the Court does").IsEmpty();
         // The ridge between the East yard's buried path and the portal keeps them apart on its own.
         AssertThat(World.MazeEdge(360,-172.5f)).IsLess(0);
         AssertThat(World.MazeEdge(353,-176)).IsLess(0);

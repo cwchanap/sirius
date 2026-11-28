@@ -1325,6 +1325,14 @@ public static class IntegrationCheck
         for(int i=0;i<240&&stationDrums.Body.Visible;i++)await Frames(1);
         Check(g.Sprung.Contains(stationDrums.Name)&&!stationDrums.Body.Visible&&Math.Abs(hp-g.Player.Health-Enemy.StrikeDamage/growth.Scale("def"))<.01f,
             $"the drums on the lineman's path roll down onto her and break, striking like a patrol ({hp-g.Player.Health:F0})");
+        // The v9 first walk's own way down the lineman's path and across the Forecourt to the garage, on mapped input and physics with no
+        // Place()/reset inside the segment. The isolated probes below may reposition her only after this continuous leg.
+        await Walk((376,-132),(390,-125),(382,-116),(392,-104),(386,-92),(400,-80),(418,-72),(438,-68),(458,-76),(490,-79),(510,-72),(510,-70));
+        Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-Hoshikawa.World.Forecourt.X,g.Player.GlobalPosition.Z-Hoshikawa.World.Forecourt.Y).Length()<2.5f&&g.Interaction().Icon==Hud.StardustIcon,
+            $"the lineman's path walks down from the drums to the Forecourt Starwell {g.Player.GlobalPosition}");
+        await Walk((508,-58),(522,-50),(532,-46),(539,-42),(544,-38));
+        Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-544,g.Player.GlobalPosition.Z+38).Length()<1.5f,
+            $"and on across the forecourt to the garage approach {g.Player.GlobalPosition}");
         // The parcels approach: the real door stands proud of the station's east wall, the paving follows the ground over the whole
         // walking strip, the divider is a legible curb and open railing (not a wall-height slot), and the false service panel is gone.
         var parcelDoor=g.World.GetNode<MeshInstance3D>("Parcels door");var stationEast=g.World.GetNode<MeshInstance3D>("Station east wall");
@@ -1474,6 +1482,8 @@ public static class IntegrationCheck
             "without the key the parcels door reports its lock on the mapped E and leaves the key to be found");
         // The drawn first walk's own last half, on her own feet: the depot road through the bus garage to the open ground, the yard's
         // southeast gap, the old signal room's key, S1 from the yard's side, and the parcels door. Every leg is walked on the built ground.
+        // Back at the garage approach after the isolated parcels and gantry probes: the drums, the Forecourt and this approach were walked
+        // continuously above. From here the garage and the yard are walked again.
         Place(g.Player,On(new(544,-38)));await Frames(10);
         Check(g.Region==World.StationName&&g.Objective=="Find the parcels key"&&g.ObjectivePosition==parcelsKey.GlobalPosition,
             "on the station without the key the objective marks the old signal room's key");

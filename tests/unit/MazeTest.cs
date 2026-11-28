@@ -9,7 +9,7 @@ namespace Hoshikawa.Tests;
 [TestSuite]
 public class MazeTest
 {
-    static readonly Dictionary<string,Vector2> Places=new()
+    internal static readonly Dictionary<string,Vector2> Places=new()
     {
         ["Wayside road"]=new(58,-160),["Court"]=new(94,-159),["Shrine terrace"]=new(94,-128),["Wash under bridge"]=new(74,-160),["Wash head"]=new(76,-184),["Pit"]=new(78,-128),
         ["Wash arm W"]=new(84,-113),["Wash arm E"]=new(125,-97),["Canyon end"]=new(145,-101),["Catwalk"]=new(135,-104),["Pass road W brink"]=new(108,-121),["Chute"]=new(115,-112),
