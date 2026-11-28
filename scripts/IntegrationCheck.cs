@@ -1349,23 +1349,29 @@ public static class IntegrationCheck
             $"and on across the forecourt to the garage approach {g.Player.GlobalPosition}");
         // v9's forecourt ellipse: the deck's roundabout is rx 19 / ry 9 m with a 4 m SVG stroke, so 42 x 22 m outside and 34 x 14 m inside,
         // the stroke measured square to the path. It lies on the level ground, carries no collider, and leaves the clock and routes alone.
+        // The mesh is the existing 64-segment band: vertices 2i and 2i+1 are the outer and inner samples at angle TAU*i/64, so the pairs
+        // are read at those exact indices; a nearest-anywhere match would accept a nearby wrong sample.
         var ellipse=g.World.GetNodeOrNull<MeshInstance3D>("Forecourt ellipse band");
         var ellipseVerts=ellipse?.Mesh is ArrayMesh ellipseMesh?ellipseMesh.SurfaceGetArrays(0)[(int)Godot.Mesh.ArrayType.Vertex].AsVector3Array():Array.Empty<Vector3>();
         float nearX(float dir)=>ellipseVerts.Where(v=>Math.Abs(v.Z+63)<.6f&&Math.Sign(v.X-478)==Math.Sign(dir)).Select(v=>v.X).OrderBy(x=>Math.Abs(x-478)).First();
         float nearZ(float dir)=>ellipseVerts.Where(v=>Math.Abs(v.X-478)<.6f&&Math.Sign(v.Z+63)==Math.Sign(dir)).Select(v=>v.Z).OrderBy(z=>Math.Abs(z+63)).First();
-        bool NearBand(float angleDegrees,float side)
-        {
-            float t=Mathf.DegToRad(angleDegrees),c=Mathf.Cos(t),s=Mathf.Sin(t);
-            var p=new Vector2(19*c,9*s);var n=new Vector2(9*c,19*s).Normalized()*2*side;
-            return ellipseVerts.Any(v=>new Vector2(v.X-478,v.Z+63).DistanceTo(p+n)<1.2f);
-        }
         Check(ellipse!=null&&ellipse.Visible&&ellipseVerts.Length==128&&ellipseVerts.All(v=>Math.Abs(v.Y-(Hoshikawa.World.MeshHeight(v.X,v.Z)+.10f))<.02f)
             &&ellipseVerts.Min(v=>v.X)<457.2f&&ellipseVerts.Max(v=>v.X)>498.8f&&ellipseVerts.Min(v=>v.Z)<-73.8f&&ellipseVerts.Max(v=>v.Z)>-52.2f
             &&Math.Abs(nearX(-1)-461)<.2f&&Math.Abs(nearX(1)-495)<.2f&&Math.Abs(nearZ(-1)+70)<.2f&&Math.Abs(nearZ(1)+56)<.2f
-            &&new[]{30f,45f,60f}.All(a=>NearBand(a,-1)&&NearBand(a,1))
             &&!ellipse!.GetChildren().OfType<CollisionObject3D>().Any(),
             $"the forecourt keeps v9's 4 m stroke on the 19 x 9 m centreline: 42 x 22 m outside, 34 x 14 m inside, on the ground with no collider "
             +$"({ellipseVerts.Length} vertices, x {ellipseVerts.Min(v=>v.X):F1}..{ellipseVerts.Max(v=>v.X):F1}, z {ellipseVerts.Min(v=>v.Z):F1}..{ellipseVerts.Max(v=>v.Z):F1})");
+        var pairErrors=new List<string>();
+        foreach(int i in new[]{1,5,8,13,21,29,37,45,53,61})
+        {
+            float t=Mathf.Tau*i/64,c=Mathf.Cos(t),s=Mathf.Sin(t);
+            var path=new Vector2(19*c,9*s);var normal=new Vector2(9*c,19*s).Normalized()*2;var centre=new Vector2(478,-63);
+            var outer=centre+path+normal;var inner=centre+path-normal;var o=ellipseVerts[i*2];var n=ellipseVerts[i*2+1];
+            if(new Vector2(o.X,o.Z).DistanceTo(outer)>.002f||new Vector2(n.X,n.Z).DistanceTo(inner)>.002f)
+                pairErrors.Add($"i={i} ({i*360.0/64:F3} deg): out ({o.X:F3},{o.Z:F3}) vs ({outer.X:F3},{outer.Y:F3}), in ({n.X:F3},{n.Z:F3}) vs ({inner.X:F3},{inner.Y:F3})");
+        }
+        Check(pairErrors.Count==0,
+            $"the built band's exact outer/inner vertex pairs lie on the 19 x 9 m path offset 2 m normal at the 64 sample angles, within 2 mm {string.Join("; ",pairErrors.Take(3))}");
         using(var ellipseRay=PhysicsRayQueryParameters3D.Create(new(478,9.5f,-54),new(478,5.9f,-54),1))
         {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(ellipseRay);Check(hit.Count>0&&hit["collider"].As<Node>().Name!="Forecourt ellipse band","the forecourt ellipse is paving, not an obstacle");}
         // The parcels approach: the real door stands proud of the station's east wall, the paving follows the ground over the whole

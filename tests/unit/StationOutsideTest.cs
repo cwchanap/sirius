@@ -386,16 +386,9 @@ public class StationOutsideTest
             AssertThat(World.MazeEdge(p.X,p.Y)).OverrideFailureMessage($"the ellipse at {p} is off the station's floor").IsLess(0);
             AssertThat(World.StationBlocked(p.X,p.Y)).OverrideFailureMessage($"the ellipse at {p} runs into a footprint").IsFalse();
         }
-        // The stroke is square to the path, not a band between axis-scaled ellipses: at 30, 45 and 60 degrees the outer and inner
-        // boundaries are 2 m either side of the centreline point.
-        foreach(float degrees in new[]{30f,45f,60f})
-        {
-            float t=Mathf.DegToRad(degrees),c=Mathf.Cos(t),s=Mathf.Sin(t);
-            var path=new Vector2(19*c,9*s);var normal=new Vector2(9*c,19*s).Normalized()*2;
-            AssertThat((path+normal).DistanceTo(path-normal)).OverrideFailureMessage($"the stroke at {degrees} degrees").IsEqualApprox(4f,.001f);
-            AssertThat(((path+normal+path-normal)/2).DistanceTo(path)).OverrideFailureMessage($"the stroke's midpoint at {degrees} degrees").IsLess(.001f);
-        }
-        // The tower's 5 m square sits inside the inner ellipse, the well outside the outer one, and the tower stays solid.
+        // The stroke's square-to-path shape is checked against the built mesh in IntegrationCheck; here the data, axis extents and floor
+        // placement are the unit-level contract. The tower's 5 m square sits inside the inner ellipse, the well outside the outer one,
+        // and the tower stays solid.
         float innerX=ellipse.Width/2-ellipse.Band/2,innerZ=ellipse.Depth/2-ellipse.Band/2;
         AssertThat(2.5f/innerX*2.5f/innerX+2.5f/innerZ*2.5f/innerZ).IsLess(1f);
         AssertThat(World.StationBlocked(478,-63)).IsTrue();
