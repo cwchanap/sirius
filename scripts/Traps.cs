@@ -49,10 +49,15 @@ public partial class Game
                 var rail=t.PathPoint(run+axle.GetMeta("arc").AsSingle());
                 axle.GlobalPosition=new Vector3(rail.At.X,Hoshikawa.World.Height(rail.At.X,rail.At.Y)+Hoshikawa.World.WagonWheelBottom+Hoshikawa.World.WagonWheelRadius,rail.At.Y);
                 axle.GlobalRotation=new(0,Mathf.Atan2(rail.Along.X,rail.Along.Y),0);
-                foreach(var child in axle.GetChildren())if(child is Node3D wheel&&wheel.Name.ToString().StartsWith("Wagon wheel"))wheel.RotateY(Roll*dt/Hoshikawa.World.WagonWheelRadius);
+                foreach(var child in axle.GetChildren())if(child is Node3D wheel&&wheel.Name.ToString().StartsWith("Wagon wheel"))wheel.RotateObjectLocal(Vector3.Up,Roll*dt/Hoshikawa.World.WagonWheelRadius);
             }
             else spin.RotateX(Roll*dt/t.Size);
-            var along3=new Vector3(along.X,0,along.Y);var across=new Vector3(-along3.Z,0,along3.X);var d=mio-p;
+            // A wagon's hit axis is its bent track's own unit tangent. Every other load keeps the projection its run always used: the *3D*
+            // slope direction with Y dropped, so a downhill run's footprint stays as wide and its shove as hard as before (|along| = cos).
+            Vector3 along3;
+            if(t.Long>0)along3=new Vector3(along.X,0,along.Y);
+            else{along3=(t.To-t.From).Normalized();along3.Y=0;}
+            var across=new Vector3(-along3.Z,0,along3.X);var d=mio-p;
             // A wagon's hit volume is its body, not its length: the long body never reaches up to the gantry ramp above its path.
             float tall=t.Long>0?Hoshikawa.World.WagonHitTop:2*t.Size+.6f;
             if(!struckBy.Contains(t.Name)&&Math.Abs(d.Dot(along3))<t.Size+.4f&&Math.Abs(d.Dot(across))<t.Span+.3f&&d.Y>-1&&d.Y<tall){struckBy.Add(t.Name);Player.Crush(along3);}
