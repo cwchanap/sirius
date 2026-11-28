@@ -78,7 +78,7 @@ public partial class Enemy : CharacterBody3D
         // A dormant scout lies still where it fell and wakes when Mio comes close in its sight, unless she comes at its back.
         if(asleep)
         {
-            if(distance<4.5f&&Math.Abs(Game.Player.GlobalPosition.Y-GlobalPosition.Y)<2.5f&&!ExposedTo(Game.Player.GlobalPosition)&&Game.ClearSight(GlobalPosition+Vector3.Up,Game.Player.GlobalPosition+Vector3.Up))Wake(true);
+            if(distance<WakeReach&&Math.Abs(Game.Player.GlobalPosition.Y-GlobalPosition.Y)<2.5f&&!ExposedTo(Game.Player.GlobalPosition)&&Game.ClearSight(GlobalPosition+Vector3.Up,Game.Player.GlobalPosition+Vector3.Up))Wake(true);
             else{ShowBadge(Game.Player.CanShutDown(this)?"shutdown":"");Velocity=new(0,IsOnFloor()?-.5f:Velocity.Y-22*dt,0);MoveAndSlide();return;}
         }
         if(broken>0)
@@ -151,7 +151,7 @@ public partial class Enemy : CharacterBody3D
     }
     // Woken by Mio coming near, it gets up over Rise seconds, its death clip run backwards, and raises its guard before it comes on; struck, it
     // reels at once.
-    public const float Rise=.5f;
+    public const float Rise=.5f,WakeReach=4.5f;
     private void Wake(bool rise=false)
     {
         asleep=false;State="RECOVER";recovery=.8f;Game.Sound("warning");

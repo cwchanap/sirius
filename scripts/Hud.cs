@@ -184,7 +184,9 @@ public partial class Hud : Control
         DrawTextureRect(questShade,new(0,24,x+(Game.QuestStage==Hoshikawa.Quest.Road?190:110),46),false);
         Diamond(new(44,47),6,gold);Text(text,new(62,53),17,cream);
         if(Game.QuestStage==Hoshikawa.Quest.Road)foreach(var patrol in Game.Patrols){DrawIcon("sirius",new(x+12,47),28,patrol.Dead?new Color(cream,.22f):crest);x+=28;}
-        Text(F("{0} m",(int)Game.Player.GlobalPosition.DistanceTo(Game.ObjectivePosition)),new(x+8,53),12,muted);
+        // Inside the station a distance straight through a floor misleads: it shows only when the objective is on Mio's floor.
+        if(!Game.InStation||Hoshikawa.World.StationFloor(Game.Player.GlobalPosition)==Hoshikawa.World.StationFloor(Game.ObjectivePosition))
+            Text(F("{0} m",(int)Game.Player.GlobalPosition.DistanceTo(Game.ObjectivePosition)),new(x+8,53),12,muted);
     }
     // The nearest robot: its crest (smaller for a smaller robot), health and posture, and the TAB key until it is locked on.
     private void Target(Enemy e)

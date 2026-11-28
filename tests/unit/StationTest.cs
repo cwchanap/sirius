@@ -113,6 +113,8 @@ public class StationTest
         AssertThat(robots.Length).IsEqual(37);AssertThat(robots.Count(r=>r.Floor==World.B1)).IsEqual(23);
         AssertThat(robots.Count(r=>r.Kind=="patrol")).IsEqual(6);AssertThat(robots.Count(r=>r.Kind=="scout")).IsEqual(21);AssertThat(robots.Count(r=>r.Sleeps!=null)).IsEqual(10);
         AssertThat(robots.Count(r=>r.Kind=="drone")).IsEqual(10);AssertThat(robots.Where(r=>r.Sleeps!=null).All(r=>r.Kind=="scout")).IsTrue();
+        // Coming in at a door never wakes a sleeper: none lies within its waking reach of a landing.
+        AssertThat(robots.Where(r=>r.Sleeps!=null&&World.StationExits.Any(e=>e.Floor==r.Floor&&e.Landing.DistanceTo(r.At)<Enemy.WakeReach)).Select(r=>r.At)).IsEmpty();
         AssertThat(World.StationPickups.Count(p=>p.Item=="pouch")).IsEqual(3);AssertThat(World.StationPickups.Count(p=>p.Item=="cell")).IsEqual(5);
         AssertThat(World.SavePoints.Single(s=>s.Place=="Machine room")).IsEqual(("Machine room",new Vector2(World.StationPoint(World.MachineWell,World.B1).X,World.StationPoint(World.MachineWell,World.B1).Z),(float?)World.StationPoint(World.MachineWell,World.B1).Y));
     }

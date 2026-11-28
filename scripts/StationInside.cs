@@ -86,7 +86,7 @@ public partial class World
         ("scout",B1,new(45,16),null),("drone",B1,new(56,22.5f),null),("scout",B1,new(78,-6),null),("patrol",B1,new(97,-19),null),("drone",B1,new(116,-32),null),
         ("scout",B1,new(90,-32),null),("patrol",B1,new(56,-32),null),("scout",B1,new(42,-32),270),("drone",B1,new(122,-16),null),("scout",B1,new(20,-19),null),
         ("scout",B1,new(14,-32),90),("scout",B1,new(36,-6),0),("drone",B1,new(48,-6),null),
-        ("scout",F1,new(62,7),45),("drone",F1,new(82,16),null),("scout",F1,new(45,8),null),("scout",F1,new(112,7),null),("scout",F1,new(122,8.5f),270),
+        ("scout",F1,new(62,7),45),("drone",F1,new(82,16),null),("scout",F1,new(45,8),null),("scout",F1,new(112,7),null),("scout",F1,new(117,9),270),
         ("patrol",F1,new(116,27),null),("patrol",F1,new(72,-31),null),("drone",F1,new(60,-14),null),("scout",F1,new(33,-9),null),("scout",F1,new(100,-22),null),
         ("scout",F1,new(112,-31),90),("drone",F1,new(92,-30),null),("scout",F1,new(92,-14.5f),180),("scout",F1,new(113,-13),null)};
     public static readonly (string Item,int Floor,Vector2 At)[] StationPickups={
@@ -163,7 +163,7 @@ public partial class World
         var root=new Node3D{Name="Hoshikawa Station",Visible=false};
         Material plaster=Mat(new("c9bfa9")),concrete=Mat(new("8e877b")),tiles=Mat(new("a69c88")),screed=Mat(new("6d685f")),ceiling=Mat(new("57534c")),
             steel=Mat(new("5d6468")),rust=Mat(new("7b5a44")),timber=Mat(new("6a5038")),shutter=Mat(new("77746b")),rubble=Mat(new("807a70")),
-            city=Mat(new("4fd2ff"),1.6f),glass=Mat(new("d9e4dc"),.6f),sign=Mat(new("1d4f91"),.25f),white=Mat(new("f3eee4"),.4f);
+            city=Mat(new("2a8fb8"),.45f),glass=Mat(new("8fa39d"),.15f),sign=Mat(new("1d4f91"),.25f),white=Mat(new("f3eee4"),.4f);
         Vector3 At(Rect2 r,float y,int floor)=>StationPoint(r.GetCenter(),floor)+Vector3.Up*y;
         MeshInstance3D Slab(string name,Rect2 r,int floor,float y0,float y1,Material look,bool solid=true)=>Box(root,name,At(r,(y0+y1)/2,floor),new(r.Size.X,y1-y0,r.Size.Y),look,solid);
         for(int f=B1;f<=F1;f++)
