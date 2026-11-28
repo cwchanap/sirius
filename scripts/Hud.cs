@@ -138,7 +138,7 @@ public partial class Hud : Control
         if(Game.Blackout>0)DrawRect(new(0,0,w,h),new Color(0,0,0,Game.Blackout));
         if(Game.TintTime>0)DrawRect(new Rect2(0,0,w,h),new Color(Game.TintColor,Game.TintColor.A*Game.TintTime/Game.TintLength));
         Quest();if(!Game.InRoom&&!Game.InStation)Minimap();Vitals();Wallet();
-        var closest=Game.Locked??Game.Enemies.Where(e=>!e.Dead&&!e.Asleep&&e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)<12).OrderBy(e=>e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)).FirstOrDefault();
+        var closest=Game.Locked??Game.Enemies.Where(e=>Game.Targetable(e)&&e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)<12).OrderBy(e=>e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)).FirstOrDefault();
         if(closest!=null)Target(closest);
         if(Game.Mode==GameMode.Playing)
         {

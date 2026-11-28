@@ -231,7 +231,7 @@ public partial class Game : Node3D
     public void Die(){Mode=GameMode.Defeated;Input.MouseMode=Input.MouseModeEnum.Visible;Hud.RefreshMenu();}
     public void Retry()
     {
-        ExitRoom();Player.Visible=true;Player.Respawn();ShowStation(InStation);Locked=null;danger=0;Regroup();Arm();
+        ExitRoom();Player.Visible=true;Player.Respawn();cameraRig.Position=Player.GlobalPosition+Vector3.Up*1.35f;ShowStation(InStation);Locked=null;danger=0;Regroup();Arm();
         CameraYaw=0;FreezeAnimations(false);Start();var at=Hoshikawa.World.SavePoints[RestedAt].At;Toast(Hoshikawa.World.InMaze(at.X,at.Y)||Hoshikawa.World.InStation(at.X,at.Y)?"BACK AT THE STARWELL":"BACK AT THE VILLAGE");
     }
     public void Restart()
@@ -424,10 +424,12 @@ public partial class Game : Node3D
         Earn(enemy.Kind.Reward);
         if(QuestStage==Quest.Road&&Patrols.All(e=>e.Dead)){QuestStage=Quest.Relay;Toast("ROAD CLEARED",seconds:5);}
     }
+    // What lock-on and the HUD's target panel can pick: a robot awake, standing and, inside the station, on Mio's floor.
+    public bool Targetable(Enemy e)=>!e.Dead&&!e.Asleep&&SameFloor(e);
     public void ToggleLock()
     {
         if(Locked!=null){Locked=null;return;}
-        Locked=Enemies.Where(e=>!e.Dead&&!e.Asleep&&SameFloor(e)&&e.GlobalPosition.DistanceTo(Player.GlobalPosition)<18)
+        Locked=Enemies.Where(e=>Targetable(e)&&e.GlobalPosition.DistanceTo(Player.GlobalPosition)<18)
             .OrderBy(e=>e.GlobalPosition.DistanceTo(Player.GlobalPosition)).FirstOrDefault();
     }
     public bool ClearSight(Vector3 a,Vector3 b)

@@ -29,7 +29,7 @@ public partial class Game
     // The Station tunnel's mouth leads in at the parcels door until the Outside map gives the station its own ground. Each door out lands
     // Mio 3 m off it, outside this reach.
     private bool AtStationMouth=>!InStation&&Player.GlobalPosition.DistanceTo(World.MazeEnd)<2.5f;
-    // Inside, a robot on another floor is out of her reach however near it is through the ceiling, so lock-on passes over it.
+    // Inside, a robot on another floor is out of her reach however near it is through the ceiling, so lock-on and the target panel pass over it.
     private bool SameFloor(Enemy e)=>!InStation||Hoshikawa.World.StationFloor(e.GlobalPosition)==Hoshikawa.World.StationFloor(Player.GlobalPosition);
     // Leg 1 ends, for now, with the main doors open and the grand stair still barred.
     private string StationObjective=>Opened.Contains("Main doors")?"Climb the grand stair":"Open the station's main doors";

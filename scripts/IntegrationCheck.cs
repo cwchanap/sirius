@@ -1144,7 +1144,7 @@ public static class IntegrationCheck
         bool Standing(int floor)=>g.InStation&&g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-StationLevel(floor))<.3f;
         string Spot()=>$"{Hoshikawa.World.StationFrame(g.Player.GlobalPosition)} on floor {Hoshikawa.World.StationFloor(g.Player.GlobalPosition)}";
         World.Part PartNamed(string name)=>g.World.Parts.Single(p=>p.Name==name);
-        Aside();g.Interact();bool dark=g.Blackout==1;await Frames(10);
+        Aside();await Tap(Key.E);bool dark=g.Blackout>.9f;await Frames(8);
         Check(dark&&Standing(F1)&&!g.World.Visible&&g.Station.Visible&&g.Region==Hoshikawa.World.StationName&&g.ToastTitle=="HOSHIKAWA STATION"&&g.Music.Current=="relay"
             &&g.Objective=="Open the station's main doors"&&g.ObjectivePosition==PartNamed("Main doors").From,$"E at the tunnel's mouth brings her in at the parcels door from black, the valley hidden behind her, to the station's parcels room under the relay road's music {Spot()}");
         Check(Hoshikawa.World.StationSigns.All(s=>g.Station.GetNode<Node3D>("Signboard "+s.Text).GetChildren().OfType<Label3D>().Count(l=>l.Text==s.Text&&l.Visible)==2),"six signboards hang along leg 1 in place of a minimap, lettered on both faces");
@@ -1158,7 +1158,7 @@ public static class IntegrationCheck
         // A defeat inside before she has rested there brings her back to the last Starwell she rested at, the Halt's, outside.
         g.EnterStation("PARCELS DOOR");await Frames(5);
         g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);felled=g.Mode==GameMode.Defeated;g.Retry();await Frames(5);
-        Check(felled&&!g.InStation&&g.World.Visible&&!g.Station.Visible&&g.Player.GlobalPosition.DistanceTo(On(haltWell+new Vector2(0,2)))<.5f,"a defeat in the station before she rests in it brings her back out to the Halt's Starwell, the valley shown again");
+        Check(felled&&!g.InStation&&g.World.Visible&&!g.Station.Visible&&g.Player.GlobalPosition.DistanceTo(On(haltWell+new Vector2(0,2)))<.5f&&g.Camera.GlobalPosition.DistanceTo(g.Player.GlobalPosition)<12,"a defeat in the station before she rests in it brings her back out to the Halt's Starwell, the valley shown again and the camera with her");
         Aside();g.EnterStation("PARCELS DOOR");await Frames(5);
         await Through((109,12),(109,18),(110.5f,21),(110.5f,23),(110.5f,28),(110.5f,33.5f));
         Check(Standing(B1),$"through the freight office and down the freight stair to B1's freight lift hall {Spot()}");
