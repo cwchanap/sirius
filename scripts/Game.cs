@@ -45,7 +45,6 @@ public partial class Game : Node3D
     // The stardust last earned, shown rising over the HUD's count.
     public int Gained;
     private readonly List<Node3D> savePointGlows=new();
-    private bool arrived;
     public bool SelfTest;
     private Node3D cameraRig=null!;
     private SpringArm3D spring=null!;
@@ -185,9 +184,7 @@ public partial class Game : Node3D
             {
                 previousRegion=Region;Toast(Region.ToUpperInvariant(),seconds:3.5f);
             }
-            if(Locked!=null&&(Locked.Dead||Locked.GlobalPosition.DistanceTo(Player.GlobalPosition)>22))Locked=null;
-            // Tunnel Mountain ends for now at the Station tunnel's mouth, the door to the station.
-            if(QuestStage==Quest.Beyond&&!arrived&&Player.GlobalPosition.DistanceTo(World.MazeEnd)<4){arrived=true;Toast("TO BE CONTINUED",seconds:6);}
+            if(Locked!=null&&(Locked.Dead||Locked.GlobalPosition.DistanceTo(Player.GlobalPosition)>22||!SameFloor(Locked)))Locked=null;
             // Leg 1 ends, for now, at the grand stair's bars, once the main doors are open.
             if(!barred&&Opened.Contains("Main doors")&&Player.GlobalPosition.DistanceTo(Hoshikawa.World.StationPoint(Hoshikawa.World.StairBars,Hoshikawa.World.F1))<4){barred=true;Toast("TO BE CONTINUED",seconds:6);}
             Traps(dt);Cull();
@@ -239,7 +236,7 @@ public partial class Game : Node3D
     }
     public void Restart()
     {
-        QuestStage=Quest.Renji;Heard.Clear();Log.Clear();arrived=barred=false;foreach(var e in Enemies)e.Reset();
+        QuestStage=Quest.Renji;Heard.Clear();Log.Clear();barred=false;foreach(var e in Enemies)e.Reset();
         opening?.Kill();Opened.Clear();Cleared.Clear();RestedAt=0;foreach(var s in World.Parts.Where(p=>p.Shortcut))s.Swing(s.Closed);World.ClearRockfall(false);
         foreach(var pickup in World.Pickups)pickup.Node.Visible=true;Player.Inventory.Reset();
         Player.Growth.Reset();
@@ -312,6 +309,7 @@ public partial class Game : Node3D
         if(AtHome)return ("",T("DOOR"));
         if(ShortcutHere() is {} part)return ("ladder",T(part.Kind.ToUpperInvariant()));
         if(StationExitHere() is {} exit)return ("",T(exit.Name));
+        if(AtStationMouth)return ("",T("PARCELS DOOR"));
         if(PickupHere() is {} pickup){var item=Items.Get(pickup.Item);return (item.Icon,T(item.Name).ToUpperInvariant());}
         return ("","");
     }
@@ -338,6 +336,7 @@ public partial class Game : Node3D
             Sound("guard");Toast("SHORTCUT OPENED",seconds:4);return;
         }
         if(StationExitHere() is {} door){LeaveStation(door);return;}
+        if(AtStationMouth){EnterStation("PARCELS DOOR");return;}
         // A pickup that raises what Mio carries, the remedy pouch, refills what it raises.
         if(PickupHere() is {} pickup&&Player.Inventory.Add(pickup.Item))
         {
@@ -428,7 +427,7 @@ public partial class Game : Node3D
     public void ToggleLock()
     {
         if(Locked!=null){Locked=null;return;}
-        Locked=Enemies.Where(e=>!e.Dead&&!e.Asleep&&e.GlobalPosition.DistanceTo(Player.GlobalPosition)<18)
+        Locked=Enemies.Where(e=>!e.Dead&&!e.Asleep&&SameFloor(e)&&e.GlobalPosition.DistanceTo(Player.GlobalPosition)<18)
             .OrderBy(e=>e.GlobalPosition.DistanceTo(Player.GlobalPosition)).FirstOrDefault();
     }
     public bool ClearSight(Vector3 a,Vector3 b)

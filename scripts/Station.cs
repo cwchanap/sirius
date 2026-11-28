@@ -26,6 +26,11 @@ public partial class Game
     private void ShowStation(bool inside){World.Visible=!inside;Station.Visible=inside;}
     private Hoshikawa.World.StationExit? StationExitHere()=>InStation?Hoshikawa.World.StationExits.FirstOrDefault(e=>(e.After==null||Opened.Contains(e.After))
         &&Hoshikawa.World.StationPoint(e.At,e.Floor).DistanceTo(Player.GlobalPosition)<2.2f):null;
+    // The Station tunnel's mouth leads in at the parcels door until the Outside map gives the station its own ground. Each door out lands
+    // Mio 3 m off it, outside this reach.
+    private bool AtStationMouth=>!InStation&&Player.GlobalPosition.DistanceTo(World.MazeEnd)<2.5f;
+    // Inside, a robot on another floor is out of her reach however near it is through the ceiling, so lock-on passes over it.
+    private bool SameFloor(Enemy e)=>!InStation||Hoshikawa.World.StationFloor(e.GlobalPosition)==Hoshikawa.World.StationFloor(Player.GlobalPosition);
     // Leg 1 ends, for now, with the main doors open and the grand stair still barred.
     private string StationObjective=>Opened.Contains("Main doors")?"Climb the grand stair":"Open the station's main doors";
     private Vector3 StationObjectivePosition=>Opened.Contains("Main doors")?Hoshikawa.World.StationPoint(Hoshikawa.World.StairBars,Hoshikawa.World.F1)
