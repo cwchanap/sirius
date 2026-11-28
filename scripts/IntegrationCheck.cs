@@ -1134,15 +1134,28 @@ public static class IntegrationCheck
             $"down the Shelf's lower way, the East yard's pouch waits on its barrel {g.Player.GlobalPosition}");
         await Tap(Key.E);await Frames(2);
         Check(!eastPouch.Visible&&bag.Count("pouch")==3,$"taking it is the prologue's third pouch (pouches {bag.Count("pouch")})");
-        await WalkTo(new(347,-171));await Walk((346,-165),(344.5f,-160),(343,-150),(342.5f,-137),(343,-125),(343.5f,-115.5f),(341,-110.5f),(337.5f,-113),(336.2f,-117.7f));
+        await WalkTo(new(347,-171));await Walk((346,-165),(344.5f,-160),(343,-150),(342.5f,-137),(343,-125),(343.5f,-115.5f),(341,-110.5f),(337.5f,-113),(336.2f,-118.5f));
+        // The return is the deck's south lip, half a metre over the Shelf: the rim rock closes the walk-only way round (measured: she
+        // stalls at (334.2, 27.16, -118.3) trying it), so she presses up to the lip, takes a pace back and jumps — every step on her own
+        // feet. A body thrown across that lift first proves the jump is what carries her: with it there she stays below the deck.
+        async Task JumpTheLip()
+        {
+            Hold("forward");await Frames(30);Release("forward");await Frames(4);   // up against the lip
+            Hold("back");await Frames(6);Release("back");await Frames(4);          // a pace back from it
+            g.CameraYaw=0;Hold("forward");await Press("jump",2);await Frames(40);Release("forward");await Frames(4);
+        }
+        var lifted=new StaticBody3D{Name="TEST lip obstruction",CollisionLayer=1,CollisionMask=0,Position=new(336.2f,27.55f,-118.35f)};
+        lifted.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(2,2.1f,.3f)}});g.World.AddChild(lifted);await Frames(2);
+        await JumpTheLip();
+        Check(!(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Y>27.2f),$"a body across the lip stops the way back onto the deck ({g.Player.GlobalPosition})");
+        lifted.QueueFree();await Frames(3);
         bool regained=false;
         for(int attempt=0;attempt<3&&!regained;attempt++)
         {
-            g.CameraYaw=0;Hold("forward");await Press("jump",2);await Frames(35);Release("forward");await Frames(5);
+            await JumpTheLip();
             regained=g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-27.5f)<.5f;
-            if(!regained){Place(g.Player,new(336.2f,Hoshikawa.World.Height(336.2f,-118.2f)+.1f,-118.2f));await Frames(5);}
         }
-        Check(regained,$"a hop from the Shelf's lower way regains the Station overlook deck {g.Player.GlobalPosition}");
+        Check(regained,$"up to the lip and a genuine jump regains the Station overlook deck {g.Player.GlobalPosition}");
         await WalkTo(new(334.6f,-121.8f));await WalkTo(new(332.6f,-122.6f));
         await Walk((333.5f,-129.5f),(331.5f,-134.5f),(329.5f,-142.5f),(327,-151.5f),(324.5f,-159),(320,-163));
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-34)<.6f&&g.Sprung.Contains(drum.Name),$"up the Shelf, its cable drum rolling down at her, to the Mast at the top of the map {g.Player.GlobalPosition}");
