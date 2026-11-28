@@ -33,10 +33,10 @@ public partial class World
     // (local 188, 33.5) and the arcade pouch on its side loop's shop row (local 98, -88.6).
     public static readonly Vector2 StationPortal=new(377,-149.5f),Forecourt=new(508,-70),ParcelsDoor=new(558,-130),
         CraneCell=new(593.5f,-138.75f),CraneRampFoot=new(594,-126),ParcelsKey=new(618,-153.5f),ArcadePouch=new(528,-31.4f),GarageCell=new(565,-30);
-    // v9's forecourt ellipse: a 19 x 9 m paving band round the clock tower's centre (478,-63), its Band metres wide; the duty roster
-    // placeholder on the signal room's north wall. Neither is a footprint, a pickup or a door: the ellipse carries no collider and the
-    // roster no interaction, and the readable roster scene is deferred.
-    public static readonly (Vector2 Centre,float Width,float Depth,float Band) ForecourtEllipse=(new(478,-63),19,9,.9f);
+    // v9's forecourt roundabout: maps.py draws rx 19 m / ry 9 m with a 4 m stroke centred on that path, so 42 x 22 m outside and
+    // 34 x 14 m inside. Width and Depth are the stroke's outer extents and Band its width, measured square to the path; the ellipse
+    // is paving with no collider and no footprint row, and the duty roster is the signal room's non-interactive north-wall placeholder.
+    public static readonly (Vector2 Centre,float Width,float Depth,float Band) ForecourtEllipse=(new(478,-63),42,22,4);
     public static readonly Vector2 SignalRoster=new(618,-158.55f);
     // The gantry's cell stands this far over the yard; its ramp climbs from the foot to the bridge's south edge in 10.75 m, 29.6 degrees,
     // its top a tenth over the deck so she steps down onto it rather than into the deck's face.
@@ -243,18 +243,18 @@ public partial class World
         }
         // The paving, gravel and platforms: the terrain under each is the flat trail's, so one plane carries the surface's colour.
         Pad("Forecourt paving",new Rect2(438,-82,98,36),new("b3a88d"));
-        // v9's forecourt ellipse round the clock tower: a 19 x 9 m paving band sampled on the rendered ground like the bay's paving, so it
-        // follows the forecourt's cells and leaves no grass at its edges. Visual only: no collider and no footprint row.
+        // v9's forecourt roundabout, stroked like the drawing: the path's 19 x 9 m radii, with the 4 m stroke laid square to it (2 m either
+        // side), sampled on the rendered ground like the bay's paving so it follows the forecourt's cells. Visual only: no collider.
         {
             var (centre,width,depth,band)=ForecourtEllipse;int segments=64;var ring=new Vector3[segments*2];var ringNormals=new Vector3[segments*2];
-            var ringUv=new Vector2[segments*2];var ringIndex=new List<int>();
+            var ringUv=new Vector2[segments*2];var ringIndex=new List<int>();float rx=width/2-band/2,rz=depth/2-band/2,half=band/2;
             for(int i=0;i<segments;i++)
             {
                 float angle=Mathf.Tau*i/segments,cos=Mathf.Cos(angle),sin=Mathf.Sin(angle);
-                for(int k=0;k<2;k++)
+                var path=new Vector2(centre.X+cos*rx,centre.Y+sin*rz);var normal=new Vector2(cos*rz,sin*rx).Normalized()*half;
+                foreach(var (k,at) in new[]{(0,path+normal),(1,path-normal)})
                 {
-                    float rx=width/2-(k>0?band:0),rz=depth/2-(k>0?band:0);float x=centre.X+cos*rx,z=centre.Y+sin*rz;int at=i*2+k;
-                    ring[at]=new(x,MeshHeight(x,z)+.10f,z);ringNormals[at]=Vector3.Up;ringUv[at]=new(x*.2f,z*.2f);
+                    ring[i*2+k]=new(at.X,MeshHeight(at.X,at.Y)+.10f,at.Y);ringNormals[i*2+k]=Vector3.Up;ringUv[i*2+k]=new(at.X*.2f,at.Y*.2f);
                 }
             }
             for(int i=0;i<segments;i++)

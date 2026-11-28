@@ -1347,16 +1347,26 @@ public static class IntegrationCheck
         await Walk((508,-58),(522,-50),(532,-46),(539,-42),(544,-38));
         Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-544,g.Player.GlobalPosition.Z+38).Length()<1.5f,
             $"and on across the forecourt to the garage approach {g.Player.GlobalPosition}");
-        // v9's forecourt ellipse: a 19 x 9 m paving band round the clock tower's centre, laid on the level ground and carrying no collider.
+        // v9's forecourt ellipse: the deck's roundabout is rx 19 / ry 9 m with a 4 m SVG stroke, so 42 x 22 m outside and 34 x 14 m inside,
+        // the stroke measured square to the path. It lies on the level ground, carries no collider, and leaves the clock and routes alone.
         var ellipse=g.World.GetNodeOrNull<MeshInstance3D>("Forecourt ellipse band");
         var ellipseVerts=ellipse?.Mesh is ArrayMesh ellipseMesh?ellipseMesh.SurfaceGetArrays(0)[(int)Godot.Mesh.ArrayType.Vertex].AsVector3Array():Array.Empty<Vector3>();
-        var ellipseCenter=new Vector2(Hoshikawa.World.ForecourtEllipse.Centre.X,Hoshikawa.World.ForecourtEllipse.Centre.Y);
-        Check(ellipse!=null&&ellipse.Visible&&ellipseVerts.Length>100&&ellipseVerts.All(v=>Math.Abs(v.Y-(Hoshikawa.World.MeshHeight(v.X,v.Z)+.10f))<.02f)
-            &&ellipseVerts.Min(v=>v.X)<=ellipseCenter.X-9.4f&&ellipseVerts.Max(v=>v.X)>=ellipseCenter.X+9.4f
-            &&ellipseVerts.Min(v=>v.Z)<=ellipseCenter.Y-4.4f&&ellipseVerts.Max(v=>v.Z)>=ellipseCenter.Y+4.4f
+        float nearX(float dir)=>ellipseVerts.Where(v=>Math.Abs(v.Z+63)<.6f&&Math.Sign(v.X-478)==Math.Sign(dir)).Select(v=>v.X).OrderBy(x=>Math.Abs(x-478)).First();
+        float nearZ(float dir)=>ellipseVerts.Where(v=>Math.Abs(v.X-478)<.6f&&Math.Sign(v.Z+63)==Math.Sign(dir)).Select(v=>v.Z).OrderBy(z=>Math.Abs(z+63)).First();
+        bool NearBand(float angleDegrees,float side)
+        {
+            float t=Mathf.DegToRad(angleDegrees),c=Mathf.Cos(t),s=Mathf.Sin(t);
+            var p=new Vector2(19*c,9*s);var n=new Vector2(9*c,19*s).Normalized()*2*side;
+            return ellipseVerts.Any(v=>new Vector2(v.X-478,v.Z+63).DistanceTo(p+n)<1.2f);
+        }
+        Check(ellipse!=null&&ellipse.Visible&&ellipseVerts.Length==128&&ellipseVerts.All(v=>Math.Abs(v.Y-(Hoshikawa.World.MeshHeight(v.X,v.Z)+.10f))<.02f)
+            &&ellipseVerts.Min(v=>v.X)<457.2f&&ellipseVerts.Max(v=>v.X)>498.8f&&ellipseVerts.Min(v=>v.Z)<-73.8f&&ellipseVerts.Max(v=>v.Z)>-52.2f
+            &&Math.Abs(nearX(-1)-461)<.2f&&Math.Abs(nearX(1)-495)<.2f&&Math.Abs(nearZ(-1)+70)<.2f&&Math.Abs(nearZ(1)+56)<.2f
+            &&new[]{30f,45f,60f}.All(a=>NearBand(a,-1)&&NearBand(a,1))
             &&!ellipse!.GetChildren().OfType<CollisionObject3D>().Any(),
-            $"the forecourt keeps v9's 19 x 9 m ellipse round the clock tower as ground-following paving with no collider ({ellipseVerts.Length} vertices)");
-        using(var ellipseRay=PhysicsRayQueryParameters3D.Create(new(478,9.5f,-58.5f),new(478,5.9f,-58.5f),1))
+            $"the forecourt keeps v9's 4 m stroke on the 19 x 9 m centreline: 42 x 22 m outside, 34 x 14 m inside, on the ground with no collider "
+            +$"({ellipseVerts.Length} vertices, x {ellipseVerts.Min(v=>v.X):F1}..{ellipseVerts.Max(v=>v.X):F1}, z {ellipseVerts.Min(v=>v.Z):F1}..{ellipseVerts.Max(v=>v.Z):F1})");
+        using(var ellipseRay=PhysicsRayQueryParameters3D.Create(new(478,9.5f,-54),new(478,5.9f,-54),1))
         {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(ellipseRay);Check(hit.Count>0&&hit["collider"].As<Node>().Name!="Forecourt ellipse band","the forecourt ellipse is paving, not an obstacle");}
         // The parcels approach: the real door stands proud of the station's east wall, the paving follows the ground over the whole
         // walking strip, the divider is a legible curb and open railing (not a wall-height slot), and the false service panel is gone.
@@ -1863,14 +1873,17 @@ public static class IntegrationCheck
         Check(g.Player.IsOnFloor()&&new Vector2(g.Player.GlobalPosition.X-forecourt.X,g.Player.GlobalPosition.Z-(forecourt.Y+2)).Length()<.5f,"the Forecourt's respawn spot 2 m from the well is clear");
         // Resting sent every robot home and put its collider back; the Signal yard's patrols are not fought here, so they stay out of the walk.
         foreach(var e in mazeRobots)e.CollisionLayer=0;
-        // A defeat now returns her to the Forecourt, the station's own Starwell, the same state kept; its region is unchanged, so the
-        // first-frame camera check is the one this context adds, beside the toast.
+        // A defeat away from the Forecourt, within the station, with the camera settled on her there: Retry's first frame is then read
+        // against the checkpoint's own follow position, not the one she fell at, and its toast, aim and cleared reveal are read with it.
+        Place(g.Player,On(new(544,-38)));await Frames(60);
+        float forecourtPitch=g.CameraPitch;
         g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);await Frames(2);
         bool forecourtFelled=g.Mode==GameMode.Defeated;g.Retry();await Frames(1);
         Check(forecourtFelled&&g.RestedAt==4&&new Vector2(g.Player.GlobalPosition.X-forecourt.X,g.Player.GlobalPosition.Z-(forecourt.Y+2)).Length()<.5f
             &&g.ToastTitle=="BACK AT THE STARWELL",$"a defeat after resting at the Forecourt brings her back to it {g.Player.GlobalPosition}");
-        Check(g.GetViewport().GetCamera3D().GlobalPosition.DistanceTo(g.Player.GlobalPosition+Vector3.Up*1.35f)<12f,
-            $"Retry at the Forecourt's own Starwell follows her from its first frame ({g.GetViewport().GetCamera3D().GlobalPosition})");
+        Check(g.GetViewport().GetCamera3D().GlobalPosition.DistanceTo(g.Player.GlobalPosition+Vector3.Up*1.35f)<12f
+            &&Math.Abs(g.CameraPitch-forecourtPitch)<.001f&&g.CameraYaw==0&&g.ArrivalLift==0&&g.RevealShare==0,
+            $"Retry at the Forecourt's own Starwell follows her from its first frame, keeping her aim and no reveal ({g.GetViewport().GetCamera3D().GlobalPosition})");
         await Frames(4);
         Check(g.Player.Inventory.Count("parcels_key")==1&&g.Opened.Contains(World.S1Name)&&g.Opened.Contains(World.ParcelsDoorRow.Name)&&Down(s1),
             "and the key, S1 and the door's unlock survive that defeat too");

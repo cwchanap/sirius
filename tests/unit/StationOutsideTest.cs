@@ -369,22 +369,37 @@ public class StationOutsideTest
     [TestCase]
     public void TheForecourtEllipseAndSignalRosterKeepTheirApprovedPlaces()
     {
-        // v9's forecourt ellipse is a 19 x 9 m paving band round the clock tower's centre, on the level forecourt and clear of every
-        // blocked footprint; the signal room's duty roster is a non-interactive placeholder on its north wall, clear of the key and door.
+        // v9's forecourt roundabout (maps.py:229-235) is an ellipse with rx 19 m, ry 9 m and a 4 m stroke centred on that path, so
+        // 42 x 22 m outside and 34 x 14 m inside. It is paving on the level forecourt, clear of every blocked footprint, and leaves the
+        // clock tower and the Forecourt Starwell where they stand; the signal room's duty roster is a non-interactive north-wall board.
         var ellipse=World.ForecourtEllipse;
         AssertThat(ellipse.Centre).IsEqual(new Vector2(478,-63));
-        AssertThat(ellipse.Width).IsEqual(19f);
-        AssertThat(ellipse.Depth).IsEqual(9f);
-        AssertThat(ellipse.Band).IsGreater(.4f).IsLess(2f);
-        foreach(var p in new[]{new Vector2(468.5f,-63),new Vector2(487.5f,-63),new Vector2(478,-58.5f),new Vector2(478,-67.5f)})
+        AssertThat(ellipse.Width).IsEqual(42f);
+        AssertThat(ellipse.Depth).IsEqual(22f);
+        AssertThat(ellipse.Band).IsEqual(4f);
+        AssertThat(ellipse.Width/2-ellipse.Band/2).IsEqual(19f);
+        AssertThat(ellipse.Depth/2-ellipse.Band/2).IsEqual(9f);
+        foreach(var p in new[]{new Vector2(457,-63),new Vector2(499,-63),new Vector2(478,-52),new Vector2(478,-74),
+            new Vector2(461,-63),new Vector2(495,-63),new Vector2(478,-56),new Vector2(478,-70)})
         {
             AssertThat(Math.Abs(World.Height(p.X,p.Y)-6)).OverrideFailureMessage($"the ellipse at {p} is off the level forecourt").IsLess(.01f);
             AssertThat(World.MazeEdge(p.X,p.Y)).OverrideFailureMessage($"the ellipse at {p} is off the station's floor").IsLess(0);
             AssertThat(World.StationBlocked(p.X,p.Y)).OverrideFailureMessage($"the ellipse at {p} runs into a footprint").IsFalse();
         }
-        // The tower's 5 m square sits inside the band's inner ellipse, so the band surrounds it.
-        float innerX=ellipse.Width/2-ellipse.Band,innerZ=ellipse.Depth/2-ellipse.Band;
+        // The stroke is square to the path, not a band between axis-scaled ellipses: at 30, 45 and 60 degrees the outer and inner
+        // boundaries are 2 m either side of the centreline point.
+        foreach(float degrees in new[]{30f,45f,60f})
+        {
+            float t=Mathf.DegToRad(degrees),c=Mathf.Cos(t),s=Mathf.Sin(t);
+            var path=new Vector2(19*c,9*s);var normal=new Vector2(9*c,19*s).Normalized()*2;
+            AssertThat((path+normal).DistanceTo(path-normal)).OverrideFailureMessage($"the stroke at {degrees} degrees").IsEqualApprox(4f,.001f);
+            AssertThat(((path+normal+path-normal)/2).DistanceTo(path)).OverrideFailureMessage($"the stroke's midpoint at {degrees} degrees").IsLess(.001f);
+        }
+        // The tower's 5 m square sits inside the inner ellipse, the well outside the outer one, and the tower stays solid.
+        float innerX=ellipse.Width/2-ellipse.Band/2,innerZ=ellipse.Depth/2-ellipse.Band/2;
         AssertThat(2.5f/innerX*2.5f/innerX+2.5f/innerZ*2.5f/innerZ).IsLess(1f);
+        AssertThat(World.StationBlocked(478,-63)).IsTrue();
+        AssertThat(new Vector2(478,-63).DistanceTo(World.Forecourt)).IsGreater(ellipse.Width/2);
         // The roster hangs inside the signal room on its north wall's face, off the key's pickup and the south door.
         var north=World.StationObstacles.Single(o=>o.Name=="Signal room north wall");
         AssertThat(World.SignalRoster.X).IsEqual(618f);
