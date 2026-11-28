@@ -401,8 +401,11 @@ public partial class World
         }
     }
     // The station's rolling wagon: the parked cars' 11 m class, standing on four axles whose wheels ride the rail tops .17 m over the yard,
-    // so nothing of it starts or rolls inside the hump's 12 cm bed.
-    public const float WagonLong=11,WagonSpan=1.45f,WagonWheelBottom=.17f;
+    // so nothing of it starts or rolls inside the hump's 12 cm bed. Its axles ride the rails themselves (MainGauge apart) while the body
+    // spans the chord, and its hit volume stops at the body's top: length is not height.
+    public const float WagonLong=11,WagonSpan=1.45f,WagonWheelBottom=.17f,WagonWheelRadius=.45f,WagonHitTop=3.5f;
+    // The four axles' stations along the run, in metres behind the leading end: two bogies, two axles each.
+    public static readonly float[] WagonAxles={.9f,2.7f,8.3f,10.1f};
     private void Load(string name,string kind,Vector2 a,Vector2 b,Vector2? bend=null)
     {
         var dir=(b-a).Normalized();float runYaw=Mathf.Atan2(dir.X,dir.Y),yaw=runYaw;
@@ -440,11 +443,19 @@ public partial class World
             Box(spin,"Wagon roof",new(0,3.1f,0),new(3.05f,.14f,10.8f),Mat(new("4a4038")));
             for(int i=0;i<8;i++)Box(spin,"Wagon rib",new(0,2.18f,-4.55f+i*1.3f),new(2.94f,1.72f,.08f),wood);
             Box(spin,"Wagon brake end",new(0,2.33f,4.5f),new(2.6f,2f,1.6f),goods);
-            foreach(float z in new[]{-3.7f,-2.3f,2.3f,3.7f})
+            // Each axle is a node the game places on the run's own line as the wagon rolls (Traps), so its wheels keep the rail gauge through
+            // the bend; parked, it stands on the body where it was built. Its wheels turn about their own axis, the tyre on the rail head.
+            for(int i=0;i<WagonAxles.Length;i++)
             {
-                var axle=new Node3D{Name="Wheel set",Position=new(0,WagonWheelBottom+.45f,z)};spin.AddChild(axle);
-                foreach(float x in new[]{-1.22f,1.22f})Cylinder(axle,"Wagon wheel",new(x,0,0),.45f,.14f,iron).Rotation=new(0,0,Mathf.Pi/2);
-                Box(spin,"Wagon axle box",new(0,WagonWheelBottom+.45f,z),new(2.8f,.18f,.2f),iron);
+                float z=WagonAxles[i]-WagonLong/2;
+                var axle=new Node3D{Name="Wheel set "+(i+1),Position=new(0,WagonWheelBottom+WagonWheelRadius,z)};spin.AddChild(axle);
+                axle.SetMeta("arc",WagonAxles[i]);axle.SetMeta("parked",axle.Transform);
+                foreach(float x in new[]{-MainGauge,MainGauge})
+                {
+                    var wheel=Cylinder(axle,x<0?"Wagon wheel west "+(i+1):"Wagon wheel east "+(i+1),new(x,0,0),WagonWheelRadius,.14f,iron);
+                    wheel.Rotation=new(0,0,Mathf.Pi/2);wheel.SetMeta("parked",wheel.Transform);
+                }
+                Box(axle,"Wagon axle box "+(i+1),Vector3.Zero,new(2*MainGauge+.3f,.18f,.2f),iron);
             }
         }
         else{var barrel=Model(spin,"Barrel","village_barrel",new(span,0,0),0,new(1.3f,1.3f,1.3f));barrel.Rotation=new(0,0,Mathf.Pi/2);}

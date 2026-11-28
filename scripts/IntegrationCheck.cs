@@ -1524,9 +1524,39 @@ public static class IntegrationCheck
             }
             return best;
         }
+        // The rails Siding 2 was actually built with, as the boxes Track() laid: their centre lines and rail-head tops.
+        var railBoxes=g.World.GetChildren().OfType<MeshInstance3D>().Where(n=>n.Name.ToString().StartsWith("Siding 2 rail")).ToArray();
+        (float Gap,float Top) Rail(Vector2 q)
+        {
+            float gap=float.MaxValue,top=0;
+            foreach(var r in railBoxes)
+            {
+                if(r.Mesh is not BoxMesh box)continue;
+                var a=r.ToGlobal(new Vector3(0,0,-box.Size.Z/2));var c=r.ToGlobal(new Vector3(0,0,box.Size.Z/2));
+                var A=new Vector2(a.X,a.Z);var d=new Vector2(c.X-a.X,c.Z-a.Z);
+                float t=Mathf.Clamp((q-A).Dot(d)/d.LengthSquared(),0,1),g2=q.DistanceTo(A+d*t);
+                if(g2<gap){gap=g2;top=Mathf.Lerp(a.Y,c.Y,t)+box.Size.Y/2;}
+            }
+            return (gap,top);
+        }
+        var axles=humpWagon.Body.GetNode<Node3D>("Spin").GetChildren().OfType<Node3D>().Where(n=>n.Name.ToString().StartsWith("Wheel set")).ToArray();
+        var rigid=humpWagon.Body.GetNode<Node3D>("Spin").GetChildren().OfType<Node3D>().Where(n=>!n.Name.ToString().StartsWith("Wheel set")).ToArray();
+        // An ordinary load still turns about its Spin, and a re-arm stops it where it was built: observed on the drums themselves.
+        g.Arm();Place(g.Player,On(new(377,-133)));await Frames(10);
+        var drumSpin=stationDrums.Body.GetNode<Node3D>("Spin");
+        var drumBuilt=drumSpin.GetChildren().OfType<Node3D>().Select(n=>n.Rotation).ToArray();
+        for(int i=0;i<90&&!g.Sprung.Contains(stationDrums.Name);i++)await Frames(1);
+        float drumTurn=0;
+        for(int i=0;i<40;i++){await Frames(1);drumTurn=Math.Max(drumTurn,Math.Abs(drumSpin.Rotation.X));}
+        Check(g.Sprung.Contains(stationDrums.Name)&&drumTurn>.05f,$"an ordinary load still turns about its spin axis ({drumTurn:F2} rad)");
+        g.Arm();
+        Check(drumSpin.Rotation.Length()<.001f&&drumSpin.GetChildren().OfType<Node3D>().Select((n,i)=>n.Rotation.DistanceTo(drumBuilt[i])<.001f).All(b=>b),
+            "a re-arm stops an ordinary load where it was built, its barrel still");
+        // Back to where the yard walk left her, then the detour to the wagon's foot on her own feet.
+        Place(g.Player,On(new(617.5f,-149)));await Frames(5);
         g.Player.Health=g.Player.MaxHealth;g.Player.Invulnerable=0;hp=g.Player.Health;
         await Walk((616,-146),(610,-145),(600,-145),(592,-143),(586,-138),(581,-135.3f));
-        float worstEnd=0,worstCentre=0,overhang=0;int rollSamples=0;
+        float worstEnd=0,worstCentre=0,overhang=0,worstGap=0,worstLift=0,axleTurn=0,rigidTurn=0;int rollSamples=0,treadSamples=0;
         for(int i=0;i<520&&humpWagon.Body.Visible;i++)
         {
             await Frames(1);
@@ -1539,11 +1569,37 @@ public static class IntegrationCheck
             // yard, as a body the length of the run's tail must, and that overhang is reported rather than counted as leaving the rails.
             if(front.X>=570f)worstEnd=Math.Max(worstEnd,Math.Max(OffSiding(rear),OffSiding(front)));
             else overhang=Math.Max(overhang,570f-front.X);
+            // Each wheel's tread against the rail it rides: lateral gap to the nearest rail centre line, and the tyre's low point to the head.
+            foreach(var set in axles)
+                foreach(var tread in set.GetChildren().OfType<Node3D>().Where(n=>n.Name.ToString().StartsWith("Wagon wheel")))
+                {
+                    var (gap,head)=Rail(new Vector2(tread.GlobalPosition.X,tread.GlobalPosition.Z));
+                    float low=tread.GlobalPosition.Y-Hoshikawa.World.WagonWheelRadius;
+                    worstGap=Math.Max(worstGap,gap);worstLift=Math.Max(worstLift,Math.Abs(head-low));treadSamples++;
+                }
+            axleTurn=Math.Max(axleTurn,axles.Max(a=>a.GetChildren().OfType<Node3D>().Where(w=>w.Name.ToString().StartsWith("Wagon wheel")).Max(w=>Math.Abs(w.Rotation.Y))));
+            rigidTurn=Math.Max(rigidTurn,rigid.Max(r=>r.Rotation.Length()));
         }
         Check(rollSamples>250&&worstEnd<.12f&&worstCentre<.85f&&overhang<1.2f,
             $"the wagon's ends ride Siding 2's drawn line through its bend, {worstEnd:F2} m off the rails at most and {worstCentre:F2} m of chord at the corner; past the rails' end its leading end overhangs {overhang:F2} m ({rollSamples} samples)");
+        Check(treadSamples>1500&&worstGap<.11f&&worstLift<.07f,
+            $"every wheel tread rides the drawn rails it was built with, {worstGap:F3} m from the rail centre line and {worstLift:F3} m off the rail head at most ({treadSamples} wheel samples)");
+        Check(axleTurn>.5f&&rigidTurn<.01f,
+            $"a rolling wagon turns only its wheels, never its chassis, roof or ribs ({axleTurn:F1} rad on the wheels, {rigidTurn:F3} on the body)");
         Check(g.Sprung.Contains(humpWagon.Name)&&!humpWagon.Body.Visible&&Math.Abs(hp-g.Player.Health-Enemy.StrikeDamage/growth.Scale("def"))<.01f,
             $"the wagon comes down Siding 2 onto her at the foot of its run and breaks, striking like a patrol ({hp-g.Player.Health:F0})");
+        // Its hit volume stops at its body: from the gantry ramp above its path the passing wagon never strikes her.
+        g.Arm();g.Player.Health=g.Player.MaxHealth;g.Player.Invulnerable=0;hp=g.Player.Health;
+        Place(g.Player,On(new(581,-135.3f)));await Frames(4);
+        // Up on the ramp itself, 5.2 m over the yard at z −134.5 (its surface is 10.9 there), out of the body's reach below.
+        Place(g.Player,new(594,Hoshikawa.World.Height(594,-134.5f)+5.2f,-134.5f));await Frames(30);
+        for(int i=0;i<520&&humpWagon.Body.Visible;i++)await Frames(1);
+        Check(g.Sprung.Contains(humpWagon.Name)&&!humpWagon.Body.Visible&&g.Player.GlobalPosition.Y>9.5f&&Math.Abs(hp-g.Player.Health)<.01f,
+            $"on the gantry ramp above its path, the passing wagon's body never reaches her ({g.Player.GlobalPosition}, {hp-g.Player.Health:F0} taken)");
+        g.Arm();
+        Check(axles.All(a=>a.GetMeta("parked").AsTransform3D().Origin.DistanceTo(a.Position)<.01f)&&rigid.All(r=>r.Rotation.Length()<.001f)
+            &&axles.SelectMany(a=>a.GetChildren().OfType<Node3D>().Where(w=>w.Name.ToString().StartsWith("Wagon wheel"))).All(w=>Math.Abs(w.Rotation.Y)<.001f),
+            "a re-arm puts the wagon's axles and wheels back where they were built, the body still");
         await Walk((586,-138),(592,-143),(600,-145),(610,-145),(616,-146),(617.5f,-149));
         await WalkTo(new(618,-153.5f));await Frames(5);
         Check(g.Player.IsOnFloor()&&g.Player.GlobalPosition.Z<-151.4f&&g.Interaction()==("repair",Localization.T("Parcels key").ToUpperInvariant()),
@@ -1615,13 +1671,18 @@ public static class IntegrationCheck
         await Tap(Key.E);await Frames(2);
         Check(!arcade.Visible&&bag.Count("pouch")==4&&bag.Capacity("remedy")==7&&bag.Count("remedy")==7,
             $"the arcade's pouch is the prologue's fourth, raising the remedies Mio carries to seven and filling them (pouches {bag.Count("pouch")}, capacity {bag.Capacity("remedy")}, remedies {bag.Count("remedy")})");
-        // What the real Vitals() draw emitted, not a recomputed layout: seven filled remedy icons in order, and the H cap's own rect inside
-        // the vitals panel (whose right edge is 342) clear of Skill's ring.
+        // What the real Vitals() draw emitted, at the draw calls themselves: seven filled remedy icons and the H cap's own rect, each
+        // inside the vitals panel (36..342 by the panel's own edges) and clear of one another, with the last icon's outer edge left of the cap.
         await Frames(3);
-        var icons=g.Hud.RemedyDraws;var cap=g.Hud.RemedyHcap;
-        Check(bag.Capacity("remedy")==7&&icons.Count==7&&icons.All(i=>i.Filled)&&icons.Zip(icons.Skip(1)).All(p=>p.Second.At.X>p.First.At.X)
-            &&icons.All(i=>i.At.X+i.Size*.5f<342f)&&cap.Size.X>0&&cap.End.X<=342f&&cap.Position.X>icons[^1].At.X,
-            $"the Vitals draw emitted seven filled remedies in order and the H cap inside the panel ({icons.Count} icons, cap {cap})");
+        var iconAt=g.Hud.RemedyDrawAt;var iconSize=g.Hud.RemedyDrawSize;var iconTint=g.Hud.RemedyDrawTint;var cap=g.Hud.RemedyHcap;
+        int icons=Math.Min(iconAt.Count,Math.Min(iconSize.Count,iconTint.Count));
+        bool InPanel(Rect2 r)=>r.Position.X>=36&&r.End.X<=342&&r.Position.Y>=g.Hud.CanvasHeight-132&&r.End.Y<=g.Hud.CanvasHeight-38;
+        var rects=Enumerable.Range(0,icons).Select(i=>new Rect2(iconAt[i]-Vector2.One*iconSize[i]/2,Vector2.One*iconSize[i])).ToArray();
+        float lastEdge=icons>0?rects.Max(r=>r.End.X):0;
+        bool apart=icons>0&&rects.Zip(rects.Skip(1)).All(p=>p.Second.Position.X>=p.First.End.X-.001f);
+        Check(bag.Capacity("remedy")==7&&icons==7&&iconTint.All(c=>c.A>.9f)&&apart
+            &&rects.All(InPanel)&&InPanel(cap)&&cap.Size.X>0&&cap.Position.X>lastEdge&&cap.End.X<398f-54f,
+            $"the Vitals draw emitted seven filled remedies and the H cap at the draw calls: {icons} icons, last edge {lastEdge:F1}, cap {cap}, all inside the panel and apart");
         // A defeat on the station before its own Starwell: she wakes at the Court she last rested at, key, gate and door's unlock kept.
         g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);await Frames(2);
         bool stationFelled=g.Mode==GameMode.Defeated;g.Retry();await Frames(5);

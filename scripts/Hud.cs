@@ -62,7 +62,14 @@ public partial class Hud : Control
         DrawStyleBox(new StyleBoxFlat {BgColor=new Color(ink,alpha),CornerRadiusTopLeft=3,CornerRadiusBottomRight=3,
             BorderColor=new Color(gold,.35f),BorderWidthLeft=1,BorderWidthBottom=1,BorderWidthRight=1,BorderWidthTop=1},rect);
     }
-    private void DrawIcon(string name,Vector2 center,float size,Color c)=>DrawTextureRect(Icon(name),new Rect2(center-Vector2.One*size/2,Vector2.One*size),false,c);
+    // Every icon is drawn here. While Vitals() draws its remedy row this records what it actually emitted, so the self-test reads the
+    // real draw calls rather than a recomputed layout; a suppressed draw leaves no record.
+    private bool remedyRow;
+    private void DrawIcon(string name,Vector2 center,float size,Color c)
+    {
+        DrawTextureRect(Icon(name),new Rect2(center-Vector2.One*size/2,Vector2.One*size),false,c);
+        if(remedyRow&&name=="remedy"){RemedyDrawAt.Add(center);RemedyDrawSize.Add(size);RemedyDrawTint.Add(c);}
+    }
     // Where each portrait's face is, as fractions of its image (centre, and radius as a share of the width), for the circle crops.
     private static readonly Dictionary<string,(float X,float Y,float R)> Faces=new(){["Mio"]=(.485f,.167f,.213f),["Chiaki"]=(.47f,.14f,.21f),["Chiyo"]=(.52f,.12f,.21f),["Emiko"]=(.52f,.12f,.21f),
         ["Haruka"]=(.53f,.13f,.21f),["KOMA-7"]=(.57f,.12f,.22f),["Naomi"]=(.47f,.17f,.21f),["Renji"]=(.44f,.14f,.21f),["Sota"]=(.46f,.15f,.21f),["Toma"]=(.52f,.14f,.21f),["Yui"]=(.53f,.16f,.21f)};
@@ -120,7 +127,7 @@ public partial class Hud : Control
     private void Keycap(string key,Vector2 p,int size=12)
     {
         var rect=new Rect2(p,KeyWidth(key,size),size*1.9f);
-        if(key=="H"&&size==12)RemedyHcap=rect;
+        if(remedyRow&&key=="H")RemedyHcap=rect;
         DrawStyleBox(new StyleBoxFlat {BgColor=new Color(ink,.92f),BorderColor=new Color(cream,.75f),BorderWidthLeft=1,BorderWidthTop=1,BorderWidthRight=1,BorderWidthBottom=2,
             CornerRadiusTopLeft=3,CornerRadiusTopRight=3,CornerRadiusBottomLeft=3,CornerRadiusBottomRight=3},rect);
         Text(key,new(rect.GetCenter().X-font.GetStringSize(key,fontSize:size).X/2,rect.GetCenter().Y+size*.36f),size,cream);
@@ -214,9 +221,13 @@ public partial class Hud : Control
         DrawLine(new(85,h*.25f+204),new(445,h*.25f+204),new Color(gold,.65f));
         Text(T("The train with no passengers"),new(85,h*.25f+240),19,cream);
     }
-    // Mio's face from her dialogue portrait, vitality and posture as bars, and a pouch for each remedy she can carry. RemedyDraws and
-    // RemedyHcap record what this draw actually emitted, which the self-test reads: no other screen's layout is recorded.
-    public readonly List<(Vector2 At,float Size,bool Filled)> RemedyDraws=new();
+    // Mio's face from her dialogue portrait, vitality and posture as bars, and a pouch for each remedy she can carry. RemedyDrawAt,
+    // RemedyDrawSize and RemedyDrawTint are what the icons' own draws emitted; RemedyHcap is the rect the H cap drew. Both are cleared at
+    // the start of this screen's draw, so a stale rectangle or a suppressed draw cannot pass the self-test.
+    public float CanvasHeight=>h;
+    public readonly List<Vector2> RemedyDrawAt=new();
+    public readonly List<float> RemedyDrawSize=new();
+    public readonly List<Color> RemedyDrawTint=new();
     public Rect2 RemedyHcap;
     private void Vitals()
     {
@@ -228,14 +239,14 @@ public partial class Hud : Control
         float x=136;
         var bag=Game.Player.Inventory;int slots=Math.Max(1,bag.Capacity("remedy"));
         var (pitch,icon)=RemedyRow(slots,KeyWidth("H",12));
-        RemedyDraws.Clear();
+        RemedyDrawAt.Clear();RemedyDrawSize.Clear();RemedyDrawTint.Clear();RemedyHcap=default;remedyRow=true;
         for(int i=0;i<slots;i++)
         {
             bool filled=i<bag.Count("remedy");var at=new Vector2(x+pitch/2,h-64);
-            RemedyDraws.Add((at,icon,filled));
             DrawIcon("remedy",at,icon,filled?cream:new Color(cream,.22f));x+=pitch;
         }
         Keycap("H",new(x+6,h-75.4f));
+        remedyRow=false;
         Skill(new(398,h-86));
     }
     // The remedy row shares the panel with the H cap (the panel's right edge is x 342, its row starting at 136): the pitch is 26 px while
