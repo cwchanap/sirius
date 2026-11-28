@@ -1371,7 +1371,7 @@ public static class IntegrationCheck
                 pairErrors.Add($"i={i} ({i*360.0/64:F3} deg): out ({o.X:F3},{o.Z:F3}) vs ({outer.X:F3},{outer.Y:F3}), in ({n.X:F3},{n.Z:F3}) vs ({inner.X:F3},{inner.Y:F3})");
         }
         Check(pairErrors.Count==0,
-            $"the built band's exact outer/inner vertex pairs lie on the 19 x 9 m path offset 2 m normal at the 64 sample angles, within 2 mm {string.Join("; ",pairErrors.Take(3))}");
+            $"the built band's exact outer/inner vertex pairs lie on the 19 x 9 m path offset 2 m normal at ten off-axis sample angles of the 64-segment mesh, within 2 mm {string.Join("; ",pairErrors.Take(3))}");
         using(var ellipseRay=PhysicsRayQueryParameters3D.Create(new(478,9.5f,-54),new(478,5.9f,-54),1))
         {var hit=g.GetWorld3D().DirectSpaceState.IntersectRay(ellipseRay);Check(hit.Count>0&&hit["collider"].As<Node>().Name!="Forecourt ellipse band","the forecourt ellipse is paving, not an obstacle");}
         // The parcels approach: the real door stands proud of the station's east wall, the paving follows the ground over the whole
