@@ -83,6 +83,14 @@ public partial class Game : Node3D
             var enemy=new Enemy {Game=this,Home=p,Position=p,Index=Enemies.Count+1,Kind=kind switch {"patrol"=>Enemy.Patrol,"scout"=>Enemy.Scout,_=>Enemy.Drone},Maze=true,Sleeps=sleeps,Reach=Hoshikawa.World.Room(at),Yard=Hoshikawa.World.Locks.Select(l=>l.Yard).FirstOrDefault(y=>Hoshikawa.World.InYard(y,p))};
             Enemies.Add(enemy);AddChild(enemy);
         }
+        // The station's own, through the same rows and loop: Maze keeps them out of the day-one mission, and Yard is null, since no
+        // lock-in gate stands on the station.
+        foreach(var (kind,at,sleeps) in Hoshikawa.World.StationRobots)
+        {
+            var p=new Vector3(at.X,Hoshikawa.World.Height(at.X,at.Y)+.1f,at.Y);
+            var enemy=new Enemy {Game=this,Home=p,Position=p,Index=Enemies.Count+1,Kind=kind switch {"patrol"=>Enemy.Patrol,"scout"=>Enemy.Scout,_=>Enemy.Drone},Maze=true,Sleeps=sleeps,Reach=Hoshikawa.World.Room(at)};
+            Enemies.Add(enemy);AddChild(enemy);
+        }
         // Outside World, whose static meshes are baked: each save point's light over its well.
         foreach(var (place,well) in Hoshikawa.World.SavePoints)
         {

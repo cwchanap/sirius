@@ -99,8 +99,14 @@ public class StationOutsideTest
         AssertThat(World.DoorPoint(west)).IsEqual(new Vector3(134,World.Height(134,-176),-176));
         AssertThat(mountainLanding.DistanceTo(west.At)).IsGreater(2.2f);
         AssertThat(stationLanding.DistanceTo(east.At)).IsGreater(2.2f);
-        // Each faces out of the tunnel on arrival: the headings are opposites.
-        AssertThat(Mathf.Abs(Mathf.Wrap(east.Yaw-west.Yaw,Mathf.Pi,Mathf.Tau))).IsGreater(1f);
+        // Each faces out of the tunnel on arrival: the player's own forward and the camera's view are the same way, and the two rows are
+        // opposite. This is the game's own forward formula, not a wrapped angle any two unequal numbers would pass.
+        static Vector2 Walk(float yaw)=>new(Mathf.Sin(yaw),Mathf.Cos(yaw));
+        static Vector2 Look(float cameraYaw)=>-new Vector2(Mathf.Sin(cameraYaw),Mathf.Cos(cameraYaw));
+        AssertThat(Walk(west.Yaw).Dot(new Vector2(1,0))).OverrideFailureMessage($"the mountain-side row lands facing {Walk(west.Yaw)}, not east").IsGreater(.99f);
+        AssertThat(Walk(east.Yaw).Dot(new Vector2(-1,0))).OverrideFailureMessage($"the station-side row lands facing {Walk(east.Yaw)}, not west").IsGreater(.99f);
+        foreach(var d in new[]{west,east})
+            AssertThat(Walk(d.Yaw).Dot(Look(d.CameraYaw))).OverrideFailureMessage($"{d.Name}: player {Walk(d.Yaw)} against camera {Look(d.CameraYaw)}").IsGreater(.99f);
     }
 
     [TestCase]
@@ -404,6 +410,77 @@ public class StationOutsideTest
         AssertThat(Math.Abs(World.CraneRampFoot.DistanceTo(World.CraneRampTop)-World.CraneRampRun)).IsLess(.01f);
         AssertThat(World.StationObstacles.Any(o=>o.Name.Contains("Crane",StringComparison.OrdinalIgnoreCase))).IsFalse();
         AssertThat(World.StationObstacles.Count(o=>o.Name.StartsWith("Gantry leg"))).IsEqual(2);
+    }
+
+    [TestCase]
+    public void TheStationRobotsAreTheSeventeenApprovedPosts()
+    {
+        // v9's posts, transcribed in its order: three patrols, eight scouts (four of them dormant) and six drones, on the station's own
+        // trails. The table is the station's alone; the mountain's 81 rows are untouched, and no station robot guards a lock-in yard.
+        var posts=World.StationRobots;
+        AssertThat(posts.Length).IsEqual(17);
+        AssertThat(posts.Select(r=>r.Kind).Count(k=>k=="patrol")).IsEqual(3);
+        AssertThat(posts.Select(r=>r.Kind).Count(k=>k=="scout")).IsEqual(8);
+        AssertThat(posts.Select(r=>r.Kind).Count(k=>k=="drone")).IsEqual(6);
+        AssertThat(posts.Select(r=>r.At)).ContainsExactly(new Vector2(384,-126),new Vector2(389,-90),new Vector2(470,-54.8f),new Vector2(452,-64),
+            new Vector2(526,-56),new Vector2(462,-34),new Vector2(512,-34),new Vector2(590,-55),new Vector2(555,-37),new Vector2(608,-76),
+            new Vector2(619,-116),new Vector2(582,-131.5f),new Vector2(605,-145.5f),new Vector2(587,-146),new Vector2(608,-131.5f),
+            new Vector2(595,-117),new Vector2(606,-156));
+        AssertThat(posts.Select(r=>r.Kind).ToArray()).ContainsExactly("drone","scout","patrol","drone","drone","scout","scout","scout","scout","drone",
+            "scout","patrol","patrol","scout","scout","drone","drone");
+        AssertThat(posts.Where(r=>r.Sleeps!=null).Select(r=>r.At)).ContainsExactly(new Vector2(462,-34),new Vector2(512,-34),new Vector2(619,-116),new Vector2(587,-146));
+        AssertThat(posts.Where(r=>r.Sleeps!=null).All(r=>r.Kind=="scout")).IsTrue();
+        AssertThat(World.MazeRobots.Length).IsEqual(81);
+        AssertThat(posts.All(r=>World.RegionAt(new Vector3(r.At.X,0,r.At.Y))==World.StationName&&Hoshikawa.World.InStation(r.At.X,r.At.Y))).IsTrue();
+        static Vector3 On(Vector2 p)=>new(p.X,World.Height(p.X,p.Y),p.Y);
+        foreach(var (yard,_) in World.Locks)
+            AssertThat(posts.Count(r=>World.InYard(yard,On(r.At)))).OverrideFailureMessage($"the {yard} holds a station robot").IsEqual(0);
+        var off=posts.Where(r=>World.MazeEdge(r.At.X,r.At.Y)>.3f).Select(r=>$"{r.Kind} at {r.At} ({World.MazeEdge(r.At.X,r.At.Y):F2} m off)").ToArray();
+        AssertThat(off).OverrideFailureMessage($"off the station's floor level: {string.Join(", ",off)}").IsEmpty();
+    }
+
+    [TestCase]
+    public void TheStationTrapsKeepTheirApprovedRuns()
+    {
+        // v9's two rolling loads: the oil drums down the lineman's path and the wagon off the hump. The wagon's drawn run is bent at
+        // (182,15) local; the existing straight mechanic keeps its approved head and foot, 44.14 m against the drawn 44.50 m.
+        var loads=World.StationLoads;
+        AssertThat(loads.Length).IsEqual(2);
+        AssertThat(loads.Select(l=>l.Kind)).ContainsExactly("barrels","wagon");
+        var drums=loads[0];var wagon=loads[1];
+        float drumsRun=drums.From.DistanceTo(drums.To),wagonRun=wagon.From.DistanceTo(wagon.To);
+        AssertThat((drums.Name,drums.From,drums.To)).IsEqual(("Station oil drums",new Vector2(386,-138),new Vector2(377,-132.5f)));
+        AssertThat((wagon.Name,wagon.From,wagon.To)).IsEqual(("Hump wagon",new Vector2(624,-138.5f),new Vector2(580,-135)));
+        AssertThat(drumsRun).OverrideFailureMessage($"the drums' run is {drumsRun:F2} m").IsEqualApprox(10.55f,.01f);
+        AssertThat(wagonRun).OverrideFailureMessage($"the wagon's run is {wagonRun:F2} m").IsEqualApprox(44.14f,.01f);
+        // Both roll through the existing Parts table, the mechanism Traps.cs runs, and both feet are on the station's reachable floor.
+        AssertThat(World.Rolls(drums.Kind)&&World.Rolls(wagon.Kind)&&World.Rolls("wagon")).IsTrue();
+        AssertThat(World.MazeEdge(drums.From.X,drums.From.Y)).IsLess(-.4f);
+        AssertThat(World.MazeEdge(drums.To.X,drums.To.Y)).IsLess(-.4f);
+        AssertThat(World.MazeEdge(wagon.From.X,wagon.From.Y)).IsLess(-.4f);
+        AssertThat(World.MazeEdge(wagon.To.X,wagon.To.Y)).IsLess(-.4f);
+        var reach=From(Forecourt,false);
+        AssertThat(Has(reach,wagon.To)).OverrideFailureMessage($"the wagon's foot at {wagon.To} is out of the yard's flood").IsTrue();
+        AssertThat(Has(From(Portal,false),drums.To)).OverrideFailureMessage($"the drums' foot at {drums.To} is off the lineman's path's flood").IsTrue();
+    }
+
+    [TestCase]
+    public void TheStationSuppliesKeepTheGarageAndCraneCellsAndTheArcadePouch()
+    {
+        // The arcade's remedy pouch was Task 4's; the other two approved supplies are the garage's cell and the gantry's, each through
+        // World.Pickups. The crane's stands CraneRise over the yard, on the bridge deck, not on the ground below it.
+        AssertThat(World.ArcadePouch).IsEqual(new Vector2(528,-31.4f));
+        AssertThat(World.GarageCell).IsEqual(new Vector2(565,-30));
+        AssertThat(World.CraneCell).IsEqual(new Vector2(593.5f,-138.75f));
+        AssertThat(World.CraneDeck).IsEqualApprox(World.Height(World.CraneCell.X,World.CraneCell.Y)+World.CraneRise,.001f);
+        AssertThat(World.CraneDeck-World.Height(World.CraneCell.X,World.CraneCell.Y)).IsGreater(5f);
+        AssertThat(World.CraneCell.DistanceTo(World.CraneRampFoot)).IsGreater(10f);
+        // The garage's cell stands on the shell's through way, out of its walls and the depot's, and the flood reaches it.
+        var garage=World.StationObstacles.Where(o=>o.Name.StartsWith("Garage")).ToArray();
+        AssertThat(garage.Length).IsEqual(6);
+        AssertThat(garage.Any(o=>Math.Abs(o.At.X-World.GarageCell.X)<o.Size.X/2+1&&Math.Abs(o.At.Y-World.GarageCell.Y)<o.Size.Y/2+1&&o.Size.X>1&&o.Size.Y>1)).IsFalse();
+        AssertThat(World.StationBlocked(World.GarageCell.X,World.GarageCell.Y)).IsFalse();
+        AssertThat(Has(From(Forecourt,false),World.GarageCell)).IsTrue();
     }
 
     [TestCase]

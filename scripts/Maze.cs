@@ -403,7 +403,7 @@ public partial class World
     private void Load(string name,string kind,Vector2 a,Vector2 b)
     {
         var dir=(b-a).Normalized();float yaw=Mathf.Atan2(dir.X,dir.Y);
-        float radius=kind switch{"rocks"=>.75f,"logs"=>.35f,"drum"=>.6f,_=>.32f},span=kind switch{"rocks"=>.75f,"logs"=>1.3f,"drum"=>.55f,_=>.42f};
+        float radius=kind switch{"rocks"=>.75f,"logs"=>.35f,"drum"=>.6f,"wagon"=>1.6f,_=>.32f},span=kind switch{"rocks"=>.75f,"logs"=>1.3f,"drum"=>.55f,"wagon"=>1.6f,_=>.42f};
         var body=new StaticBody3D{Name=name,Position=new(a.X,Height(a.X,a.Y),a.Y),Rotation=new(0,yaw,0),CollisionMask=0};AddChild(body);
         body.AddChild(new CollisionShape3D{Position=new(0,radius,0),Shape=new BoxShape3D{Size=new(2*span,2*radius,2*radius)}});
         // It turns about Spin, at its middle, as it rolls along its Z.
@@ -415,6 +415,16 @@ public partial class World
         {
             Cylinder(spin,"Drum cable",Vector3.Zero,radius*.72f,2*span-.12f,Mat(new("5d5246"))).Rotation=new(0,0,Mathf.Pi/2);
             foreach(float x in new[]{span-.04f,.04f-span})Cylinder(spin,"Drum flange",new(x,0,0),radius,.08f,wood).Rotation=new(0,0,Mathf.Pi/2);
+        }
+        // shortcut: a 3.2 m wagon-sized body rolls here, not the 11 m drawn car, whose length the strike check and the run's clearance
+        // would not hold; upgrade if the trap needs the drawn length or a shape that rolls on its own wheels rather than tumbling.
+        else if(kind=="wagon")
+        {
+            Box(spin,"Wagon chassis",new(0,-radius+.3f,0),new(2*span-.2f,.3f,2.5f),wood);
+            Box(spin,"Wagon body",new(0,-.1f,0),new(2*span-.5f,1.5f,2.3f),Mat(new("5b4434")));
+            Box(spin,"Wagon roof",new(0,.72f,0),new(2*span-.35f,.16f,2.45f),Mat(new("4a4038")));
+            foreach(float x in new[]{-1.2f,1.2f})foreach(float z in new[]{-.8f,.8f})
+                Cylinder(spin,"Wagon wheel",new(x,-radius+.42f,z),.42f,.12f,Mat(new("4d5155"))).Rotation=new(0,0,Mathf.Pi/2);
         }
         else{var barrel=Model(spin,"Barrel","village_barrel",new(span,0,0),0,new(1.3f,1.3f,1.3f));barrel.Rotation=new(0,0,Mathf.Pi/2);}
         Parts.Add(new(name,kind,body,body.Position,new(b.X,Height(b.X,b.Y),b.Y),Yaw:yaw,Size:radius,Span:span));

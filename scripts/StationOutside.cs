@@ -32,10 +32,12 @@ public partial class World
     // The anchors named by the approved drawings, in world (x, z). The parcels key is where the v9 first walk enters the old signal room
     // (local 188, 33.5) and the arcade pouch on its side loop's shop row (local 98, -88.6).
     public static readonly Vector2 StationPortal=new(377,-149.5f),Forecourt=new(508,-70),ParcelsDoor=new(558,-130),
-        CraneCell=new(593.5f,-138.75f),CraneRampFoot=new(594,-126),ParcelsKey=new(618,-153.5f),ArcadePouch=new(528,-31.4f);
+        CraneCell=new(593.5f,-138.75f),CraneRampFoot=new(594,-126),ParcelsKey=new(618,-153.5f),ArcadePouch=new(528,-31.4f),GarageCell=new(565,-30);
     // The gantry's cell stands this far over the yard; its ramp climbs from the foot to the bridge's south edge in 10.75 m, 29.6 degrees,
     // its top a tenth over the deck so she steps down onto it rather than into the deck's face.
     public const float CraneRise=6,CraneRampRun=10.75f,CraneRampRise=6.1f;
+    // The bridge deck's own level, where the crane's cell stands.
+    public static float CraneDeck=>Height(CraneCell.X,CraneCell.Y)+CraneRise;
     public static readonly Vector2 CraneRampTop=new(594,-136.75f);
     // The warehouse's yard-facing stair: from the yard at (611,-124) up 1.35 m over 2 m (34 degrees) to its north door at (611,-122),
     // the only way onto the bank and to the v9 sleeper inside Warehouse 2. The stairwell's side walls keep the bank's apron out of reach.
@@ -165,6 +167,21 @@ public partial class World
         ("Siding 4",new Vector3[]{new(570,6,-149),new(612,6,-149),new(624,6,-138.5f)}),
         ("Hump line",new Vector3[]{new(624,6,-138.5f),new(634,6,-147)}),
     };
+    // The station's own rolling loads, the same World.Parts rows and Traps.cs rules the maze's use: each parked at From, the head of its
+    // run, until Mio comes within 2.4 m of To, its foot. v9 draws the wagon's run bent at local (182,15); the existing straight mechanic
+    // keeps its approved head and foot, 44.14 m against the drawn 44.50, deviating up to 2.54 m from the drawn siding, so its foot is a
+    // deliberate detour off the itinerary rather than a trap on the walk.
+    public static readonly (string Name,string Kind,Vector2 From,Vector2 To)[] StationLoads={
+        ("Station oil drums","barrels",new(386,-138),new(377,-132.5f)),("Hump wagon","wagon",new(624,-138.5f),new(580,-135))};
+    // Hoshikawa Station's robots, in the same shape as the maze's and spawned by the same loop: three patrols, eight scouts (four dormant
+    // until Mio comes near), six drones, at v9's posts. They carry Enemy.Maze too, so the day-one relay mission never counts them, but they
+    // guard no lock-in yard: the station's rows have none, and Yard stays null. v9 gives the sleepers' posts and their sleeping state, not
+    // the way each lies; the game needs an angle to lay a scout down, so that angle is the station's own.
+    public static readonly (string Kind,Vector2 At,float? Sleeps)[] StationRobots={
+        ("drone",new(384,-126),null),("scout",new(389,-90),null),("patrol",new(470,-54.8f),null),("drone",new(452,-64),null),("drone",new(526,-56),null),
+        ("scout",new(462,-34),0),("scout",new(512,-34),0),("scout",new(590,-55),null),("scout",new(555,-37),null),("drone",new(608,-76),null),
+        ("scout",new(619,-116),180),("patrol",new(582,-131.5f),null),("patrol",new(605,-145.5f),null),("scout",new(587,-146),-60),("scout",new(608,-131.5f),null),
+        ("drone",new(595,-117),null),("drone",new(606,-156),null)};
     private void StationOutside()
     {
         var r=new RandomNumberGenerator{Seed=8103};
@@ -283,6 +300,8 @@ public partial class World
         }
         // The freight yard's four sidings, drawn from x 570 to the hump at (624,-138.5) and on to (634,-147), converging as v9 draws them.
         foreach(var siding in StationSidings)Track(siding.Name,siding.Points);
+        // The station's two rolling loads, through the maze's own Load() and Traps.cs rules.
+        foreach(var (n,k,from,to) in StationLoads)Load(n,k,from,to);
         // The gantry over the sidings: two legs, the bridge deck with its crane cell, and the ramp up from the yard's floor. The legs are
         // StationObstacles rows, so their colliders and the test's blocked cells are the same footprint; the deck and ramp are bodies of
         // their own, so the 2D flood only knows the ramp's foot.
@@ -290,9 +309,10 @@ public partial class World
         var bridge=new StaticBody3D{Name="Gantry bridge",Position=new(593.5f,deck-.1f,-138.75f),CollisionMask=0};AddChild(bridge);
         bridge.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new(7,.2f,4)}});
         bridge.AddChild(new MeshInstance3D{Mesh=new BoxMesh{Size=new(7,.2f,4)},MaterialOverride=steel});
-        // The south rail splits round the ramp, which enters through the gap; the north edge is open for the one-way drop.
-        foreach(var (name,x) in new[]{("Gantry parapet south west",-2.3f),("Gantry parapet south east",2.3f)})Box(bridge,name,new(x,.55f,1.9f),new(2.2f,.9f,.12f),steel);
-        foreach(float x in new[]{-3.4f,3.4f})Box(bridge,"Gantry end rail",new(x,.55f,0),new(.12f,.9f,4),steel);
+        // The south rail splits round the ramp, which enters through the gap; the north edge is open for the one-way drop. Each rail is
+        // solid to 1.5 m over the deck: higher than her jump clears, so the ramp and the north edge are the only ways off the bridge.
+        foreach(var (name,x) in new[]{("Gantry parapet south west",-2.3f),("Gantry parapet south east",2.3f)})Box(bridge,name,new(x,.75f,1.9f),new(2.2f,1.5f,.12f),steel,true);
+        foreach(var (name,x) in new[]{("Gantry end rail west",-3.4f),("Gantry end rail east",3.4f)})Box(bridge,name,new(x,.75f,0),new(.12f,1.5f,4),steel,true);
         // The ramp's 6.1 m rise over 10.75 m: its top end meets the bridge's south edge at z -136.75, a tenth over the 12 m deck.
         float rampLength=Mathf.Sqrt(CraneRampRun*CraneRampRun+CraneRampRise*CraneRampRise);
         var ramp=new StaticBody3D{Name="Gantry ramp",Position=new(594,Height(594,CraneRampFoot.Y)+CraneRampRise/2,(CraneRampFoot.Y+CraneRampTop.Y)/2),CollisionMask=0};AddChild(ramp);
@@ -311,6 +331,9 @@ public partial class World
         key.AddChild(Combined("Key",Mat(Gold,.6f),(new(0,.03f,0),new(.3f,.04f,.05f)),(new(.13f,.08f,0),new(.05f,.12f,.05f)),(new(-.16f,.07f,0),new(.1f,.14f,.05f))));
         Pickups.Add(new("parcels_key",key));
         Pouch(ArcadePouch,"Arcade pouch","Arcade barrel");
+        // The station's other two supplies, through the same Pickups: the garage's cell off its through way, and the gantry's on its bridge,
+        // six metres over the yard, so only the way up the ramp reaches it.
+        Cell(GarageCell);Cell(CraneCell,CraneDeck);
         // Every footprint is one collider of its own, seated on the lowest ground under it and reaching its own height over the highest,
         // and the one its test blocks. S5's leaf stays unmerged under its body; S1's is its gate Part's, below.
         foreach(var o in StationObstacles)

@@ -120,10 +120,13 @@ public partial class World
     public record Part(string Name,string Kind,Node3D Body,Vector3 From,Vector3 To=default,float Closed=0,float Open=0,float Yaw=0,float Size=0,float Span=0,string? Yard=null)
     {
         public bool Shortcut=>Kind is "ladder" or "stair" or "gate";
-        public bool Rolls=>Kind is "rocks" or "logs" or "barrels" or "drum";
+        // A rolling load turns about its spin axis; the wagon is the station's own load (World.StationLoads), tumbling as the run takes it.
+        public bool Rolls=>World.Rolls(Kind);
         public Transform3D Rest {get;}=Body.Transform;
         public void Swing(float angle)=>Body.Quaternion=new Quaternion(Vector3.Up,Yaw)*new Quaternion(Kind=="gate"?Vector3.Up:Vector3.Right,angle);
     }
+    // The kinds that roll down a run, the maze's and the station's wagon.
+    public static bool Rolls(string kind)=>kind is "rocks" or "logs" or "barrels" or "drum" or "wagon";
     public readonly List<Part> Parts=new();
     // Items lying off the road, each an Items id; Game hides each one Mio takes until the prologue restarts.
     public record Pickup(string Item,Node3D Node);

@@ -25,6 +25,8 @@ public partial class Hud : Control
     public string Selected{get;private set;}="";
     private float scale=1,w=1440,h=900;
     public int Redraws;
+    // River bands the minimap has drawn since it was last reset, which the self-test reads for the station's map.
+    public int MapRivers;
     private Color ink=new("12282f"),cream=new("f1ead5"),muted=new("aec0b4"),gold=World.Gold,jade=World.Jade,red=new("f18470"),crest=new("e58b66");
     public override void _Ready()
     {
@@ -112,7 +114,8 @@ public partial class Hud : Control
         if(glow){DrawCircle(star,size*.9f,new Color(gold,.1f));DrawCircle(star,size*.55f,new Color(gold,.2f));}
         Text(text,new(x-width,y),size,c,true);Star(star,size*.42f,gold);
     }
-    private float KeyWidth(string key,int size)=>Math.Max(size*1.9f,font.GetStringSize(key,fontSize:size).X+size*1.1f);
+    // The cap's width from its key, which the remedy row's own layout and the self-test both measure.
+    public float KeyWidth(string key,int size)=>Math.Max(size*1.9f,font.GetStringSize(key,fontSize:size).X+size*1.1f);
     // A key drawn as a small cap with its name on it; p is the cap's top-left corner.
     private void Keycap(string key,Vector2 p,int size=12)
     {
@@ -355,11 +358,12 @@ public partial class Hud : Control
         DrawCircle(center,r+4,new Color(ink,.93f));DrawArc(center,r,0,Mathf.Tau,64,new Color(gold,.7f),1);
         Text("N",center+new Vector2(-5,-90),11,gold);
         Vector2 Map(Vector3 p)=>new((p.X-Game.Player.GlobalPosition.X)*1.5f,(p.Z-Game.Player.GlobalPosition.Z)*1.5f);
-        // The two full-circle river bands belong to the valley's map; the station lies far east of both rivers.
+        // The two full-circle river bands belong to the valley's map; the station lies far east of both rivers. MapRivers counts the bands
+        // actually drawn, so the self-test can see the station's map carries none and the valley's still does.
         if(Game.Region!=World.StationName)foreach(float riverZ in new[]{-8f,World.CedarZ})
         {
             float y=(riverZ-Game.Player.GlobalPosition.Z)*1.5f;
-            if(Math.Abs(y)<r-3){float width=Mathf.Sqrt((r-3)*(r-3)-y*y);DrawLine(center+new Vector2(-width,y),center+new Vector2(width,y),new Color(.24f,.57f,.58f,.7f),5);}
+            if(Math.Abs(y)<r-3){float width=Mathf.Sqrt((r-3)*(r-3)-y*y);DrawLine(center+new Vector2(-width,y),center+new Vector2(width,y),new Color(.24f,.57f,.58f,.7f),5);MapRivers++;}
         }
         for(float z=-6;z<56;z+=2)
         {var a=Map(new(World.BrookX(z),0,z));var b=Map(new(World.BrookX(z+2),0,z+2));if(a.Length()<r-3&&b.Length()<r-3)DrawLine(center+a,center+b,new Color(.24f,.57f,.58f,.7f),2);}
