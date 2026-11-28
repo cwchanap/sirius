@@ -31,10 +31,10 @@ public partial class Game
                 if(f>=1){giving.Remove(t.Name);body.Visible=false;}
             }
             if(!t.Rolls)continue;
-            if(!Sprung.Contains(t.Name)&&Flat(t.To-mio)<2.4f){Sprung.Add(t.Name);rolling[t.Name]=0;((StaticBody3D)t.Body).CollisionLayer=0;Sound("slam");CameraShake=.12f;}
+            if(!Sprung.Contains(t.Name)&&Flat(t.To-mio)<2.4f&&Math.Abs(mio.Y-t.To.Y)<2){Sprung.Add(t.Name);rolling[t.Name]=0;((StaticBody3D)t.Body).CollisionLayer=0;Sound("slam");CameraShake=.12f;}
             if(!rolling.TryGetValue(t.Name,out float run))continue;
             float length=Flat(t.To-t.From);run=Math.Min(length,run+Roll*dt);rolling[t.Name]=run;
-            var p=t.From.Lerp(t.To,run/length);p.Y=Hoshikawa.World.Height(p.X,p.Z);t.Body.GlobalPosition=p;t.Body.GetNode<Node3D>("Spin").RotateX(Roll*dt/t.Size);
+            var p=t.From.Lerp(t.To,run/length);p.Y=Floor(p);t.Body.GlobalPosition=p;t.Body.GetNode<Node3D>("Spin").RotateX(Roll*dt/t.Size);
             var along=(t.To-t.From).Normalized();along.Y=0;var across=new Vector3(-along.Z,0,along.X);var d=mio-p;
             if(!struckBy.Contains(t.Name)&&Math.Abs(d.Dot(along))<t.Size+.4f&&Math.Abs(d.Dot(across))<t.Span+.3f&&d.Y>-1&&d.Y<2*t.Size+.6f){struckBy.Add(t.Name);Player.Crush(along);}
             if(run>=length){rolling.Remove(t.Name);t.Body.Visible=false;Dust(p,1.6f,14);Sound("break");}

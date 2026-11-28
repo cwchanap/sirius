@@ -285,6 +285,16 @@ Plan: the proposal doc in the project's Claude Docs (audit, per-screen keep/remo
 - [x] Metal on the Mac: the self-test passes graphically, the north half holds about 170 fps with every robot in play; its captures found the Station tunnel's portal buried in the cliff and a tree growing through the viaduct's deck, both fixed.
 - [ ] Separate tasks: the art (the Station tunnel's mouth, the Halt and Great stairs' own models, the girder bridge, the Mast, the ropeway pylon, Jizo statues, the lock-in gates) and the sound (a lock-in gate's drop, a stair let down, the ridge's wind).
 
+## Hoshikawa Station, inside part 1: leg 1 (HPA-1253)
+
+- [x] The inside as a scene of its own (`World.Station()`, built once and hidden far from the valley), shown in the valley's place behind a blackout at the parcels door (in from the Station tunnel's mouth until the Outside map, HPA-1252) and the main doors once open; no minimap, six hanging signboards along leg 1, their words in all three languages.
+- [x] Leg 1 as layout tables on B1 and 1F, rasterized on a 20 cm grid for both the builder and `StationTest`: the freight stair, the pump room and baggage tunnel branches to the Machine room's Starwell, the underground mall's alleys, the gallery's steel plate (S10), the archive's stacks, the arcade stair, the concourse's parcels counter (S8), the south wing and the main doors with the fire shutter (S2); S3, S7 and S12 shut from this side, the jammed doors, B2's glowing seals and the barred grand stair, where TO BE CONTINUED shows.
+- [x] Floor-aware systems: `Game.Floor()`, a ray down to the floor under a point, for the drones' hover and fall and the loads' roll; the Starwells and the loads' triggers compare height; a respawn comes back inside or outside by its Starwell's floor.
+- [x] 37 robots (6 patrols, 21 scouts, 10 of them dormant, 10 drones), three pouches, five cells, the luggage cart and the shopping trolley.
+- [x] `StationTest` floods it: leg 1 reached with every shortcut shut, nothing past the grand stair, S3, S7 or S12, each shortcut opened only from its earning side after a long walk, every place back to the Starwell; the self-test walks leg 1 by both branches, rests, opens all three doors, rolls both loads, checks the drones and a defeat on both sides of the doors out, in all three languages.
+- [ ] After HPA-1252: the parcels door and the main doors to the Outside's own ground and its Forecourt Starwell, the pouch limit.
+- [ ] Metal on the Mac: looks, feel and frame rate; separate tasks for the art and sound (HPA-1256, HPA-1257, HPA-1258).
+
 ## A longer opening (開場劇情)
 
 - [x] Rename the cast to the 2026-10-23 name table (Renji, Chiaki, Haruka, Sota, Naomi, Emiko; Mio's family name Minase) in code, both translations, the glossary, voice files and portraits.

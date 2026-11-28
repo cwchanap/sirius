@@ -78,7 +78,7 @@ public partial class Enemy : CharacterBody3D
         // A dormant scout lies still where it fell and wakes when Mio comes close in its sight, unless she comes at its back.
         if(asleep)
         {
-            if(distance<4.5f&&Math.Abs(Game.Player.GlobalPosition.Y-GlobalPosition.Y)<2.5f&&!ExposedTo(Game.Player.GlobalPosition)&&Game.ClearSight(GlobalPosition+Vector3.Up,Game.Player.GlobalPosition+Vector3.Up))Wake(true);
+            if(distance<WakeReach&&Math.Abs(Game.Player.GlobalPosition.Y-GlobalPosition.Y)<2.5f&&!ExposedTo(Game.Player.GlobalPosition)&&Game.ClearSight(GlobalPosition+Vector3.Up,Game.Player.GlobalPosition+Vector3.Up))Wake(true);
             else{ShowBadge(Game.Player.CanShutDown(this)?"shutdown":"");Velocity=new(0,IsOnFloor()?-.5f:Velocity.Y-22*dt,0);MoveAndSlide();return;}
         }
         if(broken>0)
@@ -124,8 +124,8 @@ public partial class Enemy : CharacterBody3D
         }
         marker.Text=State=="WINDUP"?"◇":"";
         ShowBadge(Broken?"finish":Game.Player.CanShutDown(this)?"shutdown":Stunned?"stunned":State=="PERILOUS"?"perilous":"");
-        // A flyer eases back to its height over whatever ground it crosses; a walker falls to it.
-        float rise=Kind.Flies?(World.Height(GlobalPosition.X,GlobalPosition.Z)+Hover+Mathf.Sin(clock*2.4f)*.08f-GlobalPosition.Y)*6:IsOnFloor()?-.5f:Velocity.Y-22*dt;
+        // A flyer eases back to its height over whatever ground or floor it crosses; a walker falls to it.
+        float rise=Kind.Flies?(Game.Floor(GlobalPosition)+Hover+Mathf.Sin(clock*2.4f)*.08f-GlobalPosition.Y)*6:IsOnFloor()?-.5f:Velocity.Y-22*dt;
         Velocity=new(movement.X,rise,movement.Z);MoveAndSlide();
         if(GlobalPosition.Y<-8)Reset();
     }
@@ -151,7 +151,7 @@ public partial class Enemy : CharacterBody3D
     }
     // Woken by Mio coming near, it gets up over Rise seconds, its death clip run backwards, and raises its guard before it comes on; struck, it
     // reels at once.
-    public const float Rise=.5f;
+    public const float Rise=.5f,WakeReach=4.5f;
     private void Wake(bool rise=false)
     {
         asleep=false;State="RECOVER";recovery=.8f;Game.Sound("warning");
@@ -205,7 +205,7 @@ public partial class Enemy : CharacterBody3D
         if(Kind.Flies)
         {
             knock?.Kill();fall=CreateTween().SetParallel().SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.In);
-            fall.TweenProperty(Model,"position:y",World.Height(GlobalPosition.X,GlobalPosition.Z)-GlobalPosition.Y,.45f);fall.TweenProperty(Model,"rotation:x",.5f,.45f);
+            fall.TweenProperty(Model,"position:y",Game.Floor(GlobalPosition)-GlobalPosition.Y,.45f);fall.TweenProperty(Model,"rotation:x",.5f,.45f);
         }
         Game.FloatingNumber(GlobalPosition+Vector3.Up*2,"DISABLED",World.Jade);Game.OnEnemyDefeated(this);
     }

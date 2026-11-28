@@ -251,7 +251,8 @@ public partial class Player : CharacterBody3D
     {
         // Back by the Starwell she last rested at, or in Hoshikawa's street.
         var at=Game.RestedAt>0?World.SavePoints[Game.RestedAt].At+new Vector2(0,2):new Vector2(0,31);
-        GlobalPosition=new(at.X,World.Height(at.X,at.Y)+.1f,at.Y);Velocity=Vector3.Zero;Rest();
+        float y=Game.RestedAt>0&&World.SavePoints[Game.RestedAt].Level is float level?level:World.Height(at.X,at.Y);
+        GlobalPosition=new(at.X,y+.1f,at.Y);Velocity=Vector3.Zero;Rest();
         Stun=attack=dodge=skillCast=Invulnerable=DeflectWindow=healTimer=landing=0;comboQueued=false;Guarding=false;
         Model.Rotation=new(0,Mathf.Pi,0);Visual.Play("idle",1,true);
     }

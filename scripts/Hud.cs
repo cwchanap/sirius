@@ -137,8 +137,8 @@ public partial class Hud : Control
         if(Game.Mode is GameMode.Dialogue or GameMode.History){Dialogue();if(Game.Mode==GameMode.History)History();return;}
         if(Game.Blackout>0)DrawRect(new(0,0,w,h),new Color(0,0,0,Game.Blackout));
         if(Game.TintTime>0)DrawRect(new Rect2(0,0,w,h),new Color(Game.TintColor,Game.TintColor.A*Game.TintTime/Game.TintLength));
-        Quest();if(!Game.InRoom)Minimap();Vitals();Wallet();
-        var closest=Game.Locked??Game.Enemies.Where(e=>!e.Dead&&!e.Asleep&&e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)<12).OrderBy(e=>e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)).FirstOrDefault();
+        Quest();if(!Game.InRoom&&!Game.InStation)Minimap();Vitals();Wallet();
+        var closest=Game.Locked??Game.Enemies.Where(e=>Game.Targetable(e)&&e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)<12).OrderBy(e=>e.GlobalPosition.DistanceTo(Game.Player.GlobalPosition)).FirstOrDefault();
         if(closest!=null)Target(closest);
         if(Game.Mode==GameMode.Playing)
         {
@@ -184,7 +184,9 @@ public partial class Hud : Control
         DrawTextureRect(questShade,new(0,24,x+(Game.QuestStage==Hoshikawa.Quest.Road?190:110),46),false);
         Diamond(new(44,47),6,gold);Text(text,new(62,53),17,cream);
         if(Game.QuestStage==Hoshikawa.Quest.Road)foreach(var patrol in Game.Patrols){DrawIcon("sirius",new(x+12,47),28,patrol.Dead?new Color(cream,.22f):crest);x+=28;}
-        Text(F("{0} m",(int)Game.Player.GlobalPosition.DistanceTo(Game.ObjectivePosition)),new(x+8,53),12,muted);
+        // Inside the station a distance straight through a floor misleads: it shows only when the objective is on Mio's floor.
+        if(!Game.InStation||Hoshikawa.World.StationFloor(Game.Player.GlobalPosition)==Hoshikawa.World.StationFloor(Game.ObjectivePosition))
+            Text(F("{0} m",(int)Game.Player.GlobalPosition.DistanceTo(Game.ObjectivePosition)),new(x+8,53),12,muted);
     }
     // The nearest robot: its crest (smaller for a smaller robot), health and posture, and the TAB key until it is locked on.
     private void Target(Enemy e)

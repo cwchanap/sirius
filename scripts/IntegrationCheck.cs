@@ -179,11 +179,14 @@ public static class IntegrationCheck
         }
         Check(step<.1f,$"hamlet terrain is continuous (largest 5 cm step {step:F3} at {stepAt})");
         Check(g.World.Residents.Count==10&&g.World.Residents.Select(r=>r.Name).Distinct().Count()==10,"ten named residents across two villages");
-        var relayRobots=g.Enemies.Where(e=>!e.Maze).ToArray();var mazeRobots=g.Enemies.Where(e=>e.Maze).ToArray();
+        var relayRobots=g.Enemies.Where(e=>!e.Maze).ToArray();var mazeRobots=g.Enemies.Where(e=>e.Maze&&Hoshikawa.World.RegionAt(e.Home)==Hoshikawa.World.MazeName).ToArray();
+        var stationRobots=g.Enemies.Where(e=>Hoshikawa.World.RegionAt(e.Home)==Hoshikawa.World.StationName).ToArray();
         Check(g.Patrols.Count()==3&&relayRobots.Count(e=>e.Kind==Enemy.Scout)==4&&relayRobots.Count(e=>e.Kind==Enemy.Drone)==5&&relayRobots.All(e=>Hoshikawa.World.RegionAt(e.Home)=="Old Relay Road"),
             "three patrol robots, four scouts and five drones on the relay road");
         Check(mazeRobots.Length==81&&mazeRobots.Count(e=>e.Kind==Enemy.Patrol)==11&&mazeRobots.Count(e=>e.Kind==Enemy.Drone)==30&&mazeRobots.Count(e=>e.Asleep&&e.State=="ASLEEP")==16
             &&mazeRobots.All(e=>Hoshikawa.World.RegionAt(e.Home)==Hoshikawa.World.MazeName),"Tunnel Mountain holds 81 robots of its own, eleven patrols, forty scouts (sixteen of them dormant) and thirty drones");
+        Check(stationRobots.Length==37&&stationRobots.All(e=>e.Maze)&&stationRobots.Count(e=>e.Kind==Enemy.Patrol)==6&&stationRobots.Count(e=>e.Kind==Enemy.Drone)==10&&stationRobots.Count(e=>e.Asleep&&e.State=="ASLEEP")==10
+            &&stationRobots.Count(e=>Hoshikawa.World.StationFloor(e.Home)==Hoshikawa.World.B1)==23,"Hoshikawa Station's leg 1 holds 37 robots, six patrols, 21 scouts (ten of them dormant) and ten drones, 23 of them on B1");
         // Far from Mio and culled, a dormant scout must already lie at its death clip's end, its hips well down, not stand in the clip's first frame.
         float Hips(Enemy e,bool rest){var skeleton=ActorVisual.Descendants(e.Model).OfType<Skeleton3D>().Single();int hip=skeleton.FindBone("Hips");
             return skeleton.ToGlobal((rest?skeleton.GetBoneGlobalRest(hip):skeleton.GetBoneGlobalPose(hip)).Origin).Y-e.GlobalPosition.Y;}
@@ -898,7 +901,7 @@ public static class IntegrationCheck
         await Tap(Key.Escape);Check(g.Mode==GameMode.Playing,"escape leaves the save point's screen back to play");
         // Komorebi's well is the second Starwell, the same screen.
         var northern=Hoshikawa.World.SavePoints[1].At;Place(g.Player,new(northern.X+2,Hoshikawa.World.Height(northern.X+2,northern.Y)+.1f,northern.Y));await Frames(10);
-        Check(Hoshikawa.World.SavePoints.Length==4&&Hoshikawa.World.RegionAt(g.Player.GlobalPosition)=="Komorebi"&&g.Player.IsOnFloor()&&g.Interaction()==(Hud.StardustIcon,Localization.T(Hoshikawa.World.SavePointName).ToUpperInvariant())
+        Check(Hoshikawa.World.SavePoints.Length==5&&Hoshikawa.World.RegionAt(g.Player.GlobalPosition)=="Komorebi"&&g.Player.IsOnFloor()&&g.Interaction()==(Hud.StardustIcon,Localization.T(Hoshikawa.World.SavePointName).ToUpperInvariant())
             &&g.GetNode<OmniLight3D>("Save point light Komorebi").GlobalPosition.DistanceTo(new(northern.X,g.Player.GlobalPosition.Y,northern.Y))<1.5f,"Komorebi's well is the other Starwell, lit, its name on the prompt");
         g.Player.Health=20;await Tap(Key.E);Check(g.Mode==GameMode.Rest&&g.Player.Health==g.Player.MaxHealth,"and E there rests Mio and opens the same screen");
         await Tap(Key.Escape);
@@ -1027,7 +1030,7 @@ public static class IntegrationCheck
         Check(!dormant.Dead&&!dormant.Asleep&&dormant.State=="STAGGER"&&Hips(dormant,false)<Hips(dormant,true),"in front of it, it wakes and gets up");
         await Frames(30);Check(dormant.State=="RECOVER"&&Hips(dormant,false)>.8f*Hips(dormant,true),$"standing in half a second, its guard up before it comes on ({Hips(dormant,false)/Hips(dormant,true):F2})");dormant.Reset();dormant.SetPhysicsProcess(false);
         // The Cut gate is barred on the Halt's side: from the Crossing it will not open, and it closes the Cut.
-        var cutGate=g.World.Parts.Single(p=>p.Kind=="gate");var gateWest=new Vector2(cutGate.To.X,cutGate.To.Z);var gateEast=new Vector2(cutGate.From.X,cutGate.From.Z);
+        var cutGate=g.World.Parts.Single(p=>p.Name=="Cut gate");var gateWest=new Vector2(cutGate.To.X,cutGate.To.Z);var gateEast=new Vector2(cutGate.From.X,cutGate.From.Z);
         Place(g.Player,On(gateWest-(gateEast-gateWest).Normalized()*3));await Frames(10);
         Check(!await Head(gateEast,true,200)&&g.Player.GlobalPosition.X<Hoshikawa.World.CutGate.X,$"the closed Cut gate stops her at the Crossing's end of the Cut {g.Player.GlobalPosition}");
         Place(g.Player,On(gateWest));await Frames(10);g.Interact();
@@ -1046,7 +1049,7 @@ public static class IntegrationCheck
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-18)<.6f&&g.Sprung.Contains(hangingPlank.Name),$"over the hanging bridge on a stringer, its rotten plank giving way beside her, to Bench 1 {g.Player.GlobalPosition}");
         await Walk((289,-138),(288,-150),(288,-158),(283,-170),(280.5f,-171),(275,-169.8f),(269,-169.6f),(264,-170.4f),(252,-170));
         var haltWell=Hoshikawa.World.SavePoints[3].At;await WalkTo(haltWell+new Vector2(2,0));
-        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-14.5f)<.6f&&g.ToastTitle!="TO BE CONTINUED",$"down the terrace stair and over the trestle beside its rotten plank to the Halt, where the maze runs on {g.Player.GlobalPosition}");
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-14.5f)<.6f,$"down the terrace stair and over the trestle beside its rotten plank to the Halt, where the maze runs on {g.Player.GlobalPosition}");
         foreach(var e in mazeRobots)e.CollisionLayer=layers[e];g.Player.Invulnerable=0;
         // The Halt's well is the second Starwell. Resting there re-arms the traps, and a defeat brings her back to it.
         await Tap(Key.E);await Tap(Key.Escape);
@@ -1116,14 +1119,132 @@ public static class IntegrationCheck
         Place(g.Player,On(new(196,-242)));await Frames(10);
         await Walk((192,-228),(188,-214),(184,-202),(180,-194),(164,-193.5f),(146,-194),(128,-193.5f),(122,-193.5f),(115,-192),(110,-188),(107.5f,-184.5f),(104,-178));
         var great=g.World.Parts.Single(p=>p.Name=="Great stair");var greatFoot=new Vector2(great.To.X,great.To.Z);var greatBrow=new Vector2(great.Body.Position.X,great.Body.Position.Z);
-        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-16.5f)<.6f&&g.ToastTitle!="TO BE CONTINUED",$"down the Wood road and along the Long ledge into the Signal yard {g.Player.GlobalPosition}");
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-16.5f)<.6f,$"down the Wood road and along the Long ledge into the Signal yard {g.Player.GlobalPosition}");
         await WalkTo(new(great.From.X,great.From.Z));Check(g.Interaction()==("ladder",Localization.T("STAIR")),"the Great stair waits drawn up at the yard's edge over the Court");
         g.Interact();await Frames(130);
         Check(g.Opened.Contains(great.Name)&&Down(great),"letting the Great stair down opens the last shortcut");
         await WalkTo(greatBrow,false);await WalkTo(greatFoot+(greatFoot-greatBrow).Normalized()*1.5f,false);
         Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-10)<.5f&&new Vector2(g.Player.GlobalPosition.X,g.Player.GlobalPosition.Z).DistanceTo(courtWell)<9,$"the Great stair walks down into the Court, beside the first Starwell {g.Player.GlobalPosition}");
         await WalkTo(greatBrow+(greatBrow-greatFoot).Normalized()*2.5f);await Walk((104,-176),(120,-176),(133,-176));
-        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-16.5f)<.6f&&g.ToastTitle=="TO BE CONTINUED"&&g.Region==Hoshikawa.World.MazeName,$"back up it and across the yard to the Station tunnel's mouth, where the maze ends for now {g.Player.GlobalPosition}");
+        Check(g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-16.5f)<.6f&&g.Interaction()==("",Localization.T("PARCELS DOOR"))&&g.Region==Hoshikawa.World.MazeName,$"back up it and across the yard to the Station tunnel's mouth, which leads into the station {g.Player.GlobalPosition}");
+        // Hoshikawa Station's inside, leg 1, in at the parcels door, which leads in from the Station tunnel's mouth until the Outside map gives
+        // the station its own ground: down the freight stair to B1, by the baggage tunnel to the Machine room's Starwell and back by the pump
+        // room, round the underground mall and the gallery's spur to the steel plate, through the archive and up the arcade stair to the
+        // concourse and the parcels counter, and through the south wing to the main doors. Its robots stand aside, as Tunnel Mountain's did.
+        const int B1=Hoshikawa.World.B1,F1=Hoshikawa.World.F1;
+        void Aside(){foreach(var e in stationRobots.Concat(mazeRobots)){e.SetPhysicsProcess(false);e.CollisionLayer=0;}g.Player.Invulnerable=1e9f;}
+        float StationLevel(int floor)=>Hoshikawa.World.StationPoint(0,0,floor).Y;
+        Vector3 Inside(float x,float z,int floor)=>Hoshikawa.World.StationPoint(x,z,floor)+Vector3.Up*.1f;
+        Vector2 StationPlan(Vector2 p){var at=Hoshikawa.World.StationPoint(p,0);return new(at.X,at.Z);}
+        async Task Through(params (float X,float Z)[] points)
+        {
+            var from=Hoshikawa.World.StationFrame(g.Player.GlobalPosition);
+            foreach(var (x,z) in points){var to=new Vector2(x,z);int n=(int)Math.Ceiling(from.DistanceTo(to)/8);for(int k=1;k<=n;k++)await WalkTo(StationPlan(from.Lerp(to,(float)k/n)));from=to;}
+        }
+        bool Standing(int floor)=>g.InStation&&g.Player.IsOnFloor()&&Math.Abs(g.Player.GlobalPosition.Y-StationLevel(floor))<.3f;
+        string Spot()=>$"{Hoshikawa.World.StationFrame(g.Player.GlobalPosition)} on floor {Hoshikawa.World.StationFloor(g.Player.GlobalPosition)}";
+        World.Part PartNamed(string name)=>g.World.Parts.Single(p=>p.Name==name);
+        Aside();await Tap(Key.E);bool dark=g.Blackout>.9f;await Frames(8);
+        Check(dark&&Standing(F1)&&!g.World.Visible&&g.Station.Visible&&g.Region==Hoshikawa.World.StationName&&g.ToastTitle=="HOSHIKAWA STATION"&&g.Music.Current=="relay"
+            &&g.Objective=="Open the station's main doors"&&g.ObjectivePosition==PartNamed("Main doors").From,$"E at the tunnel's mouth brings her in at the parcels door from black, the valley hidden behind her, to the station's parcels room under the relay road's music {Spot()}");
+        Check(Hoshikawa.World.StationSigns.All(s=>g.Station.GetNode<Node3D>("Signboard "+s.Text).GetChildren().OfType<Label3D>().Count(l=>l.Text==s.Text&&l.Visible)==2),"six signboards hang along leg 1 in place of a minimap, lettered on both faces");
+        // The parcels counter, the second shortcut, is shut from the parcels room's side, and the parcels door leads back out.
+        await Through((112,7),(107.4f,7));
+        Check(g.Interaction()==("ladder",Localization.T("GATE")),"the parcels counter's gate stands shut in the parcels room's west wall");
+        g.Interact();Check(!g.Opened.Contains("Parcels counter")&&g.ToastTitle=="IT WILL NOT OPEN FROM THIS SIDE"&&!await Head(StationPlan(new(100,7)),true,120),"and it will not open from the parcels room's side");
+        await Through((112,8),(122,10),(124.3f,10));Check(g.Interaction()==("",Localization.T("PARCELS DOOR")),"the parcels door leads back out");
+        g.Interact();await Frames(5);
+        Check(!g.InStation&&g.World.Visible&&!g.Station.Visible&&g.Region==Hoshikawa.World.MazeName&&g.Player.IsOnFloor()&&g.Interaction().Label=="",$"and through it she is back outside, clear of the tunnel's mouth {g.Player.GlobalPosition}");
+        // A defeat inside before she has rested there brings her back to the last Starwell she rested at, the Halt's, outside.
+        g.EnterStation("PARCELS DOOR");await Frames(5);
+        g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);felled=g.Mode==GameMode.Defeated;g.Retry();await Frames(5);
+        Check(felled&&!g.InStation&&g.World.Visible&&!g.Station.Visible&&g.Player.GlobalPosition.DistanceTo(On(haltWell+new Vector2(0,2)))<.5f&&g.Camera.GlobalPosition.DistanceTo(g.Player.GlobalPosition)<12,"a defeat in the station before she rests in it brings her back out to the Halt's Starwell, the valley shown again and the camera with her");
+        Aside();g.EnterStation("PARCELS DOOR");await Frames(5);
+        await Through((109,12),(109,18),(110.5f,21),(110.5f,23),(110.5f,28),(110.5f,33.5f));
+        Check(Standing(B1),$"through the freight office and down the freight stair to B1's freight lift hall {Spot()}");
+        // Two ways on to the Machine room. By the baggage tunnel the luggage cart rolls at her along B1's floor as she comes in from the hall.
+        var cart=PartNamed("Luggage cart");g.Player.Health=g.Player.MaxHealth;g.Player.Invulnerable=0;hp=g.Player.Health;float astray=0;
+        await Through((106,33.5f),(106,28),(102.6f,28));await WalkTo(new(cart.To.X,cart.To.Z),false);
+        for(int i=0;i<400&&cart.Body.Visible;i++){await Frames(1);if(g.Sprung.Contains(cart.Name))astray=Math.Max(astray,Math.Abs(cart.Body.GlobalPosition.Y-StationLevel(B1)));}
+        Check(g.Sprung.Contains(cart.Name)&&!cart.Body.Visible&&astray<.05f&&Math.Abs(hp-g.Player.Health-Enemy.StrikeDamage/growth.Scale("def"))<.01f,$"the luggage cart rolls down the baggage tunnel on B1's floor at her and strikes like a patrol ({hp-g.Player.Health:F0}, {astray:F2} m off the floor)");
+        g.Player.Invulnerable=1e9f;
+        await Through((75,28),(75,24),(75,20),(76,16));
+        int machine=Array.FindIndex(Hoshikawa.World.SavePoints,s=>s.Place=="Machine room");var machineWell=Hoshikawa.World.SavePoints[machine].At;
+        Place(g.Player,new(machineWell.X-2,StationLevel(B1)+.1f,machineWell.Y));await Frames(10);
+        Check(machine==4&&Standing(B1)&&g.Interaction().Icon==Hud.StardustIcon&&g.GetNode<OmniLight3D>("Save point light Machine room").GlobalPosition.DistanceTo(new(machineWell.X,StationLevel(B1)+1.15f,machineWell.Y))<.01f,
+            $"along the baggage tunnel to the Machine room, whose Starwell is lit on B1's floor {Spot()}");
+        await Tap(Key.E);Check(g.Mode==GameMode.Rest&&g.RestedAt==machine&&cart.Body.Visible,"Mio rests at it, which puts the cart back");await Tap(Key.Escape);Aside();
+        // The concourse lies over the Machine room: lock-on passes over the robots up there, out of her reach through the ceiling.
+        var overhead=stationRobots.Count(e=>Hoshikawa.World.StationFloor(e.GlobalPosition)==F1&&e.GlobalPosition.DistanceTo(g.Player.GlobalPosition)<18);g.ToggleLock();
+        Check(overhead>0&&(g.Locked==null||Hoshikawa.World.StationFloor(g.Locked.GlobalPosition)==B1),$"lock-on in the Machine room passes over the {overhead} robots on the concourse overhead");g.Locked=null;
+        // Neither the Starwell nor the mall's trolley answers her on the floor above them.
+        var trolley=PartNamed("Shopping trolley");
+        Place(g.Player,Inside(Hoshikawa.World.MachineWell.X-2,Hoshikawa.World.MachineWell.Y,F1));await Frames(10);
+        Check(Standing(F1)&&!g.AtSavePoint&&g.Interaction().Icon!=Hud.StardustIcon,$"over it on the concourse the Starwell does not answer her {Spot()}");
+        Place(g.Player,Inside(trolley.To.X-Hoshikawa.World.StationAt.X,Hoshikawa.World.StationAt.Z-trolley.To.Z,F1));await Frames(20);
+        Check(Standing(F1)&&!g.Sprung.Contains(trolley.Name),$"nor does the trolley in the mall below the food hall {Spot()}");
+        // The other way, by the flooded pump room, where a drone keeps to B1's floor, not the concourse's over it.
+        var pumpDrone=stationRobots.Single(e=>Hoshikawa.World.StationFrame(e.Home).DistanceTo(new(98,12))<.1f);
+        Place(g.Player,Inside(80,11,B1));await Frames(5);pumpDrone.SetPhysicsProcess(true);await Frames(60);
+        Check(Math.Abs(pumpDrone.GlobalPosition.Y-StationLevel(B1)-Enemy.Hover)<.15f,$"the pump room's drone hovers over B1's floor ({pumpDrone.GlobalPosition.Y-StationLevel(B1):F2} m)");
+        pumpDrone.Execute();await Frames(40);
+        Check(Math.Abs(pumpDrone.Model.GlobalPosition.Y-StationLevel(B1))<.05f,$"and shut down it drops onto it ({pumpDrone.Model.GlobalPosition.Y-StationLevel(B1):F2} m)");pumpDrone.Reset();Aside();
+        Place(g.Player,Inside(80,11,B1));await Frames(5);
+        await Through((85,10.8f),(95,10.8f),(100.5f,10.8f),(100.5f,5),(114,5),(114,8),(114,23),(114,26));
+        Check(Standing(B1),$"the pump room's way runs through its water, along the gallery's east end and up the lift corridor to the freight lift hall {Spot()}");
+        // West along the gallery from the Machine room to the steel plate, which will not go down from this side.
+        var plate=PartNamed("Steel plate");Place(g.Player,Inside(76,11,B1));await Frames(5);
+        await Through((76,8),(76,5),(67,5));
+        Check(g.Interaction()==("ladder",Localization.T("PLATE")),"the steel plate stands across the cable gallery west of the Machine room");
+        g.Interact();Check(!g.Opened.Contains(plate.Name)&&g.ToastTitle=="IT WILL NOT OPEN FROM THIS SIDE"&&!await Head(StationPlan(new(56,5)),true,120),"and it will not go down from the Machine room's side");
+        // Round the underground mall: in at the north alley's east half, down the cross alleys to the south alley, where the trolley rolls at
+        // her, west along it and back up to the north alley's west half and the gallery.
+        await Through((70,3),(70,-6),(84,-6),(84,-19),(110,-19),(110,-32),(102.6f,-32));await WalkTo(new(trolley.To.X,trolley.To.Z),false);astray=0;
+        for(int i=0;i<400&&trolley.Body.Visible;i++){await Frames(1);if(g.Sprung.Contains(trolley.Name))astray=Math.Max(astray,Math.Abs(trolley.Body.GlobalPosition.Y-StationLevel(B1)));}
+        Check(g.Sprung.Contains(trolley.Name)&&!trolley.Body.Visible&&astray<.05f,$"down to the mall's south alley, where the shopping trolley rolls at her along B1's floor ({astray:F2} m off it)");
+        await Through((94,-32),(32,-32),(32,-19),(6,-19),(6,-6),(12,-6),(12,5));
+        Check(Standing(B1),$"west along the south alley and up through the mall's west half to the cable gallery {Spot()}");
+        await Through((40,5),(60,5));Check(g.Interaction()==("ladder",Localization.T("PLATE")),"along the gallery's spur east to the steel plate's west side");
+        g.Interact();await Frames(130);
+        Check(g.Opened.Contains(plate.Name)&&Down(plate),"pushed down from the west, the plate falls across the gallery, the first shortcut");
+        await WalkTo(StationPlan(new(70,5)));Check(Standing(B1),$"and she walks over it to the Machine room's end of the gallery {Spot()}");
+        // North through the boiler room, the archive's zigzag of stacks and the arcade, and up its stair to the waiting room.
+        await Through((40,5),(12,5),(12,8),(12,12),(16,16),(21,16),(24,16),(24,30),(28,30),(28,11),(32,11),(32,14),(36,14),(37,12),(40,12),(40,13.5f),(40,21.5f),(40,23));
+        Check(Standing(F1),$"through the boiler room, the archive's stacks and the arcade, and up its stair to the waiting room {Spot()}");
+        // Over the concourse a drone keeps to 1F's floor, not B1's under it.
+        await Through((44,23),(44,14),(54,8),(78,8));
+        var concourseDrone=stationRobots.Single(e=>Hoshikawa.World.StationFrame(e.Home).DistanceTo(new(82,16))<.1f);concourseDrone.SetPhysicsProcess(true);await Frames(60);
+        Check(Math.Abs(concourseDrone.GlobalPosition.Y-StationLevel(F1)-Enemy.Hover)<.15f,$"the concourse's drone hovers over 1F's floor ({concourseDrone.GlobalPosition.Y-StationLevel(F1):F2} m)");
+        concourseDrone.Execute();await Frames(40);
+        Check(Math.Abs(concourseDrone.Model.GlobalPosition.Y-StationLevel(F1))<.05f,"and shut down it drops onto it, not through to B1");concourseDrone.Reset();Aside();
+        // The parcels counter opens from the concourse.
+        var counter=PartNamed("Parcels counter");
+        await Through((97,8),(102.6f,7));Check(g.Interaction()==("ladder",Localization.T("GATE")),"the parcels counter's gate at the concourse's east end");
+        g.Interact();await Frames(130);
+        Check(g.Opened.Contains(counter.Name)&&Down(counter),"from the concourse's side it swings open, the second shortcut");
+        await WalkTo(StationPlan(new(109,7)));Check(Standing(F1)&&Hoshikawa.World.StationRoomAt(Hoshikawa.World.StationFrame(g.Player.GlobalPosition),F1)?.Name=="Parcels room",$"through to the parcels room {Spot()}");
+        // South through the south hall, whose fire shutter to the entrance hall is shut from its side, the left luggage office, the food hall
+        // and the entrance hall to the main doors.
+        var doors=PartNamed("Main doors");
+        await Through((100,8),(78,8),(66,3),(66,-6),(67,-20.6f));
+        Check(g.Interaction()==("ladder",Localization.T("SHUTTER")),"the fire shutter closes the south hall's south end");
+        g.Interact();Check(!g.Opened.Contains(doors.Name)&&g.ToastTitle=="IT WILL NOT OPEN FROM THIS SIDE"&&!await Head(StationPlan(new(67,-30)),true,120),"and it will not rise from the south hall's side");
+        await Through((72,-6),(81,-6),(99,-6),(99,-13),(88,-15),(88,-19),(88,-22),(121,-22),(121,-30),(84,-30),(76,-30),(66,-32.8f));
+        Check(Standing(F1)&&g.Interaction()==("ladder",Localization.T("SHUTTER"))&&g.Objective=="Open the station's main doors",$"round by the left luggage office and the food hall to the entrance hall and the main doors' shutters {Spot()}");
+        g.Interact();await Frames(130);
+        Check(g.Opened.Contains(doors.Name)&&doors.Body.Position.DistanceTo(doors.Rest.Origin+Vector3.Up*doors.Open)<.01f&&g.Objective=="Climb the grand stair"&&g.ObjectivePosition==Hoshikawa.World.StationPoint(Hoshikawa.World.StairBars,F1),
+            "from the entrance hall the main doors' shutters roll up, the fire shutter with them, and the objective turns to the grand stair");
+        await Through((66,-28),(66,-20),(66,-6),(66,3),(78,8),(98,8));await Frames(5);
+        Check(g.ToastTitle=="TO BE CONTINUED"&&!await Head(StationPlan(new(100,14)),true,120),$"back through the fire shutter to the concourse, where the grand stair stays barred and leg 1 ends for now {Spot()}");
+        // A defeat now brings her back to the Machine room's Starwell, inside, the doors she opened still open.
+        g.Player.Health=1;g.Player.Invulnerable=0;g.Player.Stun=0;g.Player.ReceiveHit(g.Enemies[0],false);felled=g.Mode==GameMode.Defeated;g.Retry();await Frames(5);
+        Check(felled&&Standing(B1)&&!g.World.Visible&&g.Station.Visible&&new Vector2(g.Player.GlobalPosition.X,g.Player.GlobalPosition.Z).DistanceTo(machineWell+new Vector2(0,2))<.5f&&g.ToastTitle=="BACK AT THE STARWELL"
+            &&new[]{plate,counter,doors}.All(p=>g.Opened.Contains(p.Name)),$"a defeat now brings her back to the Machine room's Starwell inside, the three shortcuts still open {Spot()}");
+        Aside();Place(g.Player,Inside(66,-31.4f,F1));await Frames(5);await WalkTo(StationPlan(new(66,-33.6f)));
+        Check(g.Interaction()==("",Localization.T("MAIN DOORS")),"the open main doors lead out");
+        g.Interact();await Frames(5);
+        Check(!g.InStation&&g.World.Visible&&!g.Station.Visible&&g.Region==Hoshikawa.World.MazeName&&g.Player.IsOnFloor(),$"and through them she is back outside, for now at the Station tunnel's mouth {g.Player.GlobalPosition}");
+        foreach(var e in stationRobots)e.CollisionLayer=e.Dead?0u:4u;
         // The old line west of the yard: down onto the old track bed, over the girder bridge beside its rotten sleepers, along the ledge and
         // out onto the viaduct's last spans, to the cell near its broken end and a leap into the relay plaza.
         await Walk((93,-176),(88,-175.5f),(84.5f,-174),(80,-172.7f),(72,-172.7f),(68,-174),(61,-171.5f),(50,-170.5f),(40,-168.5f),(34,-168),(24,-168),(11.5f,-168));
@@ -1176,7 +1297,8 @@ public static class IntegrationCheck
                 ("CTRL / ALT  Dodge     TAB  Lock     Q  Skill",13,334),("E  Interact    H  Remedy    I  Items    ESC  Pause",12,334),
                 ("Items",17,278),("Settings",17,278),("Use",17,138),("Back",17,138),("Supplies",13,378),("Key items",13,378),("The train with no passengers",19,360),
                 ("Head outside",17,340),("Speak to Renji at the workshop",17,340),("Clear the old relay road",17,340),("Restart the manual relay",17,340),("Return to Renji in Hoshikawa",17,340),
-                ("Get ready to set out ({0}/4)",17,340),("Mend Renji's telephone",17,340),("Bring Renji his telephone",17,340),("Go home and rest",17,340),("Meet the others at the rockfall",17,340),("Take the station road east",17,340)};
+                ("Get ready to set out ({0}/4)",17,340),("Mend Renji's telephone",17,340),("Bring Renji his telephone",17,340),("Go home and rest",17,340),("Meet the others at the rockfall",17,340),("Take the station road east",17,340),
+                ("Open the station's main doors",17,340),("Climb the grand stair",17,340)};
             var overflow=tight.Where(t=>Width(t.Text,t.Size)>t.Room).Select(t=>t.Text).ToArray();
             Check(overflow.Length==0,$"{name}: every menu, control and panel string fits its fixed box {string.Join(" | ",overflow)}");
             var stats=Stats.All.Where(s=>Width(s.Short,17,serif)>120).Select(s=>s.Short).ToArray();
