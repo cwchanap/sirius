@@ -539,13 +539,13 @@ public class StationOutsideTest
         foreach(var lang in new[]{"ja","zh_TW"})
         {
             var table=Ui(lang);
-            AssertThat(table.ContainsKey(World.StationName)).OverrideFailureMessage($"{lang} lacks the station's name").IsTrue();
+            // The HUD draws only the uppercase region toast, so the mixed-case natural name has no row (see LocalizationTest).
             AssertThat(table.ContainsKey(World.StationName.ToUpperInvariant())).OverrideFailureMessage($"{lang} lacks the drawn toast key").IsTrue();
             AssertThat(table.ContainsKey("STATION TUNNEL")).OverrideFailureMessage($"{lang} lacks the portal label").IsTrue();
             AssertThat(World.Doors.Where(d=>!table.ContainsKey(d.Label)).Select(d=>d.Label)).IsEmpty();
             AssertThat(World.RegionAt(new Vector3(500,0,-100)).ToUpperInvariant()).IsEqual(World.StationToast);
         }
-        // The toast the HUD draws in the station is the uppercase key above; the station's sign carries the same words.
+        // The toast the HUD draws in the station is the uppercase key above.
         AssertThat(World.StationName).IsEqual("Hoshikawa Station");
         AssertThat(World.StationToast).IsEqual("HOSHIKAWA STATION");
     }

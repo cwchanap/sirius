@@ -83,11 +83,14 @@ public class LocalizationTest
     [TestCase]
     public void TheStationRegionAndItsDoorsHaveTheirOwnTranslations()
     {
-        var drawn=new[]{World.StationName,World.StationName.ToUpperInvariant(),"STATION TUNNEL"};
+        // The HUD draws a region's toast uppercased (`Game._Process`), so only the station's drawn form needs a row. The mixed-case
+        // natural name is the English `World.StationName` identity, never drawn, and would be a dead row under the rule below.
+        var drawn=new[]{World.StationName.ToUpperInvariant(),"STATION TUNNEL"};
         foreach(var lang in new[]{"ja","zh_TW"})
         {
             var ui=Ui(lang);
             AssertThat(drawn.Where(k=>!ui.ContainsKey(k))).OverrideFailureMessage($"{lang} lacks {string.Join(", ",drawn.Where(k=>!ui.ContainsKey(k)))}").IsEmpty();
+            AssertThat(ui.Keys.Any(k=>k==World.StationName)).OverrideFailureMessage($"{lang} still carries the undrawn mixed-case station key").IsFalse();
             AssertThat(World.Doors.Where(d=>!ui.ContainsKey(d.Label)).Select(d=>d.Label)).IsEmpty();
             AssertThat(World.RegionAt(new Vector3(500,0,-100)).ToUpperInvariant()).IsEqual(World.StationToast);
         }
